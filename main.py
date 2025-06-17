@@ -35,17 +35,27 @@ def register():
 @app.route('/login', methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        # Check if it's role-based login (old system)
+        if "role" in request.form:
+            role = request.form.get("role")
+            session["user"] = role
+            session["role"] = role
+            return redirect(url_for("dashboard"))
+        
+        # Check if it's email/password login (new system)
         email = request.form.get("email")
         password = request.form.get("password")
+        
+        if email and password:
+            user_key = f"user:{email}"
+            user = db.get(user_key)
 
-        user_key = f"user:{email}"
-        user = db.get(user_key)
-
-        if user and user["password"] == password:
-            session["user"] = user["email"]
-            return redirect(url_for("dashboard"))
-        else:
-            return "Invalid email or password"
+            if user and user["password"] == password:
+                session["user"] = user["email"]
+                session["name"] = user["name"]
+                return redirect(url_for("dashboard"))
+            else:
+                return "Invalid email or password"
 
     return render_template("login.html")
 
@@ -55,9 +65,21 @@ def dashboard():
     if "user" not in session:
         return redirect(url_for("login"))
 
+    # Handle role-based login
+    if "role" in session:
+        return render_template("dashboard.html", role=session["role"])
+    
+    # Handle registered user login
+    if "name" in session:
+        return render_template("dashboard.html", role=session["name"])
+    
+    # Fallback for registered users without cached name
     user_email = session["user"]
     user_data = db.get(f"user:{user_email}")
-    return render_template("dashboard.html", name=user_data["name"])
+    if user_data:
+        return render_template("dashboard.html", role=user_data["name"])
+    
+    return redirect(url_for("login"))
 
 # Logout
 @app.route('/logout')
