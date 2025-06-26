@@ -1,10 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>FurrButler Home</title>
+  <title>FurrButler - Welcome</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fef9f4;
+      font-family: 'Poppins', sans-serif;
+    }
+    .landing-container {
+      max-width: 700px;
+      margin: 100px auto;
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      color: #ffa94d;
+      margin-bottom: 20px;
+    }
+    p {
+      font-size: 1.2rem;
+      color: #666;
+    }
+    .btn-container {
+      margin-top: 30px;
+    }
+    .btn-pet {
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      margin: 10px;
+      font-size: 1rem;
+      text-decoration: none;
+      display: inline-block;
+      transition: background-color 0.2s ease;
+    }
+    .btn-pet:hover {
+      background-color: #ff8787;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome to FurrButler</h1>
-  <p><a href="/login">Login</a> to get started.</p>
+  <div class="landing-container">
+    <h1>🐶 Welcome to FurrButler 🐱</h1>
+    <p>Because pets deserve butlers too.</p>
+    <div class="btn-container">
+      <a href="/login" class="btn-pet">Login</a>
+      <a href="/register" class="btn-pet">Register</a>
+    </div>
+  </div>
 </body>
 </html>

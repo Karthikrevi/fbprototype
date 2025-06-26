@@ -1,71 +1,197 @@
 from flask import Flask, render_template, request, redirect, session, url_for
-from replit import db  # Replit's key-value database
+from replit import db
+import os
+import json
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'furrbutler_secret_key'  # needed to manage sessions
+app.secret_key = 'furrbutler_secret_key'
 
-# Home page
+    # Setup for photo uploads
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+    # Utility to check file type
+def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+    # Home
 @app.route('/')
 def home():
-    if "user" in session:
-        return redirect(url_for('dashboard'))
-    return render_template("index.html")
+        if "user" in session:
+            return redirect(url_for('dashboard'))
+        return render_template("index.html")
 
-# Register
+    # Register
 @app.route('/register', methods=["GET", "POST"])
 def register():
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        if request.method == "POST":
+            email = request.form.get("email")
+            password = request.form.get("password")
 
-        if not email or not password:
-            return "Please enter both email and password."
+            if not email or not password:
+                return "Please enter both email and password."
 
-        if f"user:{email}" in db:
-            return "User already exists. Try logging in."
+            if f"user:{email}" in db:
+                return "User already exists. Try logging in."
 
-        db[f"user:{email}"] = {
-            "email": email,
-            "password": password
-        }
+            db[f"user:{email}"] = {
+                "email": email,
+                "password": password
+            }
 
-        return redirect(url_for("login"))
-    return render_template("register_new.html")
+            return redirect(url_for("login"))
+        return render_template("register_new.html")
 
-# Login
+    # Login
 @app.route('/login', methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        if request.method == "POST":
+            email = request.form.get("email")
+            password = request.form.get("password")
 
-        if not email or not password:
-            return "Please enter both email and password."
+            if not email or not password:
+                return "Please enter both email and password."
 
-        user_key = f"user:{email}"
-        user = db.get(user_key)
+            user_key = f"user:{email}"
+            user = db.get(user_key)
 
-        if user and user["password"] == password:
-            session["user"] = email
-            return redirect(url_for("dashboard"))
-        else:
-            return "Invalid email or password."
+            if user and user["password"] == password:
+                session["user"] = email
+                return redirect(url_for("dashboard"))
+            else:
+                return "Invalid email or password."
 
-    return render_template("login.html")
+        return render_template("login.html")
 
-# Dashboard
+    # Dashboard
 @app.route('/dashboard')
 def dashboard():
+        if "user" not in session:
+            return redirect(url_for("login"))
+
+        email = session["user"]
+        return render_template("dashboard.html", email=email)
+    # Groomers & Vendors
+@app.route('/groomers')
+def groomers():
+        if "user" not in session:
+            return redirect(url_for("login"))
+        return render_template("groomers.html")
+
+    # Restaurants & Boarding
+@app.route('/boarding')
+def boarding():
+        if "user" not in session:
+            return redirect(url_for("login"))
+        return render_template("boarding.html")
+
+    # Vets & Pharma
+@app.route('/vets')
+def vets():
+        if "user" not in session:
+            return redirect(url_for("login"))
+        return render_template("vets.html")
+
+
+    # Pet Profile
+@app.route('/pet-profile', methods=["GET", "POST"])
+def pet_profile():
+        if "user" not in session:
+            return redirect(url_for("login"))
+
+        # Load dog breeds from JSON
+        with open("dog_breeds.json", "r") as f:
+            breeds = json.load(f)
+
+        user = session["user"]
+        pets = db.get(f"pets:{user}", [])
+
+        if request.method == "POST":
+            name = request.form.get("name")
+            birthday = request.form.get("birthday")
+            breed = request.form.get("breed")
+            blood = request.form.get("blood")
+            photo_url = ""
+
+            file = request.files.get("photo")
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                photo_url = "/" + filepath
+
+            pet = {
+                "name": name,
+                "birthday": birthday,
+                "breed": breed,
+                "blood": blood,
+                "photo": photo_url
+            }
+
+            pets.append(pet)
+            db[f"pets:{user}"] = pets
+
+            return redirect(url_for("pet_profile"))
+
+        return render_template("pet_profile.html", breeds=breeds, pets=pets)
+    # add pet
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.route('/pet-profile/add', methods=['GET', 'POST'])
+def add_pet():
     if "user" not in session:
         return redirect(url_for("login"))
-    return render_template("dashboard.html", email=session["user"])
 
-# Logout
+    breeds = [
+        "Golden Retriever", "Labrador Retriever", "Beagle", "Bulldog", "Poodle",
+        "German Shepherd", "Dachshund", "Boxer", "Rottweiler", "Shih Tzu",
+        "Doberman", "Great Dane", "Pomeranian", "Chihuahua", "Siberian Husky"
+    ]
+
+    if request.method == 'POST':
+        name = request.form.get("name", "").strip()
+        birthday = request.form.get("birthday")
+        breed = request.form.get("breed")
+        blood = request.form.get("blood")
+        photo = request.files.get("photo")
+
+        if not name:
+            return "Pet name is required."
+
+        filename = None
+        if photo and photo.filename:
+            filename = secure_filename(photo.filename)
+            try:
+                photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            except Exception as e:
+                print("Image save failed:", e)
+
+        pet_id = f"pet:{session['user']}:{name.lower().replace(' ', '-')}"
+        print("Saving pet to:", pet_id)
+
+        db[pet_id] = {
+            "name": name,
+            "birthday": birthday,
+            "breed": breed,
+            "blood": blood,
+            "photo": filename
+        }
+
+        print("Saved pet:", db[pet_id])
+
+        return redirect(url_for("pet_profile"))
+
+    return render_template("add_pet.html", breeds=breeds)
+    # Logout
 @app.route('/logout')
 def logout():
-    session.clear()
-    return redirect(url_for("home"))
+        session.clear()
+        return redirect(url_for("home"))
 
-# Run server
+    # Run app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=81)
+        app.run(host='0.0.0.0', port=81, debug=True)
