@@ -114,17 +114,6 @@ def groomers():
 
     user_location = session.get("location")
 
-    vendors = [ ... ]  # your full vendor list with lat/lon
-
-    if user_location:
-        vendors = [
-            v for v in vendors if haversine(
-                user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
-            ) <= 50  # Filter vendors within 50 km
-        ]
-
-
-
     vendors = [
         {
             "id": "fluffy-paws",
@@ -163,6 +152,15 @@ def groomers():
             "longitude": 78.4867
         }
     ]
+    
+    # Apply location filtering if user location is available
+    if user_location:
+        vendors = [
+            v for v in vendors if haversine(
+                user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
+            ) <= 50  # Filter vendors within 50 km
+        ]
+    
     return render_template("groomers.html", vendors=vendors)
 
 # Vendor Profile

@@ -99,15 +99,15 @@
   </div>
   <script>
     window.onload = function () {
-      if (navigator.geolocation) {
+      // Only get location if it hasn't been set yet (to prevent infinite reload)
+      if (navigator.geolocation && !sessionStorage.getItem('locationSet')) {
         navigator.geolocation.getCurrentPosition(function (position) {
           fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
             .then(() => {
+              sessionStorage.setItem('locationSet', 'true');
               location.reload(); // Reload page to apply filtering
             });
         });
-      } else {
-        alert("Geolocation is not supported by your browser.");
       }
     }
   </script>
