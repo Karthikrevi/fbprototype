@@ -64,7 +64,26 @@ def login():
                 return "Invalid email or password."
 
         return render_template("login.html")
+    #Vendor Login
+@app.route('/vendor-login', methods=["GET", "POST"])
+def vendor_login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
 
+        if not email or not password:
+            return "Please enter both email and password."
+
+        vendor_key = f"vendor:{email}"
+        vendor = db.get(vendor_key)
+
+        if vendor and vendor["password"] == password:
+            session["vendor"] = email
+            return redirect("https://erp.furrbutler.com")  # placeholder, or use a future ERP route
+        else:
+            return "Invalid vendor login."
+
+    return render_template("vendor_login.html")
     # Dashboard
 @app.route('/dashboard')
 def dashboard():
@@ -73,6 +92,7 @@ def dashboard():
 
         email = session["user"]
         return render_template("dashboard.html", email=email)
+
     # Groomers & Vendors
 @app.route('/groomers')
 def groomers():
@@ -190,6 +210,33 @@ def add_pet():
         return redirect(url_for("pet_profile"))
 
     return render_template("add_pet.html", breeds=breeds)
+    #edit profile
+@app.route('/pet-profile/edit/<int:index>', methods=["GET", "POST"])
+def edit_pet(index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+
+    if index >= len(pets):
+        return "Pet not found"
+
+    # Load dog breeds
+    with open("dog_breeds.json", "r") as f:
+        breeds = json.load(f)
+
+    if request.method == "POST":
+        pets[index]["name"] = request.form.get("name")
+        pets[index]["birthday"] = request.form.get("birthday")
+        pets[index]["breed"] = request.form.get("breed")
+        pets[index]["blood"] = request.form.get("blood")
+
+        db[f"pets:{user}"] = pets
+        return redirect(url_for("pet_profile"))
+
+    return render_template("edit_pet.html", pet=pets[index], index=index, breeds=breeds)
+
     # Logout
 @app.route('/logout')
 def logout():
