@@ -96,9 +96,53 @@ def dashboard():
     # Groomers & Vendors
 @app.route('/groomers')
 def groomers():
-        if "user" not in session:
-            return redirect(url_for("login"))
-        return render_template("groomers.html")
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template("groomers.html")
+
+@app.route('/vendor/<vendor_id>')
+def vendor_profile(vendor_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    # Fake static vendor
+    if vendor_id == "fluffy-paws":
+        vendor = {
+            "name": "Fluffy Paws Grooming",
+            "description": "Fluffy Paws offers expert grooming services for dogs and cats. We specialize in treating your pets like royalty.",
+            "image": "https://place-puppy.com/600x400",
+            "services": ["Full Grooming", "Nail Clipping", "Ear Cleaning"],
+            "market_url": "#",
+            "booking_url": "/vendor/fluffy-paws/book"
+        }
+        return render_template("vendor_profile.html", vendor=vendor)
+
+    # Placeholder vendors (ERP-linked in future)
+    else:
+        return render_template("vendor_placeholder.html", vendor_name=vendor_id.replace("-", " ").title())
+
+    # Book a service
+@app.route('/vendor/<vendor_id>/book', methods=["GET", "POST"])
+def book_vendor(vendor_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    if vendor_id != "fluffy-paws":
+        return "Booking only available for Fluffy Paws demo vendor."
+
+    services = ["Full Grooming", "Nail Clipping", "Ear Cleaning"]
+
+    if request.method == "POST":
+        selected_service = request.form.get("service")
+        selected_date = request.form.get("date")
+
+        # Future: Save booking to db or send confirmation
+        print(f"Booking: {selected_service} on {selected_date}")
+
+        return redirect(url_for("dashboard"))  # You can add a success message later
+
+    return render_template("booking.html", vendor_name="Fluffy Paws Grooming", services=services)
+
 
     # Restaurants & Boarding
 @app.route('/boarding')
