@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Vendor Login - FurrButler ERP</title>
+  <title>Vendor Registration - FurrButler ERP</title>
   <style>
     body {
       background-color: #fffaf2;
@@ -24,7 +24,7 @@
       border-radius: 15px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 400px;
+      max-width: 500px;
     }
 
     label {
@@ -33,7 +33,7 @@
       font-weight: bold;
     }
 
-    input {
+    input, select, textarea {
       width: 100%;
       padding: 10px;
       border: 1px solid #ddd;
@@ -59,15 +59,38 @@
   </style>
 </head>
 <body>
-  <h2>🔐 Vendor Login</h2>
+  <h2>🐾 Vendor Registration</h2>
   <form method="POST">
+    <label for="name">Business Name</label>
+    <input type="text" name="name" required>
+
     <label for="email">Email</label>
     <input type="email" name="email" required>
 
     <label for="password">Password</label>
     <input type="password" name="password" required>
 
-    <button type="submit">Login</button>
+    <label for="category">Category</label>
+    <select name="category" required>
+      <option value="grooming">Grooming</option>
+      <option value="boarding">Boarding</option>
+      <option value="restaurant">Restaurant</option>
+      <option value="hotel">Hotel</option>
+    </select>
+
+    <label for="city">City</label>
+    <input type="text" name="city" required>
+
+    <label for="phone">Phone</label>
+    <input type="text" name="phone" required>
+
+    <label for="bio">About Your Business</label>
+    <textarea name="bio" rows="3"></textarea>
+
+    <label for="image_url">Logo/Image URL</label>
+    <input type="text" name="image_url">
+
+    <button type="submit">Register Vendor</button>
   </form>
 </body>
 </html>

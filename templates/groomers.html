@@ -55,6 +55,7 @@
 
     .rating-stars {
       color: #f4c430;
+      font-weight: bold;
       margin-bottom: 5px;
     }
 
@@ -84,41 +85,54 @@
     .profile-link:hover {
       background-color: #52b788;
     }
-
   </style>
 </head>
 <body>
   <div class="vendor-list">
     <h2>🐶 Groomers & Vendors</h2>
 
-    {% for vendor in vendors %}
+    <!-- Always visible demo vendor -->
     <div class="vendor-card">
-      <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
-
+      <img src="https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400" alt="Fluffy Paws Grooming" class="vendor-image">
       <div class="vendor-details">
-        <h3>{{ vendor.name }}</h3>
-        <div class="vendor-meta">{{ vendor.description }}</div>
-        <div class="rating-stars">⭐ {{ vendor.rating }} | Level {{ vendor.level }} | XP {{ vendor.xp }}</div>
-
+        <h3>Fluffy Paws Grooming</h3>
+        <div class="vendor-meta">Expert grooming services for dogs and cats.</div>
+        <div class="rating-stars">⭐ 5 | Level 15 | XP 2850</div>
         <div class="xp-bar">
-          <div class="xp-fill" style="width: {{ vendor.xp / 50 }}%;"></div>
+          <div class="xp-fill" style="width: 57%;"></div>
         </div>
-
-        <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
+        <a href="/vendor/fluffy-paws" class="profile-link">View Profile</a>
       </div>
     </div>
-    {% endfor %}
+
+    {% if vendors %}
+      {% for vendor in vendors %}
+      <div class="vendor-card">
+        <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
+        <div class="vendor-details">
+          <h3>{{ vendor.name }}</h3>
+          <div class="vendor-meta">{{ vendor.description }}</div>
+          <div class="rating-stars">⭐ {{ vendor.rating }} | Level {{ vendor.level }} | XP {{ vendor.xp }}</div>
+          <div class="xp-bar">
+            <div class="xp-fill" style="width: {{ vendor.xp / 50 }}%;"></div>
+          </div>
+          <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted text-center">No local vendors found near you.</p>
+    {% endif %}
   </div>
 
   <script>
     window.onload = function () {
-      // Only get location if it hasn't been set yet (to prevent infinite reload)
       if (navigator.geolocation && !sessionStorage.getItem('locationSet')) {
         navigator.geolocation.getCurrentPosition(function (position) {
           fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
             .then(() => {
               sessionStorage.setItem('locationSet', 'true');
-              location.reload(); // Reload page to apply filtering
+              location.reload();
             });
         });
       }

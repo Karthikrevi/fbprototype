@@ -4,6 +4,72 @@ import os
 import json
 from werkzeug.utils import secure_filename
 
+import sqlite3
+
+# Initialize ERP database if not exists
+def init_erp_db():
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vendors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            category TEXT,
+            city TEXT,
+            phone TEXT,
+            bio TEXT,
+            image_url TEXT
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            description TEXT,
+            stock INTEGER DEFAULT 0,
+            image_url TEXT,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            user_email TEXT,
+            service TEXT,
+            date TEXT,
+            time TEXT,
+            duration INTEGER,
+            status TEXT DEFAULT 'pending',
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS receipts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            booking_id INTEGER,
+            amount REAL,
+            paid_on TEXT,
+            payment_mode TEXT,
+            FOREIGN KEY (booking_id) REFERENCES bookings(id)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+# Run the DB setup on startup
+init_erp_db()
+
+
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
 
@@ -44,6 +110,38 @@ def register():
 
         return redirect(url_for("login"))
     return render_template("register_new.html")
+
+# Vendor Register
+@app.route('/vendor-register', methods=["GET", "POST"])
+def vendor_register():
+    if request.method == "POST":
+        name = request.form.get("name")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        category = request.form.get("category")  # grooming, boarding, etc.
+        city = request.form.get("city")
+        phone = request.form.get("phone")
+        bio = request.form.get("bio")
+        image_url = request.form.get("image_url")
+
+        conn = sqlite3.connect("erp.db")
+        c = conn.cursor()
+
+        try:
+            c.execute('''
+                INSERT INTO vendors (name, email, password, category, city, phone, bio, image_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (name, email, password, category, city, phone, bio, image_url))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            conn.close()
+            return "Vendor with this email already exists."
+
+        conn.close()
+        return redirect(url_for("vendor_login"))
+
+    return render_template("vendor_register.html")
+
 
 # Login
 @app.route('/login', methods=["GET", "POST"])
@@ -86,6 +184,44 @@ def vendor_login():
             return "Invalid vendor login."
 
     return render_template("vendor_login.html")
+
+
+
+#Vendor Register
+@app.route('/vendor-register', methods=["GET", "POST"])
+def vendor_register():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        name = request.form.get("name")
+        category = request.form.get("category")
+        city = request.form.get("city")
+        phone = request.form.get("phone")
+        bio = request.form.get("bio")
+        image_url = request.form.get("image_url")
+
+        if not email or not password or not name or not category:
+            return "Missing required fields."
+
+        vendor_key = f"vendor:{email}"
+        if db.get(vendor_key):
+            return "Vendor already exists."
+
+        db[vendor_key] = {
+            "email": email,
+            "password": password,
+            "name": name,
+            "category": category,
+            "city": city,
+            "phone": phone,
+            "bio": bio,
+            "image_url": image_url
+        }
+
+        return redirect(url_for("vendor_login"))
+
+    return render_template("vendor_register.html")
+
 
 # Dashboard
 @app.route('/dashboard')

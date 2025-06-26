@@ -1,116 +1,160 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Boarding & Restaurants - FurrButler</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Boarding & Hotels - FurrButler</title>
   <style>
     body {
-      background-color: #fff8f0;
+      background-color: #fffbe6;
       font-family: 'Poppins', sans-serif;
+      padding: 30px;
     }
-    .container {
-      margin-top: 30px;
-      max-width: 1000px;
+
+    .vendor-list {
+      max-width: 900px;
+      margin: auto;
     }
-    h2 {
-      color: #ff6b6b;
-      margin-bottom: 30px;
-    }
-    .card {
-      border: none;
-      border-radius: 15px;
+
+    .vendor-card {
+      display: flex;
+      background-color: #fff;
+      border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       margin-bottom: 20px;
+      overflow: hidden;
+      transition: transform 0.2s;
     }
-    .card-title {
-      color: #333;
-      font-weight: 600;
+
+    .vendor-card:hover {
+      transform: scale(1.01);
     }
-    .btn-primary {
-      background-color: #74c69d;
-      border: none;
-      border-radius: 10px;
+
+    .vendor-image {
+      flex-shrink: 0;
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
     }
-    .btn-primary:hover {
-      background-color: #95d5b2;
+
+    .vendor-details {
+      padding: 20px;
+      flex-grow: 1;
     }
-    .btn-outline-success {
-      border-color: #74c69d;
-      color: #74c69d;
-      border-radius: 10px;
+
+    .vendor-details h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.4rem;
+      color: #ff7e5f;
     }
-    .btn-outline-success:hover {
-      background-color: #74c69d;
-      border-color: #74c69d;
+
+    .vendor-meta {
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 8px;
     }
-    .back-btn {
-      background-color: #ff6b6b;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 10px;
-      text-decoration: none;
-      margin-bottom: 20px;
+
+    .profile-link {
       display: inline-block;
-    }
-    .back-btn:hover {
-      background-color: #ff8787;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background-color: #74c69d;
       color: white;
+      text-decoration: none;
+      border-radius: 8px;
+    }
+
+    .profile-link:hover {
+      background-color: #52b788;
+    }
+
+    .section-title {
+      margin-top: 40px;
+      font-size: 1.4rem;
+      color: #333;
+      text-align: center;
+    }
+
+    .affiliate-links {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .affiliate-links a {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 20px;
+      background-color: #ffa94d;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+    }
+
+    .affiliate-links a:hover {
+      background-color: #ff922b;
+    }
+
+    .no-vendors {
+      text-align: center;
+      color: #999;
+      font-style: italic;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
-    
-    <h2>🏠 Boarding Centers</h2>
-    <div class="row">
-      {% for boarding in boardings %}
-      <div class="col-md-6 mb-4">
-        <div class="card h-100 d-flex flex-row">
-          <img src="{{ boarding.image }}" class="img-fluid rounded-start" style="width: 40%; object-fit: cover;">
-          <div class="card-body">
-            <h5 class="card-title">{{ boarding.name }}</h5>
-            <p class="card-text">{{ boarding.description }}</p>
-            <p class="card-text"><strong>City:</strong> {{ boarding.city }}</p>
-            <a href="/boarding/{{ boarding.id }}/book" class="btn btn-primary">Book Now</a>
-          </div>
+  <div class="vendor-list">
+    <h2>🏨 Pet Boarding & Friendly Hotels</h2>
+
+    <!-- Location-filtered boardings -->
+    {% if boardings|length > 0 %}
+      {% for vendor in boardings %}
+      <div class="vendor-card">
+        <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
+        <div class="vendor-details">
+          <h3>{{ vendor.name }}</h3>
+          <div class="vendor-meta">{{ vendor.description }}</div>
+          <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
         </div>
       </div>
       {% endfor %}
+    {% endif %}
+
+    <!-- Demo fake boarding -->
+    <div class="vendor-card">
+      <img src="https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400" alt="Cozy Paws Boarding" class="vendor-image">
+      <div class="vendor-details">
+        <h3>Cozy Paws Boarding</h3>
+        <div class="vendor-meta">Safe and cozy stay for your pets. [DEMO]</div>
+        <a href="/vendor/cozy-paws/book" class="profile-link">Book Now</a>
+      </div>
     </div>
 
-    <hr class="my-5">
+    <!-- If no local boardings -->
+    {% if boardings|length == 0 %}
+      <p class="no-vendors">No local boarding options found near you.</p>
+    {% endif %}
 
-    <h2>🍽️ Pet-Friendly Restaurants & Hotels</h2>
-    <div class="row">
-      {% for restaurant in restaurants %}
-      <div class="col-md-6 mb-4">
-        <div class="card h-100">
-          <div class="card-body">
-            <h5 class="card-title">{{ restaurant.name }}</h5>
-            <p class="card-text">{{ restaurant.description }}</p>
-            <a href="{{ restaurant.booking_url }}" class="btn btn-outline-success" target="_blank">Book on Affiliate</a>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
+    <!-- Restaurants & Hotels -->
+    <div class="section-title">🍽️ Pet-Friendly Cafés & Hotels</div>
+    <div class="affiliate-links">
+      <a href="https://www.booking.com/searchresults.html?ss=pet-friendly+cafe" target="_blank">Find Cafés</a>
+      <a href="https://www.booking.com/searchresults.html?ss=pet-friendly+hotel" target="_blank">Find Hotels</a>
     </div>
   </div>
+
   <script>
     window.onload = function () {
-      // Only get location if it hasn't been set yet (to prevent infinite reload)
+      // Geolocation with reload
       if (navigator.geolocation && !sessionStorage.getItem('locationSet')) {
         navigator.geolocation.getCurrentPosition(function (position) {
           fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
             .then(() => {
               sessionStorage.setItem('locationSet', 'true');
-              location.reload(); // Reload page to apply filtering
+              location.reload();
             });
         });
       }
     }
   </script>
-
 </body>
 </html>

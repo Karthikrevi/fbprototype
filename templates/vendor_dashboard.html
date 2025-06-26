@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vendor Dashboard - FurrButler ERP</title>
+  <style>
+    body {
+      background-color: #f0f8ff;
+      font-family: 'Poppins', sans-serif;
+      padding: 40px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #ff7e5f;
+    }
+
+    .dashboard-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 40px;
+      gap: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      width: 240px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-decoration: none;
+      color: #333;
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      color: #74c69d;
+    }
+
+    .card p {
+      font-size: 0.9rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h2>Welcome, {{ email }} 🐾</h2>
+
+  <div class="dashboard-container">
+    <a href="/marketplace" class="card">
+      <h3>Marketplace</h3>
+      <p>Manage your product listings and prices</p>
+    </a>
+
+    <a href="/bookings" class="card">
+      <h3>Bookings</h3>
+      <p>View and manage customer bookings</p>
+    </a>
+
+    <a href="/inventory" class="card">
+      <h3>Inventory</h3>
+      <p>Track product quantities and stock</p>
+    </a>
+
+    <a href="/receipts" class="card">
+      <h3>Receipts</h3>
+      <p>Check receipts and transaction history</p>
+    </a>
+  </div>
+</body>
+</html>
