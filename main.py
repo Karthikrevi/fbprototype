@@ -179,6 +179,8 @@ def boarding():
     if "user" not in session:
         return redirect(url_for("login"))
 
+    
+
     boardings = [
         {
             "id": "cozy-paws",
@@ -214,6 +216,33 @@ def boarding():
     ]
 
     return render_template("boarding.html", boardings=boardings, restaurants=restaurants)
+
+@app.route('/boarding/<vendor_id>/book', methods=["GET", "POST"])
+def book_boarding_vendor(vendor_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    if vendor_id != "cozy-paws":
+        return "Booking only available for Cozy Paws demo vendor."
+
+    durations = [
+        "1 Hour", "2 Hours", "6 Hours", "12 Hours", 
+        "1 Day", "2 Days", "3 Days", "1 Week"
+    ]
+
+    if request.method == "POST":
+        selected_duration = request.form.get("duration")
+        checkin_date = request.form.get("checkin_date")
+        notes = request.form.get("notes")
+
+        # Future: Save booking to DB or send notification
+        print(f"Boarding Booking: {selected_duration} from {checkin_date} - Notes: {notes}")
+        return redirect(url_for("dashboard"))  # You can add a success screen or message later
+
+    return render_template("boarding_booking.html", 
+                           vendor_name="Cozy Paws Boarding", 
+                           durations=durations)
+
 
 @app.route('/vets')
 def vets():

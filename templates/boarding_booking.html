@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Boarding - {{ vendor_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+        label {
+            font-weight: bold;
+        }
+        .slider-value {
+            font-weight: bold;
+            margin-left: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Book Boarding at {{ vendor_name }}</h2>
+        <form method="post">
+            <label for="checkin_date">Check-in Date:</label><br>
+            <input type="date" name="checkin_date" required><br><br>
+
+            <label for="duration">Duration:</label><br>
+            <input type="range" id="durationSlider" name="duration" min="0" max="7" value="0">
+            <span class="slider-value" id="durationLabel">1 Hour</span><br><br>
+
+            <label for="notes">Additional Notes:</label><br>
+            <textarea name="notes" rows="4" cols="40" placeholder="Any specific requests or notes?"></textarea><br><br>
+
+            <button type="submit">Confirm Booking</button>
+        </form>
+    </div>
+
+    <script>
+        const slider = document.getElementById("durationSlider");
+        const label = document.getElementById("durationLabel");
+
+        const options = [
+            "1 Hour", "2 Hours", "6 Hours", "12 Hours",
+            "1 Day", "2 Days", "3 Days", "1 Week"
+        ];
+
+        slider.addEventListener("input", () => {
+            label.textContent = options[slider.value];
+        });
+    </script>
+</body>
+</html>
