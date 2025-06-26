@@ -1,41 +1,101 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">Boarding Centers</h2>
-  <div class="row">
-    {% for boarding in boardings %}
-    <div class="col-md-6 mb-4">
-      <div class="card h-100 d-flex flex-row">
-        <img src="{{ boarding.image }}" class="img-fluid rounded-start" style="width: 40%; object-fit: cover;">
-        <div class="card-body">
-          <h5 class="card-title">{{ boarding.name }}</h5>
-          <p class="card-text">{{ boarding.description }}</p>
-          <p class="card-text"><strong>City:</strong> {{ boarding.city }}</p>
-          <p class="card-text">
-            ⭐ {{ boarding.rating }} | 🧬 Level {{ boarding.level }} | ⚡ XP: {{ boarding.xp }}
-          </p>
-          <a href="/vendor/{{ boarding.id }}" class="btn btn-primary">View Profile</a>
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Boarding & Restaurants - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fff8f0;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      margin-top: 30px;
+      max-width: 1000px;
+    }
+    h2 {
+      color: #ff6b6b;
+      margin-bottom: 30px;
+    }
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      color: #333;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background-color: #74c69d;
+      border: none;
+      border-radius: 10px;
+    }
+    .btn-primary:hover {
+      background-color: #95d5b2;
+    }
+    .btn-outline-success {
+      border-color: #74c69d;
+      color: #74c69d;
+      border-radius: 10px;
+    }
+    .btn-outline-success:hover {
+      background-color: #74c69d;
+      border-color: #74c69d;
+    }
+    .back-btn {
+      background-color: #ff6b6b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background-color: #ff8787;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+    
+    <h2>🏠 Boarding Centers</h2>
+    <div class="row">
+      {% for boarding in boardings %}
+      <div class="col-md-6 mb-4">
+        <div class="card h-100 d-flex flex-row">
+          <img src="{{ boarding.image }}" class="img-fluid rounded-start" style="width: 40%; object-fit: cover;">
+          <div class="card-body">
+            <h5 class="card-title">{{ boarding.name }}</h5>
+            <p class="card-text">{{ boarding.description }}</p>
+            <p class="card-text"><strong>City:</strong> {{ boarding.city }}</p>
+            <a href="/boarding/{{ boarding.id }}/book" class="btn btn-primary">Book Now</a>
+          </div>
         </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
 
-  <hr class="my-5">
+    <hr class="my-5">
 
-  <h2 class="mb-4">Pet-Friendly Restaurants & Hotels</h2>
-  <div class="row">
-    {% for restaurant in restaurants %}
-    <div class="col-md-6 mb-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">{{ restaurant.name }}</h5>
-          <p class="card-text">{{ restaurant.description }}</p>
-          <a href="{{ restaurant.booking_url }}" class="btn btn-outline-success" target="_blank">Book on Affiliate</a>
+    <h2>🍽️ Pet-Friendly Restaurants & Hotels</h2>
+    <div class="row">
+      {% for restaurant in restaurants %}
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">{{ restaurant.name }}</h5>
+            <p class="card-text">{{ restaurant.description }}</p>
+            <a href="{{ restaurant.booking_url }}" class="btn btn-outline-success" target="_blank">Book on Affiliate</a>
+          </div>
         </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
-</div>
-{% endblock %}
+</body>
+</html>
