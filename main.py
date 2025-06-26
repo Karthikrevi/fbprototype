@@ -97,10 +97,33 @@ def dashboard():
     return render_template("dashboard.html", email=email)
 
 # Groomers & Vendors
+from math import radians, cos, sin, asin, sqrt
+
+def haversine(lat1, lon1, lat2, lon2):
+    # Radius of Earth in kilometers
+    R = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    return R * 2 * asin(sqrt(a))
+
 @app.route('/groomers')
 def groomers():
     if "user" not in session:
         return redirect(url_for("login"))
+
+    user_location = session.get("location")
+
+    vendors = [ ... ]  # your full vendor list with lat/lon
+
+    if user_location:
+        vendors = [
+            v for v in vendors if haversine(
+                user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
+            ) <= 50  # Filter vendors within 50 km
+        ]
+
+
 
     vendors = [
         {
@@ -341,7 +364,16 @@ def edit_pet(index):
         return redirect(url_for("pet_profile"))
 
     return render_template("edit_pet.html", pet=pets[index], index=index, breeds=breeds)
-
+    
+#location
+@app.route('/set-location')
+def set_location():
+    lat = request.args.get("lat", type=float)
+    lon = request.args.get("lon", type=float)
+    if lat and lon:
+        session["location"] = {"lat": lat, "lon": lon}
+    return '', 204
+    
 # Logout
 @app.route('/logout')
 def logout():

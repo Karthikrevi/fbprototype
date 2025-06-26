@@ -97,5 +97,20 @@
       {% endfor %}
     </div>
   </div>
+  <script>
+    window.onload = function () {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
+            .then(() => {
+              location.reload(); // Reload page to apply filtering
+            });
+        });
+      } else {
+        alert("Geolocation is not supported by your browser.");
+      }
+    }
+  </script>
+
 </body>
 </html>
