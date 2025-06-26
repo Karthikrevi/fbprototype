@@ -144,7 +144,7 @@ def vendor_profile(vendor_id):
         vendor = {
             "name": "Fluffy Paws Grooming",
             "description": "Fluffy Paws offers expert grooming services for dogs and cats.",
-            "image": "https://place-puppy.com/600x400",
+            "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=600&h=400&fit=crop",
             "services": ["Full Grooming", "Nail Clipping", "Ear Cleaning"],
             "market_url": "#",
             "booking_url": "/vendor/fluffy-paws/book",
