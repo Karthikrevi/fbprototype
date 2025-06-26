@@ -146,11 +146,9 @@ def add_pet():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    breeds = [
-        "Golden Retriever", "Labrador Retriever", "Beagle", "Bulldog", "Poodle",
-        "German Shepherd", "Dachshund", "Boxer", "Rottweiler", "Shih Tzu",
-        "Doberman", "Great Dane", "Pomeranian", "Chihuahua", "Siberian Husky"
-    ]
+    # Load dog breeds from JSON
+    with open("dog_breeds.json", "r") as f:
+        breeds = json.load(f)
 
     if request.method == 'POST':
         name = request.form.get("name", "").strip()
@@ -170,10 +168,12 @@ def add_pet():
             except Exception as e:
                 print("Image save failed:", e)
 
-        pet_id = f"pet:{session['user']}:{name.lower().replace(' ', '-')}"
-        print("Saving pet to:", pet_id)
+        # Get existing pets or create empty list
+        user = session["user"]
+        pets = db.get(f"pets:{user}", [])
 
-        db[pet_id] = {
+        # Add new pet to the list
+        pet = {
             "name": name,
             "birthday": birthday,
             "breed": breed,
@@ -181,7 +181,11 @@ def add_pet():
             "photo": filename
         }
 
-        print("Saved pet:", db[pet_id])
+        pets.append(pet)
+        db[f"pets:{user}"] = pets
+
+        print("Saved pet:", pet)
+        print("Total pets:", len(pets))
 
         return redirect(url_for("pet_profile"))
 
