@@ -187,7 +187,40 @@ def vendor_login():
 
 
 
+#Vendor Register
+@app.route('/vendor-register', methods=["GET", "POST"])
+def vendor_register():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        name = request.form.get("name")
+        category = request.form.get("category")
+        city = request.form.get("city")
+        phone = request.form.get("phone")
+        bio = request.form.get("bio")
+        image_url = request.form.get("image_url")
 
+        if not email or not password or not name or not category:
+            return "Missing required fields."
+
+        vendor_key = f"vendor:{email}"
+        if db.get(vendor_key):
+            return "Vendor already exists."
+
+        db[vendor_key] = {
+            "email": email,
+            "password": password,
+            "name": name,
+            "category": category,
+            "city": city,
+            "phone": phone,
+            "bio": bio,
+            "image_url": image_url
+        }
+
+        return redirect(url_for("vendor_login"))
+
+    return render_template("vendor_register.html")
 
 
 # Dashboard
