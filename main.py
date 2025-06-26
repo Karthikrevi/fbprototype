@@ -105,19 +105,28 @@ def groomers():
             "id": "fluffy-paws",
             "name": "Fluffy Paws Grooming",
             "description": "Expert grooming services for dogs and cats. We treat your pets like royalty.",
-            "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400"
+            "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
+            "rating": 5,
+            "level": 15,
+            "xp": 2850
         },
         {
             "id": "paws-spa",
             "name": "Paws & Relax Spa",
             "description": "Luxury pet spa offering full-service grooming and relaxation treatments.",
-            "image": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400"
+            "image": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400",
+            "rating": 4,
+            "level": 12,
+            "xp": 2100
         },
         {
             "id": "happy-tails",
             "name": "Happy Tails Grooming",
             "description": "Professional pet grooming with a focus on comfort and care.",
-            "image": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400"
+            "image": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400",
+            "rating": 5,
+            "level": 18,
+            "xp": 3200
         }
     ]
     
