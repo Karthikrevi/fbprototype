@@ -147,7 +147,10 @@ def vendor_profile(vendor_id):
             "image": "https://place-puppy.com/600x400",
             "services": ["Full Grooming", "Nail Clipping", "Ear Cleaning"],
             "market_url": "#",
-            "booking_url": "/vendor/fluffy-paws/book"
+            "booking_url": "/vendor/fluffy-paws/book",
+            "rating": 5,
+            "level": 15,
+            "xp": 2850
         }
         return render_template("vendor_profile.html", vendor=vendor)
     else:
