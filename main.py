@@ -3,7 +3,7 @@ from replit import db
 import os
 import json
 from werkzeug.utils import secure_filename
-
+from math import radians, cos, sin, asin, sqrt
 import sqlite3
 
 # Initialize ERP database if not exists
@@ -111,37 +111,6 @@ def register():
         return redirect(url_for("login"))
     return render_template("register_new.html")
 
-# Vendor Register
-@app.route('/vendor-register', methods=["GET", "POST"])
-def vendor_register():
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        password = request.form.get("password")
-        category = request.form.get("category")  # grooming, boarding, etc.
-        city = request.form.get("city")
-        phone = request.form.get("phone")
-        bio = request.form.get("bio")
-        image_url = request.form.get("image_url")
-
-        conn = sqlite3.connect("erp.db")
-        c = conn.cursor()
-
-        try:
-            c.execute('''
-                INSERT INTO vendors (name, email, password, category, city, phone, bio, image_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (name, email, password, category, city, phone, bio, image_url))
-            conn.commit()
-        except sqlite3.IntegrityError:
-            conn.close()
-            return "Vendor with this email already exists."
-
-        conn.close()
-        return redirect(url_for("vendor_login"))
-
-    return render_template("vendor_register.html")
-
 
 # Login
 @app.route('/login', methods=["GET", "POST"])
@@ -233,14 +202,18 @@ def dashboard():
     return render_template("dashboard.html", email=email)
 
 # Groomers & Vendors
-from math import radians, cos, sin, asin, sqrt
-
 def haversine(lat1, lon1, lat2, lon2):
     # Radius of Earth in kilometers
     R = 6371.0
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    if None in [lat1, lon1, lat2, lon2]:
+        distance = float('inf')  # Or some default/fallback
+    else:
+        distance = haversine(lat1, lon1, lat2, lon2)
+        return distance
+
     return R * 2 * asin(sqrt(a))
 
 @app.route('/groomers')
@@ -409,11 +382,13 @@ def pet_profile():
         photo_url = ""
 
         file = request.files.get("photo")
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+
+        if file is not None and file.filename and allowed_file(file.filename):
+            filename: str = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             photo_url = "/" + filepath
+
 
         pet = {
             "name": name,

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vendor Dashboard - FurrButler ERP</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 40px;
+      background-color: #f6f9fc;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 40px;
+    }
+
+    .dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .tile {
+      background-color: white;
+      border-radius: 16px;
+      width: 200px;
+      height: 150px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      text-decoration: none;
+      color: #333;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .tile:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    }
+
+    .tile-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #74c69d;
+    }
+
+    .tile-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+  </style>
+</head>
+<body>
+  <h2>Vendor ERP Dashboard</h2>
+
+  <div class="dashboard">
+    <a href="/erp/profile" class="tile">
+      <div class="tile-icon">👤</div>
+      <div class="tile-label">Profile</div>
+    </a>
+
+    <a href="/erp/products" class="tile">
+      <div class="tile-icon">📦</div>
+      <div class="tile-label">Inventory</div>
+    </a>
+
+    <a href="/erp/bookings" class="tile">
+      <div class="tile-icon">📅</div>
+      <div class="tile-label">Bookings</div>
+    </a>
+
+    <a href="/erp/marketplace" class="tile">
+      <div class="tile-icon">🛍️</div>
+      <div class="tile-label">Marketplace</div>
+    </a>
+
+    <a href="/erp/ads" class="tile">
+      <div class="tile-icon">📣</div>
+      <div class="tile-label">Advertising</div>
+    </a>
+
+    <a href="/erp/settings" class="tile">
+      <div class="tile-icon">⚙️</div>
+      <div class="tile-label">Settings</div>
+    </a>
+  </div>
+</body>
+</html>
