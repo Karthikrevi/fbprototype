@@ -332,21 +332,39 @@ def boarding():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("SELECT * FROM vendors WHERE category IN ('boarding', 'hotel', 'pet boarding', 'daycare')")
-    db_vendors = c.fetchall()
+    boarding_vendors = c.fetchall()
+    
+    # Get vendors from ERP database with restaurant category
+    c.execute("SELECT * FROM vendors WHERE category IN ('restaurant', 'cafe', 'pet restaurant', 'pet cafe', 'pet-friendly restaurant')")
+    restaurant_vendors = c.fetchall()
     conn.close()
 
     boardings = []
-    for vendor in db_vendors:
+    for vendor in boarding_vendors:
         vendor_data = {
             "id": vendor[0],  # vendor id
-            "name": vendor[2],  # vendor name
+            "name": vendor[1],  # vendor name (field index 1 is name)
             "description": vendor[7] or "Safe and comfortable stay for your pets.",  # bio
             "image": vendor[8] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400",
             "city": vendor[5] or "Unknown",
-            "latitude": None,  # Will be set from location data if available
-            "longitude": None
+            "latitude": vendor[9],  # latitude from database
+            "longitude": vendor[10]  # longitude from database
         }
         boardings.append(vendor_data)
+
+    restaurants = []
+    for vendor in restaurant_vendors:
+        vendor_data = {
+            "id": vendor[0],  # vendor id
+            "name": vendor[1],  # vendor name
+            "description": vendor[7] or "Pet-friendly dining experience.",  # bio
+            "image": vendor[8] or "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400",
+            "city": vendor[5] or "Unknown",
+            "latitude": vendor[9],  # latitude from database
+            "longitude": vendor[10],  # longitude from database
+            "booking_url": f"/vendor/{vendor[0]}/book"
+        }
+        restaurants.append(vendor_data)
 
     # Always show demo boarding for testing
     demo_boarding = {

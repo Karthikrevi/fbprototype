@@ -151,6 +151,8 @@
               sessionStorage.setItem('locationSet', 'true');
               location.reload();
             });
+        }, function (error) {
+          console.error("Geolocation error:", error);
         });
       }
     }
