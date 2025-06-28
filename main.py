@@ -21,7 +21,9 @@ def init_erp_db():
             city TEXT,
             phone TEXT,
             bio TEXT,
-            image_url TEXT
+            image_url TEXT,
+            latitude REAL,
+            longitude REAL
         )
     ''')
 
@@ -222,52 +224,58 @@ def groomers():
 
     user_location = session.get("location")
 
-    vendors = [
-        {
-            "id": "fluffy-paws",
-            "name": "Fluffy Paws Grooming",
-            "description": "Expert grooming services for dogs and cats.",
-            "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
-            "rating": 5,
-            "level": 15,
-            "xp": 2850,
-            "city": "Bangalore",
-            "latitude": 12.9716,
-            "longitude": 77.5946
-        },
-        {
-            "id": "paws-spa",
-            "name": "Paws & Relax Spa",
-            "description": "Luxury pet spa offering full-service grooming.",
-            "image": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400",
-            "rating": 4,
-            "level": 12,
-            "xp": 2100,
-            "city": "Chennai",
-            "latitude": 13.0827,
-            "longitude": 80.2707
-        },
-        {
-            "id": "happy-tails",
-            "name": "Happy Tails Grooming",
-            "description": "Professional pet grooming services.",
-            "image": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400",
-            "rating": 5,
-            "level": 18,
-            "xp": 3200,
-            "city": "Hyderabad",
-            "latitude": 17.3850,
-            "longitude": 78.4867
+    # Get vendors from ERP database with grooming category
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM vendors WHERE category IN ('grooming', 'groomer', 'pet grooming')")
+    db_vendors = c.fetchall()
+    conn.close()
+
+    vendors = []
+    for vendor in db_vendors:
+        vendor_data = {
+            "id": vendor[0],  # vendor id
+            "name": vendor[2],  # vendor name
+            "description": vendor[7] or "Professional pet grooming services.",  # bio
+            "image": vendor[8] or "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
+            "rating": 5,  # Default rating
+            "level": 10,  # Default level
+            "xp": 1500,  # Default XP
+            "city": vendor[5] or "Unknown",
+            "latitude": None,  # Will be set from location data if available
+            "longitude": None
         }
-    ]
+        vendors.append(vendor_data)
+
+    # Always show demo vendor for testing
+    demo_vendor = {
+        "id": "fluffy-paws",
+        "name": "Fluffy Paws Grooming",
+        "description": "Expert grooming services for dogs and cats. [DEMO]",
+        "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
+        "rating": 5,
+        "level": 15,
+        "xp": 2850,
+        "city": "Bangalore",
+        "latitude": 12.9716,
+        "longitude": 77.5946
+    }
+    vendors.append(demo_vendor)
     
     # Apply location filtering if user location is available
     if user_location:
-        vendors = [
-            v for v in vendors if haversine(
-                user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
-            ) <= 50  # Filter vendors within 50 km
-        ]
+        filtered_vendors = []
+        for v in vendors:
+            if v["latitude"] and v["longitude"]:
+                distance = haversine(
+                    user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
+                )
+                if distance <= 50:  # Filter vendors within 50 km
+                    filtered_vendors.append(v)
+            else:
+                # Include vendors without location data for now
+                filtered_vendors.append(v)
+        vendors = filtered_vendors
     
     return render_template("groomers.html", vendors=vendors)
 
@@ -318,26 +326,54 @@ def boarding():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    boardings = [
-        {
-            "id": "cozy-paws",
-            "name": "Cozy Paws Boarding",
-            "description": "Safe and cozy stay for your pets.",
-            "image": "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400",
-            "city": "Mumbai",
-            "latitude": 19.0760,
-            "longitude": 72.8777
-        },
-        {
-            "id": "purrfect-inn",
-            "name": "Purrfect Inn",
-            "description": "Pet-friendly hotel and daycare.",
-            "image": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400",
-            "city": "Delhi",
-            "latitude": 28.6139,
-            "longitude": 77.2090
+    user_location = session.get("location")
+
+    # Get vendors from ERP database with boarding/hotel category
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM vendors WHERE category IN ('boarding', 'hotel', 'pet boarding', 'daycare')")
+    db_vendors = c.fetchall()
+    conn.close()
+
+    boardings = []
+    for vendor in db_vendors:
+        vendor_data = {
+            "id": vendor[0],  # vendor id
+            "name": vendor[2],  # vendor name
+            "description": vendor[7] or "Safe and comfortable stay for your pets.",  # bio
+            "image": vendor[8] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400",
+            "city": vendor[5] or "Unknown",
+            "latitude": None,  # Will be set from location data if available
+            "longitude": None
         }
-    ]
+        boardings.append(vendor_data)
+
+    # Always show demo boarding for testing
+    demo_boarding = {
+        "id": "cozy-paws",
+        "name": "Cozy Paws Boarding",
+        "description": "Safe and cozy stay for your pets. [DEMO]",
+        "image": "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400",
+        "city": "Mumbai",
+        "latitude": 19.0760,
+        "longitude": 72.8777
+    }
+    boardings.append(demo_boarding)
+
+    # Apply location filtering if user location is available
+    if user_location:
+        filtered_boardings = []
+        for b in boardings:
+            if b["latitude"] and b["longitude"]:
+                distance = haversine(
+                    user_location["lat"], user_location["lon"], b["latitude"], b["longitude"]
+                )
+                if distance <= 50:  # Filter vendors within 50 km
+                    filtered_boardings.append(b)
+            else:
+                # Include vendors without location data for now
+                filtered_boardings.append(b)
+        boardings = filtered_boardings
 
     restaurants = [
         {
@@ -562,15 +598,21 @@ def erp_profile():
         bio = request.form.get("bio", "")
         image_url = request.form.get("image_url", "")
         city = request.form.get("city", "")
+        latitude = request.form.get("latitude", "")
+        longitude = request.form.get("longitude", "")
+
+        # Convert coordinates to float if provided
+        lat_val = float(latitude) if latitude else None
+        lon_val = float(longitude) if longitude else None
 
         c.execute('''
             UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, city=? 
+            SET name=?, phone=?, bio=?, image_url=?, city=?, latitude=?, longitude=? 
             WHERE email=?
-        ''', (name, phone, bio, image_url, city, email))
+        ''', (name, phone, bio, image_url, city, lat_val, lon_val, email))
         conn.commit()
 
-    c.execute("SELECT name, email, phone, bio, image_url, city FROM vendors WHERE email=?", (email,))
+    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 

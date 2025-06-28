@@ -72,13 +72,13 @@
     <input name="image_url" value="{{ vendor[4] }}">
 
     <label>City</label>
-    <input name="city" value="{{ vendor[5] }}">
+    <input name="city" value="{{ vendor[5] if vendor[5] else '' }}">
 
     <label>Latitude</label>
-    <input name="latitude" value="{{ vendor[6] }}">
+    <input name="latitude" value="{{ vendor[6] if vendor[6] else '' }}" placeholder="e.g., 12.9716">
 
     <label>Longitude</label>
-    <input name="longitude" value="{{ vendor[7] }}">
+    <input name="longitude" value="{{ vendor[7] if vendor[7] else '' }}" placeholder="e.g., 77.5946">
 
     <button type="submit">Save Profile</button>
   </form>

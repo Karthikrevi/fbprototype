@@ -105,8 +105,9 @@
       </div>
     </div>
 
-    {% if vendors %}
+    {% if vendors and vendors|length > 1 %}
       {% for vendor in vendors %}
+      {% if vendor.id != 'fluffy-paws' %}
       <div class="vendor-card">
         <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
         <div class="vendor-details">
@@ -119,9 +120,14 @@
           <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
         </div>
       </div>
+      {% endif %}
       {% endfor %}
     {% else %}
-      <p class="text-muted text-center">No local vendors found near you.</p>
+      <div style="text-align: center; margin: 40px; padding: 20px; background: #fff; border-radius: 12px;">
+        <h3>🔍 No vendors in your area yet</h3>
+        <p>We're expanding our network! Check back soon for groomers and vendors near you.</p>
+        <p><small>Current location-based filtering is active. Vendors will appear here once they register with location data.</small></p>
+      </div>
     {% endif %}
   </div>
 
