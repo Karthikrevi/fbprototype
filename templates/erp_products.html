@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Products - FurrButler ERP</title>
+  <style>
+    body {
+      background-color: #fffef2;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 40px;
+    }
+
+    h2 {
+      color: #ff7e5f;
+      text-align: center;
+    }
+
+    .product-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .product-card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      width: 250px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .back-btn {
+      background-color: #74c69d;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/dashboard" class="back-btn">← Back to Dashboard</a>
+  <h2>📦 Manage Products</h2>
+  
+  <div class="product-grid">
+    {% if products %}
+      {% for product in products %}
+      <div class="product-card">
+        <h3>{{ product[2] }}</h3>
+        <p>Price: ${{ product[3] }}</p>
+        <p>Stock: {{ product[5] }}</p>
+        <p>{{ product[4] }}</p>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p>No products found. Add some products to get started!</p>
+    {% endif %}
+  </div>
+</body>
+</html>

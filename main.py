@@ -148,7 +148,7 @@ def vendor_login():
 
         if vendor and vendor["password"] == password:
             session["vendor"] = email
-            return redirect("https://erp.furrbutler.com")  # placeholder
+            return redirect(url_for("erp_dashboard"))
         else:
             return "Invalid vendor login."
 
@@ -488,6 +488,127 @@ def set_location():
 def logout():
     session.clear()
     return redirect(url_for("home"))
+
+# ---- ERP ROUTES ----
+
+@app.route('/erp')
+def erp_home():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    return redirect(url_for("erp_dashboard"))
+
+@app.route('/erp/login', methods=["GET", "POST"])
+def erp_login():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM vendors WHERE email=? AND password=?", (email, password))
+        vendor = c.fetchone()
+        conn.close()
+
+        if vendor:
+            session["vendor"] = email
+            return redirect(url_for("erp_dashboard"))
+        else:
+            return "Invalid credentials"
+
+    return render_template("erp_login.html")
+
+@app.route('/erp/register', methods=["GET", "POST"])
+def erp_register():
+    if request.method == "POST":
+        email = request.form["email"]
+        name = request.form["name"]
+        password = request.form["password"]
+        category = request.form.get("category", "")
+        city = request.form.get("city", "")
+        phone = request.form.get("phone", "")
+        bio = request.form.get("bio", "")
+        image_url = request.form.get("image_url", "")
+
+        try:
+            conn = sqlite3.connect('erp.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO vendors (email, name, password, category, city, phone, bio, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                     (email, name, password, category, city, phone, bio, image_url))
+            conn.commit()
+            conn.close()
+            return redirect(url_for("erp_login"))
+        except sqlite3.IntegrityError:
+            return "Vendor already exists with that email."
+
+    return render_template("vendor_register.html")
+
+@app.route('/erp/dashboard')
+def erp_dashboard():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    return render_template("erp_dashboard.html", vendor=session["vendor"])
+
+@app.route('/erp/profile', methods=["GET", "POST"])
+def erp_profile():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    if request.method == "POST":
+        name = request.form["name"]
+        phone = request.form.get("phone", "")
+        bio = request.form.get("bio", "")
+        image_url = request.form.get("image_url", "")
+        city = request.form.get("city", "")
+
+        c.execute('''
+            UPDATE vendors 
+            SET name=?, phone=?, bio=?, image_url=?, city=? 
+            WHERE email=?
+        ''', (name, phone, bio, image_url, city, email))
+        conn.commit()
+
+    c.execute("SELECT name, email, phone, bio, image_url, city FROM vendors WHERE email=?", (email,))
+    vendor = c.fetchone()
+    conn.close()
+
+    return render_template("erp_profiles.html", vendor=vendor)
+
+@app.route('/erp/products')
+def erp_products():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT p.* FROM products p JOIN vendors v ON p.vendor_id = v.id WHERE v.email=?", (email,))
+    products = c.fetchall()
+    conn.close()
+
+    return render_template("erp_products.html", products=products)
+
+@app.route('/erp/bookings')
+def erp_bookings():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT b.* FROM bookings b JOIN vendors v ON b.vendor_id = v.id WHERE v.email=?", (email,))
+    bookings = c.fetchall()
+    conn.close()
+
+    return render_template("erp_booking.html", bookings=bookings)
+
+@app.route('/erp/logout')
+def erp_logout():
+    session.pop("vendor", None)
+    return redirect(url_for("erp_login"))
 
 # Run app
 if __name__ == '__main__':
