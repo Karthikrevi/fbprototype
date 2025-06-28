@@ -393,18 +393,20 @@ def boarding():
                 filtered_boardings.append(b)
         boardings = filtered_boardings
 
-    restaurants = [
-        {
-            "name": "The Barking Café",
-            "description": "Pet‑friendly café with outdoor seating and water bowls.",
-            "booking_url": "https://www.booking.com/searchresults.html?ss=pet-friendly+cafe"
-        },
-        {
-            "name": "Fur & Fest",
-            "description": "Co‑lodging hotel allowing dogs; book via affiliate.",
-            "booking_url": "https://www.booking.com/searchresults.html?ss=pet-friendly+hotel"
-        }
-    ]
+    # Apply location filtering to restaurants if user location is available
+    if user_location:
+        filtered_restaurants = []
+        for r in restaurants:
+            if r["latitude"] and r["longitude"]:
+                distance = haversine(
+                    user_location["lat"], user_location["lon"], r["latitude"], r["longitude"]
+                )
+                if distance <= 50:  # Filter restaurants within 50 km
+                    filtered_restaurants.append(r)
+            else:
+                # Include restaurants without location data for now
+                filtered_restaurants.append(r)
+        restaurants = filtered_restaurants
 
     return render_template("boarding.html", boardings=boardings, restaurants=restaurants)
 
