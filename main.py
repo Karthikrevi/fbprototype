@@ -205,15 +205,14 @@ def dashboard():
 def haversine(lat1, lon1, lat2, lon2):
     # Radius of Earth in kilometers
     R = 6371.0
+    
+    if None in [lat1, lon1, lat2, lon2]:
+        return float('inf')  # Or some default/fallback
+    
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    if None in [lat1, lon1, lat2, lon2]:
-        distance = float('inf')  # Or some default/fallback
-    else:
-        distance = haversine(lat1, lon1, lat2, lon2)
-        return distance
-
+    
     return R * 2 * asin(sqrt(a))
 
 @app.route('/groomers')

@@ -144,7 +144,6 @@
 
   <script>
     window.onload = function () {
-      // Geolocation with reload
       if (navigator.geolocation && !sessionStorage.getItem('locationSet')) {
         navigator.geolocation.getCurrentPosition(function (position) {
           fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
