@@ -670,55 +670,60 @@ def erp_profile():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    if request.method == "POST":
-        name = request.form.get("name", "")
-        phone = request.form.get("phone", "")
-        bio = request.form.get("bio", "")
-        city = request.form.get("city", "")
-        category = request.form.get("category", "")
-
-        # Handle image upload
-        image_url = ""
-        file = request.files.get("image")
-        if file and file.filename and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            image_url = "/" + filepath
-        else:
-            # Keep existing image if no new image uploaded
-            c.execute("SELECT image_url FROM vendors WHERE email=?", (email,))
-            existing = c.fetchone()
-            image_url = existing[0] if existing and existing[0] else ""
-
-        c.execute('''
-            UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
-            WHERE email=?
-        ''', (name, phone, bio, image_url, city, category, email))
-
-        conn.commit()
-        
-        # Fetch updated vendor data
-        c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
-        vendor = c.fetchone()
-        conn.close()
-
-        # After saving, always show profile view (like pet profile does)
-        return render_template("erp_profile_view.html", vendor=vendor)
-
     # GET method: fetch existing vendor data
     c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    # Check if profile exists and has basic info
+    # Check if profile exists and has complete basic info
     if vendor and vendor[0] and vendor[8]:  # Has name and category
-        # Show the profile view (like pet profile)
+        # Show the profile view (like pet profile does)
         return render_template("erp_profile_view.html", vendor=vendor)
     else:
         # Profile incomplete, show edit form
         return render_template("erp_profiles.html", vendor=vendor or ("", "", "", "", "", "", "", "", ""))
+
+# ERP Profile Save (separate POST route like pet profile)
+@app.route('/erp/profile/save', methods=["POST"])
+def save_vendor_profile():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    name = request.form.get("name", "")
+    phone = request.form.get("phone", "")
+    bio = request.form.get("bio", "")
+    city = request.form.get("city", "")
+    category = request.form.get("category", "")
+
+    # Handle image upload
+    image_url = ""
+    file = request.files.get("image")
+    if file and file.filename and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        image_url = "/" + filepath
+    else:
+        # Keep existing image if no new image uploaded
+        c.execute("SELECT image_url FROM vendors WHERE email=?", (email,))
+        existing = c.fetchone()
+        image_url = existing[0] if existing and existing[0] else ""
+
+    c.execute('''
+        UPDATE vendors 
+        SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
+        WHERE email=?
+    ''', (name, phone, bio, image_url, city, category, email))
+
+    conn.commit()
+    conn.close()
+
+    # Redirect back to profile page which will now show the profile view
+    return redirect(url_for("erp_profile"))
 
 
 #--- ERP Profile Edit ---
