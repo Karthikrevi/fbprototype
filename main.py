@@ -661,7 +661,7 @@ def erp_dashboard():
     return render_template("erp_dashboard.html", vendor=session["vendor"])
 
 #ERP Profile
-@app.route('/erp/profile', methods=["GET", "POST"])
+@app.route('/erp/profile', methods=["GET"])
 def erp_profile():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
@@ -676,7 +676,7 @@ def erp_profile():
     conn.close()
 
     # Check if profile exists and has complete basic info
-    if vendor and vendor[0] and vendor[8]:  # Has name and category
+    if vendor and vendor[0] and vendor[0].strip() and vendor[8] and vendor[8].strip():  # Has name and category
         # Show the profile view (like pet profile does)
         return render_template("erp_profile_view.html", vendor=vendor)
     else:
@@ -720,6 +720,12 @@ def save_vendor_profile():
     ''', (name, phone, bio, image_url, city, category, email))
 
     conn.commit()
+    
+    # Debug: Check what was saved
+    c.execute("SELECT name, category FROM vendors WHERE email=?", (email,))
+    saved_data = c.fetchone()
+    print(f"DEBUG: Saved vendor data - Name: '{saved_data[0] if saved_data else 'None'}', Category: '{saved_data[1] if saved_data else 'None'}'")
+    
     conn.close()
 
     # Redirect back to profile page which will now show the profile view

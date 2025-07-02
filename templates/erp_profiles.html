@@ -87,7 +87,8 @@
     <textarea name="bio" rows="4">{{ vendor[3] }}</textarea>
 
     <label>Category</label>
-    <select name="category">
+    <select name="category" required>
+      <option value="">Select Category</option>
       <option value="Groomer" {% if vendor[8] == 'Groomer' %}selected{% endif %}>Groomer</option>
       <option value="Boarding" {% if vendor[8] == 'Boarding' %}selected{% endif %}>Boarding</option>
       <option value="Pharmacy" {% if vendor[8] == 'Pharmacy' %}selected{% endif %}>Pharmacy</option>
