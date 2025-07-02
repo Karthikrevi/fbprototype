@@ -675,13 +675,8 @@ def erp_profile():
     vendor = c.fetchone()
     conn.close()
 
-    # Check if profile exists and has complete basic info
-    if vendor and vendor[0] and vendor[0].strip() and vendor[8] and vendor[8].strip():  # Has name and category
-        # Show the profile view (like pet profile does)
-        return render_template("erp_profile_view.html", vendor=vendor)
-    else:
-        # Profile incomplete, show edit form
-        return render_template("erp_profiles.html", vendor=vendor or ("", "", "", "", "", "", "", "", ""))
+    # Always show the profile view with placeholders for empty fields
+    return render_template("erp_profile_view.html", vendor=vendor or ("", email, "", "", "", "", "", "", ""))
 
 # ERP Profile Save (separate POST route like pet profile)
 @app.route('/erp/profile/save', methods=["POST"])
@@ -774,12 +769,12 @@ def edit_vendor_profile():
 
         return redirect(url_for("erp_profile"))
 
-    # GET method: fetch existing vendor data
+    # GET method: fetch existing vendor data for editing
     c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    return render_template("erp_profiles.html", vendor=vendor or ("", "", "", "", "", "", "", "", ""))
+    return render_template("erp_profiles.html", vendor=vendor or ("", email, "", "", "", "", "", "", ""))
 
 # ERP Products
 @app.route('/erp/products')

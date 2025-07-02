@@ -121,19 +121,34 @@
       {% endif %}
 
       <div class="profile-details">
-        <h4>{{ vendor[0] or 'Vendor Name Not Set' }}</h4>
-        <span class="status-badge">{{ vendor[8] or 'Category Not Set' }}</span>
+        <h4>{{ vendor[0] or 'Your Business Name' }}</h4>
+        <span class="status-badge">{{ vendor[8] or 'Select Category' }}</span>
 
         <div class="info-bubble">📧 {{ vendor[1] }}</div>
-        <div class="info-bubble">📱 {{ vendor[2] or 'Phone Not Set' }}</div>
-        <div class="info-bubble">🏙️ {{ vendor[5] or 'City Not Set' }}</div>
+        {% if vendor[2] %}
+        <div class="info-bubble">📱 {{ vendor[2] }}</div>
+        {% else %}
+        <div class="info-bubble" style="opacity: 0.6;">📱 Add Phone Number</div>
+        {% endif %}
+        
+        {% if vendor[5] %}
+        <div class="info-bubble">🏙️ {{ vendor[5] }}</div>
+        {% else %}
+        <div class="info-bubble" style="opacity: 0.6;">🏙️ Add Your City</div>
+        {% endif %}
 
         {% if vendor[6] and vendor[7] %}
         <div class="info-bubble">📍 Location: {{ "%.4f"|format(vendor[6]) }}, {{ "%.4f"|format(vendor[7]) }}</div>
+        {% else %}
+        <div class="info-bubble" style="opacity: 0.6;">📍 Location will be auto-detected</div>
         {% endif %}
 
         <div class="section-title">📋 About</div>
-        <p style="margin-top: 10px; color: #666;">{{ vendor[3] or 'No bio provided yet.' }}</p>
+        {% if vendor[3] %}
+        <p style="margin-top: 10px; color: #666;">{{ vendor[3] }}</p>
+        {% else %}
+        <p style="margin-top: 10px; color: #999; font-style: italic;">Tell customers about your business and services...</p>
+        {% endif %}
 
         <div class="section-title">📊 Business Stats</div>
         <div class="info-bubble">⭐ Rating: 4.5/5</div>
