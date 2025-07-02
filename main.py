@@ -661,7 +661,7 @@ def erp_dashboard():
     return render_template("erp_dashboard.html", vendor=session["vendor"])
 
 #ERP Profile
-@app.route('/erp/profile')
+@app.route('/erp/profile', methods=["GET", "POST"])
 def erp_profile():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
@@ -669,15 +669,35 @@ def erp_profile():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
+
+    if request.method == "POST":
+        name = request.form.get("name", "")
+        phone = request.form.get("phone", "")
+        bio = request.form.get("bio", "")
+        image_url = request.form.get("image_url", "")
+        city = request.form.get("city", "")
+        category = request.form.get("category", "")
+
+        c.execute('''
+            UPDATE vendors 
+            SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
+            WHERE email=?
+        ''', (name, phone, bio, image_url, city, category, email))
+        
+        conn.commit()
+        conn.close()
+        return redirect(url_for("erp_profile"))
+
+    # GET method: fetch existing vendor data
     c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    # Redirect to edit page if profile is incomplete
+    # Show edit form if profile is incomplete, otherwise show profile view
     if not vendor or not vendor[0] or not vendor[5] or not vendor[8]:
-        return redirect(url_for("edit_vendor_profile"))
+        return render_template("erp_profiles.html", vendor=vendor)
 
-    return render_template("erp_profiles.html", vendor=vendor)
+    return render_template("erp_profile_view.html", vendor=vendor)
 
 
 #--- ERP Profile Edit ---

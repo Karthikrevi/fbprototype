@@ -88,15 +88,14 @@
 
     <label>Category</label>
     <select name="category">
-      <option value="groomer" {% if vendor[8] == 'groomer' %}selected{% endif %}>Groomer</option>
-      <option value="boarding" {% if vendor[8] == 'boarding' %}selected{% endif %}>Boarding</option>
-      <option value="pharmacy" {% if vendor[8] == 'pharmacy' %}selected{% endif %}>Pharmacy</option>
-      <option value="restaurant" {% if vendor[8] == 'restaurant' %}selected{% endif %}>Pet-Friendly Restaurant</option>
+      <option value="Groomer" {% if vendor[8] == 'Groomer' %}selected{% endif %}>Groomer</option>
+      <option value="Boarding" {% if vendor[8] == 'Boarding' %}selected{% endif %}>Boarding</option>
+      <option value="Pharmacy" {% if vendor[8] == 'Pharmacy' %}selected{% endif %}>Pharmacy</option>
+      <option value="Restaurant" {% if vendor[8] == 'Restaurant' %}selected{% endif %}>Pet-Friendly Restaurant</option>
     </select>
 
-
     <label>Image URL</label>
-    <input name="image_url" value="{{ vendor[4] }}">
+    <input name="image_url" value="{{ vendor[4] if vendor[4] else '' }}">
 
     <label>City</label>
     <input name="city" value="{{ vendor[5] if vendor[5] else '' }}">
@@ -108,12 +107,16 @@
 
   <script>
     window.onload = function() {
-      if ("geolocation" in navigator) {
+      if ("geolocation" in navigator && !sessionStorage.getItem('vendorLocationSet')) {
         navigator.geolocation.getCurrentPosition(function(position) {
-          fetch(`/set-vendor-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+          fetch(`/set-vendor-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
+            .then(() => {
+              sessionStorage.setItem('vendorLocationSet', 'true');
+              console.log('Vendor location updated automatically');
+            });
+        }, function(error) {
+          console.log("Geolocation error:", error);
         });
-      } else {
-        console.log("Geolocation not available");
       }
     };
   </script>
