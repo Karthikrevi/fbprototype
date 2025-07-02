@@ -581,6 +581,19 @@ def set_location():
     if lat and lon:
         session["location"] = {"lat": lat, "lon": lon}
     return '', 204
+
+@app.route('/set-vendor-location')
+def set_vendor_location():
+    lat = request.args.get("lat", type=float)
+    lon = request.args.get("lon", type=float)
+    if lat and lon and "vendor" in session:
+        email = session["vendor"]
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("UPDATE vendors SET latitude=?, longitude=? WHERE email=?", (lat, lon, email))
+        conn.commit()
+        conn.close()
+    return '', 204
     
 # Logout
 @app.route('/logout')
@@ -662,7 +675,7 @@ def erp_profile():
 
     # Redirect to edit page if profile is incomplete
     if not vendor or not vendor[0] or not vendor[5] or not vendor[8]:
-        return redirect(url_for("erp_profile_edit"))
+        return redirect(url_for("edit_vendor_profile"))
 
     return render_template("erp_profiles.html", vendor=vendor)
 
@@ -690,26 +703,12 @@ def edit_vendor_profile():
         lat_val = float(latitude) if latitude else None
         lon_val = float(longitude) if longitude else None
 
-        if image_url:
-            c.execute('''
-                UPDATE vendors 
-                SET name=?, phone=?, bio=?, image_url=?, city=?, category=?, latitude=?, longitude=? 
-                WHERE email=?
-            ''', (name, phone, bio, image_url, city, category, lat_val, lon_val, email))
-        else:
-            c.execute('''
-                UPDATE vendors 
-                SET name=?, phone=?, bio=?, city=?, category=?, latitude=?, longitude=? 
-                WHERE email=?
-            ''', (name, phone, bio, city, category, lat_val, lon_val, email))
-
-        conn.commit()
-
         c.execute('''
             UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, city=?, latitude=?, longitude=?, category=?
+            SET name=?, phone=?, bio=?, image_url=?, city=?, category=?, latitude=?, longitude=? 
             WHERE email=?
-        ''', (name, phone, bio, image_url, city, lat_val, lon_val, category, email))
+        ''', (name, phone, bio, image_url, city, category, lat_val, lon_val, email))
+        
         conn.commit()
 
         return redirect(url_for("erp_profile"))
