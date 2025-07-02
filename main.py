@@ -243,10 +243,10 @@ def groomers():
 
     user_location = session.get("location")
 
-    # Get vendors from ERP database with grooming category
+    # Get vendors from ERP database with grooming category (case-insensitive)
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    c.execute("SELECT * FROM vendors WHERE category IN ('grooming', 'groomer', 'pet grooming')")
+    c.execute("SELECT * FROM vendors WHERE LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%'")
     db_vendors = c.fetchall()
     conn.close()
 
