@@ -70,6 +70,25 @@ def init_erp_db():
 
 # Run the DB setup on startup
 init_erp_db()
+# TEMP FIX: Add latitude & longitude columns if missing
+#def patch_vendor_location_columns():
+    #conn = sqlite3.connect('erp.db')
+    #c = conn.cursor()
+    #try:
+        #c.execute("ALTER TABLE vendors ADD COLUMN latitude REAL")
+    #except sqlite3.OperationalError:
+        #pass  # Column already exists
+
+    #try:
+        #c.execute("ALTER TABLE vendors ADD COLUMN longitude REAL")
+    #except sqlite3.OperationalError:
+        #pass  # Column already exists
+
+    #conn.commit()
+    #conn.close()
+
+#patch_vendor_location_columns()
+
 
 
 app = Flask(__name__)
@@ -79,7 +98,7 @@ app.secret_key = 'furrbutler_secret_key'
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Utility to check file type
 def allowed_file(filename):
@@ -299,8 +318,33 @@ def vendor_profile(vendor_id):
         }
         return render_template("vendor_profile.html", vendor=vendor)
     else:
-        return render_template("vendor_placeholder.html", vendor_name=vendor_id.replace("-", " ").title())
+        # Try to fetch from ERP DB using vendor ID
+        try:
+            conn = sqlite3.connect("erp.db")
+            c = conn.cursor()
+            c.execute("SELECT id, name, bio, image_url, city FROM vendors WHERE id = ?", (vendor_id,))
+            data = c.fetchone()
+            conn.close()
 
+            if data:
+                vendor = {
+                    "id": data[0],
+                    "name": data[1],
+                    "description": data[2] or "Trusted pet care provider.",
+                    "image": data[3] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=400&fit=crop",
+                    "city": data[4] or "Unknown",
+                    "rating": 4,
+                    "level": 8,
+                    "xp": 1200,
+                    "booking_url": f"/vendor/{data[0]}/book",
+                    "market_url": "#"
+                }
+                return render_template("vendor_profile.html", vendor=vendor)
+            else:
+                return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
+        except Exception as e:
+            print("Error loading vendor:", e)
+            return "Error loading vendor profile"
 # Booking (Fluffy Paws only)
 @app.route('/vendor/<vendor_id>/book', methods=["GET", "POST"])
 def book_vendor(vendor_id):
@@ -603,8 +647,29 @@ def erp_dashboard():
         return redirect(url_for("erp_login"))
     return render_template("erp_dashboard.html", vendor=session["vendor"])
 
-@app.route('/erp/profile', methods=["GET", "POST"])
+#ERP Profile
+@app.route('/erp/profile')
 def erp_profile():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
+    vendor = c.fetchone()
+    conn.close()
+
+    # Redirect to edit page if profile is incomplete
+    if not vendor or not vendor[0] or not vendor[5] or not vendor[8]:
+        return redirect(url_for("erp_profile_edit"))
+
+    return render_template("erp_profiles.html", vendor=vendor)
+
+
+#--- ERP Profile Edit ---
+@app.route('/erp/profile/edit', methods=["GET", "POST"])
+def edit_vendor_profile():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
 
@@ -620,24 +685,43 @@ def erp_profile():
         city = request.form.get("city", "")
         latitude = request.form.get("latitude", "")
         longitude = request.form.get("longitude", "")
+        category = request.form.get("category", "")
 
-        # Convert coordinates to float if provided
         lat_val = float(latitude) if latitude else None
         lon_val = float(longitude) if longitude else None
 
-        c.execute('''
-            UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, city=?, latitude=?, longitude=? 
-            WHERE email=?
-        ''', (name, phone, bio, image_url, city, lat_val, lon_val, email))
+        if image_url:
+            c.execute('''
+                UPDATE vendors 
+                SET name=?, phone=?, bio=?, image_url=?, city=?, category=?, latitude=?, longitude=? 
+                WHERE email=?
+            ''', (name, phone, bio, image_url, city, category, lat_val, lon_val, email))
+        else:
+            c.execute('''
+                UPDATE vendors 
+                SET name=?, phone=?, bio=?, city=?, category=?, latitude=?, longitude=? 
+                WHERE email=?
+            ''', (name, phone, bio, city, category, lat_val, lon_val, email))
+
         conn.commit()
 
-    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude FROM vendors WHERE email=?", (email,))
+        c.execute('''
+            UPDATE vendors 
+            SET name=?, phone=?, bio=?, image_url=?, city=?, latitude=?, longitude=?, category=?
+            WHERE email=?
+        ''', (name, phone, bio, image_url, city, lat_val, lon_val, category, email))
+        conn.commit()
+
+        return redirect(url_for("erp_profile"))
+
+    # GET method: fetch existing vendor data
+    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    return render_template("erp_profiles.html", vendor=vendor)
+    return render_template("erp_profiles_edit.html", vendor=vendor)
 
+# ERP Products
 @app.route('/erp/products')
 def erp_products():
     if "vendor" not in session:
@@ -651,7 +735,7 @@ def erp_products():
     conn.close()
 
     return render_template("erp_products.html", products=products)
-
+# ERP Bookings
 @app.route('/erp/bookings')
 def erp_bookings():
     if "vendor" not in session:

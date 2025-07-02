@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vendor Profile - FurrButler ERP</title>
+  <style>
+    body {
+      background-color: #fffaf2;
+      font-family: 'Poppins', sans-serif;
+      padding: 30px;
+    }
+
+    h2 {
+      color: #ff7e5f;
+      text-align: center;
+    }
+
+    .profile-card {
+      background: white;
+      padding: 25px;
+      max-width: 700px;
+      margin: auto;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    .profile-image {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      margin: 0 auto 20px;
+    }
+
+    .field {
+      margin-bottom: 15px;
+    }
+
+    .field label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .field span {
+      display: block;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .edit-btn {
+      margin-top: 25px;
+      background-color: #74c69d;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .edit-btn:hover {
+      background-color: #52b788;
+    }
+  </style>
+</head>
+<body>
+  <h2>🐾 Your Vendor Profile</h2>
+  <div class="profile-card">
+    <img src="{{ vendor[4] or 'https://via.placeholder.com/120' }}" class="profile-image" alt="Profile Image">
+
+    <div class="field">
+      <label>Name</label>
+      <span>{{ vendor[0] }}</span>
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <span>{{ vendor[1] }}</span>
+    </div>
+
+    <div class="field">
+      <label>Phone</label>
+      <span>{{ vendor[2] }}</span>
+    </div>
+
+    <div class="field">
+      <label>Bio</label>
+      <span>{{ vendor[3] }}</span>
+    </div>
+
+    <div class="field">
+      <label>City</label>
+      <span>{{ vendor[5] }}</span>
+    </div>
+
+    <div class="field">
+      <label>Category</label>
+      <span>{{ vendor[8] }}</span>
+    </div>
+
+    <div class="field">
+      <label>Latitude</label>
+      <span>{{ vendor[6] }}</span>
+    </div>
+
+    <div class="field">
+      <label>Longitude</label>
+      <span>{{ vendor[7] }}</span>
+    </div>
+
+    <a href="/erp/profile/edit"><button class="edit-btn">Edit Profile</button></a>
+  </div>
+</body>
+</html>

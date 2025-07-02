@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Vendor Profile - FurrButler ERP</title>
+  <style>
+    body {
+      background-color: #fffaf2;
+      font-family: 'Poppins', sans-serif;
+      padding: 30px;
+    }
+
+    h2 {
+      color: #ff7e5f;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .profile-form {
+      background: white;
+      padding: 30px;
+      max-width: 750px;
+      margin: auto;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .form-section {
+      margin-bottom: 25px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-top: 5px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      background-color: #74c69d;
+      color: white;
+      padding: 14px;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-top: 25px;
+    }
+
+    button:hover {
+      background-color: #52b788;
+    }
+
+    .avatar-preview {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .avatar-preview img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+    }
+
+    .tooltip {
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+  </style>
+</head>
+<body>
+  <h2>🐾 Edit Your Vendor Profile</h2>
+  <form method="POST" enctype="multipart/form-data" class="profile-form">
+
+    <div class="form-section">
+      <label>Name</label>
+      <input name="name" value="{{ vendor[0] }}">
+
+      <label>Email (read-only)</label>
+      <input value="{{ vendor[1] }}" readonly>
+
+      <label>Phone</label>
+      <input name="phone" value="{{ vendor[2] }}">
+
+      <label>Bio</label>
+      <textarea name="bio" rows="3">{{ vendor[3] }}</textarea>
+    </div>
+
+    <div class="form-section">
+      <label>Upload Profile Picture</label>
+      <input type="file" name="image">
+      <div class="avatar-preview">
+        {% if vendor[4] %}
+          <img src="{{ vendor[4] }}" alt="Current Image">
+        {% else %}
+          <img src="/static/default-avatar.png" alt="Default">
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label>City</label>
+      <input name="city" value="{{ vendor[5] }}">
+
+      <label>Category <span class="tooltip">(Used to segment vendors on app)</span></label>
+      <select name="category">
+        <option value="Groomer" {% if vendor[8] == 'Groomer' %}selected{% endif %}>Groomer</option>
+        <option value="Boarding" {% if vendor[8] == 'Boarding' %}selected{% endif %}>Boarding</option>
+        <option value="Pharmacy" {% if vendor[8] == 'Pharmacy' %}selected{% endif %}>Pharmacy</option>
+      </select>
+    </div>
+
+    <div class="form-section">
+      <label>Latitude <span class="tooltip">(optional – used for location services)</span></label>
+      <input name="latitude" value="{{ vendor[6] }}">
+
+      <label>Longitude <span class="tooltip">(optional – used for location services)</span></label>
+      <input name="longitude" value="{{ vendor[7] }}">
+    </div>
+
+    <button type="submit">💾 Save Profile</button>
+  </form>
+</body>
+</html>

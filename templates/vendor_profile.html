@@ -1,115 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{{ vendor.name }} - Vendor Profile</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <title>{{ vendor.name }} - FurrButler</title>
   <style>
-    .vendor-profile {
-      max-width: 800px;
-      margin: auto;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-      font-family: sans-serif;
-    }
-
-    .vendor-header {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      padding: 20px;
-      gap: 20px;
-    }
-
-    .vendor-header img {
-      width: 250px;
-      height: auto;
-      border-radius: 12px;
-    }
-
-    .vendor-info {
-      flex: 1;
-    }
-
-    .vendor-info h1 {
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #fffaf2;
       margin: 0;
-      font-size: 24px;
+      padding: 0;
     }
 
-    .vendor-meta {
-      font-size: 14px;
-      color: #666;
-      margin-top: 10px;
+    .profile-container {
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 40px;
+      background-color: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    .services-list {
-      margin: 20px;
-      padding-left: 20px;
-    }
-
-    .vendor-actions {
-      margin: 20px;
+    .profile-header {
       display: flex;
-      gap: 15px;
+      align-items: center;
+      gap: 30px;
     }
 
-    .vendor-actions a {
-      padding: 10px 20px;
-      background-color: #ff7e5f;
+    .profile-header img {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    .profile-details h1 {
+      margin: 0;
+      color: #ff7e5f;
+    }
+
+    .meta {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .bio {
+      margin-top: 30px;
+      font-size: 1rem;
+      color: #444;
+    }
+
+    .actions {
+      margin-top: 40px;
+    }
+
+    .actions a {
+      display: inline-block;
+      margin-right: 20px;
+      background-color: #74c69d;
       color: white;
-      border-radius: 8px;
       text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: bold;
     }
 
-    .vendor-actions a:hover {
-      background-color: #ff5722;
+    .services {
+      margin-top: 30px;
     }
 
-    .xp-bar {
-      margin-top: 10px;
-      height: 10px;
-      background: #eee;
-      border-radius: 5px;
-      overflow: hidden;
+    .services ul {
+      list-style: none;
+      padding-left: 0;
     }
 
-    .xp-fill {
-      width: {{ vendor.xp / 100 }}%;
-      height: 100%;
-      background: #4caf50;
+    .services li {
+      background-color: #f1f1f1;
+      padding: 10px 15px;
+      margin: 8px 0;
+      border-radius: 10px;
+    }
+
+    .stats {
+      margin-top: 30px;
+      font-size: 0.95rem;
+      color: #333;
     }
 
   </style>
 </head>
 <body>
-  <div class="vendor-profile">
-    <div class="vendor-header">
-      <img src="{{ vendor.image }}" alt="{{ vendor.name }}">
-      <div class="vendor-info">
+  <div class="profile-container">
+    <div class="profile-header">
+      <img src="{{ vendor.image }}" alt="Vendor Photo">
+      <div class="profile-details">
         <h1>{{ vendor.name }}</h1>
-        <p class="vendor-meta">{{ vendor.description }}</p>
-        <p class="vendor-meta">Rating: {{ vendor.rating }} ⭐</p>
-        <p class="vendor-meta">Level: {{ vendor.level }}</p>
-        <p class="vendor-meta">XP: {{ vendor.xp }}</p>
-        <div class="xp-bar">
-          <div class="xp-fill"></div>
-        </div>
+        <div class="meta">Rating: ⭐ {{ vendor.rating }} | Level: {{ vendor.level }} | XP: {{ vendor.xp }}</div>
       </div>
     </div>
 
-    <div class="services-list">
-      <h3>Services Offered</h3>
+    <div class="bio">
+      <p>{{ vendor.description }}</p>
+    </div>
+
+    <div class="services">
+      <h3>Services Offered:</h3>
       <ul>
         {% for service in vendor.services %}
-        <li>{{ service }}</li>
+          <li>{{ service }}</li>
         {% endfor %}
       </ul>
     </div>
 
-    <div class="vendor-actions">
-      <a href="{{ vendor.market_url }}">Visit Marketplace</a>
-      <a href="{{ vendor.booking_url }}">Book a Service</a>
+    <div class="actions">
+      <a href="{{ vendor.booking_url }}">📅 Book Now</a>
+      <a href="{{ vendor.market_url }}">🛒 View Marketplace</a>
+    </div>
+
+    <div class="stats">
+      <p>Service coverage, experience, and other details can be added later.</p>
     </div>
   </div>
 </body>

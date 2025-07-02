@@ -4,60 +4,78 @@
   <title>Vendor Profile - FurrButler ERP</title>
   <style>
     body {
-      background-color: #fffaf2;
+      background-color: #fffef2;
       font-family: 'Poppins', sans-serif;
       padding: 30px;
+      margin: 0;
     }
 
     h2 {
+      text-align: center;
       color: #ff7e5f;
+      font-size: 2rem;
     }
 
     form {
       background: white;
-      padding: 25px;
+      padding: 30px;
       max-width: 600px;
-      margin: auto;
-      border-radius: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin: 30px auto;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
 
     label {
       display: block;
-      margin-top: 15px;
-      font-weight: bold;
+      margin-top: 20px;
+      font-weight: 600;
+      color: #333;
     }
 
     input, textarea {
       width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      margin-top: 5px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    input[readonly] {
+      background-color: #f5f5f5;
     }
 
     button {
-      margin-top: 20px;
+      margin-top: 30px;
       background-color: #74c69d;
       color: white;
       border: none;
-      padding: 12px;
+      padding: 14px;
       width: 100%;
-      border-radius: 10px;
-      font-size: 1rem;
+      border-radius: 12px;
+      font-size: 1.1rem;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
 
     button:hover {
       background-color: #52b788;
     }
+
+    .note {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
   <h2>🐾 Vendor Profile</h2>
+
   <form method="POST">
     <label>Name</label>
-    <input name="name" value="{{ vendor[0] }}">
+    <input name="name" value="{{ vendor[0] }}" required>
 
     <label>Email (read-only)</label>
     <input value="{{ vendor[1] }}" readonly>
@@ -66,7 +84,16 @@
     <input name="phone" value="{{ vendor[2] }}">
 
     <label>Bio</label>
-    <textarea name="bio">{{ vendor[3] }}</textarea>
+    <textarea name="bio" rows="4">{{ vendor[3] }}</textarea>
+
+    <label>Category</label>
+    <select name="category">
+      <option value="groomer" {% if vendor[8] == 'groomer' %}selected{% endif %}>Groomer</option>
+      <option value="boarding" {% if vendor[8] == 'boarding' %}selected{% endif %}>Boarding</option>
+      <option value="pharmacy" {% if vendor[8] == 'pharmacy' %}selected{% endif %}>Pharmacy</option>
+      <option value="restaurant" {% if vendor[8] == 'restaurant' %}selected{% endif %}>Pet-Friendly Restaurant</option>
+    </select>
+
 
     <label>Image URL</label>
     <input name="image_url" value="{{ vendor[4] }}">
@@ -74,13 +101,21 @@
     <label>City</label>
     <input name="city" value="{{ vendor[5] if vendor[5] else '' }}">
 
-    <label>Latitude</label>
-    <input name="latitude" value="{{ vendor[6] if vendor[6] else '' }}" placeholder="e.g., 12.9716">
+    <p class="note">📍 Location will be automatically detected from your device.</p>
 
-    <label>Longitude</label>
-    <input name="longitude" value="{{ vendor[7] if vendor[7] else '' }}" placeholder="e.g., 77.5946">
-
-    <button type="submit">Save Profile</button>
+    <button type="submit">💾 Save Profile</button>
   </form>
+
+  <script>
+    window.onload = function() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          fetch(`/set-vendor-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+        });
+      } else {
+        console.log("Geolocation not available");
+      }
+    };
+  </script>
 </body>
 </html>
