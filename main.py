@@ -226,14 +226,14 @@ def dashboard():
 def haversine(lat1, lon1, lat2, lon2):
     # Radius of Earth in kilometers
     R = 6371.0
-    
+
     if None in [lat1, lon1, lat2, lon2]:
         return float('inf')  # Or some default/fallback
-    
+
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    
+
     return R * 2 * asin(sqrt(a))
 
 @app.route('/groomers')
@@ -280,7 +280,7 @@ def groomers():
         "longitude": 77.5946
     }
     vendors.append(demo_vendor)
-    
+
     # Apply location filtering if user location is available
     if user_location:
         filtered_vendors = []
@@ -295,7 +295,7 @@ def groomers():
                 # Include vendors without location data for now
                 filtered_vendors.append(v)
         vendors = filtered_vendors
-    
+
     return render_template("groomers.html", vendors=vendors)
 
 # Vendor Profile
@@ -377,7 +377,7 @@ def boarding():
     c = conn.cursor()
     c.execute("SELECT * FROM vendors WHERE category IN ('boarding', 'hotel', 'pet boarding', 'daycare')")
     boarding_vendors = c.fetchall()
-    
+
     # Get vendors from ERP database with restaurant category
     c.execute("SELECT * FROM vendors WHERE category IN ('restaurant', 'cafe', 'pet restaurant', 'pet cafe', 'pet-friendly restaurant')")
     restaurant_vendors = c.fetchall()
@@ -572,7 +572,7 @@ def edit_pet(index):
         return redirect(url_for("pet_profile"))
 
     return render_template("edit_pet.html", pet=pets[index], index=index, breeds=breeds)
-    
+
 #location
 @app.route('/set-location')
 def set_location():
@@ -594,7 +594,7 @@ def set_vendor_location():
         conn.commit()
         conn.close()
     return '', 204
-    
+
 # Logout
 @app.route('/logout')
 def logout():
@@ -676,7 +676,7 @@ def erp_profile():
         bio = request.form.get("bio", "")
         city = request.form.get("city", "")
         category = request.form.get("category", "")
-        
+
         # Handle image upload
         image_url = ""
         file = request.files.get("image")
@@ -696,9 +696,11 @@ def erp_profile():
             SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
             WHERE email=?
         ''', (name, phone, bio, image_url, city, category, email))
-        
+
         conn.commit()
         conn.close()
+
+        # Always redirect to profile view after saving
         return redirect(url_for("erp_profile"))
 
     # GET method: fetch existing vendor data
@@ -706,11 +708,13 @@ def erp_profile():
     vendor = c.fetchone()
     conn.close()
 
-    # Show edit form if profile is incomplete, otherwise show profile view
-    if not vendor or not vendor[0] or not vendor[5] or not vendor[8]:
-        return render_template("erp_profiles.html", vendor=vendor)
-
-    return render_template("erp_profile_view.html", vendor=vendor)
+    # Check if profile is complete - if yes, show profile view, if no, show edit form
+    if vendor and vendor[0] and vendor[5] and vendor[8]:
+        # Profile is complete, show the public-facing profile view (like Uber driver profile)
+        return render_template("erp_profile_view.html", vendor=vendor)
+    else:
+        # Profile incomplete, show edit form
+        return render_template("erp_profiles.html", vendor=vendor or ("", "", "", "", "", "", "", "", ""))
 
 
 #--- ERP Profile Edit ---
@@ -741,7 +745,7 @@ def edit_vendor_profile():
             SET name=?, phone=?, bio=?, image_url=?, city=?, category=?, latitude=?, longitude=? 
             WHERE email=?
         ''', (name, phone, bio, image_url, city, category, lat_val, lon_val, email))
-        
+
         conn.commit()
 
         return redirect(url_for("erp_profile"))
