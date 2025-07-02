@@ -698,19 +698,23 @@ def erp_profile():
         ''', (name, phone, bio, image_url, city, category, email))
 
         conn.commit()
+        
+        # Fetch updated vendor data
+        c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
+        vendor = c.fetchone()
         conn.close()
 
-        # Always redirect to profile view after saving
-        return redirect(url_for("erp_profile"))
+        # After saving, always show profile view (like pet profile does)
+        return render_template("erp_profile_view.html", vendor=vendor)
 
     # GET method: fetch existing vendor data
     c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    # Check if profile is complete - if yes, show profile view, if no, show edit form
-    if vendor and vendor[0] and vendor[5] and vendor[8]:
-        # Profile is complete, show the public-facing profile view (like Uber driver profile)
+    # Check if profile exists and has basic info
+    if vendor and vendor[0] and vendor[8]:  # Has name and category
+        # Show the profile view (like pet profile)
         return render_template("erp_profile_view.html", vendor=vendor)
     else:
         # Profile incomplete, show edit form
@@ -728,25 +732,34 @@ def edit_vendor_profile():
     c = conn.cursor()
 
     if request.method == "POST":
-        name = request.form["name"]
+        name = request.form.get("name", "")
         phone = request.form.get("phone", "")
         bio = request.form.get("bio", "")
-        image_url = request.form.get("image_url", "")
         city = request.form.get("city", "")
-        latitude = request.form.get("latitude", "")
-        longitude = request.form.get("longitude", "")
         category = request.form.get("category", "")
 
-        lat_val = float(latitude) if latitude else None
-        lon_val = float(longitude) if longitude else None
+        # Handle image upload
+        image_url = ""
+        file = request.files.get("image")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            image_url = "/" + filepath
+        else:
+            # Keep existing image if no new image uploaded
+            c.execute("SELECT image_url FROM vendors WHERE email=?", (email,))
+            existing = c.fetchone()
+            image_url = existing[0] if existing and existing[0] else ""
 
         c.execute('''
             UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, city=?, category=?, latitude=?, longitude=? 
+            SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
             WHERE email=?
-        ''', (name, phone, bio, image_url, city, category, lat_val, lon_val, email))
+        ''', (name, phone, bio, image_url, city, category, email))
 
         conn.commit()
+        conn.close()
 
         return redirect(url_for("erp_profile"))
 
@@ -755,7 +768,7 @@ def edit_vendor_profile():
     vendor = c.fetchone()
     conn.close()
 
-    return render_template("erp_profiles_edit.html", vendor=vendor)
+    return render_template("erp_profiles.html", vendor=vendor or ("", "", "", "", "", "", "", "", ""))
 
 # ERP Products
 @app.route('/erp/products')
