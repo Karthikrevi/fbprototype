@@ -674,9 +674,22 @@ def erp_profile():
         name = request.form.get("name", "")
         phone = request.form.get("phone", "")
         bio = request.form.get("bio", "")
-        image_url = request.form.get("image_url", "")
         city = request.form.get("city", "")
         category = request.form.get("category", "")
+        
+        # Handle image upload
+        image_url = ""
+        file = request.files.get("image")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            image_url = "/" + filepath
+        else:
+            # Keep existing image if no new image uploaded
+            c.execute("SELECT image_url FROM vendors WHERE email=?", (email,))
+            existing = c.fetchone()
+            image_url = existing[0] if existing and existing[0] else ""
 
         c.execute('''
             UPDATE vendors 

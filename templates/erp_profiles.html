@@ -73,7 +73,7 @@
 <body>
   <h2>🐾 Vendor Profile</h2>
 
-  <form method="POST">
+  <form method="POST" enctype="multipart/form-data">
     <label>Name</label>
     <input name="name" value="{{ vendor[0] }}" required>
 
@@ -94,8 +94,14 @@
       <option value="Restaurant" {% if vendor[8] == 'Restaurant' %}selected{% endif %}>Pet-Friendly Restaurant</option>
     </select>
 
-    <label>Image URL</label>
-    <input name="image_url" value="{{ vendor[4] if vendor[4] else '' }}">
+    <label>Profile Image</label>
+    <input type="file" name="image" accept="image/*">
+    {% if vendor[4] %}
+      <div style="margin-top: 10px;">
+        <img src="{{ vendor[4] }}" alt="Current Profile" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+        <p style="font-size: 0.8rem; color: #666;">Current profile image</p>
+      </div>
+    {% endif %}
 
     <label>City</label>
     <input name="city" value="{{ vendor[5] if vendor[5] else '' }}">
