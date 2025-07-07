@@ -12,7 +12,29 @@ def init_erp_db():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # First, create tables if they don't exist
+    # Check if products table exists and get its structure
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'")
+    products_table_exists = c.fetchone() is not None
+
+    if products_table_exists:
+        # Get current column structure
+        c.execute("PRAGMA table_info(products)")
+        existing_columns = [column[1] for column in c.fetchall()]
+        
+        # If the table exists but doesn't have the right columns, recreate it
+        required_columns = ['id', 'vendor_id', 'name', 'description', 'category', 'buy_price', 'sale_price', 'quantity', 'image_url', 'barcode']
+        missing_columns = [col for col in required_columns if col not in existing_columns]
+        
+        if missing_columns:
+            # Backup existing data
+            c.execute("SELECT * FROM products")
+            existing_products = c.fetchall()
+            
+            # Drop and recreate table
+            c.execute("DROP TABLE products")
+            products_table_exists = False
+
+    # Create all tables with correct schema
     c.execute('''
         CREATE TABLE IF NOT EXISTS vendors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,30 +195,6 @@ def init_erp_db():
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
     ''')
-
-    # Check if missing columns exist in products table, if not add them
-    c.execute("PRAGMA table_info(products)")
-    columns = [column[1] for column in c.fetchall()]
-    
-    if 'category' not in columns:
-        c.execute('ALTER TABLE products ADD COLUMN category TEXT')
-    if 'buy_price' not in columns:
-        c.execute('ALTER TABLE products ADD COLUMN buy_price REAL')
-    if 'sale_price' not in columns:
-        c.execute('ALTER TABLE products ADD COLUMN sale_price REAL')
-    if 'vendor_id' not in columns:
-        c.execute('ALTER TABLE products ADD COLUMN vendor_id INTEGER')
-    
-    # Check if vendor_email column exists before trying to migrate
-    if 'vendor_email' in columns:
-        # Update existing products to have vendor_id
-        c.execute("""
-            UPDATE products 
-            SET vendor_id = (
-                SELECT id FROM vendors WHERE email = products.vendor_email
-            ) 
-            WHERE vendor_email IS NOT NULL AND vendor_id IS NULL
-        """)
 
     # Insert demo vendor
     c.execute('''
@@ -1079,7 +1077,7 @@ def marketplace():
             "image_url": vendor[8],
             "latitude": vendor[9],
             "longitude": vendor[10],
-            "product_count": vendor[11],
+            "product_count": vendor[12],
             "is_online": vendor[11]  # This will be 1 since we're filtering for online vendors
         }
         vendors.append(vendor_data)
