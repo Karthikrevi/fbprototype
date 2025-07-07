@@ -885,14 +885,46 @@ def toggle_vendor_online():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
+    # Check if vendor exists in SQLite database
     c.execute("SELECT is_online FROM vendors WHERE email=?", (email,))
     current_status = c.fetchone()
+    
     if current_status is None:
-        conn.close()
-        return "Vendor not found", 404
+        # Vendor doesn't exist in SQLite, get their info from Replit db and create them
+        vendor_key = f"vendor:{email}"
+        vendor_data = db.get(vendor_key)
+        
+        if vendor_data:
+            # Create vendor in SQLite database
+            c.execute('''
+                INSERT INTO vendors (name, email, password, category, city, phone, bio, image_url, is_online)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                vendor_data.get("name", ""),
+                vendor_data.get("email", email),
+                vendor_data.get("password", ""),
+                vendor_data.get("category", ""),
+                vendor_data.get("city", ""),
+                vendor_data.get("phone", ""),
+                vendor_data.get("bio", ""),
+                vendor_data.get("image_url", ""),
+                1  # Set online when first created
+            ))
+            conn.commit()
+            conn.close()
+            return redirect(url_for("erp_dashboard"))
+        else:
+            # Neither system has the vendor, create basic entry
+            c.execute('''
+                INSERT INTO vendors (name, email, password, is_online)
+                VALUES (?, ?, ?, ?)
+            ''', (email.split('@')[0], email, "temp_password", 1))
+            conn.commit()
+            conn.close()
+            return redirect(url_for("erp_dashboard"))
 
+    # Vendor exists, toggle their online status
     current_status = current_status[0]
-
     new_status = 1 if current_status == 0 else 0
     c.execute('''
         UPDATE vendors SET is_online=? WHERE email=?
