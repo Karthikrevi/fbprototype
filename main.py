@@ -234,6 +234,32 @@ def init_erp_db():
     conn.commit()
     conn.close()
 
+# Utility function to recalculate inventory from batches
+def recalculate_inventory(conn, product_id=None):
+    c = conn.cursor()
+    if product_id:
+        # Recalculate for specific product
+        c.execute("""
+            UPDATE products 
+            SET quantity = (
+                SELECT COALESCE(SUM(remaining_quantity), 0) 
+                FROM inventory_batches 
+                WHERE product_id = products.id
+            )
+            WHERE id = ?
+        """, (product_id,))
+    else:
+        # Recalculate for all products
+        c.execute("""
+            UPDATE products 
+            SET quantity = (
+                SELECT COALESCE(SUM(remaining_quantity), 0) 
+                FROM inventory_batches 
+                WHERE product_id = products.id
+            )
+        """)
+    conn.commit()
+
 # Run the DB setup on startup
 init_erp_db()
 
@@ -655,6 +681,22 @@ def erp_products():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
+    # First recalculate inventory to ensure accuracy
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if vendor_result:
+        # Recalculate inventory for this vendor's products
+        c.execute("""
+            UPDATE products 
+            SET quantity = (
+                SELECT COALESCE(SUM(ib.remaining_quantity), 0) 
+                FROM inventory_batches ib 
+                WHERE ib.product_id = products.id
+            )
+            WHERE vendor_id = ?
+        """, (vendor_result[0],))
+        conn.commit()
+
     c.execute("""
         SELECT p.id, p.name, p.description, p.sale_price, p.quantity, p.image_url, p.barcode, p.buy_price
         FROM products p 
@@ -719,8 +761,26 @@ def add_product():
             VALUES (?, ?, ?, ?, ?)
         """, (product_id, batch_name or f"BATCH-{barcode}-001", quantity, buy_price, datetime.now().strftime("%Y-%m-%d")))
 
+        # Also insert into inventory_batches for tracking
+        c.execute("""
+            INSERT INTO inventory_batches (product_id, quantity, unit_cost, remaining_quantity)
+            VALUES (?, ?, ?, ?)
+        """, (product_id, quantity, buy_price, quantity))
+
+        # Update product quantity from all batches
+        c.execute("""
+            UPDATE products 
+            SET quantity = (
+                SELECT COALESCE(SUM(remaining_quantity), 0) 
+                FROM inventory_batches 
+                WHERE product_id = ?
+            )
+            WHERE id = ?
+        """, (product_id, product_id))
+
         conn.commit()
         conn.close()
+        flash("Product added successfully!")
         return redirect(url_for("erp_products"))
 
     return render_template("add_product.html")
