@@ -145,9 +145,23 @@
       <a href="/logout" class="btn btn-outline-danger">🚪 Logout</a>
     </div>
 
-    <div class="header">
-      <h1 class="welcome-text">🐾 Welcome to FurrButler Dashboard</h1>
-      <p class="text-muted">Manage your pets and explore our services</p>
+    <div class="pets-section">
+      <h3>🐶 Your Pets</h3>
+      <div class="pets-grid">
+        {% for pet in pets %}
+          <div class="pet-card">
+            <a href="/pet-profile" style="text-decoration: none; color: inherit;">
+              <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" alt="{{ pet.name }}" class="pet-avatar">
+              <div class="pet-name">{{ pet.name }}</div>
+              <div class="pet-breed">{{ pet.breed }}</div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="text-center">
+        <a href="/pet-profile" class="btn-add-pet">+ Manage Pets</a>
+      </div>
     </div>
 
     <div class="dashboard-grid">
@@ -186,25 +200,6 @@
         <div class="card-title">My Orders</div>
         <div class="card-description">Track your marketplace orders and deliveries</div>
       </a>
-    </div>
-
-    <div class="pets-section">
-      <h3>🐶 Your Pets</h3>
-      <div class="pets-grid">
-        {% for pet in pets %}
-          <div class="pet-card">
-            <a href="/pet-profile" style="text-decoration: none; color: inherit;">
-              <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" alt="{{ pet.name }}" class="pet-avatar">
-              <div class="pet-name">{{ pet.name }}</div>
-              <div class="pet-breed">{{ pet.breed }}</div>
-            </a>
-          </div>
-        {% endfor %}
-      </div>
-
-      <div class="text-center">
-        <a href="/pet-profile" class="btn-add-pet">+ Manage Pets</a>
-      </div>
     </div>
   </div>
 </body>
