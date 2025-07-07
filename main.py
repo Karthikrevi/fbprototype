@@ -997,6 +997,280 @@ def erp_register():
             c.execute("INSERT INTO vendors (email, name, password, category, city, phone, bio, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                      (email, name, password, category, city, phone, bio, image_url))
             conn.commit()
+
+
+@app.route('/erp/reports/inventory-analytics')
+def inventory_analytics():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+
+    if result is None:
+        conn.close()
+        return render_template("inventory_analytics.html", 
+                             analytics={}, 
+                             product_analytics=[], 
+                             recommendations=[],
+                             turnover_months=[],
+                             turnover_data=[])
+
+    vendor_id = result[0]
+
+    # Calculate overall analytics
+    analytics = calculate_inventory_analytics(c, vendor_id)
+    
+    # Calculate product-specific analytics
+    product_analytics = calculate_product_analytics(c, vendor_id)
+    
+    # Generate recommendations
+    recommendations = generate_inventory_recommendations(analytics, product_analytics)
+    
+    # Get turnover trend data for chart
+    turnover_months, turnover_data = get_turnover_trends(c, vendor_id)
+
+    conn.close()
+    
+    return render_template("inventory_analytics.html", 
+                         analytics=analytics,
+                         product_analytics=product_analytics,
+                         recommendations=recommendations,
+                         turnover_months=turnover_months,
+                         turnover_data=turnover_data)
+
+def calculate_inventory_analytics(c, vendor_id):
+    """Calculate overall inventory analytics"""
+    
+    # Get all products with sales history
+    c.execute("""
+        SELECT p.id, p.name, p.quantity, p.buy_price, p.sale_price,
+               COALESCE(SUM(sl.quantity), 0) as total_sold,
+               COALESCE(SUM(sl.total_amount), 0) as total_revenue
+        FROM products p
+        LEFT JOIN sales_log sl ON p.id = sl.product_id AND sl.sale_date >= date('now', '-365 days')
+        WHERE p.vendor_id = ?
+        GROUP BY p.id, p.name, p.quantity, p.buy_price, p.sale_price
+    """, (vendor_id,))
+    products = c.fetchall()
+    
+    total_inventory_value = 0
+    total_holding_cost = 0
+    total_turnover = 0
+    products_count = 0
+    products_need_restock = 0
+    
+    for product in products:
+        product_id, name, stock, buy_price, sale_price, total_sold, revenue = product
+        
+        # Inventory value
+        inventory_value = stock * (buy_price or 0)
+        total_inventory_value += inventory_value
+        
+        # Holding cost (25% of inventory value annually)
+        holding_cost = inventory_value * 0.25
+        total_holding_cost += holding_cost
+        
+        # Turnover rate (COGS / Average Inventory)
+        if stock > 0 and buy_price:
+            avg_inventory = inventory_value
+            cogs = total_sold * (buy_price or 0)
+            turnover = cogs / avg_inventory if avg_inventory > 0 else 0
+            total_turnover += turnover
+            products_count += 1
+        
+        # Safety stock calculation
+        safety_stock = calculate_safety_stock(total_sold, 365)
+        if stock < safety_stock:
+            products_need_restock += 1
+    
+    avg_turnover = total_turnover / products_count if products_count > 0 else 0
+    
+    # Health score based on various factors
+    health_score = calculate_health_score(avg_turnover, products_need_restock, products_count)
+    
+    return {
+        'total_inventory_value': total_inventory_value,
+        'total_holding_cost': total_holding_cost,
+        'avg_turnover': avg_turnover,
+        'products_need_restock': products_need_restock,
+        'health_score': health_score
+    }
+
+def calculate_product_analytics(c, vendor_id):
+    """Calculate analytics for each product"""
+    
+    c.execute("""
+        SELECT p.id, p.name, p.quantity, p.buy_price, p.sale_price,
+               COALESCE(SUM(sl.quantity), 0) as total_sold_year,
+               COALESCE(SUM(CASE WHEN sl.sale_date >= date('now', '-30 days') THEN sl.quantity ELSE 0 END), 0) as sold_last_month,
+               COALESCE(SUM(CASE WHEN sl.sale_date >= date('now', '-7 days') THEN sl.quantity ELSE 0 END), 0) as sold_last_week
+        FROM products p
+        LEFT JOIN sales_log sl ON p.id = sl.product_id AND sl.sale_date >= date('now', '-365 days')
+        WHERE p.vendor_id = ?
+        GROUP BY p.id, p.name, p.quantity, p.buy_price, p.sale_price
+        ORDER BY p.name
+    """, (vendor_id,))
+    
+    products = c.fetchall()
+    product_analytics = []
+    
+    for product in products:
+        product_id, name, stock, buy_price, sale_price, sold_year, sold_month, sold_week = product
+        
+        # Calculate key metrics
+        daily_demand = sold_year / 365 if sold_year > 0 else 0
+        
+        # Safety stock (lead time demand + buffer)
+        lead_time_days = 7  # Assume 7 days lead time
+        demand_variance = max(sold_week - (daily_demand * 7), 0)
+        safety_stock = int((lead_time_days * daily_demand) + (1.65 * demand_variance))  # 95% service level
+        
+        # Reorder point
+        reorder_point = int((lead_time_days * daily_demand) + safety_stock)
+        
+        # Turnover rate
+        if stock > 0 and buy_price:
+            inventory_value = stock * buy_price
+            cogs = sold_year * (buy_price or 0)
+            turnover_rate = cogs / inventory_value if inventory_value > 0 else 0
+        else:
+            turnover_rate = 0
+        
+        # Holding cost (25% annually)
+        holding_cost = (stock * (buy_price or 0)) * 0.25
+        
+        # Determine status
+        if stock < safety_stock:
+            status = "RESTOCK NEEDED"
+            status_class = "critical"
+            action = f"Order {reorder_point - stock} units"
+        elif stock < reorder_point:
+            status = "LOW STOCK"
+            status_class = "warning"
+            action = f"Consider ordering {reorder_point - stock} units"
+        else:
+            status = "OPTIMAL"
+            status_class = "good"
+            action = None
+        
+        product_analytics.append({
+            'id': product_id,
+            'name': name,
+            'current_stock': stock,
+            'safety_stock': max(safety_stock, 1),
+            'reorder_point': max(reorder_point, 1),
+            'turnover_rate': turnover_rate,
+            'holding_cost': holding_cost,
+            'status': status,
+            'status_class': status_class,
+            'action': action,
+            'daily_demand': daily_demand
+        })
+    
+    return product_analytics
+
+def calculate_safety_stock(annual_demand, days_in_period):
+    """Calculate safety stock based on demand variability"""
+    if annual_demand == 0:
+        return 1
+    
+    daily_demand = annual_demand / days_in_period
+    # Simple safety stock calculation - can be enhanced with more sophisticated models
+    return max(int(daily_demand * 7), 1)  # 7 days of average demand
+
+def calculate_health_score(avg_turnover, restock_needed, total_products):
+    """Calculate overall inventory health score"""
+    if total_products == 0:
+        return 100
+    
+    # Base score
+    score = 100
+    
+    # Penalize low turnover
+    if avg_turnover < 2:
+        score -= 30
+    elif avg_turnover < 4:
+        score -= 15
+    
+    # Penalize products needing restock
+    restock_penalty = (restock_needed / total_products) * 40
+    score -= restock_penalty
+    
+    return max(score, 0)
+
+def generate_inventory_recommendations(analytics, product_analytics):
+    """Generate smart inventory recommendations"""
+    recommendations = []
+    
+    # Low turnover recommendation
+    if analytics['avg_turnover'] < 4:
+        recommendations.append({
+            'title': 'Improve Inventory Turnover',
+            'description': 'Your average turnover is below optimal. Consider promotional pricing or adjusting purchase quantities.',
+            'color': '#ffc107',
+            'bg_color': '#fff3cd'
+        })
+    
+    # High holding costs
+    if analytics['total_holding_cost'] > 10000:
+        recommendations.append({
+            'title': 'Reduce Holding Costs',
+            'description': 'High inventory carrying costs detected. Consider just-in-time ordering or clearance sales.',
+            'color': '#dc3545',
+            'bg_color': '#f8d7da'
+        })
+    
+    # Restock alerts
+    if analytics['products_need_restock'] > 0:
+        recommendations.append({
+            'title': 'Urgent Restocking Required',
+            'description': f"{analytics['products_need_restock']} products are below safety stock levels. Review reorder recommendations.",
+            'color': '#dc3545',
+            'bg_color': '#f8d7da'
+        })
+    
+    # Good performance
+    if analytics['health_score'] > 80:
+        recommendations.append({
+            'title': 'Excellent Inventory Management',
+            'description': 'Your inventory health is excellent! Continue monitoring turnover rates and stock levels.',
+            'color': '#28a745',
+            'bg_color': '#d4edda'
+        })
+    
+    return recommendations
+
+def get_turnover_trends(c, vendor_id):
+    """Get monthly turnover trends for charting"""
+    c.execute("""
+        SELECT strftime('%Y-%m', sl.sale_date) as month,
+               SUM(sl.quantity * p.buy_price) as cogs,
+               AVG(p.quantity * p.buy_price) as avg_inventory
+        FROM sales_log sl
+        JOIN products p ON sl.product_id = p.id
+        WHERE p.vendor_id = ? AND sl.sale_date >= date('now', '-12 months')
+        GROUP BY strftime('%Y-%m', sl.sale_date)
+        ORDER BY month
+    """, (vendor_id,))
+    
+    data = c.fetchall()
+    months = []
+    turnover_rates = []
+    
+    for row in data:
+        month, cogs, avg_inventory = row
+        turnover = (cogs / avg_inventory) if avg_inventory > 0 else 0
+        months.append(month)
+        turnover_rates.append(round(turnover, 1))
+    
+    return months, turnover_rates
+
             conn.close()
             return redirect(url_for("erp_login"))
         except sqlite3.IntegrityError:
@@ -1855,8 +2129,8 @@ def sales_analytics():
 
     # Get sales data with product names
     c.execute("""
-        SELECT sl.id, sl.vendor_id, sl.quantity, sl.unit_price, sl.total_amount, 
-               sl.customer_email, sl.sale_date, sl.sale_date, p.name as product_name 
+        SELECT sl.id, sl.quantity, sl.unit_price, sl.total_amount, 
+               sl.customer_email, sl.sale_date, p.name as product_name 
         FROM sales_log sl 
         JOIN products p ON sl.product_id = p.id 
         WHERE sl.vendor_id=? 
