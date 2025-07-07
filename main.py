@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 from replit import db
 import os
 import json
@@ -211,7 +211,7 @@ def init_erp_db():
             previous_value REAL DEFAULT NULL
         )
     ''')
-    
+
     # Check if previous_value column exists, if not add it
     c.execute("PRAGMA table_info(master_settings)")
     columns = [column[1] for column in c.fetchall()]
@@ -751,7 +751,7 @@ def erp_login():
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]
-        
+
         # Check for admin login
         if email == "admin@furrbutler.com" and password == "admin123":
             session["master_admin"] = True
@@ -827,7 +827,8 @@ def erp_profile():
 
     # Get vendor details
     c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
-    vendor_data = c.fetchone()
+    vendor_data = c.fetchone()```python
+
 
     if vendor_data:
         vendor_id = vendor_data[0]
@@ -1052,7 +1053,7 @@ def edit_product(product_id):
         c.execute("""
             UPDATE products 
             SET name=?, description=?, category=?, sale_price=?, image_url=?, barcode=?
-            WHERE id=? AND vendor_id=(SELECT id FROM vendors WHERE email=?)</code>
+            WHERE id=? AND vendor_id=(SELECT id FROM vendors WHERE email=?)
         """, (name, description, category, sale_price, image_url, barcode, product_id, email))
 
         conn.commit()
@@ -1466,7 +1467,7 @@ def accounting_settings():
         razorpay_enabled = 1 if request.form.get("razorpay_enabled") else 0
         cod_enabled = 1 if request.form.get("cod_enabled") else 0
         auto_reports = 1 if request.form.get("auto_reports") else 0
-        
+
         # Delivery pricing settings
         standard_delivery = float(request.form.get("standard_delivery_price", 2.99))
         express_delivery = float(request.form.get("express_delivery_price", 5.99))
@@ -1646,7 +1647,7 @@ def marketplace_vendor_products(vendor_id):
 def checkout():
     if "user" not in session:
         return redirect(url_for("login"))
-    
+
     return render_template("checkout.html")
 
 # Master Admin Routes (Platform Owner)
@@ -1655,45 +1656,45 @@ def master_admin_login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        
+
         # Hardcoded admin credentials (in production, use proper authentication)
         if username == "furrbutler_admin" and password == "admin123":
             session["master_admin"] = True
             return redirect(url_for("master_admin_dashboard"))
         else:
             flash("Invalid admin credentials")
-    
+
     return render_template("master_admin_login.html")
 
 @app.route('/master/admin/dashboard')
 def master_admin_dashboard():
     if not session.get("master_admin"):
         return redirect(url_for("master_admin_login"))
-    
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get current master settings
     c.execute("SELECT * FROM master_settings ORDER BY setting_name")
     settings = c.fetchall()
-    
+
     # Get platform statistics
     c.execute("SELECT COUNT(*) FROM vendors")
     total_vendors = c.fetchone()[0]
-    
+
     c.execute("SELECT COUNT(*) FROM products")
     total_products = c.fetchone()[0]
-    
+
     c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log")
     total_sales = c.fetchone()[0]
-    
+
     c.execute("SELECT COALESCE(SUM(fee_amount), 0) FROM platform_fees")
     total_commission = c.fetchone()[0]
-    
+
     # Get platform earnings
     c.execute("SELECT COALESCE(SUM(commission_amount), 0) FROM platform_earnings")
     platform_earnings = c.fetchone()[0]
-    
+
     # Get earnings breakdown by service type
     c.execute("""
         SELECT service_type, 
@@ -1703,7 +1704,7 @@ def master_admin_dashboard():
         GROUP BY service_type
     """)
     earnings_breakdown = c.fetchall()
-    
+
     # Get recent transactions for admin view
     c.execute("""
         SELECT pe.*, v.name as vendor_name
@@ -1713,9 +1714,9 @@ def master_admin_dashboard():
         LIMIT 10
     """)
     recent_transactions = c.fetchall()
-    
+
     conn.close()
-    
+
     stats = {
         'total_vendors': total_vendors,
         'total_products': total_products,
@@ -1725,36 +1726,36 @@ def master_admin_dashboard():
         'earnings_breakdown': earnings_breakdown,
         'recent_transactions': recent_transactions
     }
-    
+
     return render_template("master_admin_dashboard.html", settings=settings, stats=stats)
 
 @app.route('/master/admin/update-commission', methods=["POST"])
 def update_commission():
     if not session.get("master_admin"):
         return redirect(url_for("master_admin_login"))
-    
+
     marketplace_platform_fee = float(request.form.get("marketplace_platform_fee", 2.99))
     grooming_commission = float(request.form.get("grooming_commission_rate", 15.0))
-    
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Update master settings - marketplace uses fixed platform fee, grooming uses commission
     c.execute("""
         UPDATE master_settings 
         SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE setting_name = 'marketplace_listing_fee'
     """, (marketplace_platform_fee,))
-    
+
     c.execute("""
         UPDATE master_settings 
         SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE setting_name = 'grooming_commission_rate'
     """, (grooming_commission,))
-    
+
     conn.commit()
     conn.close()
-    
+
     flash(f"Settings updated: Marketplace Platform Fee ${marketplace_platform_fee}, Grooming Commission {grooming_commission}%")
     return redirect(url_for("master_admin_dashboard"))
 
@@ -1762,13 +1763,13 @@ def update_commission():
 def update_platform_settings():
     if not session.get("master_admin"):
         return {"success": False, "message": "Unauthorized"}, 403
-    
+
     try:
         settings_data = request.get_json()
-        
+
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
-        
+
         for setting_name, new_value in settings_data.items():
             # Update setting with previous value tracking
             c.execute("""
@@ -1776,18 +1777,19 @@ def update_platform_settings():
                 SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
                 WHERE setting_name = ?
             """, (new_value, setting_name))
-        
+
         conn.commit()
         conn.close()
-        
+
         return {"success": True, "message": "Settings updated successfully"}
-    
+
     except Exception as e:
         return {"success": False, "message": str(e)}, 500
 
 @app.route('/master/admin/logout')
 def master_admin_logout():
     session.pop("master_admin", None)
+    flash("You have been logged out successfully")
     return redirect(url_for("home"))
 
 # Add route to get vendor's delivery prices for checkout
@@ -1795,16 +1797,16 @@ def master_admin_logout():
 def get_vendor_delivery_prices(vendor_id):
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     c.execute("""
         SELECT standard_delivery_price, express_delivery_price, same_day_delivery_price, free_delivery_threshold
         FROM settings_vendor 
         WHERE vendor_id = ?
     """, (vendor_id,))
-    
+
     result = c.fetchone()
     conn.close()
-    
+
     if result:
         return {
             'standard': result[0] or 2.99,
