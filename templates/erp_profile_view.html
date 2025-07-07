@@ -293,6 +293,66 @@
             </div>
           </div>
         </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body text-center">
+              <h5 class="card-title">⚙️ Account Settings</h5>
+              
+              {% if vendor|length > 10 and vendor[10] == 'on_break' %}
+                <div class="alert alert-warning">
+                  <strong>🏖️ You're on Break</strong><br>
+                  <small>Since: {{ vendor[11] if vendor[11] else 'Recently' }}</small>
+                  {% if vendor[12] %}
+                    <br><small>Reason: {{ vendor[12] }}</small>
+                  {% endif %}
+                </div>
+                <form method="POST" action="{{ url_for('vendor_reactivate') }}" class="d-inline">
+                  <button type="submit" class="btn btn-success w-100">
+                    🟢 End Break & Go Active
+                  </button>
+                </form>
+                
+              {% elif vendor|length > 10 and vendor[10] == 'deactivated' %}
+                <div class="alert alert-danger">
+                  <strong>🚫 Account Deactivated</strong><br>
+                  <small>Contact support to reactivate</small>
+                </div>
+                <form method="POST" action="{{ url_for('vendor_reactivate') }}" class="d-inline">
+                  <button type="submit" class="btn btn-primary w-100">
+                    🔄 Reactivate Account
+                  </button>
+                </form>
+                
+              {% else %}
+                <p class="text-muted">Manage your business operations</p>
+                <div class="d-grid gap-2">
+                  <form method="POST" action="{{ url_for('vendor_take_break') }}" class="d-inline">
+                    <button type="submit" class="btn btn-warning w-100">
+                      🏖️ Take a Break
+                    </button>
+                  </form>
+                  
+                  <form method="POST" action="{{ url_for('vendor_deactivate') }}" class="d-inline" 
+                        onsubmit="return confirm('Are you sure you want to deactivate your account? This will hide your profile from customers.')">
+                    <button type="submit" class="btn btn-danger w-100">
+                      🚫 Deactivate Account
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+              
+              <small class="d-block mt-2 text-muted">
+                {% if vendor|length > 10 and vendor[10] == 'on_break' %}
+                  Your profile is hidden during break
+                {% elif vendor|length > 10 and vendor[10] == 'deactivated' %}
+                  Account is deactivated
+                {% else %}
+                  Take a break for vacations/renovations or deactivate completely
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        </div>
       </div>
   </div>
 

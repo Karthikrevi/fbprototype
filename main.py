@@ -48,7 +48,11 @@ def init_erp_db():
             image_url TEXT,
             latitude REAL,
             longitude REAL,
-            is_online BOOLEAN DEFAULT 0
+            is_online BOOLEAN DEFAULT 0,
+            account_status TEXT DEFAULT 'active',
+            break_start_date TEXT,
+            break_end_date TEXT,
+            break_reason TEXT
         )
     ''')
 
@@ -255,6 +259,27 @@ def init_erp_db():
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
     ''')
+
+    # Add new columns if they don't exist
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN account_status TEXT DEFAULT 'active'")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN break_start_date TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN break_end_date TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN break_reason TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     # Insert demo vendor
     c.execute('''
@@ -473,12 +498,13 @@ def groomers():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Get all groomers/boarding services in the same city that are ONLINE
+    # Get all groomers/boarding services in the same city that are ONLINE and ACTIVE
     c.execute("""
         SELECT * FROM vendors 
         WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%' OR LOWER(category) LIKE '%boarding%')
         AND LOWER(city) = LOWER(?)
         AND is_online = 1
+        AND (account_status IS NULL OR account_status = 'active')
     """, (user_city,))
     db_vendors = c.fetchall()
     conn.close()
@@ -922,7 +948,7 @@ def erp_profile():
     c = conn.cursor()
 
     # Get vendor details
-    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
+    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category, account_status, break_start_date, break_reason FROM vendors WHERE email=?", (email,))
     vendor_data = c.fetchone()
 
     if vendor_data:
@@ -1328,6 +1354,78 @@ def erp_receipts():
     conn.close()
     return render_template("erp_receipts.html", receipts=receipts, bookings=bookings, sales=sales)
 
+@app.route('/erp/take-break', methods=["POST"])
+def vendor_take_break():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Set vendor on break
+    c.execute('''
+        UPDATE vendors 
+        SET account_status='on_break', 
+            break_start_date=?, 
+            is_online=0
+        WHERE email=?
+    ''', (datetime.now().strftime("%Y-%m-%d"), email))
+    
+    conn.commit()
+    conn.close()
+    
+    flash("You are now on break. Your profile is hidden from customers.")
+    return redirect(url_for("erp_profile"))
+
+@app.route('/erp/deactivate', methods=["POST"])
+def vendor_deactivate():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Deactivate vendor account
+    c.execute('''
+        UPDATE vendors 
+        SET account_status='deactivated', 
+            is_online=0
+        WHERE email=?
+    ''', (email,))
+    
+    conn.commit()
+    conn.close()
+    
+    flash("Your account has been deactivated. Contact support to reactivate.")
+    return redirect(url_for("erp_logout"))
+
+@app.route('/erp/reactivate', methods=["POST"])
+def vendor_reactivate():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Reactivate vendor account
+    c.execute('''
+        UPDATE vendors 
+        SET account_status='active', 
+            break_start_date=NULL,
+            break_end_date=NULL,
+            break_reason=NULL
+        WHERE email=?
+    ''', (email,))
+    
+    conn.commit()
+    conn.close()
+    
+    flash("Welcome back! Your account has been reactivated.")
+    return redirect(url_for("erp_profile"))
+
 @app.route('/erp/logout')
 def erp_logout():
     session.pop("vendor", None)
@@ -1687,6 +1785,7 @@ def marketplace():
             v.is_online = 1 
             OR NOT (LOWER(v.category) LIKE '%groom%' OR LOWER(v.category) LIKE '%salon%' OR LOWER(v.category) LIKE '%spa%' OR LOWER(v.category) LIKE '%boarding%')
         )
+        AND (v.account_status IS NULL OR v.account_status = 'active')
     """, (user_city,))
     online_vendors = c.fetchall()
 
