@@ -151,9 +151,9 @@
         {% endif %}
 
         <div class="section-title">📊 Business Stats</div>
-        <div class="info-bubble">⭐ Rating: 4.5/5</div>
-        <div class="info-bubble">📦 Total Orders: 0</div>
-        <div class="info-bubble">🎯 Success Rate: 100%</div>
+        <div class="info-bubble">⭐ Rating: {{ stats.rating }}/5 ({{ stats.total_reviews }} reviews)</div>
+        <div class="info-bubble">📦 Total Orders: {{ stats.total_orders }}</div>
+        <div class="info-bubble">🎯 Success Rate: {{ stats.success_rate }}%</div>
 
         <div class="section-title">🔧 Services & Products</div>
         <p style="margin-top: 10px; color: #666; font-style: italic;">Configure your services and products in the ERP dashboard.</p>

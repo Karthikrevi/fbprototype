@@ -196,6 +196,19 @@ def init_erp_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            user_email TEXT,
+            rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+            review_text TEXT,
+            service_type TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
     # Insert demo vendor
     c.execute('''
         INSERT OR IGNORE INTO vendors (name, email, password, category, city, latitude, longitude, is_online)
@@ -440,19 +453,52 @@ def groomers():
     return render_template("groomers.html", vendors=vendors)
 
 # Vendor Profile
-@app.route('/vendor/<vendor_id>')
+@app.route('/vendor/<vendor_id>', methods=["GET", "POST"])
 def vendor_profile(vendor_id):
     if "user" not in session:
         return redirect(url_for("login"))
+
+    if request.method == "POST":
+        # Handle review submission
+        user_email = session["user"]
+        rating = int(request.form.get("rating"))
+        review_text = request.form.get("review_text", "")
+        service_type = request.form.get("service_type", "Other")
+        
+        conn = sqlite3.connect("erp.db")
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO reviews (vendor_id, user_email, rating, review_text, service_type)
+            VALUES (?, ?, ?, ?, ?)
+        """, (vendor_id, user_email, rating, review_text, service_type))
+        conn.commit()
+        conn.close()
+        
+        return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
     try:
         conn = sqlite3.connect("erp.db")
         c = conn.cursor()
         c.execute("SELECT id, name, bio, image_url, city, is_online FROM vendors WHERE id = ?", (vendor_id,))
-        data = c.fetchone()
-        conn.close()
 
         if data:
+            vendor_id = data[0]
+            
+            # Calculate dynamic stats from reviews
+            c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id,))
+            review_stats = c.fetchone()
+            avg_rating = round(review_stats[0], 1) if review_stats[0] else 0
+            total_reviews = review_stats[1] or 0
+            
+            # Calculate success rate (reviews with 4+ stars)
+            c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (vendor_id,))
+            good_reviews = c.fetchone()[0] or 0
+            success_rate = round((good_reviews / total_reviews * 100), 1) if total_reviews > 0 else 100
+            
+            # Calculate level based on total reviews (every 10 reviews = 1 level)
+            level = min(1 + (total_reviews // 10), 20)  # Cap at level 20
+            xp = total_reviews * 100  # 100 XP per review
+            
             vendor = {
                 "id": data[0],
                 "name": data[1],
@@ -460,13 +506,26 @@ def vendor_profile(vendor_id):
                 "image": data[3] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=400&fit=crop",
                 "city": data[4] or "Unknown",
                 "is_online": data[5],
-                "rating": 4,
-                "level": 8,
-                "xp": 1200,
+                "rating": avg_rating,
+                "level": level,
+                "xp": xp,
+                "total_reviews": total_reviews,
+                "success_rate": success_rate,
                 "booking_url": f"/vendor/{data[0]}/book",
-                "market_url": "#"
+                "market_url": f"/marketplace/vendor/{data[0]}"
             }
-            return render_template("vendor_profile.html", vendor=vendor)
+            
+            # Get reviews for this vendor
+            c.execute("""
+                SELECT id, vendor_id, rating, review_text, service_type, user_email, timestamp 
+                FROM reviews 
+                WHERE vendor_id = ? 
+                ORDER BY timestamp DESC
+            """, (vendor_id,))
+            reviews = c.fetchall()
+            
+            conn.close()
+            return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
         else:
             return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
     except Exception as e:
@@ -534,6 +593,43 @@ def set_location():
     if lat and lon:
         session["location"] = {"lat": lat, "lon": lon}
     return '', 204
+
+# Review submission route
+@app.route('/vendor/<int:vendor_id>/review', methods=["POST"])
+def submit_review(vendor_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    user_email = session["user"]
+    rating = int(request.form.get("rating"))
+    review_text = request.form.get("review_text", "")
+    service_type = request.form.get("service_type", "Other")
+    
+    conn = sqlite3.connect("erp.db")
+    c = conn.cursor()
+    
+    # Check if user already reviewed this vendor
+    c.execute("SELECT id FROM reviews WHERE vendor_id = ? AND user_email = ?", (vendor_id, user_email))
+    existing_review = c.fetchone()
+    
+    if existing_review:
+        # Update existing review
+        c.execute("""
+            UPDATE reviews 
+            SET rating = ?, review_text = ?, service_type = ?, timestamp = CURRENT_TIMESTAMP
+            WHERE vendor_id = ? AND user_email = ?
+        """, (rating, review_text, service_type, vendor_id, user_email))
+    else:
+        # Insert new review
+        c.execute("""
+            INSERT INTO reviews (vendor_id, user_email, rating, review_text, service_type)
+            VALUES (?, ?, ?, ?, ?)
+        """, (vendor_id, user_email, rating, review_text, service_type))
+    
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
 # Logout
 @app.route('/logout')
@@ -622,11 +718,48 @@ def erp_profile():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
-    vendor = c.fetchone()
+    
+    # Get vendor details
+    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
+    vendor_data = c.fetchone()
+    
+    if vendor_data:
+        vendor_id = vendor_data[0]
+        
+        # Calculate dynamic stats from reviews
+        c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id,))
+        review_stats = c.fetchone()
+        avg_rating = round(review_stats[0], 1) if review_stats[0] else 0
+        total_reviews = review_stats[1] or 0
+        
+        # Calculate success rate (reviews with 4+ stars)
+        c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (vendor_id,))
+        good_reviews = c.fetchone()[0] or 0
+        success_rate = round((good_reviews / total_reviews * 100), 1) if total_reviews > 0 else 100
+        
+        # Get total orders from bookings and sales
+        c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id = ?", (vendor_id,))
+        total_bookings = c.fetchone()[0] or 0
+        
+        c.execute("SELECT COUNT(*) FROM sales_log WHERE vendor_id = ?", (vendor_id,))
+        total_sales = c.fetchone()[0] or 0
+        
+        total_orders = total_bookings + total_sales
+        
+        vendor_stats = {
+            "rating": avg_rating,
+            "total_reviews": total_reviews,
+            "total_orders": total_orders,
+            "success_rate": success_rate
+        }
+    else:
+        vendor_stats = {"rating": 0, "total_reviews": 0, "total_orders": 0, "success_rate": 100}
+    
     conn.close()
 
-    return render_template("erp_profile_view.html", vendor=vendor or ("", email, "", "", "", "", "", "", ""))
+    return render_template("erp_profile_view.html", 
+                         vendor=vendor_data or ("", email, "", "", "", "", "", "", ""),
+                         stats=vendor_stats)
 
 @app.route('/erp/profile/edit', methods=["GET", "POST"])
 def edit_vendor_profile():
