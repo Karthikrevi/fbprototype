@@ -1853,9 +1853,10 @@ def sales_analytics():
 
     vendor_id = result[0]
 
-    # Get sales data
+    # Get sales data with product names
     c.execute("""
-        SELECT sl.*, p.name as product_name 
+        SELECT sl.id, sl.vendor_id, sl.quantity, sl.unit_price, sl.total_amount, 
+               sl.customer_email, sl.sale_date, sl.sale_date, p.name as product_name 
         FROM sales_log sl 
         JOIN products p ON sl.product_id = p.id 
         WHERE sl.vendor_id=? 

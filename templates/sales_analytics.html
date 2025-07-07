@@ -59,19 +59,31 @@
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
-                    <div class="stat-value">${{ "%.2f"|format(sales|sum(attribute='6')|default(0)) }}</div>
+                    {% set total_revenue = 0 %}
+                    {% for sale in sales %}
+                        {% set total_revenue = total_revenue + sale[5] %}
+                    {% endfor %}
+                    <div class="stat-value">₹{{ "%.2f"|format(total_revenue) }}</div>
                     <div class="stat-label">Total Revenue</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
-                    <div class="stat-value">{{ sales|sum(attribute='3')|default(0) }}</div>
+                    {% set total_units = 0 %}
+                    {% for sale in sales %}
+                        {% set total_units = total_units + sale[2] %}
+                    {% endfor %}
+                    <div class="stat-value">{{ total_units }}</div>
                     <div class="stat-label">Units Sold</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
-                    <div class="stat-value">${{ "%.2f"|format((sales|sum(attribute='6')|default(0)) / (sales|length if sales|length > 0 else 1)) }}</div>
+                    {% set total_revenue = 0 %}
+                    {% for sale in sales %}
+                        {% set total_revenue = total_revenue + sale[5] %}
+                    {% endfor %}
+                    <div class="stat-value">₹{{ "%.2f"|format(total_revenue / sales|length if sales|length > 0 else 0) }}</div>
                     <div class="stat-label">Avg Order Value</div>
                 </div>
             </div>
@@ -80,7 +92,7 @@
         <!-- Monthly Summary -->
         <div class="analytics-card">
             <h3>📅 Monthly Performance</h3>
-            {% if monthly_summary %}
+            {% if monthly_summary and monthly_summary|length > 0 %}
             <div class="table-container">
                 <table class="table table-hover">
                     <thead>
@@ -96,7 +108,7 @@
                         <tr>
                             <td>{{ month[0] }}</td>
                             <td>{{ month[1] }}</td>
-                            <td>${{ "%.2f"|format(month[2]) }}</td>
+                            <td>₹{{ "%.2f"|format(month[2]) }}</td>
                             <td>{{ month[3] }}</td>
                         </tr>
                         {% endfor %}
@@ -111,7 +123,7 @@
         <!-- Top Products -->
         <div class="analytics-card">
             <h3>🏆 Top Selling Products</h3>
-            {% if top_products %}
+            {% if top_products and top_products|length > 0 %}
             <div class="table-container">
                 <table class="table table-hover">
                     <thead>
@@ -126,7 +138,7 @@
                         <tr>
                             <td>{{ product[0] }}</td>
                             <td>{{ product[1] }}</td>
-                            <td>${{ "%.2f"|format(product[2]) }}</td>
+                            <td>₹{{ "%.2f"|format(product[2]) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -140,7 +152,7 @@
         <!-- Recent Sales -->
         <div class="analytics-card">
             <h3>🛒 Recent Sales</h3>
-            {% if sales %}
+            {% if sales and sales|length > 0 %}
             <div class="table-container">
                 <table class="table table-hover">
                     <thead>
@@ -156,12 +168,12 @@
                     <tbody>
                         {% for sale in sales %}
                         <tr>
-                            <td>{{ sale[7] }}</td>
-                            <td>{{ sale[8] }}</td>
-                            <td>{{ sale[3] }}</td>
-                            <td>${{ "%.2f"|format(sale[4]) }}</td>
-                            <td>${{ "%.2f"|format(sale[5]) }}</td>
-                            <td>{{ sale[6] or 'Anonymous' }}</td>
+                            <td>{{ sale[7] if sale|length > 7 else sale[6] }}</td>
+                            <td>{{ sale[8] if sale|length > 8 else 'Unknown Product' }}</td>
+                            <td>{{ sale[2] }}</td>
+                            <td>₹{{ "%.2f"|format(sale[3]) }}</td>
+                            <td>₹{{ "%.2f"|format(sale[4]) }}</td>
+                            <td>{{ sale[5] or 'Anonymous' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -170,7 +182,11 @@
             {% else %}
             <div class="text-center py-4">
                 <h5 class="text-muted">No sales recorded yet</h5>
-                <p class="text-muted">Sales will appear here once customers start purchasing your products.</p>
+                <p class="text-muted">Sales will appear here once customers start purchasing your products or you make sales through the POS system.</p>
+                <div class="mt-3">
+                    <a href="/erp/pos" class="btn btn-primary me-2">Open POS System</a>
+                    <a href="/marketplace" class="btn btn-outline-primary">View Marketplace</a>
+                </div>
             </div>
             {% endif %}
         </div>
