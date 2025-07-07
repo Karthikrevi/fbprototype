@@ -473,11 +473,12 @@ def groomers():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Get all groomers in the same city
+    # Get all groomers/boarding services in the same city that are ONLINE
     c.execute("""
         SELECT * FROM vendors 
-        WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%')
+        WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%' OR LOWER(category) LIKE '%boarding%')
         AND LOWER(city) = LOWER(?)
+        AND is_online = 1
     """, (user_city,))
     db_vendors = c.fetchall()
     conn.close()
@@ -947,14 +948,20 @@ def erp_profile():
 
         total_orders = total_bookings + total_sales
 
+        # Get online status
+        c.execute("SELECT is_online FROM vendors WHERE id = ?", (vendor_id,))
+        online_status = c.fetchone()
+        is_online = online_status[0] if online_status else 0
+
         vendor_stats = {
             "rating": avg_rating,
             "total_reviews": total_reviews,
             "total_orders": total_orders,
-            "success_rate": success_rate
+            "success_rate": success_rate,
+            "is_online": is_online
         }
     else:
-        vendor_stats = {"rating": 0, "total_reviews": 0, "total_orders": 0, "success_rate": 100}
+        vendor_stats = {"rating": 0, "total_reviews": 0, "total_orders": 0, "success_rate": 100, "is_online": 0}
 
     conn.close()
 
@@ -1672,10 +1679,13 @@ def marketplace():
         SELECT DISTINCT v.*, 
                (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
         FROM vendors v 
-        WHERE v.is_online = 1 
-        AND LOWER(v.city) = LOWER(?)
+        WHERE LOWER(v.city) = LOWER(?)
         AND EXISTS (
             SELECT 1 FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0
+        )
+        AND (
+            v.is_online = 1 
+            OR NOT (LOWER(v.category) LIKE '%groom%' OR LOWER(v.category) LIKE '%salon%' OR LOWER(v.category) LIKE '%spa%' OR LOWER(v.category) LIKE '%boarding%')
         )
     """, (user_city,))
     online_vendors = c.fetchall()

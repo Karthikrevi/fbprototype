@@ -154,15 +154,11 @@
     {% if vendors and vendors|length > 1 %}
       {% for vendor in vendors %}
       {% if vendor.id != 'fluffy-paws' %}
-      <div class="vendor-card {% if not vendor.is_online %}offline-vendor{% endif %}">
+      <div class="vendor-card">
         <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
         <div class="vendor-details">
           <div class="status-badge">
-            {% if vendor.is_online %}
-              <span class="online-badge">🟢 Online</span>
-            {% else %}
-              <span class="offline-badge">🔴 Offline</span>
-            {% endif %}
+            <span class="online-badge">🟢 Available Now</span>
           </div>
           <h3>{{ vendor.name }}</h3>
           <div class="vendor-meta">{{ vendor.description }}</div>
@@ -170,11 +166,7 @@
           <div class="xp-bar">
             <div class="xp-fill" style="width: {{ vendor.xp / 50 }}%;"></div>
           </div>
-          {% if vendor.is_online %}
-            <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
-          {% else %}
-            <span class="btn-disabled" title="Vendor is currently offline. Services and products not available.">Offline - Unavailable</span>
-          {% endif %}
+          <a href="/vendor/{{ vendor.id }}" class="profile-link">Book Service</a>
         </div>
       </div>
       {% endif %}
