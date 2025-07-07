@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 from replit import db
 import os
 import json
 from werkzeug.utils import secure_filename
 from math import radians, cos, sin, asin, sqrt
 import sqlite3
+from datetime import datetime
 
 # Initialize ERP database if not exists
 def init_erp_db():
@@ -33,11 +34,26 @@ def init_erp_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             vendor_id INTEGER,
             name TEXT NOT NULL,
-            price REAL NOT NULL,
             description TEXT,
-            stock INTEGER DEFAULT 0,
+            category TEXT,
+            buy_price REAL,
+            sale_price REAL,
+            quantity INTEGER DEFAULT 0,
             image_url TEXT,
+            barcode TEXT UNIQUE,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS product_batches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            batch_name TEXT,
+            quantity INTEGER,
+            buy_price REAL,
+            arrival_date TEXT,
+            FOREIGN KEY(product_id) REFERENCES products(id)
         )
     ''')
 
@@ -66,26 +82,46 @@ def init_erp_db():
         )
     ''')
 
+    # Insert demo vendor
+    c.execute('''
+        INSERT OR IGNORE INTO vendors (name, email, password, category, city, latitude, longitude, is_online)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ("Demo Groomer", "demo@furrbutler.com", "demo123", "Groomer", "Trivandrum", 8.5241, 76.9366, 1))
+
+    # Get demo vendor ID
+    c.execute("SELECT id FROM vendors WHERE email = 'demo@furrbutler.com'")
+    demo_vendor_id = c.fetchone()
+
+    if demo_vendor_id:
+        demo_vendor_id = demo_vendor_id[0]
+
+        # Insert demo products
+        demo_products = [
+            ("Premium Dog Shampoo", "Professional grade dog shampoo for all coat types", "Grooming", 15.00, 25.00, 50, "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400", "DOG001"),
+            ("Cat Nail Clippers", "Professional stainless steel nail clippers for cats", "Grooming", 8.00, 15.00, 30, "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400", "CAT001"),
+            ("Pet Brush Set", "Complete grooming brush set for dogs and cats", "Grooming", 12.00, 22.00, 25, "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400", "BRUSH001")
+        ]
+
+        for product in demo_products:
+            c.execute('''
+                INSERT OR IGNORE INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (demo_vendor_id,) + product)
+
+            # Get product ID and add batch
+            c.execute("SELECT id FROM products WHERE barcode = ?", (product[7],))
+            product_id = c.fetchone()
+            if product_id:
+                c.execute('''
+                    INSERT OR IGNORE INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (product_id[0], f"BATCH-{product[7]}-001", product[5], product[3], datetime.now().strftime("%Y-%m-%d")))
+
     conn.commit()
     conn.close()
 
 # Run the DB setup on startup
 init_erp_db()
-
-# Patch existing database to add online status column
-def patch_vendor_online_status():
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    try:
-        c.execute("ALTER TABLE vendors ADD COLUMN is_online BOOLEAN DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass  # Column already exists
-    conn.commit()
-    conn.close()
-
-patch_vendor_online_status()
-
-
 
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
@@ -128,7 +164,6 @@ def register():
         return redirect(url_for("login"))
     return render_template("register_new.html")
 
-
 # Login
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -170,7 +205,6 @@ def vendor_login():
             return "Invalid vendor login."
 
     return render_template("vendor_login.html")
-
 
 
 #Vendor Register
@@ -220,16 +254,12 @@ def dashboard():
 
 # Groomers & Vendors
 def haversine(lat1, lon1, lat2, lon2):
-    # Radius of Earth in kilometers
     R = 6371.0
-
     if None in [lat1, lon1, lat2, lon2]:
-        return float('inf')  # Or some default/fallback
-
+        return float('inf')
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-
     return R * 2 * asin(sqrt(a))
 
 @app.route('/groomers')
@@ -238,8 +268,6 @@ def groomers():
         return redirect(url_for("login"))
 
     user_location = session.get("location")
-
-    # Get vendors from ERP database with grooming category (case-insensitive) and online status
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("SELECT * FROM vendors WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%') AND is_online = 1")
@@ -249,35 +277,19 @@ def groomers():
     vendors = []
     for vendor in db_vendors:
         vendor_data = {
-            "id": vendor[0],  # vendor id
-            "name": vendor[2],  # vendor name
-            "description": vendor[7] or "Professional pet grooming services.",  # bio
+            "id": vendor[0],
+            "name": vendor[1],
+            "description": vendor[7] or "Professional pet grooming services.",
             "image": vendor[8] or "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
-            "rating": 5,  # Default rating
-            "level": 10,  # Default level
-            "xp": 1500,  # Default XP
+            "rating": 5,
+            "level": 10,
+            "xp": 1500,
             "city": vendor[5] or "Unknown",
-            "latitude": None,  # Will be set from location data if available
-            "longitude": None
+            "latitude": vendor[9],
+            "longitude": vendor[10]
         }
         vendors.append(vendor_data)
 
-    # Always show demo vendor for testing
-    demo_vendor = {
-        "id": "fluffy-paws",
-        "name": "Fluffy Paws Grooming",
-        "description": "Expert grooming services for dogs and cats. [DEMO]",
-        "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
-        "rating": 5,
-        "level": 15,
-        "xp": 2850,
-        "city": "Bangalore",
-        "latitude": 12.9716,
-        "longitude": 77.5946
-    }
-    vendors.append(demo_vendor)
-
-    # Apply location filtering if user location is available
     if user_location:
         filtered_vendors = []
         for v in vendors:
@@ -285,10 +297,9 @@ def groomers():
                 distance = haversine(
                     user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
                 )
-                if distance <= 50:  # Filter vendors within 50 km
+                if distance <= 50:
                     filtered_vendors.append(v)
             else:
-                # Include vendors without location data for now
                 filtered_vendors.append(v)
         vendors = filtered_vendors
 
@@ -300,155 +311,39 @@ def vendor_profile(vendor_id):
     if "user" not in session:
         return redirect(url_for("login"))
 
-    if vendor_id == "fluffy-paws":
-        vendor = {
-            "name": "Fluffy Paws Grooming",
-            "description": "Fluffy Paws offers expert grooming services for dogs and cats.",
-            "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=600&h=400&fit=crop",
-            "services": ["Full Grooming", "Nail Clipping", "Ear Cleaning"],
-            "market_url": "#",
-            "booking_url": "/vendor/fluffy-paws/book",
-            "rating": 5,
-            "level": 15,
-            "xp": 2850
-        }
-        return render_template("vendor_profile.html", vendor=vendor)
-    else:
-        # Try to fetch from ERP DB using vendor ID
-        try:
-            conn = sqlite3.connect("erp.db")
-            c = conn.cursor()
-            c.execute("SELECT id, name, bio, image_url, city FROM vendors WHERE id = ?", (vendor_id,))
-            data = c.fetchone()
-            conn.close()
+    try:
+        conn = sqlite3.connect("erp.db")
+        c = conn.cursor()
+        c.execute("SELECT id, name, bio, image_url, city FROM vendors WHERE id = ?", (vendor_id,))
+        data = c.fetchone()
+        conn.close()
 
-            if data:
-                vendor = {
-                    "id": data[0],
-                    "name": data[1],
-                    "description": data[2] or "Trusted pet care provider.",
-                    "image": data[3] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=400&fit=crop",
-                    "city": data[4] or "Unknown",
-                    "rating": 4,
-                    "level": 8,
-                    "xp": 1200,
-                    "booking_url": f"/vendor/{data[0]}/book",
-                    "market_url": "#"
-                }
-                return render_template("vendor_profile.html", vendor=vendor)
-            else:
-                return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
-        except Exception as e:
-            print("Error loading vendor:", e)
-            return "Error loading vendor profile"
-# Booking (Fluffy Paws only)
-@app.route('/vendor/<vendor_id>/book', methods=["GET", "POST"])
-def book_vendor(vendor_id):
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    if vendor_id != "fluffy-paws":
-        return "Booking only available for Fluffy Paws demo vendor."
-
-    services = ["Full Grooming", "Nail Clipping", "Ear Cleaning"]
-
-    if request.method == "POST":
-        selected_service = request.form.get("service")
-        selected_date = request.form.get("date")
-        print(f"Booking: {selected_service} on {selected_date}")
-        return redirect(url_for("dashboard"))
-
-    return render_template("booking.html", vendor_name="Fluffy Paws Grooming", services=services)
+        if data:
+            vendor = {
+                "id": data[0],
+                "name": data[1],
+                "description": data[2] or "Trusted pet care provider.",
+                "image": data[3] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=400&fit=crop",
+                "city": data[4] or "Unknown",
+                "rating": 4,
+                "level": 8,
+                "xp": 1200,
+                "booking_url": f"/vendor/{data[0]}/book",
+                "market_url": "#"
+            }
+            return render_template("vendor_profile.html", vendor=vendor)
+        else:
+            return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
+    except Exception as e:
+        print("Error loading vendor:", e)
+        return "Error loading vendor profile"
 
 # Boarding
 @app.route('/boarding')
 def boarding():
     if "user" not in session:
         return redirect(url_for("login"))
-
-    user_location = session.get("location")
-
-    # Get vendors from ERP database with boarding/hotel category and online status
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM vendors WHERE category IN ('boarding', 'hotel', 'pet boarding', 'daycare') AND is_online = 1")
-    boarding_vendors = c.fetchall()
-
-    # Get vendors from ERP database with restaurant category and online status
-    c.execute("SELECT * FROM vendors WHERE category IN ('restaurant', 'cafe', 'pet restaurant', 'pet cafe', 'pet-friendly restaurant') AND is_online = 1")
-    restaurant_vendors = c.fetchall()
-    conn.close()
-
-    boardings = []
-    for vendor in boarding_vendors:
-        vendor_data = {
-            "id": vendor[0],  # vendor id
-            "name": vendor[1],  # vendor name (field index 1 is name)
-            "description": vendor[7] or "Safe and comfortable stay for your pets.",  # bio
-            "image": vendor[8] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400",
-            "city": vendor[5] or "Unknown",
-            "latitude": vendor[9],  # latitude from database
-            "longitude": vendor[10]  # longitude from database
-        }
-        boardings.append(vendor_data)
-
-    restaurants = []
-    for vendor in restaurant_vendors:
-        vendor_data = {
-            "id": vendor[0],  # vendor id
-            "name": vendor[1],  # vendor name
-            "description": vendor[7] or "Pet-friendly dining experience.",  # bio
-            "image": vendor[8] or "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400",
-            "city": vendor[5] or "Unknown",
-            "latitude": vendor[9],  # latitude from database
-            "longitude": vendor[10],  # longitude from database
-            "booking_url": f"/vendor/{vendor[0]}/book"
-        }
-        restaurants.append(vendor_data)
-
-    # Always show demo boarding for testing
-    demo_boarding = {
-        "id": "cozy-paws",
-        "name": "Cozy Paws Boarding",
-        "description": "Safe and cozy stay for your pets. [DEMO]",
-        "image": "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400",
-        "city": "Mumbai",
-        "latitude": 19.0760,
-        "longitude": 72.8777
-    }
-    boardings.append(demo_boarding)
-
-    # Apply location filtering if user location is available
-    if user_location:
-        filtered_boardings = []
-        for b in boardings:
-            if b["latitude"] and b["longitude"]:
-                distance = haversine(
-                    user_location["lat"], user_location["lon"], b["latitude"], b["longitude"]
-                )
-                if distance <= 50:  # Filter vendors within 50 km
-                    filtered_boardings.append(b)
-            else:
-                # Include vendors without location data for now
-                filtered_boardings.append(b)
-        boardings = filtered_boardings
-
-    # Apply location filtering to restaurants if user location is available
-    if user_location:
-        filtered_restaurants = []
-        for r in restaurants:
-            if r["latitude"] and r["longitude"]:
-                distance = haversine(
-                    user_location["lat"], user_location["lon"], r["latitude"], r["longitude"]
-                )
-                if distance <= 50:  # Filter restaurants within 50 km
-                    filtered_restaurants.append(r)
-            else:
-                # Include restaurants without location data for now
-                filtered_restaurants.append(r)
-        restaurants = filtered_restaurants
-
-    return render_template("boarding.html", boardings=boardings, restaurants=restaurants)
+    return render_template("boarding.html", boardings=[], restaurants=[])
 
 # Vets & Pharma
 @app.route('/vets')
@@ -477,13 +372,11 @@ def pet_profile():
         photo_url = ""
 
         file = request.files.get("photo")
-
         if file is not None and file.filename and allowed_file(file.filename):
-            filename: str = secure_filename(file.filename)
+            filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             photo_url = "/" + filepath
-
 
         pet = {
             "name": name,
@@ -495,100 +388,16 @@ def pet_profile():
 
         pets.append(pet)
         db[f"pets:{user}"] = pets
-
         return redirect(url_for("pet_profile"))
 
     return render_template("pet_profile.html", breeds=breeds, pets=pets)
 
-@app.route('/pet-profile/add', methods=['GET', 'POST'])
-def add_pet():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    with open("dog_breeds.json", "r") as f:
-        breeds = json.load(f)
-
-    if request.method == 'POST':
-        name = request.form.get("name", "").strip()
-        birthday = request.form.get("birthday")
-        breed = request.form.get("breed")
-        blood = request.form.get("blood")
-        photo = request.files.get("photo")
-
-        if not name:
-            return "Pet name is required."
-
-        filename = None
-        if photo and photo.filename:
-            filename = secure_filename(photo.filename)
-            try:
-                photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            except Exception as e:
-                print("Image save failed:", e)
-
-        user = session["user"]
-        pets = db.get(f"pets:{user}", [])
-
-        pet = {
-            "name": name,
-            "birthday": birthday,
-            "breed": breed,
-            "blood": blood,
-            "photo": filename
-        }
-
-        pets.append(pet)
-        db[f"pets:{user}"] = pets
-
-        return redirect(url_for("pet_profile"))
-
-    return render_template("add_pet.html", breeds=breeds)
-
-@app.route('/pet-profile/edit/<int:index>', methods=["GET", "POST"])
-def edit_pet(index):
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    user = session["user"]
-    pets = db.get(f"pets:{user}", [])
-
-    if index >= len(pets):
-        return "Pet not found"
-
-    with open("dog_breeds.json", "r") as f:
-        breeds = json.load(f)
-
-    if request.method == "POST":
-        pets[index]["name"] = request.form.get("name")
-        pets[index]["birthday"] = request.form.get("birthday")
-        pets[index]["breed"] = request.form.get("breed")
-        pets[index]["blood"] = request.form.get("blood")
-
-        db[f"pets:{user}"] = pets
-        return redirect(url_for("pet_profile"))
-
-    return render_template("edit_pet.html", pet=pets[index], index=index, breeds=breeds)
-
-#location
 @app.route('/set-location')
 def set_location():
     lat = request.args.get("lat", type=float)
     lon = request.args.get("lon", type=float)
     if lat and lon:
         session["location"] = {"lat": lat, "lon": lon}
-    return '', 204
-
-@app.route('/set-vendor-location')
-def set_vendor_location():
-    lat = request.args.get("lat", type=float)
-    lon = request.args.get("lon", type=float)
-    if lat and lon and "vendor" in session:
-        email = session["vendor"]
-        conn = sqlite3.connect('erp.db')
-        c = conn.cursor()
-        c.execute("UPDATE vendors SET latitude=?, longitude=? WHERE email=?", (lat, lon, email))
-        conn.commit()
-        conn.close()
     return '', 204
 
 # Logout
@@ -654,23 +463,22 @@ def erp_register():
 def erp_dashboard():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
-    
+
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("SELECT name, is_online FROM vendors WHERE email=?", (email,))
     vendor_data = c.fetchone()
     conn.close()
-    
+
     vendor_info = {
         "email": email,
         "name": vendor_data[0] if vendor_data else email,
         "is_online": vendor_data[1] if vendor_data else 0
     }
-    
+
     return render_template("erp_dashboard.html", vendor=vendor_info)
 
-#ERP Profile
 @app.route('/erp/profile', methods=["GET"])
 def erp_profile():
     if "vendor" not in session:
@@ -679,65 +487,12 @@ def erp_profile():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-
-    # GET method: fetch existing vendor data
     c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    # Always show the profile view with placeholders for empty fields
     return render_template("erp_profile_view.html", vendor=vendor or ("", email, "", "", "", "", "", "", ""))
 
-# ERP Profile Save (separate POST route like pet profile)
-@app.route('/erp/profile/save', methods=["POST"])
-def save_vendor_profile():
-    if "vendor" not in session:
-        return redirect(url_for("erp_login"))
-
-    email = session["vendor"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-
-    name = request.form.get("name", "")
-    phone = request.form.get("phone", "")
-    bio = request.form.get("bio", "")
-    city = request.form.get("city", "")
-    category = request.form.get("category", "")
-
-    # Handle image upload
-    image_url = ""
-    file = request.files.get("image")
-    if file and file.filename and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        image_url = "/" + filepath
-    else:
-        # Keep existing image if no new image uploaded
-        c.execute("SELECT image_url FROM vendors WHERE email=?", (email,))
-        existing = c.fetchone()
-        image_url = existing[0] if existing and existing[0] else ""
-
-    c.execute('''
-        UPDATE vendors 
-        SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
-        WHERE email=?
-    ''', (name, phone, bio, image_url, city, category, email))
-
-    conn.commit()
-    
-    # Debug: Check what was saved
-    c.execute("SELECT name, category FROM vendors WHERE email=?", (email,))
-    saved_data = c.fetchone()
-    print(f"DEBUG: Saved vendor data - Name: '{saved_data[0] if saved_data else 'None'}', Category: '{saved_data[1] if saved_data else 'None'}'")
-    
-    conn.close()
-
-    # Redirect back to profile page which will now show the profile view
-    return redirect(url_for("erp_profile"))
-
-
-#--- ERP Profile Edit ---
 @app.route('/erp/profile/edit', methods=["GET", "POST"])
 def edit_vendor_profile():
     if "vendor" not in session:
@@ -754,7 +509,6 @@ def edit_vendor_profile():
         city = request.form.get("city", "")
         category = request.form.get("category", "")
 
-        # Handle image upload
         image_url = ""
         file = request.files.get("image")
         if file and file.filename and allowed_file(file.filename):
@@ -763,7 +517,6 @@ def edit_vendor_profile():
             file.save(filepath)
             image_url = "/" + filepath
         else:
-            # Keep existing image if no new image uploaded
             c.execute("SELECT image_url FROM vendors WHERE email=?", (email,))
             existing = c.fetchone()
             image_url = existing[0] if existing and existing[0] else ""
@@ -776,17 +529,15 @@ def edit_vendor_profile():
 
         conn.commit()
         conn.close()
-
         return redirect(url_for("erp_profile"))
 
-    # GET method: fetch existing vendor data for editing
     c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
     return render_template("erp_profiles.html", vendor=vendor or ("", email, "", "", "", "", "", "", ""))
 
-# ERP Products
+# ERP Products Management
 @app.route('/erp/products')
 def erp_products():
     if "vendor" not in session:
@@ -795,11 +546,145 @@ def erp_products():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    c.execute("SELECT p.* FROM products p JOIN vendors v ON p.vendor_id = v.id WHERE v.email=?", (email,))
+    c.execute("""
+        SELECT p.id, p.name, p.description, p.sale_price, p.quantity, p.image_url, p.barcode, p.buy_price
+        FROM products p 
+        JOIN vendors v ON p.vendor_id = v.id 
+        WHERE v.email=?
+    """, (email,))
     products = c.fetchall()
     conn.close()
 
     return render_template("erp_products.html", products=products)
+
+@app.route('/erp/products/add', methods=["GET", "POST"])
+def add_product():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    if request.method == "POST":
+        email = session["vendor"]
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_id = c.fetchone()[0]
+
+        name = request.form.get("name")
+        description = request.form.get("description")
+        category = request.form.get("category")
+        buy_price = float(request.form.get("buy_price", 0))
+        sale_price = float(request.form.get("sale_price", 0))
+        quantity = int(request.form.get("quantity", 0))
+        barcode = request.form.get("barcode")
+        batch_name = request.form.get("batch_name")
+
+        # Handle image upload
+        image_url = ""
+        file = request.files.get("image")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            image_url = "/" + filepath
+
+        # Insert product
+        c.execute("""
+            INSERT INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode))
+
+        product_id = c.lastrowid
+
+        # Insert batch
+        c.execute("""
+            INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (product_id, batch_name or f"BATCH-{barcode}-001", quantity, buy_price, datetime.now().strftime("%Y-%m-%d")))
+
+        conn.commit()
+        conn.close()
+        return redirect(url_for("erp_products"))
+
+    return render_template("add_product.html")
+
+@app.route('/erp/products/<int:product_id>/edit', methods=["GET", "POST"])
+def edit_product(product_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        description = request.form.get("description")
+        category = request.form.get("category")
+        sale_price = float(request.form.get("sale_price", 0))
+        barcode = request.form.get("barcode")
+
+        # Handle image upload
+        image_url = request.form.get("existing_image", "")
+        file = request.files.get("image")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            image_url = "/" + filepath
+
+        c.execute("""
+            UPDATE products 
+            SET name=?, description=?, category=?, sale_price=?, image_url=?, barcode=?
+            WHERE id=? AND vendor_id=(SELECT id FROM vendors WHERE email=?)
+        """, (name, description, category, sale_price, image_url, barcode, product_id, email))
+
+        conn.commit()
+        conn.close()
+        return redirect(url_for("erp_products"))
+
+    # Get product details
+    c.execute("""
+        SELECT p.* FROM products p 
+        JOIN vendors v ON p.vendor_id = v.id 
+        WHERE p.id=? AND v.email=?
+    """, (product_id, email))
+    product = c.fetchone()
+
+    # Get batches
+    c.execute("SELECT * FROM product_batches WHERE product_id=? ORDER BY arrival_date", (product_id,))
+    batches = c.fetchall()
+
+    conn.close()
+
+    return render_template("edit_product.html", product=product, batches=batches)
+
+@app.route('/erp/products/<int:product_id>/view')
+def view_product(product_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get product details
+    c.execute("""
+        SELECT p.* FROM products p 
+        JOIN vendors v ON p.vendor_id = v.id 
+        WHERE p.id=? AND v.email=?
+    """, (product_id, email))
+    product = c.fetchone()
+
+    # Get batches ordered by arrival date (FIFO)
+    c.execute("SELECT * FROM product_batches WHERE product_id=? ORDER BY arrival_date", (product_id,))
+    batches = c.fetchall()
+
+    conn.close()
+
+    return render_template("view_product.html", product=product, batches=batches)
+
 # ERP Bookings
 @app.route('/erp/bookings')
 def erp_bookings():
@@ -819,21 +704,19 @@ def erp_bookings():
 def toggle_vendor_online():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
-    
+
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
-    # Get current online status
+
     c.execute("SELECT is_online FROM vendors WHERE email=?", (email,))
     current_status = c.fetchone()[0]
-    
-    # Toggle the status
+
     new_status = 1 if current_status == 0 else 0
     c.execute("UPDATE vendors SET is_online=? WHERE email=?", (new_status, email))
     conn.commit()
     conn.close()
-    
+
     return redirect(url_for("erp_dashboard"))
 
 @app.route('/erp/logout')
@@ -846,20 +729,21 @@ def erp_logout():
 def marketplace():
     if "user" not in session:
         return redirect(url_for("login"))
-    
+
     user_location = session.get("location")
-    
-    # Get all online vendors with products in stock
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("""
-        SELECT DISTINCT v.* FROM vendors v 
-        JOIN products p ON v.id = p.vendor_id 
-        WHERE v.is_online = 1 AND p.stock > 0
+        SELECT DISTINCT v.*, 
+               (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
+        FROM vendors v 
+        WHERE v.is_online = 1 AND EXISTS (
+            SELECT 1 FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0
+        )
     """)
     online_vendors = c.fetchall()
-    conn.close()
-    
+
     vendors = []
     for vendor in online_vendors:
         # Apply location filtering
@@ -867,12 +751,9 @@ def marketplace():
             distance = haversine(
                 user_location["lat"], user_location["lon"], vendor[9], vendor[10]
             )
-            if distance > 100:  # Skip vendors more than 100km away
+            if distance > 50:  # Skip vendors more than 50km away
                 continue
-        elif user_location and vendor[5]:  # city fallback
-            # For now, just check if same city (you can enhance this logic)
-            pass
-        
+
         vendor_data = {
             "id": vendor[0],
             "name": vendor[1],
@@ -882,11 +763,37 @@ def marketplace():
             "bio": vendor[7],
             "image_url": vendor[8],
             "latitude": vendor[9],
-            "longitude": vendor[10]
+            "longitude": vendor[10],
+            "product_count": vendor[11]
         }
         vendors.append(vendor_data)
-    
+
+    conn.close()
     return render_template("marketplace.html", vendors=vendors)
+
+@app.route('/marketplace/vendor/<int:vendor_id>')
+def marketplace_vendor_products(vendor_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor info
+    c.execute("SELECT name, city, bio FROM vendors WHERE id=?", (vendor_id,))
+    vendor = c.fetchone()
+
+    # Get products with stock
+    c.execute("""
+        SELECT id, name, description, sale_price, quantity, image_url 
+        FROM products 
+        WHERE vendor_id=? AND quantity > 0
+    """, (vendor_id,))
+    products = c.fetchall()
+
+    conn.close()
+
+    return render_template("marketplace_vendor_products.html", vendor=vendor, products=products, vendor_id=vendor_id)
 
 # Run app
 if __name__ == '__main__':
