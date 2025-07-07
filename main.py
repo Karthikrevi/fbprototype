@@ -207,9 +207,16 @@ def init_erp_db():
             setting_name TEXT UNIQUE NOT NULL,
             setting_value REAL NOT NULL,
             description TEXT,
-            last_updated TEXT DEFAULT CURRENT_TIMESTAMP
+            last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+            previous_value REAL DEFAULT NULL
         )
     ''')
+    
+    # Check if previous_value column exists, if not add it
+    c.execute("PRAGMA table_info(master_settings)")
+    columns = [column[1] for column in c.fetchall()]
+    if 'previous_value' not in columns:
+        c.execute("ALTER TABLE master_settings ADD COLUMN previous_value REAL DEFAULT NULL")
 
     # Insert default master settings if they don't exist
     c.execute('''
@@ -1735,13 +1742,13 @@ def update_commission():
     # Update master settings - marketplace uses fixed platform fee, grooming uses commission
     c.execute("""
         UPDATE master_settings 
-        SET setting_value = ?, last_updated = CURRENT_TIMESTAMP 
+        SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE setting_name = 'marketplace_listing_fee'
     """, (marketplace_platform_fee,))
     
     c.execute("""
         UPDATE master_settings 
-        SET setting_value = ?, last_updated = CURRENT_TIMESTAMP 
+        SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE setting_name = 'grooming_commission_rate'
     """, (grooming_commission,))
     
@@ -1750,6 +1757,33 @@ def update_commission():
     
     flash(f"Settings updated: Marketplace Platform Fee ${marketplace_platform_fee}, Grooming Commission {grooming_commission}%")
     return redirect(url_for("master_admin_dashboard"))
+
+@app.route('/master/admin/update-settings', methods=["POST"])
+def update_platform_settings():
+    if not session.get("master_admin"):
+        return {"success": False, "message": "Unauthorized"}, 403
+    
+    try:
+        settings_data = request.get_json()
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        for setting_name, new_value in settings_data.items():
+            # Update setting with previous value tracking
+            c.execute("""
+                UPDATE master_settings 
+                SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
+                WHERE setting_name = ?
+            """, (new_value, setting_name))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Settings updated successfully"}
+    
+    except Exception as e:
+        return {"success": False, "message": str(e)}, 500
 
 @app.route('/master/admin/logout')
 def master_admin_logout():
