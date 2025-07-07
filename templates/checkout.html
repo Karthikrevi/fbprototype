@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -238,7 +237,7 @@
 <body>
   <div class="checkout-container">
     <a href="/marketplace" class="back-btn">← Back to Marketplace</a>
-    
+
     <div class="checkout-header">
       <h1>🛒 Checkout</h1>
       <p>Review your order and complete your purchase</p>
@@ -470,7 +469,7 @@
           </div>
         </div>
       `).join('');
-      
+
       document.getElementById('cart-items').innerHTML = cartItemsHtml;
     }
 
@@ -479,7 +478,7 @@
         removeItem(index);
         return;
       }
-      
+
       cart[index].quantity += change;
       localStorage.setItem('furrbutler_cart', JSON.stringify(cart));
       renderCartItems();
@@ -489,7 +488,7 @@
     function removeItem(index) {
       cart.splice(index, 1);
       localStorage.setItem('furrbutler_cart', JSON.stringify(cart));
-      
+
       if (cart.length === 0) {
         location.reload();
       } else {
@@ -499,16 +498,57 @@
     }
 
     function setupEventListeners() {
-      // Delivery option selection
+      // Load vendor delivery prices
+      const vendorId = new URLSearchParams(window.location.search).get('vendor_id') || 1;
+      let vendorDeliveryPrices = {};
+
+      fetch(`/api/vendor/${vendorId}/delivery-prices`)
+        .then(response => response.json())
+        .then(prices => {
+          vendorDeliveryPrices = prices;
+
+          // Update delivery option prices in UI
+          document.querySelector('[data-delivery="standard"] .text-success').textContent = `$${prices.standard}`;
+          document.querySelector('[data-delivery="express"] .text-success').textContent = `$${prices.express}`;
+          document.querySelector('[data-delivery="same-day"] .text-success').textContent = `$${prices.same_day}`;
+
+          // Check if order qualifies for free delivery
+          const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          if (subtotal >= prices.free_threshold) {
+            document.querySelector('[data-delivery="standard"] .text-success').innerHTML = 
+              `<span style="text-decoration: line-through;">$${prices.standard}</span> <strong>FREE</strong>`;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading delivery prices:', error);
+          // Fallback to default prices
+          vendorDeliveryPrices = {
+            standard: 2.99,
+            express: 5.99,
+            same_day: 12.99,
+            free_threshold: 50.00
+          };
+        });
+
+      // Delivery method selection
       document.querySelectorAll('.delivery-option').forEach(option => {
         option.addEventListener('click', function() {
           document.querySelectorAll('.delivery-option').forEach(o => o.classList.remove('selected'));
           this.classList.add('selected');
-          
-          const deliveryType = this.dataset.delivery;
-          deliveryFee = deliveryType === 'standard' ? 0 : 
-                       deliveryType === 'express' ? 5.99 : 12.99;
-          
+
+          selectedDelivery = this.dataset.delivery;
+
+          // Calculate delivery fee based on vendor settings and cart total
+          const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+          if (selectedDelivery === 'standard' && subtotal >= vendorDeliveryPrices.free_threshold) {
+            deliveryFee = 0; // Free standard delivery
+          } else {
+            deliveryFee = vendorDeliveryPrices[selectedDelivery] || 
+                         (selectedDelivery === 'standard' ? 2.99 : 
+                          selectedDelivery === 'express' ? 5.99 : 12.99);
+          }
+
           calculateTotals();
         });
       });
@@ -518,9 +558,9 @@
         method.addEventListener('click', function() {
           document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
           this.classList.add('selected');
-          
+
           selectedPayment = this.dataset.payment;
-          
+
           // Show/hide card details
           const cardDetails = document.getElementById('card-details');
           cardDetails.style.display = selectedPayment === 'card' ? 'block' : 'none';
@@ -552,7 +592,7 @@
       // Validate form fields
       const requiredFields = ['Full Name', 'Phone Number', 'Street Address', 'City', 'State', 'ZIP Code'];
       const inputs = document.querySelectorAll('.form-control');
-      
+
       for (let input of inputs) {
         if (input.placeholder && requiredFields.some(field => input.placeholder.includes(field)) && !input.value.trim()) {
           alert(`Please fill in ${input.placeholder}`);
@@ -566,7 +606,7 @@
         const cardNumber = document.querySelector('input[placeholder="1234 5678 9012 3456"]').value;
         const expiry = document.querySelector('input[placeholder="MM/YY"]').value;
         const cvv = document.querySelector('input[placeholder="123"]').value;
-        
+
         if (!cardNumber || !expiry || !cvv) {
           alert('Please fill in all card details');
           return;
@@ -579,7 +619,7 @@
 
       // Show order confirmation
       alert(`Order placed successfully!\n\nOrder Total: $${total.toFixed(2)}\nPayment Method: ${selectedPayment.toUpperCase()}\n\nThank you for your purchase!`);
-      
+
       // Store purchase in localStorage for history
       const purchase = {
         items: cart,
@@ -588,14 +628,14 @@
         payment_method: selectedPayment,
         delivery_fee: deliveryFee
       };
-      
+
       const purchaseHistory = JSON.parse(localStorage.getItem('furrbutler_purchases') || '[]');
       purchaseHistory.push(purchase);
       localStorage.setItem('furrbutler_purchases', JSON.stringify(purchaseHistory));
-      
+
       // Clear cart
       localStorage.removeItem('furrbutler_cart');
-      
+
       // Redirect to purchase history
       window.location.href = '/marketplace/purchase-history';
     }

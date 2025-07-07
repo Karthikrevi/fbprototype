@@ -192,8 +192,32 @@ def init_erp_db():
             razorpay_enabled BOOLEAN DEFAULT 1,
             cod_enabled BOOLEAN DEFAULT 1,
             auto_reports BOOLEAN DEFAULT 0,
+            standard_delivery_price REAL DEFAULT 2.99,
+            express_delivery_price REAL DEFAULT 5.99,
+            same_day_delivery_price REAL DEFAULT 12.99,
+            free_delivery_threshold REAL DEFAULT 50.00,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
+    ''')
+
+    # Create master settings table for platform-wide settings
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS master_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_name TEXT UNIQUE NOT NULL,
+            setting_value REAL NOT NULL,
+            description TEXT,
+            last_updated TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Insert default master settings if they don't exist
+    c.execute('''
+        INSERT OR IGNORE INTO master_settings (setting_name, setting_value, description)
+        VALUES 
+        ('platform_commission_rate', 10.0, 'Platform commission percentage'),
+        ('payment_processing_fee', 2.9, 'Payment processing fee percentage'),
+        ('marketplace_listing_fee', 0.0, 'Fee for listing products on marketplace')
     ''')
 
     c.execute('''
@@ -1358,17 +1382,29 @@ def accounting_settings():
 
     if request.method == "POST":
         gst_rate = float(request.form.get("gst_rate", 18.0))
-        platform_fee = float(request.form.get("platform_fee", 10.0))
         razorpay_enabled = 1 if request.form.get("razorpay_enabled") else 0
         cod_enabled = 1 if request.form.get("cod_enabled") else 0
         auto_reports = 1 if request.form.get("auto_reports") else 0
+        
+        # Delivery pricing settings
+        standard_delivery = float(request.form.get("standard_delivery_price", 2.99))
+        express_delivery = float(request.form.get("express_delivery_price", 5.99))
+        same_day_delivery = float(request.form.get("same_day_delivery_price", 12.99))
+        free_delivery_threshold = float(request.form.get("free_delivery_threshold", 50.00))
+
+        # Get current platform commission from master settings (not editable by vendor)
+        c.execute("SELECT setting_value FROM master_settings WHERE setting_name = 'platform_commission_rate'")
+        platform_fee_result = c.fetchone()
+        platform_fee = platform_fee_result[0] if platform_fee_result else 10.0
 
         # Insert or update settings
         c.execute("""
             INSERT OR REPLACE INTO settings_vendor 
-            (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports))
+            (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports, 
+             standard_delivery_price, express_delivery_price, same_day_delivery_price, free_delivery_threshold)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports,
+              standard_delivery, express_delivery, same_day_delivery, free_delivery_threshold))
 
         conn.commit()
         flash("Settings updated successfully!")
@@ -1531,6 +1567,122 @@ def checkout():
         return redirect(url_for("login"))
     
     return render_template("checkout.html")
+
+# Master Admin Routes (Platform Owner)
+@app.route('/master/admin/login', methods=["GET", "POST"])
+def master_admin_login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        
+        # Hardcoded admin credentials (in production, use proper authentication)
+        if username == "furrbutler_admin" and password == "admin123":
+            session["master_admin"] = True
+            return redirect(url_for("master_admin_dashboard"))
+        else:
+            flash("Invalid admin credentials")
+    
+    return render_template("master_admin_login.html")
+
+@app.route('/master/admin/dashboard')
+def master_admin_dashboard():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get current master settings
+    c.execute("SELECT * FROM master_settings ORDER BY setting_name")
+    settings = c.fetchall()
+    
+    # Get platform statistics
+    c.execute("SELECT COUNT(*) FROM vendors")
+    total_vendors = c.fetchone()[0]
+    
+    c.execute("SELECT COUNT(*) FROM products")
+    total_products = c.fetchone()[0]
+    
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log")
+    total_sales = c.fetchone()[0]
+    
+    c.execute("SELECT COALESCE(SUM(fee_amount), 0) FROM platform_fees")
+    total_commission = c.fetchone()[0]
+    
+    conn.close()
+    
+    stats = {
+        'total_vendors': total_vendors,
+        'total_products': total_products,
+        'total_sales': total_sales,
+        'total_commission': total_commission
+    }
+    
+    return render_template("master_admin_dashboard.html", settings=settings, stats=stats)
+
+@app.route('/master/admin/update-commission', methods=["POST"])
+def update_commission():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    
+    new_commission = float(request.form.get("commission_rate", 10.0))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Update master commission rate
+    c.execute("""
+        UPDATE master_settings 
+        SET setting_value = ?, last_updated = CURRENT_TIMESTAMP 
+        WHERE setting_name = 'platform_commission_rate'
+    """, (new_commission,))
+    
+    # Update all vendor settings with new commission rate
+    c.execute("""
+        UPDATE settings_vendor 
+        SET platform_fee = ?
+    """, (new_commission,))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(f"Commission rate updated to {new_commission}% for all vendors")
+    return redirect(url_for("master_admin_dashboard"))
+
+@app.route('/master/admin/logout')
+def master_admin_logout():
+    session.pop("master_admin", None)
+    return redirect(url_for("home"))
+
+# Add route to get vendor's delivery prices for checkout
+@app.route('/api/vendor/<int:vendor_id>/delivery-prices')
+def get_vendor_delivery_prices(vendor_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT standard_delivery_price, express_delivery_price, same_day_delivery_price, free_delivery_threshold
+        FROM settings_vendor 
+        WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    result = c.fetchone()
+    conn.close()
+    
+    if result:
+        return {
+            'standard': result[0] or 2.99,
+            'express': result[1] or 5.99,
+            'same_day': result[2] or 12.99,
+            'free_threshold': result[3] or 50.00
+        }
+    else:
+        return {
+            'standard': 2.99,
+            'express': 5.99,
+            'same_day': 12.99,
+            'free_threshold': 50.00
+        }
 
 # Run app
 if __name__ == '__main__':
