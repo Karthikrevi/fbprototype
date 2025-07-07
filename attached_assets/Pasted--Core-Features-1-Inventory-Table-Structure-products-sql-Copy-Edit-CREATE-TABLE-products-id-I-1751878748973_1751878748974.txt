@@ -1,0 +1,182 @@
+✅ Core Features
+1. Inventory Table Structure (products)
+sql
+Copy
+Edit
+CREATE TABLE products (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  vendor_email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  buy_price REAL,
+  sale_price REAL,
+  quantity INTEGER DEFAULT 0,
+  image_url TEXT,
+  barcode TEXT UNIQUE
+);
+2. Batching Table for Inventory Control (FIFO)
+sql
+Copy
+Edit
+CREATE TABLE product_batches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  product_id INTEGER,
+  batch_name TEXT,
+  quantity INTEGER,
+  buy_price REAL,
+  arrival_date TEXT,
+  FOREIGN KEY(product_id) REFERENCES products(id)
+);
+💼 Functional Requirements
+🔹 Vendor Flow
+/erp/products
+List of products owned by the vendor (cards or table)
+
+Show:
+
+Name, Image, Quantity
+
+Buy Price (optional)
+
+Sale Price (highlighted)
+
+Stock Summary (from batches)
+
+Edit / View button
+
+/erp/products/add
+Add new product (fields: name, desc, category, prices, image upload, barcode, etc.)
+
+Barcode can be manually entered or scanned using a simple JS input
+
+When adding quantity, also create batch entries under product_batches (with batch name and arrival date)
+
+/erp/products/<id>/edit
+Editable form:
+
+Change description, prices, barcode
+
+Upload new image
+
+Add or remove batches
+
+Adjust sale price
+
+/erp/products/<id>/view
+Product details view page for vendor
+
+Read-only except for "Edit" button
+
+Shows all batch breakdowns, FIFO hint: "Oldest batch will be sold first"
+
+🧾 Extra Notes on Logic
+Buy Price: Not shown to users. Used only in backend/profit calculations
+
+Sale Price: Visible to customers
+
+Quantity: Sum of all batch quantities
+
+When a sale happens (simulated later), reduce stock from oldest batch first
+
+🧪 Mock Vendor Account Setup
+Please generate:
+
+A vendor account:
+
+Name: "Fluffy Paws"
+
+Email: fluffy@furrbutler.com
+
+Password: 123456
+
+City: Bangalore
+
+Category: Groomer
+
+Add 3 sample products:
+
+Lavender Pet Shampoo
+
+Buy Price: ₹150
+
+Sale Price: ₹299
+
+Barcode: 1234567890001
+
+10 pcs in Batch A (2025-06-01), 5 pcs in Batch B (2025-06-20)
+
+Organic Treats
+
+Buy Price: ₹50
+
+Sale Price: ₹120
+
+Barcode: 1234567890002
+
+20 pcs in Batch A (2025-06-10)
+
+Tick Spray
+
+Buy Price: ₹80
+
+Sale Price: ₹180
+
+Barcode: 1234567890003
+
+15 pcs in Batch A (2025-05-15), 10 pcs in Batch B (2025-06-15)
+
+🌍 User Marketplace Side
+/marketplace
+Shows all vendors with at least 1 product in stock
+
+Display vendor info + all products (only name, image, sale_price)
+
+No buy_price shown here
+
+/marketplace/product/<id>
+Product detail page for pet parents
+
+Shows:
+
+Name, Sale Price
+
+Vendor info
+
+Product Description
+
+"Book" or "Order" button (logic can be added later)
+
+📂 Folder/Route Expectations
+bash
+Copy
+Edit
+routes:
+  /erp/products
+  /erp/products/add
+  /erp/products/<id>/edit
+  /erp/products/<id>/view
+  /marketplace
+  /marketplace/product/<id>
+
+templates:
+  erp_products.html
+  erp_product_edit.html
+  erp_product_view.html
+  marketplace.html
+  marketplace_product.html
+🔐 Tech Stack
+Flask + SQLite
+
+HTML/CSS + Bootstrap (mobile-friendly)
+
+JS for barcode input
+
+Use secure_filename() for image uploads
+
+Save product images in /static/uploads/
+
+Please generate this entire inventory system module step by step. Start with the schema + seed data, then go into routes and templates.
+
+Let me know if you need me to split this into smaller steps.
+
