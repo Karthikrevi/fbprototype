@@ -177,19 +177,25 @@ def init_erp_db():
     # Check if missing columns exist in products table, if not add them
     c.execute("PRAGMA table_info(products)")
     columns = [column[1] for column in c.fetchall()]
+    
     if 'category' not in columns:
         c.execute('ALTER TABLE products ADD COLUMN category TEXT')
     if 'buy_price' not in columns:
         c.execute('ALTER TABLE products ADD COLUMN buy_price REAL')
+    if 'sale_price' not in columns:
+        c.execute('ALTER TABLE products ADD COLUMN sale_price REAL')
     if 'vendor_id' not in columns:
         c.execute('ALTER TABLE products ADD COLUMN vendor_id INTEGER')
+    
+    # Check if vendor_email column exists before trying to migrate
+    if 'vendor_email' in columns:
         # Update existing products to have vendor_id
         c.execute("""
             UPDATE products 
             SET vendor_id = (
                 SELECT id FROM vendors WHERE email = products.vendor_email
             ) 
-            WHERE vendor_email IS NOT NULL
+            WHERE vendor_email IS NOT NULL AND vendor_id IS NULL
         """)
 
     # Insert demo vendor
