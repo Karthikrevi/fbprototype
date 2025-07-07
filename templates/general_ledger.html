@@ -131,10 +131,11 @@
         <label>Account</label>
         <select id="accountFilter">
           <option value="">All Accounts</option>
-          <option value="Sales">Sales</option>
+          <option value="Sales">Sales Revenue</option>
           <option value="Cash">Cash</option>
           <option value="Inventory">Inventory</option>
           <option value="Expenses">Expenses</option>
+          <option value="Cost of Goods Sold">Cost of Goods Sold</option>
         </select>
       </div>
       <div class="filter-group">
@@ -270,8 +271,14 @@
         
         // Sub-category filtering - extract text from span elements and handle "-" case
         const subCategoryText = rowSubCategory.replace(/\s+/g, ' ').trim();
-        if (subCategoryFilter && subCategoryText !== '-' && !subCategoryText.toLowerCase().includes(subCategoryFilter.toLowerCase())) {
-          showRow = false;
+        if (subCategoryFilter) {
+          // If filtering by sub-category, show rows with that sub-category OR rows with matching account if no sub-category
+          if (subCategoryText !== '-' && !subCategoryText.toLowerCase().includes(subCategoryFilter.toLowerCase())) {
+            // Also check if the account matches the sub-category filter (for rows without sub-categories)
+            if (!accountText.toLowerCase().includes(subCategoryFilter.toLowerCase())) {
+              showRow = false;
+            }
+          }
         }
         
         // Show/hide row
@@ -341,7 +348,7 @@
         const accountClean = account.replace(/\s+/g, ' ').trim();
         const subCategoryClean = subCategory.replace(/\s+/g, ' ').trim();
         
-        // Check for expense-type accounts (debit entries representing expenses)
+        // Check for debit entries (which could be expenses, inventory, or assets)
         if (debitText !== '-') {
           const amount = parseFloat(debitText.replace('₹', '').replace(',', ''));
           if (!isNaN(amount)) {
@@ -362,7 +369,36 @@
               date: cells[0].textContent.trim(),
               description: cells[3].textContent.trim(),
               amount: amount,
-              account: accountClean
+              account: accountClean,
+              type: 'debit'
+            });
+          }
+        }
+        
+        // Also check for credit entries that might be relevant (like sales revenue)
+        const creditText = cells[5].textContent.trim();
+        if (creditText !== '-') {
+          const amount = parseFloat(creditText.replace('₹', '').replace(',', ''));
+          if (!isNaN(amount)) {
+            // Determine the category key for credit entries
+            let categoryKey;
+            if (subCategoryClean && subCategoryClean !== '-') {
+              categoryKey = subCategoryClean + ' (Credit)';
+            } else {
+              categoryKey = accountClean + ' (Credit)';
+            }
+            
+            if (!breakdown[categoryKey]) {
+              breakdown[categoryKey] = {total: 0, count: 0, items: []};
+            }
+            breakdown[categoryKey].total += amount;
+            breakdown[categoryKey].count++;
+            breakdown[categoryKey].items.push({
+              date: cells[0].textContent.trim(),
+              description: cells[3].textContent.trim(),
+              amount: amount,
+              account: accountClean,
+              type: 'credit'
             });
           }
         }
@@ -381,7 +417,10 @@
               <div style="max-height: 150px; overflow-y: auto; margin-top: 10px;">
                 ${data.items.slice(0, 5).map(item => `
                   <div style="font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid #eee;">
-                    <strong>${item.date}</strong>: ₹${item.amount.toFixed(2)}<br>
+                    <strong>${item.date}</strong>: 
+                    <span style="color: ${item.type === 'debit' ? '#dc3545' : '#28a745'}; font-weight: bold;">
+                      ${item.type === 'debit' ? '+' : '-'}₹${item.amount.toFixed(2)}
+                    </span><br>
                     <span style="color: #666;">${item.description}</span>
                     ${item.account ? `<br><small style="color: #999;">Account: ${item.account}</small>` : ''}
                   </div>

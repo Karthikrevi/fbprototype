@@ -1262,19 +1262,19 @@ def add_product():
         c.execute("""
             INSERT INTO expenses (vendor_id, category, amount, description, date)
             VALUES (?, 'Inventory', ?, ?, ?)
-        """, (vendor_id, total_cost, f"Initial inventory - {name} ({quantity} units @ ${buy_price} each)", 
+        """, (vendor_id, total_cost, f"Initial inventory - {name} ({quantity} units @ ₹{buy_price} each)", 
               datetime.now().strftime("%Y-%m-%d")))
         
         # Add to ledger - Inventory Asset (Debit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
             VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
-        """, (vendor_id, total_cost, f"Initial Inventory - {name} ({quantity} units @ ${buy_price} each)"))
+        """, (vendor_id, total_cost, f"Initial Inventory - {name} ({quantity} units @ ₹{buy_price} each)"))
         
         # Add to ledger - Cash (Credit) - assuming cash payment for initial inventory
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
-            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory')
+            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory Purchase')
         """, (vendor_id, total_cost, f"Cash payment for initial inventory - {name}"))
 
         conn.commit()
@@ -2546,19 +2546,19 @@ def add_inventory_stock(product_id):
         c.execute("""
             INSERT INTO expenses (vendor_id, category, amount, description, date)
             VALUES (?, 'Inventory', ?, ?, ?)
-        """, (vendor_id, total_cost, f"Inventory purchase - {product_name} ({quantity} units @ ${unit_cost} each)", 
+        """, (vendor_id, total_cost, f"Inventory purchase - {product_name} ({quantity} units @ ₹{unit_cost} each)", 
               datetime.now().strftime("%Y-%m-%d")))
         
         # Add to ledger - Inventory Asset (Debit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
             VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
-        """, (vendor_id, total_cost, f"Inventory Purchase - {product_name} ({quantity} units @ ${unit_cost} each)"))
+        """, (vendor_id, total_cost, f"Inventory Purchase - {product_name} ({quantity} units @ ₹{unit_cost} each)"))
         
         # Add to ledger - Cash/Accounts Payable (Credit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
-            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory')
+            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory Purchase')
         """, (vendor_id, total_cost, f"Payment for Inventory - {product_name}"))
 
         conn.commit()
