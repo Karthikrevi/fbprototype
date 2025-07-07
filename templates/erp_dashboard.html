@@ -1,198 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ERP Dashboard - FurrButler</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #fffef2;
+      background-color: #f6f9fc;
       font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 40px;
       text-align: center;
     }
-
     h2 {
       color: #ff7e5f;
-      margin-bottom: 30px;
-    }
-
-    .status-card {
-      background: white;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
       margin-bottom: 40px;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
+      font-size: 2.5rem;
     }
-
-    .online-status {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-    }
-
-    .status-description {
-      margin: 15px 0;
-      color: #666;
-    }
-
-    .toggle-btn {
-      padding: 12px 30px;
-      border: none;
-      border-radius: 25px;
-      font-weight: bold;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .toggle-btn:hover {
-      transform: translateY(-2px);
-    }
-
-    .btn-go-live {
-      background: linear-gradient(135deg, #28a745, #20c997);
-      color: white;
-    }
-
-    .btn-go-offline {
-      background: linear-gradient(135deg, #dc3545, #f1556c);
-      color: white;
-    }
-
-    .card-grid {
+    .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 25px;
-      margin-top: 30px;
-      max-width: 1000px;
-      margin-left: auto;
-      margin-right: auto;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
-
-    .card {
-      background-color: #ffffff;
-      padding: 30px;
+    .tile {
+      background: linear-gradient(135deg, #fff, #f8f9fa);
       border-radius: 20px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      padding: 30px 20px;
+      text-decoration: none;
+      color: #333;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       transition: all 0.3s ease;
-      text-decoration: none;
-      color: black;
-      border: 2px solid transparent;
     }
-
-    .card:hover {
+    .tile:hover {
       transform: translateY(-8px);
-      background-color: #f8f9fa;
-      border-color: #ff7e5f;
-      color: black;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
       text-decoration: none;
+      color: #333;
     }
-
-    .card h3 {
-      margin: 0 0 15px 0;
-      font-size: 1.3rem;
+    .tile-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
       color: #74c69d;
     }
-
-    .card p {
-      font-size: 1rem;
-      color: #555;
-      margin: 0;
+    .tile-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2d3748;
     }
-
-    .inventory-highlight {
-      background: linear-gradient(135deg, #ff7e5f, #feb47b);
-      color: white;
+    .status-bar {
+      background: rgba(255,126,95,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px auto;
+      max-width: 600px;
     }
-
-    .inventory-highlight h3 {
-      color: white;
+    .tips-section {
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(255,126,95,0.1);
+      border-radius: 15px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
     }
-
-    .inventory-highlight p {
-      color: rgba(255,255,255,0.9);
+    .tips-section h4 {
+      color: #ff7e5f;
+      margin-bottom: 15px;
+    }
+    .tips-section ul {
+      text-align: left;
+      max-width: 600px;
+      margin: 0 auto;
+      color: #666;
     }
   </style>
 </head>
 <body>
-  <h2>🎯 Welcome to Your ERP, {{ vendor.name or vendor.email }}</h2>
+  <h2>🐾 ERP Control Center</h2>
 
-  <!-- Online Status Toggle -->
-  <div class="status-card">
-    {% if vendor.is_online %}
-      <div class="online-status" style="color: #28a745;">
-        🟢 You're LIVE!
-      </div>
-      <div class="status-description">
-        Your store is visible to pet parents in the marketplace
-      </div>
-      <form method="POST" action="/erp/toggle-online" style="margin: 0;">
-        <button type="submit" class="toggle-btn btn-go-offline" onclick="return confirm('Are you sure you want to go offline? This will hide your products from customers.')">
-          🔴 Go Offline
-        </button>
-      </form>
-    {% else %}
-      <div class="online-status" style="color: #dc3545;">
-        🔴 You're Offline
-      </div>
-      <div class="status-description">
-        Your store is hidden from the marketplace. Go live to start selling!
-      </div>
-      <form method="POST" action="/erp/toggle-online" style="margin: 0;">
-        <button type="submit" class="toggle-btn btn-go-live">
-          🟢 Go Live Now!
-        </button>
-      </form>
-    {% endif %}dif %}
+  <div class="status-bar">
+    <strong>Status:</strong> LIVE 🟢 | <strong>Location:</strong> Auto-Updated | <strong>Ready to serve!</strong>
   </div>
 
-  <div class="card-grid">
-    <a href="/erp/profile" class="card">
-      <h3>👤 Profile</h3>
-      <p>Manage your vendor information, location, and business details</p>
+  <div class="dashboard-grid">
+    <a href="/erp/profile" class="tile">
+      <div class="tile-icon">👤</div>
+      <div class="tile-label">Profile</div>
     </a>
 
-    <a href="/erp/products" class="card inventory-highlight">
-      <h3>📦 Inventory System</h3>
-      <p>Manage products, stock levels, batches & FIFO rotation</p>
+    <a href="/erp/products" class="tile">
+      <div class="tile-icon">📦</div>
+      <div class="tile-label">Inventory</div>
     </a>
 
-    <a href="/erp/bookings" class="card">
-      <h3>📅 Bookings</h3>
-      <p>View and manage customer appointments and service bookings</p>
+    <a href="/erp/bookings" class="tile">
+      <div class="tile-icon">📅</div>
+      <div class="tile-label">Bookings</div>
     </a>
 
-    <a href="/marketplace" class="card">
-      <h3>🛍️ View Marketplace</h3>
-      <p>See how customers view your store and products</p>
+    <a href="/erp/receipts" class="tile">
+      <div class="tile-icon">🧾</div>
+      <div class="tile-label">Receipts</div>
     </a>
 
-    <a href="/erp/reports" class="card" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
-      <h3>📊 Accounting & Reports</h3>
-      <p style="color: rgba(255,255,255,0.9);">Complete financial management, P&L, ledger & analytics</p>
+    <a href="/accounting/dashboard" class="tile">
+      <div class="tile-icon">📊</div>
+      <div class="tile-label">Accounts & Reports</div>
     </a>
 
-    <a href="/erp/receipts" class="card">
-      <h3>🧾 Receipts</h3>
-      <p>Track sales history, receipts and revenue analytics</p>
+    <a href="/accounting/settings" class="tile">
+      <div class="tile-icon">⚙️</div>
+      <div class="tile-label">Settings</div>
     </a>
 
-    <a href="/erp/logout" class="card" style="background-color: #f8d7da;">
-      <h3>🚪 Logout</h3>
-      <p>End your current session securely</p>
+    <a href="/erp/logout" class="tile">
+      <div class="tile-icon">🚪</div>
+      <div class="tile-label">Logout</div>
     </a>
   </div>
 
-  <div style="margin-top: 40px; padding: 20px; background: rgba(255,126,95,0.1); border-radius: 15px;">
-    <h4 style="color: #ff7e5f; margin-bottom: 15px;">🎯 Quick Tips</h4>
-    <ul style="text-align: left; max-width: 600px; margin: 0 auto; color: #666;">
+  <div class="tips-section">
+    <h4>🎯 Quick Tips</h4>
+    <ul>
       <li>Keep your status <strong>LIVE</strong> when you're ready to serve customers</li>
       <li>Add products with clear descriptions and photos for better sales</li>
       <li>Use batch management to track inventory expiry (FIFO system)</li>
       <li>Update your location to reach nearby pet parents</li>
+      <li>Check reports regularly to optimize your business performance</li>
     </ul>
   </div>
 </body>

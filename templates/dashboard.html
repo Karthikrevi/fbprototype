@@ -1,78 +1,113 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - FurrButler</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #fffaf4;
+      background-color: #f8fffe;
       font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
     }
-    .container {
-      max-width: 800px;
-      margin-top: 60px;
-    }
-    h1 {
-      color: #ffa94d;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .bubble-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 20px;
-    }
-    .bubble-btn {
-      flex: 1 1 45%;
-      background-color: #ffec99;
-      border: none;
-      padding: 30px;
-      border-radius: 20px;
-      text-align: center;
-      font-size: 1.2rem;
-      color: #5c3d00;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      transition: all 0.2s ease;
-      text-decoration: none;
-    }
-    .bubble-btn:hover {
-      background-color: #ffe066;
-      transform: translateY(-2px);
-    }
-    .logout {
-      margin-top: 40px;
-      text-align: center;
-    }
-    .logout a {
-      background-color: #f06595;
+    .header {
+      background: linear-gradient(135deg, #74c69d, #52b788);
       color: white;
-      padding: 10px 30px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: bold;
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      margin-bottom: 30px;
     }
-    .logout a:hover {
-      background-color: #fa85b2;
+    .header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      text-decoration: none;
+      color: inherit;
+    }
+    .card-icon {
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .card-description {
+      color: #666;
+      text-align: center;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div style="margin-bottom: 20px;">
-      <a href="/" class="btn btn-secondary">← Back to Home</a>
-    </div>
+  <div class="header">
     <h1>🐾 Welcome to FurrButler</h1>
-    <div class="bubble-grid">
-      <a href="/pet-profile" class="bubble-btn">🐶 Pet Profile</a>
-      <a href="/marketplace" class="bubble-btn">🛍️ Marketplace</a>
-      <a href="/groomers" class="bubble-btn">🧼 Groomers & Vendors</a>
-      <a href="/boarding" class="bubble-btn">🍽️ Restaurants & Boarding</a>
-      <a href="/vets" class="bubble-btn">🩺 Vets & Pharma</a>
-    </div>
-    <div class="logout">
-      <a href="/logout">🚪 Logout</a>
-    </div>
+    <p>Your pet care command center</p>
+  </div>
+
+  <div class="card-grid">
+    <a href="/pet-profile" class="card">
+      <div class="card-icon">🐕</div>
+      <h3 class="card-title">Pet Profiles</h3>
+      <p class="card-description">Manage your pet's information and health records</p>
+    </a>
+
+    <a href="/marketplace" class="card">
+      <div class="card-icon">🛒</div>
+      <h3 class="card-title">Marketplace</h3>
+      <p class="card-description">Shop for pet supplies and essentials</p>
+    </a>
+
+    <a href="/groomers" class="card">
+      <div class="card-icon">✂️</div>
+      <h3 class="card-title">Groomers</h3>
+      <p class="card-description">Find professional grooming services</p>
+    </a>
+
+    <a href="/vets" class="card">
+      <div class="card-icon">🏥</div>
+      <h3 class="card-title">Veterinarians</h3>
+      <p class="card-description">Connect with trusted veterinary care</p>
+    </a>
+
+    <a href="/boarding" class="card">
+      <div class="card-icon">🏠</div>
+      <h3 class="card-title">Boarding</h3>
+      <p class="card-description">Safe and comfortable pet boarding options</p>
+    </a>
+
+    <a href="/logout" class="card">
+      <div class="card-icon">🚪</div>
+      <h3 class="card-title">Logout</h3>
+      <p class="card-description">Sign out of your account</p>
+    </a>
   </div>
 </body>
 </html>
