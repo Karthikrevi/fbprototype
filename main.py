@@ -827,8 +827,7 @@ def erp_profile():
 
     # Get vendor details
     c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
-    vendor_data = c.fetchone()```python
-
+    vendor_data = c.fetchone()
 
     if vendor_data:
         vendor_id = vendor_data[0]
