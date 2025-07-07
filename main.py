@@ -1744,6 +1744,24 @@ def checkout():
 
     return render_template("checkout.html")
 
+@app.route('/marketplace/purchase-history')
+def purchase_history():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user_email = session["user"]
+    
+    # Get purchase history from database (you can expand this later)
+    # For now, return empty list - purchases will be handled via localStorage on frontend
+    purchases = []
+    total_orders = 0
+    total_spent = 0.0
+
+    return render_template("purchase_history.html", 
+                         purchases=purchases, 
+                         total_orders=total_orders, 
+                         total_spent=total_spent)
+
 # Master Admin Routes (Platform Owner)
 @app.route('/master/admin/login', methods=["GET", "POST"])
 def master_admin_login():

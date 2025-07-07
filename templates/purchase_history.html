@@ -102,6 +102,106 @@
     }
   </style>
 </head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fffaf4;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      max-width: 1000px;
+      margin-top: 40px;
+    }
+    h1 {
+      color: #ffa94d;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      min-width: 200px;
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #ff7e5f;
+    }
+    .stat-label {
+      color: #666;
+      font-size: 1rem;
+    }
+    .purchase-item {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+    }
+    .product-image {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-right: 20px;
+    }
+    .purchase-details {
+      flex-grow: 1;
+    }
+    .product-name {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ff7e5f;
+      margin-bottom: 5px;
+    }
+    .vendor-name {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+    .purchase-meta {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .purchase-price {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #28a745;
+      text-align: right;
+    }
+    .back-btn {
+      background-color: #74c69d;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 15px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+    .back-btn:hover {
+      background-color: #5fa082;
+      color: white;
+    }
+    .no-purchases {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
 <body>
   <div class="container">
     <a href="/marketplace" class="back-btn">← Back to Marketplace</a>
@@ -110,11 +210,11 @@
 
     <div class="stats-row">
       <div class="stat-card">
-        <div class="stat-number">{{ total_orders }}</div>
+        <div class="stat-number" id="total-orders">{{ total_orders }}</div>
         <div class="stat-label">Total Orders</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">₹{{ "%.2f"|format(total_spent) }}</div>
+        <div class="stat-number" id="total-spent">₹{{ "%.2f"|format(total_spent) }}</div>
         <div class="stat-label">Total Spent</div>
       </div>
     </div>
@@ -140,6 +240,75 @@
             <div class="purchase-meta">
               Order Date: {{ purchase[4] }}
             </div>
+          </div>
+          <div class="purchase-price">
+            ₹{{ "%.2f"|format(purchase[3]) }}
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <div class="no-purchases" id="no-purchases" style="display: none;">
+      <h4>No purchases yet</h4>
+      <p>You haven't made any purchases yet. Start shopping to see your order history here.</p>
+      <a href="/marketplace" class="btn btn-primary">Start Shopping</a>
+    </div>
+  </div>
+
+  <script>
+    function loadPurchaseHistory() {
+      const purchaseHistory = JSON.parse(localStorage.getItem('furrbutler_purchases') || '[]');
+      const purchaseList = document.getElementById('purchase-list');
+      const noPurchases = document.getElementById('no-purchases');
+
+      if (purchaseHistory.length === 0) {
+        noPurchases.style.display = 'block';
+        return;
+      }
+
+      let totalOrders = 0;
+      let totalSpent = 0;
+
+      const purchasesHtml = purchaseHistory.map(purchase => {
+        totalOrders++;
+        totalSpent += purchase.total;
+
+        const orderDate = new Date(purchase.date).toLocaleDateString();
+
+        return purchase.items.map(item => `
+          <div class="purchase-item">
+            <div class="product-image d-flex align-items-center justify-content-center" style="background-color: #f8f9fa;">
+              <span style="font-size: 2rem;">📦</span>
+            </div>
+            <div class="purchase-details">
+              <div class="product-name">${item.name}</div>
+              <div class="vendor-name">from ${item.vendor || 'Unknown Vendor'}</div>
+              <div class="purchase-meta">
+                Quantity: ${item.quantity} | Unit Price: ₹${item.price.toFixed(2)}
+              </div>
+              <div class="purchase-meta">
+                Order Date: ${orderDate}
+              </div>
+            </div>
+            <div class="purchase-price">
+              ₹${(item.price * item.quantity).toFixed(2)}
+            </div>
+          </div>
+        `).join('');
+      }).join('');
+
+      purchaseList.innerHTML = purchasesHtml;
+
+      // Update stats
+      document.getElementById('total-orders').textContent = totalOrders;
+      document.getElementById('total-spent').textContent = `₹${totalSpent.toFixed(2)}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPurchaseHistory);
+  </script>
+</body>
+</html>
           </div>
 
           <div class="purchase-price">
