@@ -2298,6 +2298,253 @@ def get_vendor_delivery_prices(vendor_id):
             'free_threshold': 50.00
         }
 
+# POS System Routes
+@app.route('/erp/pos')
+def pos_system():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return render_template("pos_system.html", products=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all products with stock for this vendor
+    c.execute("""
+        SELECT id, name, description, sale_price, quantity, image_url, barcode
+        FROM products 
+        WHERE vendor_id = ? AND quantity > 0
+        ORDER BY name
+    """, (vendor_id,))
+    products = c.fetchall()
+
+    conn.close()
+    return render_template("pos_system.html", products=products)
+
+@app.route('/erp/pos/process-sale', methods=["POST"])
+def process_pos_sale():
+    if "vendor" not in session:
+        return {"success": False, "error": "Unauthorized"}, 403
+
+    email = session["vendor"]
+    data = request.get_json()
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    try:
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            return {"success": False, "error": "Vendor not found"}, 404
+        
+        vendor_id = vendor_result[0]
+
+        total_sale_amount = 0
+        receipt_items = []
+
+        # Process each item in the sale
+        for item in data['items']:
+            product_id = item['id']
+            quantity_sold = item['quantity']
+            sale_price = item['price']
+            
+            # Check current stock
+            c.execute("SELECT quantity, name FROM products WHERE id = ? AND vendor_id = ?", (product_id, vendor_id))
+            product_data = c.fetchone()
+            
+            if not product_data:
+                return {"success": False, "error": f"Product {product_id} not found"}, 400
+            
+            current_stock, product_name = product_data
+            
+            if current_stock < quantity_sold:
+                return {"success": False, "error": f"Insufficient stock for {product_name}"}, 400
+            
+            # Calculate sale amount
+            item_total = sale_price * quantity_sold
+            total_sale_amount += item_total
+            
+            # Update inventory using FIFO (First In, First Out)
+            remaining_to_sell = quantity_sold
+            c.execute("""
+                SELECT id, remaining_quantity, unit_cost 
+                FROM inventory_batches 
+                WHERE product_id = ? AND remaining_quantity > 0 
+                ORDER BY date_added ASC
+            """, (product_id,))
+            batches = c.fetchall()
+            
+            total_cogs = 0  # Cost of Goods Sold
+            
+            for batch in batches:
+                if remaining_to_sell <= 0:
+                    break
+                
+                batch_id, batch_remaining, unit_cost = batch
+                units_from_batch = min(remaining_to_sell, batch_remaining)
+                
+                # Update batch quantity
+                new_remaining = batch_remaining - units_from_batch
+                c.execute("UPDATE inventory_batches SET remaining_quantity = ? WHERE id = ?", 
+                         (new_remaining, batch_id))
+                
+                # Calculate COGS for this portion
+                total_cogs += units_from_batch * unit_cost
+                remaining_to_sell -= units_from_batch
+            
+            # Update product quantity
+            c.execute("UPDATE products SET quantity = quantity - ? WHERE id = ?", (quantity_sold, product_id))
+            
+            # Record sale in sales log
+            c.execute("""
+                INSERT INTO sales_log (vendor_id, product_id, quantity, unit_price, total_amount, customer_email, sale_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (vendor_id, product_id, quantity_sold, sale_price, item_total, 
+                  data.get('customer_email', ''), datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            
+            # Add to ledger - Revenue (Credit)
+            c.execute("""
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
+                VALUES (?, 'credit', 'Sales Revenue', ?, ?)
+            """, (vendor_id, item_total, f"POS Sale - {product_name} x{quantity_sold}"))
+            
+            # Add to ledger - COGS (Debit)
+            c.execute("""
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
+                VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?)
+            """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
+            
+            receipt_items.append({
+                'name': product_name,
+                'quantity': quantity_sold,
+                'unit_price': sale_price,
+                'total': item_total
+            })
+
+        # Create receipt record
+        c.execute("""
+            INSERT INTO receipts (booking_id, amount, paid_on, payment_mode)
+            VALUES (?, ?, ?, ?)
+        """, (None, total_sale_amount, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data.get('payment_method', 'cash')))
+        
+        receipt_id = c.lastrowid
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True, 
+            "receipt_id": receipt_id,
+            "total_amount": total_sale_amount,
+            "items": receipt_items
+        }
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"success": False, "error": str(e)}, 500
+
+# Enhanced inventory management with automatic expense tracking
+@app.route('/erp/inventory/add-stock/<int:product_id>', methods=["POST"])
+def add_inventory_stock(product_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    try:
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            flash("Vendor not found")
+            return redirect(url_for("erp_products"))
+        
+        vendor_id = vendor_result[0]
+
+        # Verify product belongs to vendor
+        c.execute("SELECT name FROM products WHERE id = ? AND vendor_id = ?", (product_id, vendor_id))
+        product_data = c.fetchone()
+        if not product_data:
+            flash("Product not found")
+            return redirect(url_for("erp_products"))
+        
+        product_name = product_data[0]
+        
+        # Get form data
+        quantity = int(request.form.get("quantity", 0))
+        unit_cost = float(request.form.get("unit_cost", 0))
+        batch_name = request.form.get("batch_name", f"BATCH-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+        
+        if quantity <= 0 or unit_cost <= 0:
+            flash("Invalid quantity or cost")
+            return redirect(url_for("view_product", product_id=product_id))
+        
+        total_cost = quantity * unit_cost
+        
+        # Add inventory batch
+        c.execute("""
+            INSERT INTO inventory_batches (product_id, quantity, unit_cost, remaining_quantity)
+            VALUES (?, ?, ?, ?)
+        """, (product_id, quantity, unit_cost, quantity))
+        
+        # Add product batch for tracking
+        c.execute("""
+            INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (product_id, batch_name, quantity, unit_cost, datetime.now().strftime("%Y-%m-%d")))
+        
+        # Update product total quantity
+        c.execute("""
+            UPDATE products 
+            SET quantity = quantity + ?, buy_price = ?
+            WHERE id = ?
+        """, (quantity, unit_cost, product_id))
+        
+        # Record inventory expense automatically
+        c.execute("""
+            INSERT INTO expenses (vendor_id, category, amount, description, date)
+            VALUES (?, 'Inventory', ?, ?, ?)
+        """, (vendor_id, total_cost, f"Inventory purchase - {product_name} ({quantity} units @ ${unit_cost} each)", 
+              datetime.now().strftime("%Y-%m-%d")))
+        
+        # Add to ledger - Inventory Asset (Debit)
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
+            VALUES (?, 'debit', 'Inventory Asset', ?, ?)
+        """, (vendor_id, total_cost, f"Inventory Purchase - {product_name}"))
+        
+        # Add to ledger - Cash/Accounts Payable (Credit)
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
+            VALUES (?, 'credit', 'Cash', ?, ?)
+        """, (vendor_id, total_cost, f"Payment for Inventory - {product_name}"))
+
+        conn.commit()
+        conn.close()
+        
+        flash(f"Successfully added {quantity} units to inventory. Expense of ${total_cost} recorded automatically.")
+        return redirect(url_for("view_product", product_id=product_id))
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        flash(f"Error adding inventory: {str(e)}")
+        return redirect(url_for("view_product", product_id=product_id))
+
 # Run app
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=81, debug=True)

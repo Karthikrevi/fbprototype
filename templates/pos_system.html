@@ -1,0 +1,348 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>POS System - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .pos-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+    
+    .products-section {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .cart-section {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      height: fit-content;
+    }
+    
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .product-card {
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .product-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+    
+    .product-image {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .product-name {
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+    
+    .product-price {
+      color: #28a745;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    
+    .product-stock {
+      color: #6c757d;
+      font-size: 0.8rem;
+    }
+    
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .cart-total {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .checkout-btn {
+      width: 100%;
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .checkout-btn:hover {
+      background: #218838;
+    }
+    
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .quantity-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .search-box {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/dashboard" class="back-btn">← Back to Dashboard</a>
+  
+  <div class="text-center mb-4">
+    <h1>🛒 Point of Sale System</h1>
+    <p>Select products to add to cart and process sales</p>
+  </div>
+
+  <div class="pos-container">
+    <!-- Products Section -->
+    <div class="products-section">
+      <h3>📦 Available Products</h3>
+      <input type="text" class="search-box" placeholder="Search products..." id="searchBox" onkeyup="filterProducts()">
+      
+      <div class="product-grid" id="productGrid">
+        {% for product in products %}
+        <div class="product-card" onclick="addToCart({{ product[0] }}, '{{ product[1] }}', {{ product[3] }}, {{ product[4] }})" data-name="{{ product[1].lower() }}">
+          {% if product[5] %}
+            <img src="{{ product[5] }}" alt="{{ product[1] }}" class="product-image">
+          {% else %}
+            <div class="product-image" style="background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+              <span style="color: #6c757d;">No Image</span>
+            </div>
+          {% endif %}
+          <div class="product-name">{{ product[1] }}</div>
+          <div class="product-price">${{ product[3] }}</div>
+          <div class="product-stock">Stock: {{ product[4] }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="cart-section">
+      <h3>🛍️ Shopping Cart</h3>
+      <div id="cartItems"></div>
+      <div class="cart-total" id="cartTotal">$0.00</div>
+      
+      <div class="mb-3">
+        <label>Customer Email (Optional)</label>
+        <input type="email" class="form-control" id="customerEmail" placeholder="customer@example.com">
+      </div>
+      
+      <div class="mb-3">
+        <label>Payment Method</label>
+        <select class="form-control" id="paymentMethod">
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="upi">UPI</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      
+      <button class="checkout-btn" onclick="processCheckout()">💳 Process Sale</button>
+      <button class="btn btn-outline-danger w-100 mt-2" onclick="clearCart()">🗑️ Clear Cart</button>
+    </div>
+  </div>
+
+  <script>
+    let cart = [];
+    let cartTotal = 0;
+
+    function addToCart(productId, productName, price, stock) {
+      // Check if product already in cart
+      let existingItem = cart.find(item => item.id === productId);
+      
+      if (existingItem) {
+        if (existingItem.quantity < stock) {
+          existingItem.quantity++;
+        } else {
+          alert('Not enough stock available!');
+          return;
+        }
+      } else {
+        cart.push({
+          id: productId,
+          name: productName,
+          price: price,
+          quantity: 1,
+          stock: stock
+        });
+      }
+      
+      updateCartDisplay();
+    }
+
+    function removeFromCart(productId) {
+      cart = cart.filter(item => item.id !== productId);
+      updateCartDisplay();
+    }
+
+    function updateQuantity(productId, change) {
+      let item = cart.find(item => item.id === productId);
+      if (item) {
+        item.quantity += change;
+        if (item.quantity <= 0) {
+          removeFromCart(productId);
+        } else if (item.quantity > item.stock) {
+          item.quantity = item.stock;
+          alert('Not enough stock available!');
+        }
+        updateCartDisplay();
+      }
+    }
+
+    function updateCartDisplay() {
+      const cartItemsDiv = document.getElementById('cartItems');
+      const cartTotalDiv = document.getElementById('cartTotal');
+      
+      cartItemsDiv.innerHTML = '';
+      cartTotal = 0;
+      
+      cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        cartTotal += itemTotal;
+        
+        cartItemsDiv.innerHTML += `
+          <div class="cart-item">
+            <div>
+              <div style="font-weight: bold;">${item.name}</div>
+              <div style="color: #6c757d; font-size: 0.9rem;">$${item.price} each</div>
+            </div>
+            <div class="quantity-controls">
+              <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+              <span>${item.quantity}</span>
+              <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+              <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart(${item.id})">×</button>
+            </div>
+          </div>
+        `;
+      });
+      
+      cartTotalDiv.textContent = `$${cartTotal.toFixed(2)}`;
+    }
+
+    function clearCart() {
+      cart = [];
+      updateCartDisplay();
+    }
+
+    function filterProducts() {
+      const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+      const productCards = document.querySelectorAll('.product-card');
+      
+      productCards.forEach(card => {
+        const productName = card.getAttribute('data-name');
+        if (productName.includes(searchTerm)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function processCheckout() {
+      if (cart.length === 0) {
+        alert('Cart is empty!');
+        return;
+      }
+      
+      const customerEmail = document.getElementById('customerEmail').value;
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      
+      const saleData = {
+        items: cart,
+        total: cartTotal,
+        customer_email: customerEmail,
+        payment_method: paymentMethod
+      };
+      
+      fetch('/erp/pos/process-sale', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(saleData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(`Sale processed successfully! Receipt ID: ${data.receipt_id}`);
+          clearCart();
+          // Refresh the page to update stock levels
+          location.reload();
+        } else {
+          alert('Error processing sale: ' + data.error);
+        }
+      })
+      .catch(error => {
+        alert('Error: ' + error);
+      });
+    }
+  </script>
+</body>
+</html>
