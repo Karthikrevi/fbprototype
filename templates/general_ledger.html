@@ -262,13 +262,15 @@
           showRow = false;
         }
         
-        // Account filtering
-        if (accountFilter && !rowAccount.toLowerCase().includes(accountFilter.toLowerCase())) {
+        // Account filtering - extract text from span elements
+        const accountText = rowAccount.replace(/\s+/g, ' ').trim();
+        if (accountFilter && !accountText.toLowerCase().includes(accountFilter.toLowerCase())) {
           showRow = false;
         }
         
-        // Sub-category filtering
-        if (subCategoryFilter && !rowSubCategory.toLowerCase().includes(subCategoryFilter.toLowerCase())) {
+        // Sub-category filtering - extract text from span elements and handle "-" case
+        const subCategoryText = rowSubCategory.replace(/\s+/g, ' ').trim();
+        if (subCategoryFilter && subCategoryText !== '-' && !subCategoryText.toLowerCase().includes(subCategoryFilter.toLowerCase())) {
           showRow = false;
         }
         

@@ -1214,6 +1214,9 @@ def add_product():
                 flash(f"Error: Barcode '{barcode}' already exists. Please use a unique barcode.")
                 return redirect(url_for("add_product"))
 
+        # Calculate total cost
+        total_cost = quantity * buy_price
+
         # Insert product
         try:
             c.execute("""
@@ -1254,11 +1257,29 @@ def add_product():
         # Verify the update worked
         c.execute("SELECT quantity FROM products WHERE id = ?", (product_id,))
         final_quantity = c.fetchone()[0]
-        print(f"Product {product_id} final quantity: {final_quantity}")  # Debug log
+        
+        # Record initial inventory expense in expenses table
+        c.execute("""
+            INSERT INTO expenses (vendor_id, category, amount, description, date)
+            VALUES (?, 'Inventory', ?, ?, ?)
+        """, (vendor_id, total_cost, f"Initial inventory - {name} ({quantity} units @ ${buy_price} each)", 
+              datetime.now().strftime("%Y-%m-%d")))
+        
+        # Add to ledger - Inventory Asset (Debit)
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
+        """, (vendor_id, total_cost, f"Initial Inventory - {name} ({quantity} units @ ${buy_price} each)"))
+        
+        # Add to ledger - Cash (Credit) - assuming cash payment for initial inventory
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory')
+        """, (vendor_id, total_cost, f"Cash payment for initial inventory - {name}"))
 
         conn.commit()
         conn.close()
-        flash("Product added successfully!")
+        flash(f"Product added successfully! Inventory cost of ${total_cost} recorded in ledger.")
         return redirect(url_for("erp_products"))
 
     return render_template("add_product.html")
@@ -2531,8 +2552,8 @@ def add_inventory_stock(product_id):
         # Add to ledger - Inventory Asset (Debit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
-            VALUES (?, 'debit', 'Inventory Asset', ?, ?, 'Inventory')
-        """, (vendor_id, total_cost, f"Inventory Purchase - {product_name}"))
+            VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
+        """, (vendor_id, total_cost, f"Inventory Purchase - {product_name} ({quantity} units @ ${unit_cost} each)"))
         
         # Add to ledger - Cash/Accounts Payable (Credit)
         c.execute("""
