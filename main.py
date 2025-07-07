@@ -909,8 +909,10 @@ def erp_logout():
 
 @app.route('/erp/reports')
 def accounting_dashboard():
+    # Check if user is logged in as vendor
     if "vendor" not in session:
-        return redirect(url_for("erp_login"))
+        # If not logged in as vendor, redirect to vendor login
+        return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -918,25 +920,33 @@ def accounting_dashboard():
 
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_id = c.fetchone()
+    vendor_result = c.fetchone()
 
-    if vendor_id is None:
+    if vendor_result is None:
+        # If vendor doesn't exist in database, still show dashboard with zero stats
+        stats = {
+            'total_sales': 0,
+            'total_expenses': 0,
+            'net_profit': 0,
+            'total_products': 0,
+            'total_inventory': 0
+        }
         conn.close()
-        return redirect(url_for("erp_login"))
+        return render_template("accounting_dashboard.html", stats=stats)
     
-    vendor_id = vendor_id[0]
+    vendor_id = vendor_result[0]
 
-    # Quick stats
-    c.execute("SELECT SUM(amount) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    # Quick stats - use COALESCE to handle null values
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
     total_sales = c.fetchone()[0] or 0
 
-    c.execute("SELECT SUM(amount) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE vendor_id=?", (vendor_id,))
     total_expenses = c.fetchone()[0] or 0
 
     c.execute("SELECT COUNT(*) FROM products WHERE vendor_id=?", (vendor_id,))
     total_products = c.fetchone()[0] or 0
 
-    c.execute("SELECT SUM(quantity) FROM products WHERE vendor_id=?", (vendor_id,))
+    c.execute("SELECT COALESCE(SUM(quantity), 0) FROM products WHERE vendor_id=?", (vendor_id,))
     total_inventory = c.fetchone()[0] or 0
 
     conn.close()
