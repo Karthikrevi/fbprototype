@@ -168,9 +168,15 @@
     <div class="services">
       <h3>Services Offered:</h3>
       <ul>
-        {% for service in vendor.services %}
-          <li>{{ service }}</li>
-        {% endfor %}
+        {% if vendor.services %}
+          {% for service in vendor.services %}
+            <li>{{ service }}</li>
+          {% endfor %}
+        {% else %}
+          <li>Professional Pet Care Services</li>
+          <li>Quality Service Guaranteed</li>
+          <li>Experienced Staff</li>
+        {% endif %}
       </ul>
     </div>
 

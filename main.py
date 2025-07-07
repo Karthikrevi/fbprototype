@@ -458,8 +458,36 @@ def vendor_profile(vendor_id):
     if "user" not in session:
         return redirect(url_for("login"))
 
+    # Handle static demo vendor "fluffy-paws"
+    if vendor_id == "fluffy-paws":
+        vendor = {
+            "id": "fluffy-paws",
+            "name": "Fluffy Paws Grooming",
+            "description": "Expert grooming services for dogs and cats. Professional, caring, and experienced team.",
+            "image": "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=600&h=400&fit=crop",
+            "city": "Trivandrum",
+            "is_online": True,
+            "rating": 5.0,
+            "level": 15,
+            "xp": 2850,
+            "total_reviews": 24,
+            "success_rate": 95.8,
+            "services": ["Full Grooming", "Nail Trimming", "Ear Cleaning", "Teeth Cleaning", "Flea Treatment"],
+            "booking_url": f"/vendor/{vendor_id}/book",
+            "market_url": f"/marketplace/vendor/{vendor_id}"
+        }
+        
+        # Static demo reviews
+        reviews = [
+            ("1", "fluffy-paws", 5, "Amazing service! My dog looks fantastic.", "Grooming", "user@example.com", "2024-01-15"),
+            ("2", "fluffy-paws", 4, "Great experience, very professional staff.", "Grooming", "another@example.com", "2024-01-10"),
+            ("3", "fluffy-paws", 5, "Best grooming service in town!", "Grooming", "happy@example.com", "2024-01-05")
+        ]
+        
+        return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
+
     if request.method == "POST":
-        # Handle review submission
+        # Handle review submission for database vendors
         user_email = session["user"]
         rating = int(request.form.get("rating"))
         review_text = request.form.get("review_text", "")
@@ -480,18 +508,19 @@ def vendor_profile(vendor_id):
         conn = sqlite3.connect("erp.db")
         c = conn.cursor()
         c.execute("SELECT id, name, bio, image_url, city, is_online FROM vendors WHERE id = ?", (vendor_id,))
+        data = c.fetchone()
 
         if data:
-            vendor_id = data[0]
+            vendor_id_db = data[0]
             
             # Calculate dynamic stats from reviews
-            c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id,))
+            c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id_db,))
             review_stats = c.fetchone()
             avg_rating = round(review_stats[0], 1) if review_stats[0] else 0
             total_reviews = review_stats[1] or 0
             
             # Calculate success rate (reviews with 4+ stars)
-            c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (vendor_id,))
+            c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (vendor_id_db,))
             good_reviews = c.fetchone()[0] or 0
             success_rate = round((good_reviews / total_reviews * 100), 1) if total_reviews > 0 else 100
             
@@ -511,6 +540,7 @@ def vendor_profile(vendor_id):
                 "xp": xp,
                 "total_reviews": total_reviews,
                 "success_rate": success_rate,
+                "services": ["Pet Grooming", "Pet Care", "Professional Services"],
                 "booking_url": f"/vendor/{data[0]}/book",
                 "market_url": f"/marketplace/vendor/{data[0]}"
             }
@@ -521,12 +551,13 @@ def vendor_profile(vendor_id):
                 FROM reviews 
                 WHERE vendor_id = ? 
                 ORDER BY timestamp DESC
-            """, (vendor_id,))
+            """, (vendor_id_db,))
             reviews = c.fetchall()
             
             conn.close()
             return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
         else:
+            conn.close()
             return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
     except Exception as e:
         print("Error loading vendor:", e)
