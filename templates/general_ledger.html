@@ -137,7 +137,25 @@
           <option value="Expenses">Expenses</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label>Sub-Category</label>
+        <select id="subCategoryFilter">
+          <option value="">All Sub-Categories</option>
+          <option value="Rent">Rent</option>
+          <option value="Utilities">Utilities</option>
+          <option value="Supplies">Supplies</option>
+          <option value="Equipment">Equipment</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Insurance">Insurance</option>
+          <option value="Transport">Transport</option>
+          <option value="Food">Pet Food</option>
+          <option value="Veterinary">Veterinary</option>
+          <option value="Inventory">Inventory</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
       <button id="filterBtn" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Filter</button>
+      <button id="subLedgerBtn" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">View Sub-Ledger</button>
     </div>
     
     <table id="ledgerTable">
@@ -145,6 +163,7 @@
         <tr>
           <th>Date</th>
           <th>Account</th>
+          <th>Sub-Category</th>
           <th>Description</th>
           <th>Debit (₹)</th>
           <th>Credit (₹)</th>
@@ -165,6 +184,15 @@
             <span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem;">
               {{ entry[3] }}
             </span>
+          </td>
+          <td>
+            {% if entry[7] %}
+              <span style="background: #28a745; color: white; padding: 2px 4px; border-radius: 2px; font-size: 0.7rem;">
+                {{ entry[7] }}
+              </span>
+            {% else %}
+              -
+            {% endif %}
           </td>
           <td>{{ entry[5] or 'No description' }}</td>
           <td class="amount">
@@ -210,6 +238,7 @@
       const fromDate = document.getElementById('fromDate').value;
       const toDate = document.getElementById('toDate').value;
       const accountFilter = document.getElementById('accountFilter').value;
+      const subCategoryFilter = document.getElementById('subCategoryFilter').value;
       const table = document.getElementById('ledgerTable');
       const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
@@ -221,6 +250,7 @@
         
         const rowDate = cells[0].textContent.trim();
         const rowAccount = cells[1].textContent.trim();
+        const rowSubCategory = cells[2].textContent.trim();
         
         let showRow = true;
         
@@ -237,10 +267,122 @@
           showRow = false;
         }
         
+        // Sub-category filtering
+        if (subCategoryFilter && !rowSubCategory.toLowerCase().includes(subCategoryFilter.toLowerCase())) {
+          showRow = false;
+        }
+        
         // Show/hide row
         row.style.display = showRow ? '' : 'none';
       }
     });
+
+    // Sub-ledger view functionality
+    document.getElementById('subLedgerBtn').addEventListener('click', function() {
+      const subLedgerModal = document.createElement('div');
+      subLedgerModal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); z-index: 1000; display: flex; 
+        justify-content: center; align-items: center;
+      `;
+      
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = `
+        background: white; padding: 30px; border-radius: 15px; 
+        max-width: 80%; max-height: 80%; overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      `;
+      
+      // Generate sub-ledger breakdown
+      const expenseBreakdown = generateExpenseBreakdown();
+      
+      modalContent.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="color: #667eea; margin: 0;">📊 Sub-Ledger: Expense Breakdown</h3>
+          <button id="closeModal" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">✕</button>
+        </div>
+        ${expenseBreakdown}
+      `;
+      
+      subLedgerModal.appendChild(modalContent);
+      document.body.appendChild(subLedgerModal);
+      
+      // Close modal functionality
+      document.getElementById('closeModal').addEventListener('click', function() {
+        document.body.removeChild(subLedgerModal);
+      });
+      
+      subLedgerModal.addEventListener('click', function(e) {
+        if (e.target === subLedgerModal) {
+          document.body.removeChild(subLedgerModal);
+        }
+      });
+    });
+
+    function generateExpenseBreakdown() {
+      const table = document.getElementById('ledgerTable');
+      const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+      const breakdown = {};
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        
+        if (cells.length === 0 || row.style.display === 'none') continue;
+        
+        const account = cells[1].textContent.trim();
+        const subCategory = cells[2].textContent.trim();
+        const debitText = cells[4].textContent.trim();
+        
+        if (account.toLowerCase().includes('expense') && debitText !== '-') {
+          const amount = parseFloat(debitText.replace('₹', '').replace(',', ''));
+          if (!isNaN(amount)) {
+            if (!breakdown[subCategory]) {
+              breakdown[subCategory] = {total: 0, count: 0, items: []};
+            }
+            breakdown[subCategory].total += amount;
+            breakdown[subCategory].count++;
+            breakdown[subCategory].items.push({
+              date: cells[0].textContent.trim(),
+              description: cells[3].textContent.trim(),
+              amount: amount
+            });
+          }
+        }
+      }
+      
+      let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">';
+      
+      Object.keys(breakdown).forEach(category => {
+        if (category && category !== '-') {
+          const data = breakdown[category];
+          html += `
+            <div style="border: 1px solid #ddd; border-radius: 10px; padding: 15px;">
+              <h4 style="color: #28a745; margin-top: 0;">${category}</h4>
+              <p style="margin: 5px 0;"><strong>Total: ₹${data.total.toFixed(2)}</strong></p>
+              <p style="margin: 5px 0; color: #666;">Transactions: ${data.count}</p>
+              <div style="max-height: 150px; overflow-y: auto; margin-top: 10px;">
+                ${data.items.slice(0, 5).map(item => `
+                  <div style="font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid #eee;">
+                    <strong>${item.date}</strong>: ₹${item.amount.toFixed(2)}<br>
+                    <span style="color: #666;">${item.description}</span>
+                  </div>
+                `).join('')}
+                ${data.items.length > 5 ? `<div style="text-align: center; color: #666; font-size: 0.8rem; margin-top: 5px;">...and ${data.items.length - 5} more</div>` : ''}
+              </div>
+            </div>
+          `;
+        }
+      });
+      
+      html += '</div>';
+      
+      if (Object.keys(breakdown).length === 0) {
+        html = '<p style="text-align: center; color: #666;">No expense data found for the current filter selection.</p>';
+      }
+      
+      return html;
+    }
 
     // Reset filters
     document.addEventListener('DOMContentLoaded', function() {
@@ -251,6 +393,7 @@
         document.getElementById('fromDate').value = '';
         document.getElementById('toDate').value = '';
         document.getElementById('accountFilter').value = '';
+        document.getElementById('subCategoryFilter').value = '';
         
         const table = document.getElementById('ledgerTable');
         const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');

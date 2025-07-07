@@ -149,10 +149,17 @@ def init_erp_db():
             account TEXT NOT NULL,
             amount REAL NOT NULL,
             description TEXT,
+            sub_category TEXT,
             timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
     ''')
+
+    # Add sub_category column if it doesn't exist
+    try:
+        c.execute("ALTER TABLE ledger_entries ADD COLUMN sub_category TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS expenses (
@@ -1601,7 +1608,7 @@ def general_ledger():
     c = conn.cursor()
 
     c.execute("""
-        SELECT le.*, v.id as vendor_id FROM ledger_entries le 
+        SELECT le.id, le.vendor_id, le.entry_type, le.account, le.amount, le.description, le.timestamp, le.sub_category, v.id as vendor_id FROM ledger_entries le 
         JOIN vendors v ON le.vendor_id = v.id 
         WHERE v.email=? 
         ORDER BY le.timestamp DESC
@@ -1731,9 +1738,9 @@ def manage_expenses():
 
         # Add to ledger
         c.execute("""
-            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
-            VALUES (?, 'debit', ?, ?, ?)
-        """, (vendor_id, category, amount, description))
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'debit', 'Expenses', ?, ?, ?)
+        """, (vendor_id, amount, description, category))
 
         conn.commit()
         return redirect(url_for("manage_expenses"))
@@ -2415,14 +2422,14 @@ def process_pos_sale():
             
             # Add to ledger - Revenue (Credit)
             c.execute("""
-                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
-                VALUES (?, 'credit', 'Sales Revenue', ?, ?)
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+                VALUES (?, 'credit', 'Sales Revenue', ?, ?, 'Product Sales')
             """, (vendor_id, item_total, f"POS Sale - {product_name} x{quantity_sold}"))
             
             # Add to ledger - COGS (Debit)
             c.execute("""
-                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
-                VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?)
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+                VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Inventory')
             """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
             
             receipt_items.append({
@@ -2523,14 +2530,14 @@ def add_inventory_stock(product_id):
         
         # Add to ledger - Inventory Asset (Debit)
         c.execute("""
-            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
-            VALUES (?, 'debit', 'Inventory Asset', ?, ?)
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'debit', 'Inventory Asset', ?, ?, 'Inventory')
         """, (vendor_id, total_cost, f"Inventory Purchase - {product_name}"))
         
         # Add to ledger - Cash/Accounts Payable (Credit)
         c.execute("""
-            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
-            VALUES (?, 'credit', 'Cash', ?, ?)
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory')
         """, (vendor_id, total_cost, f"Payment for Inventory - {product_name}"))
 
         conn.commit()
