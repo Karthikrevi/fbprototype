@@ -136,10 +136,12 @@
             <div class="section-title">📅 Upcoming Appointments</div>
             {% if pet_bookings %}
               {% for booking in pet_bookings %}
+                {% if booking[3] == 'pending' or booking[3] == 'confirmed' %}
                 <div class="appointment-item">
-                  <strong>{{ booking.service }}</strong> - {{ booking.date }} at {{ booking.time }}
-                  <br><small>Status: {{ booking.status }}</small>
+                  <strong>{{ booking[0] }}</strong> - {{ booking[1] }} at {{ booking[2] }}
+                  <br><small>Status: {{ booking[3] }}</small>
                 </div>
+                {% endif %}
               {% endfor %}
             {% else %}
               <p class="coming-soon">No upcoming appointments.</p>
@@ -149,8 +151,8 @@
             {% if pet_booking_history %}
               {% for booking in pet_booking_history %}
                 <div class="history-item">
-                  <strong>{{ booking.service }}</strong> - {{ booking.date }}
-                  <br><small>Status: {{ booking.status }}</small>
+                  <strong>{{ booking[0] }}</strong> - {{ booking[1] }}
+                  <br><small>Status: {{ booking[3] }}</small>
                 </div>
               {% endfor %}
             {% else %}

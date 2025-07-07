@@ -463,6 +463,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * 2 * asin(sqrt(a))
 
 @app.route('/groomers')
+@app.route('/services/groomers')
 def groomers():
     if "user" not in session:
         return redirect(url_for("login"))
@@ -635,6 +636,7 @@ def fluffy_paws_marketplace():
 
 # Boarding
 @app.route('/boarding')
+@app.route('/services/boarding')
 def boarding():
     if "user" not in session:
         return redirect(url_for("login"))
@@ -642,6 +644,7 @@ def boarding():
 
 # Vets & Pharma
 @app.route('/vets')
+@app.route('/services/vets')
 def vets():
     if "user" not in session:
         return redirect(url_for("login"))
@@ -685,7 +688,31 @@ def pet_profile():
         db[f"pets:{user}"] = pets
         return redirect(url_for("pet_profile"))
 
-    return render_template("pet_profile.html", breeds=breeds, pets=pets)
+    # Get pet-specific bookings and purchase history
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get bookings for this user
+    c.execute("""
+        SELECT service, date, time, status 
+        FROM bookings 
+        WHERE user_email = ? 
+        ORDER BY date DESC
+    """, (user,))
+    pet_bookings = c.fetchall()
+    
+    # Get booking history (completed bookings)
+    c.execute("""
+        SELECT service, date, time, status 
+        FROM bookings 
+        WHERE user_email = ? AND status = 'completed'
+        ORDER BY date DESC
+    """, (user,))
+    pet_booking_history = c.fetchall()
+    
+    conn.close()
+
+    return render_template("pet_profile.html", breeds=breeds, pets=pets, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
 
 @app.route('/set-location')
 def set_location():
@@ -694,6 +721,73 @@ def set_location():
     if lat and lon:
         session["location"] = {"lat": lat, "lon": lon}
     return '', 204
+
+# Booking route for vendor services
+@app.route('/vendor/<vendor_id>/book', methods=["GET", "POST"])
+def book_vendor_service(vendor_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user_email = session["user"]
+    
+    # Handle demo vendor
+    if vendor_id == "fluffy-paws":
+        vendor_name = "Fluffy Paws Grooming"
+        services = ["Full Grooming", "Nail Trimming", "Ear Cleaning", "Teeth Cleaning", "Flea Treatment"]
+        
+        if request.method == "POST":
+            service = request.form.get("service")
+            date = request.form.get("date")
+            time = request.form.get("time", "10:00")
+            
+            # Store booking in database (using vendor_id=0 for demo)
+            conn = sqlite3.connect('erp.db')
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO bookings (vendor_id, user_email, service, date, time, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (0, user_email, service, date, time, "pending"))
+            conn.commit()
+            conn.close()
+            
+            flash(f"Booking confirmed for {service} on {date}")
+            return redirect(url_for("vendor_profile", vendor_id=vendor_id))
+        
+        return render_template("booking.html", vendor_name=vendor_name, services=services)
+    
+    # Handle database vendors
+    try:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT id, name FROM vendors WHERE id = ?", (vendor_id,))
+        vendor_data = c.fetchone()
+        
+        if vendor_data:
+            vendor_name = vendor_data[1]
+            services = ["Pet Grooming", "Pet Care", "Consultation", "Health Check"]
+            
+            if request.method == "POST":
+                service = request.form.get("service")
+                date = request.form.get("date")
+                time = request.form.get("time", "10:00")
+                
+                c.execute("""
+                    INSERT INTO bookings (vendor_id, user_email, service, date, time, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (vendor_id, user_email, service, date, time, "pending"))
+                conn.commit()
+                conn.close()
+                
+                flash(f"Booking confirmed for {service} on {date}")
+                return redirect(url_for("vendor_profile", vendor_id=vendor_id))
+            
+            conn.close()
+            return render_template("booking.html", vendor_name=vendor_name, services=services)
+        else:
+            conn.close()
+            return "Vendor not found", 404
+    except Exception as e:
+        return f"Error: {e}", 500
 
 # Review submission route
 @app.route('/vendor/<int:vendor_id>/review', methods=["POST"])
