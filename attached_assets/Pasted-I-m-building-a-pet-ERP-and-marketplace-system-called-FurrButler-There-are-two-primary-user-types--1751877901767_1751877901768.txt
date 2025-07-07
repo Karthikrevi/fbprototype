@@ -1,0 +1,167 @@
+I'm building a pet ERP and marketplace system called FurrButler.
+
+There are two primary user types:
+
+Vendors who log in via /erp and manage their business (inventory, bookings, profile, etc.)
+
+Pet Parents who use a separate frontend to explore vendors and purchase/view services and products via a marketplace
+
+I need you to build the Inventory System module end-to-end for vendors, and ensure its data flows to the User Marketplace frontend.
+
+🎯 Goal
+Build a full Inventory Management System for Vendors, integrated with:
+
+Barcode Scanner Support for adding/editing products
+
+Connectivity to the User Marketplace module, so available products reflect on the public-facing app
+
+Flask backend with SQLite
+
+HTML frontend (can use Bootstrap or simple CSS)
+
+File/image uploads enabled
+
+Only stock > 0 products should show in the user-facing marketplace
+
+🧱 TABLE: products
+sql
+Copy
+Edit
+CREATE TABLE products (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  vendor_email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  price REAL NOT NULL,
+  quantity INTEGER DEFAULT 0,
+  image_url TEXT,
+  barcode TEXT UNIQUE
+);
+Each product is tied to a vendor_email (already logged-in vendor from session)
+
+🛠️ Features to Build
+✅ 1. Add Product Page (Route: /erp/products/add)
+Form fields:
+
+Name
+
+Description
+
+Category (auto-fill from vendor profile or dropdown)
+
+Price
+
+Quantity
+
+Image Upload (store locally or show preview)
+
+Barcode (scanner or manual entry via <input>)
+
+JS barcode scanner: You can integrate basic oninput logic or use QuaggaJS if advanced
+
+If barcode already exists in DB, auto-fill the rest of the form
+
+✅ 2. Edit Product Page (Route: /erp/products/edit/<product_id>)
+Edit any product belonging to the vendor
+
+Allow:
+
+Updating name, description, price, quantity, image, barcode
+
+Use barcode field to auto-find and load product if scanned from home
+
+✅ 3. Vendor Inventory Dashboard (Route: /erp/products)
+Card or list view of products owned by the vendor
+
+Each card shows:
+
+Product Image
+
+Name
+
+Price
+
+Quantity
+
+Edit/Delete buttons
+
+✅ 4. Barcode Scanner
+Simple <input> with JS event listener that auto-fires when scanner inputs barcode
+
+Optionally support webcam barcode scanning with QuaggaJS or similar
+
+When scanned, match barcode in DB and fetch product info to prefill form
+
+🌍 PUBLIC: User Marketplace View
+/marketplace
+Show all vendors who have at least 1 product with quantity > 0
+
+Group by category (e.g. /marketplace/groomers, /marketplace/boardings)
+
+For each vendor:
+
+Display name, city, image
+
+List available products
+
+Image, name, price
+
+Static “Order Now” (can be linked later)
+
+⚙️ Tech Stack
+Flask (Python)
+
+SQLite
+
+HTML/CSS
+
+Optional JS for barcode input
+
+Files uploaded using request.files['image'] and stored with secure_filename()
+
+📂 Folder Structure (ideal)
+bash
+Copy
+Edit
+/templates/
+  erp_products.html
+  erp_add_product.html
+  erp_edit_product.html
+  marketplace.html
+  ...
+
+/static/uploads/
+  (for product images)
+
+main.py (routes and logic)
+erp.db (SQLite)
+🤖 Instructions to you (Replit AI):
+Build modular Flask routes
+
+Use session["vendor"] to identify logged-in vendor
+
+Include validations
+
+All HTML should be visually clean and mobile-friendly (Bootstrap allowed)
+
+Product image uploads should be stored and previewed properly
+
+Barcode logic should be implemented even if only via <input type="text" id="barcode"> for now
+
+Please generate the full implementation of this module step-by-step:
+
+Product table schema
+
+Add product route + HTML
+
+Edit product route + HTML
+
+Vendor inventory view page
+
+Basic barcode scan logic
+
+Public marketplace view page
+
+Let me know if you need anything clarified.
+
