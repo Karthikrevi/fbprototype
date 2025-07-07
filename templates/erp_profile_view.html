@@ -165,10 +165,10 @@
     </div>
 
     <div class="profile-card">
-      {% if vendor[4] %}
+      {% if vendor[4] and vendor[4] != '' %}
         <img src="{{ vendor[4] }}" alt="Vendor Profile" class="profile-image">
       {% else %}
-        <img src="https://images.unsplash.com/photo-1560807707-8cc77767d783?w=200&h=200&fit=crop" alt="Default Vendor" class="profile-image">
+        <img src="https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=200&h=200&fit=crop&crop=face" alt="Default Vendor" class="profile-image">
       {% endif %}
 
       <div class="profile-details">

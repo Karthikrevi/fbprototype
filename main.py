@@ -435,7 +435,7 @@ def vendor_register():
             "city": city,
             "phone": phone,
             "bio": bio,
-            "image_url": image_url
+            "image_url": image_url or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400&h=400&fit=crop&crop=face"
         }
 
         return redirect(url_for("vendor_login"))
@@ -581,7 +581,7 @@ def vendor_profile(vendor_id):
                 "id": data[0],
                 "name": data[1],
                 "description": data[2] or "Trusted pet care provider.",
-                "image": data[3] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=400&fit=crop",
+                "image": data[3] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=600&h=400&fit=crop&crop=face",
                 "city": data[4] or "Unknown",
                 "is_online": data[5],
                 "rating": avg_rating,
@@ -1689,7 +1689,7 @@ def marketplace():
             "category": vendor[4],
             "city": vendor[5],
             "bio": vendor[7],
-            "image_url": vendor[8],
+            "image_url": vendor[8] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400&h=400&fit=crop&crop=face",
             "latitude": vendor[9],
             "longitude": vendor[10],
             "product_count": vendor[12],

@@ -186,12 +186,12 @@
           <div class="section-title">Profile Image</div>
           
           <div class="image-upload-section">
-            {% if vendor[4] %}
+            {% if vendor[4] and vendor[4] != '' %}
               <img src="{{ vendor[4] }}" alt="Current Profile" class="current-image">
               <p style="color: #666; font-size: 0.9rem;">Current profile image</p>
             {% else %}
-              <div class="image-placeholder">📸</div>
-              <p style="color: #666; font-size: 0.9rem;">No image uploaded</p>
+              <img src="https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=120&h=120&fit=crop&crop=face" alt="Default Profile" class="current-image">
+              <p style="color: #666; font-size: 0.9rem;">Default profile image</p>
             {% endif %}
             
             <label for="image">Upload New Image</label>
