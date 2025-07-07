@@ -678,7 +678,14 @@ def add_product():
 
         # Get vendor ID
         c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-        vendor_id = c.fetchone()[0]
+        vendor_result = c.fetchone()
+        
+        if vendor_result is None:
+            conn.close()
+            flash("Vendor not found. Please contact support.")
+            return redirect(url_for("add_product"))
+        
+        vendor_id = vendor_result[0]
 
         name = request.form.get("name")
         description = request.form.get("description")
