@@ -1,0 +1,191 @@
+Hey Replit AI, I need you to build a comprehensive Accounting and Reporting System inside my existing ERP dashboard for vendors. It must rival commercial ERPs and be tailored to our pet-care ecosystem (groomers, boarders, pharmacies, etc.). Here's the full breakdown:
+
+📘 1. Module Placement
+Add to ERP dashboard as a new card: 📊 Accounting & Reports
+
+Access limited to logged-in vendors (based on session email)
+
+Clicking the card opens a full accounting suite UI (HTML or template-based)
+
+📚 2. Core Financial Documents
+📒 General Ledger
+Build a ledger_entries table:
+
+id, vendor_email, entry_type (debit/credit), account, amount, description, timestamp
+
+Auto-record entries on:
+
+Product sold (Credit "Sales", Debit "Cash" or "Razorpay")
+
+Inventory bought (Debit "Inventory", Credit "Cash" or "Accounts Payable")
+
+Manual expenses (Debit "Expense Category", Credit "Cash/Bank")
+
+Show running balance
+
+Allow manual journal entries with double-entry validation
+
+📜 Profit & Loss Statement
+Auto-generated from ledger
+
+Group:
+
+Income: Sales (products & services)
+
+COGS: Calculated via inventory batch consumption
+
+Expenses: Manual and auto-logged
+
+Output monthly/quarterly/yearly
+
+Downloadable as PDF
+
+🧾 Balance Sheet
+Auto-generated
+
+Assets: Cash, Inventory, Receivables
+
+Liabilities: Payables, Platform Commission Dues
+
+Equity = Assets - Liabilities
+
+Show aging for payables & receivables
+
+💵 Cash Flow Statement
+Grouped by:
+
+Operating: Sales, Purchases
+
+Investing: Equipment (manual entry)
+
+Financing: Loans (if applicable)
+
+Show inflows/outflows per month
+
+📦 3. Inventory Integration
+Tie each product to:
+
+Cost Price (from purchase batch)
+
+Sale Price (editable)
+
+Use FIFO Batching for each product:
+
+Table: inventory_batches
+
+id, product_id, quantity, unit_cost, date_added
+
+Deduct from oldest batch first when a sale happens
+
+Track margin: (Selling Price - Cost Price) × Units Sold
+
+📈 4. Analytics Dashboard
+🏆 Top Performers
+Best-selling products (units + revenue)
+
+Best-selling service (grooming, boarding, etc.)
+
+📊 Trend Graphs
+Sales over time (line chart: date vs. revenue)
+
+Expense vs Revenue (bar chart)
+
+📦 Stock Reports
+Low stock alerts
+
+Fast/slow movers
+
+💰 Sales Funnel
+View abandoned carts (if built)
+
+Conversion from booking to checkout
+
+🛒 5. Marketplace & Razorpay Integration
+Checkout Flow:
+Pull platform commission rate from config (e.g., 10%)
+
+Vendor cost price + vendor margin = Base
+
+Add platform markup/fee
+
+Send total to Razorpay
+
+Razorpay Hook:
+Log payment success/failure
+
+Auto-generate receipt (linked to ledger)
+
+Email receipt to customer (optional)
+
+🔐 6. Settings Panel
+Set GST or Tax rate (vendor-level)
+
+Set default platform fee (for admin use)
+
+Toggle Razorpay, Cash on Delivery
+
+Toggle auto-report emails
+
+🛠️ 7. Backend Structure
+Tables to Create:
+
+ledger_entries
+
+expenses
+
+sales_log
+
+inventory_batches
+
+receipts
+
+platform_fees
+
+payment_logs
+
+settings_vendor
+
+Key Routes:
+
+/erp/reports → Dashboard
+
+/erp/reports/ledger
+
+/erp/reports/pnl
+
+/erp/reports/balance-sheet
+
+/erp/reports/cashflow
+
+/erp/reports/inventory
+
+/erp/reports/top-products
+
+/erp/reports/settings
+
+🔄 8. Reporting Actions
+All reports downloadable as:
+
+CSV
+
+PDF (use Flask-WeasyPrint or ReportLab)
+
+Include date filter for every report
+
+Add "Email this report" feature for monthly reports (bonus)
+
+🎁 Bonus Features (Stretch Goals)
+Smart Notifications:
+
+"You’re running low on XYZ"
+
+"Your best day was last Sunday"
+
+Profit Forecasting using rolling averages
+
+WhatsApp alerts via Twilio
+
+Sync to Google Sheets
+
+Let me know if you need dummy vendor data, receipts, or sales logs. This should feel like Tally + Zoho for vendors, not a toy dashboard.
+
