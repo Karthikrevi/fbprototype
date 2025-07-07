@@ -721,12 +721,12 @@ def add_product():
         # Get vendor ID
         c.execute("SELECT id FROM vendors WHERE email=?", (email,))
         vendor_result = c.fetchone()
-        
+
         if vendor_result is None:
             conn.close()
             flash("Vendor not found. Please contact support.")
             return redirect(url_for("add_product"))
-        
+
         vendor_id = vendor_result[0]
 
         name = request.form.get("name")
@@ -894,7 +894,9 @@ def toggle_vendor_online():
     current_status = current_status[0]
 
     new_status = 1 if current_status == 0 else 0
-    c.execute("UPDATE vendors SET is_online=? WHERE email=?", (new_status, email))
+    c.execute('''
+        UPDATE vendors SET is_online=? WHERE email=?
+    ''', (new_status, email))
     conn.commit()
     conn.close()
 
@@ -933,7 +935,7 @@ def accounting_dashboard():
         }
         conn.close()
         return render_template("accounting_dashboard.html", stats=stats)
-    
+
     vendor_id = vendor_result[0]
 
     # Quick stats - use COALESCE to handle null values
@@ -964,7 +966,7 @@ def accounting_dashboard():
 @app.route('/erp/reports/ledger')
 def general_ledger():
     if "vendor" not in session:
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn= sqlite3.connect('erp.db')
@@ -984,7 +986,7 @@ def general_ledger():
 @app.route('/erp/reports/pnl')
 def profit_loss():
     if "vendor" not in session:
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -996,7 +998,7 @@ def profit_loss():
 
     if result is None:
         conn.close()
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     vendor_id = result[0]
 
@@ -1039,7 +1041,7 @@ def profit_loss():
 @app.route('/erp/reports/inventory')
 def inventory_report():
     if "vendor" not in session:
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -1061,7 +1063,7 @@ def inventory_report():
 @app.route('/erp/reports/expenses', methods=["GET", "POST"])
 def manage_expenses():
     if "vendor" not in session:
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -1073,7 +1075,7 @@ def manage_expenses():
 
     if result is None:
         conn.close()
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     vendor_id = result[0]
 
@@ -1108,7 +1110,7 @@ def manage_expenses():
 @app.route('/erp/reports/settings', methods=["GET", "POST"])
 def accounting_settings():
     if "vendor" not in session:
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -1120,7 +1122,7 @@ def accounting_settings():
 
     if result is None:
         conn.close()
-        return redirect(url_for("erp_login"))
+        return redirect(url_for("vendor_login"))
 
     vendor_id = result[0]
 
@@ -1148,6 +1150,67 @@ def accounting_settings():
 
     conn.close()
     return render_template("accounting_settings.html", settings=settings)
+
+@app.route('/erp/reports/sales')
+def sales_analytics():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+
+    if result is None:
+        conn.close()
+        return redirect(url_for("vendor_login"))
+
+    vendor_id = result[0]
+
+    # Get sales data
+    c.execute("""
+        SELECT sl.*, p.name as product_name 
+        FROM sales_log sl 
+        JOIN products p ON sl.product_id = p.id 
+        WHERE sl.vendor_id=? 
+        ORDER BY sl.sale_date DESC
+    """, (vendor_id,))
+    sales = c.fetchall()
+
+    # Get monthly sales summary
+    c.execute("""
+        SELECT strftime('%Y-%m', sale_date) as month, 
+               COUNT(*) as total_orders,
+               SUM(total_amount) as total_revenue,
+               SUM(quantity) as total_units
+        FROM sales_log 
+        WHERE vendor_id=? 
+        GROUP BY strftime('%Y-%m', sale_date)
+        ORDER BY month DESC
+    """, (vendor_id,))
+    monthly_summary = c.fetchall()
+
+    # Top selling products
+    c.execute("""
+        SELECT p.name, SUM(sl.quantity) as total_sold, SUM(sl.total_amount) as total_revenue
+        FROM sales_log sl 
+        JOIN products p ON sl.product_id = p.id 
+        WHERE sl.vendor_id=?
+        GROUP BY p.id, p.name
+        ORDER BY total_sold DESC
+        LIMIT 10
+    """, (vendor_id,))
+    top_products = c.fetchall()
+
+    conn.close()
+
+    return render_template("sales_analytics.html", 
+                         sales=sales, 
+                         monthly_summary=monthly_summary, 
+                         top_products=top_products)
 
 # Marketplace route
 @app.route('/marketplace')
