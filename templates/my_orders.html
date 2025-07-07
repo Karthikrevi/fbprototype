@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fff8f0;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      max-width: 1000px;
+      margin-top: 40px;
+    }
+    h1 {
+      color: #ff6b6b;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .order-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+      overflow: hidden;
+    }
+    .order-header {
+      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      color: white;
+      padding: 20px;
+    }
+    .order-body {
+      padding: 25px;
+    }
+    .status-badge {
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .status-confirmed { background-color: #d1ecf1; color: #0c5460; }
+    .status-packed { background-color: #fff3cd; color: #856404; }
+    .status-shipped { background-color: #74b9ff; color: white; }
+    .status-out-for-delivery { background-color: #fd79a8; color: white; }
+    .status-delivered { background-color: #00b894; color: white; }
+    .status-cancelled { background-color: #ff7675; color: white; }
+    .back-btn {
+      background-color: #74c69d;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 15px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+    .back-btn:hover {
+      background-color: #5fa082;
+      color: white;
+    }
+    .product-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .product-item:last-child {
+      border-bottom: none;
+    }
+    .product-image {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-right: 15px;
+      background-color: #f8f9fa;
+    }
+    .product-details {
+      flex-grow: 1;
+    }
+    .product-name {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .product-quantity {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    .product-price {
+      font-weight: bold;
+      color: #ff6b6b;
+    }
+    .order-summary {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+    
+    <h1>📦 My Orders</h1>
+    <p class="text-center text-muted">Track your marketplace orders and deliveries</p>
+
+    {% if order_details %}
+      {% for order, items in order_details %}
+      <div class="order-card">
+        <div class="order-header">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h5 style="margin-bottom: 8px;">Order #{{ order[0] }}</h5>
+              <p style="margin-bottom: 5px; opacity: 0.9;">{{ order[8] }}</p>
+              <small style="opacity: 0.8;">Placed on {{ order[7] }}</small>
+            </div>
+            <span class="status-badge status-{{ order[2] }}">
+              {% if order[2] == 'confirmed' %}
+                ✅ Order Confirmed
+              {% elif order[2] == 'packed' %}
+                📦 Order Packed
+              {% elif order[2] == 'shipped' %}
+                🚚 Shipped
+              {% elif order[2] == 'out-for-delivery' %}
+                🛵 Out for Delivery
+              {% elif order[2] == 'delivered' %}
+                🎉 Delivered
+              {% elif order[2] == 'cancelled' %}
+                ❌ Cancelled
+              {% else %}
+                {{ order[2].title() }}
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        <div class="order-body">
+          <h6 style="margin-bottom: 15px; color: #333;">Order Items:</h6>
+          
+          {% for item in items %}
+          <div class="product-item">
+            {% if item[3] %}
+              <img src="{{ item[3] }}" alt="{{ item[2] }}" class="product-image">
+            {% else %}
+              <div class="product-image d-flex align-items-center justify-content-center">
+                🐾
+              </div>
+            {% endif %}
+            <div class="product-details">
+              <div class="product-name">{{ item[2] }}</div>
+              <div class="product-quantity">Quantity: {{ item[0] }}</div>
+            </div>
+            <div class="product-price">${{ "%.2f"|format(item[1] * item[0]) }}</div>
+          </div>
+          {% endfor %}
+
+          <div class="order-summary">
+            <div class="d-flex justify-content-between mb-2">
+              <span>Delivery Type:</span>
+              <span class="text-capitalize">{{ order[3] }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Delivery Fee:</span>
+              <span>${{ "%.2f"|format(order[4]) }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span><strong>Total Amount:</strong></span>
+              <span><strong>${{ "%.2f"|format(order[1]) }}</strong></span>
+            </div>
+            {% if order[5] %}
+            <div class="d-flex justify-content-between">
+              <span>Estimated Delivery:</span>
+              <span>{{ order[5] }}</span>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if order[6] %}
+          <div class="alert alert-info mt-3 mb-0">
+            <strong>📍 Tracking Update:</strong> {{ order[6] }}
+          </div>
+          {% endif %}
+
+          {% if order[2] == 'out-for-delivery' %}
+          <div class="alert alert-warning mt-3 mb-0">
+            <strong>🛵 Out for Delivery!</strong> Your order is on its way and should arrive soon. Please be available to receive it.
+          </div>
+          {% elif order[2] == 'delivered' %}
+          <div class="alert alert-success mt-3 mb-0">
+            <strong>🎉 Delivered!</strong> Your order has been successfully delivered. We hope you and your pet enjoy the products!
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center" style="padding: 60px 20px; background: white; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h3>📦 No orders yet</h3>
+        <p class="text-muted">Your marketplace orders will appear here once you make a purchase.</p>
+        <a href="/marketplace" class="btn btn-primary">Browse Marketplace</a>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

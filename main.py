@@ -94,7 +94,38 @@ def init_erp_db():
             time TEXT,
             duration INTEGER,
             status TEXT DEFAULT 'pending',
+            status_details TEXT,
+            estimated_completion TEXT,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT NOT NULL,
+            vendor_id INTEGER,
+            total_amount REAL NOT NULL,
+            status TEXT DEFAULT 'confirmed',
+            delivery_address TEXT,
+            delivery_type TEXT DEFAULT 'standard',
+            delivery_fee REAL DEFAULT 0,
+            estimated_delivery TEXT,
+            tracking_notes TEXT,
+            order_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER,
+            product_id INTEGER,
+            quantity INTEGER,
+            unit_price REAL,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
         )
     ''')
 
@@ -853,6 +884,54 @@ def submit_review(vendor_id):
     conn.close()
 
     return redirect(url_for("vendor_profile", vendor_id=vendor_id))
+
+# Booking status update route for vendors
+@app.route('/erp/bookings/update/<int:booking_id>', methods=["POST"])
+def update_booking_status(booking_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    new_status = request.form.get("status")
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Verify the booking belongs to this vendor
+    c.execute("""
+        UPDATE bookings 
+        SET status = ? 
+        WHERE id = ? AND vendor_id = (SELECT id FROM vendors WHERE email = ?)
+    """, (new_status, booking_id, email))
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Booking status updated to {new_status}")
+    return redirect(url_for("erp_bookings"))
+
+# User booking tracking route
+@app.route('/my-bookings')
+def my_bookings():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user_email = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get all bookings for this user with vendor info
+    c.execute("""
+        SELECT b.id, b.service, b.date, b.time, b.status, v.name as vendor_name, v.phone
+        FROM bookings b
+        JOIN vendors v ON b.vendor_id = v.id
+        WHERE b.user_email = ?
+        ORDER BY b.date DESC, b.time DESC
+    """, (user_email,))
+    bookings = c.fetchall()
+
+    conn.close()
+    return render_template("my_bookings.html", bookings=bookings)
 
 # Logout
 @app.route('/logout')
@@ -1852,6 +1931,143 @@ def checkout():
         return redirect(url_for("login"))
 
     return render_template("checkout.html")
+
+@app.route('/place-order', methods=["POST"])
+def place_order():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user_email = session["user"]
+    data = request.get_json()
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    try:
+        # Create order
+        c.execute("""
+            INSERT INTO orders (user_email, vendor_id, total_amount, delivery_address, delivery_type, delivery_fee, estimated_delivery)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_email,
+            data['vendor_id'],
+            data['total_amount'],
+            data['delivery_address'],
+            data['delivery_type'],
+            data['delivery_fee'],
+            data.get('estimated_delivery', '')
+        ))
+        
+        order_id = c.lastrowid
+
+        # Add order items
+        for item in data['items']:
+            c.execute("""
+                INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+                VALUES (?, ?, ?, ?)
+            """, (order_id, item['product_id'], item['quantity'], item['unit_price']))
+
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "order_id": order_id}
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"success": False, "error": str(e)}, 400
+
+@app.route('/my-orders')
+def my_orders():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user_email = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get all orders for this user
+    c.execute("""
+        SELECT o.id, o.total_amount, o.status, o.delivery_type, o.delivery_fee, 
+               o.estimated_delivery, o.tracking_notes, o.order_date, v.name as vendor_name
+        FROM orders o
+        JOIN vendors v ON o.vendor_id = v.id
+        WHERE o.user_email = ?
+        ORDER BY o.order_date DESC
+    """, (user_email,))
+    orders = c.fetchall()
+
+    # Get order items for each order
+    order_details = []
+    for order in orders:
+        c.execute("""
+            SELECT oi.quantity, oi.unit_price, p.name as product_name, p.image_url
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ?
+        """, (order[0],))
+        items = c.fetchall()
+        order_details.append((order, items))
+
+    conn.close()
+    return render_template("my_orders.html", order_details=order_details)
+
+# Vendor order management
+@app.route('/erp/orders')
+def erp_orders():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return render_template("erp_orders.html", orders=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all orders for this vendor
+    c.execute("""
+        SELECT o.id, o.user_email, o.total_amount, o.status, o.delivery_type, 
+               o.delivery_address, o.estimated_delivery, o.order_date
+        FROM orders o
+        WHERE o.vendor_id = ?
+        ORDER BY o.order_date DESC
+    """, (vendor_id,))
+    orders = c.fetchall()
+
+    conn.close()
+    return render_template("erp_orders.html", orders=orders)
+
+@app.route('/erp/orders/update/<int:order_id>', methods=["POST"])
+def update_order_status(order_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    new_status = request.form.get("status")
+    tracking_notes = request.form.get("tracking_notes", "")
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Update order status
+    c.execute("""
+        UPDATE orders 
+        SET status = ?, tracking_notes = ?
+        WHERE id = ? AND vendor_id = (SELECT id FROM vendors WHERE email = ?)
+    """, (new_status, tracking_notes, order_id, email))
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Order status updated to {new_status}")
+    return redirect(url_for("erp_orders"))
 
 @app.route('/marketplace/purchase-history')
 def purchase_history():
