@@ -131,7 +131,7 @@
         Your store is visible to pet parents in the marketplace
       </div>
       <form method="POST" action="/erp/toggle-online" style="margin: 0;">
-        <button type="submit" class="toggle-btn btn-go-offline">
+        <button type="submit" class="toggle-btn btn-go-offline" onclick="return confirm('Are you sure you want to go offline? This will hide your products from customers.')">
           🔴 Go Offline
         </button>
       </form>
@@ -140,14 +140,14 @@
         🔴 You're Offline
       </div>
       <div class="status-description">
-        Your store is hidden from the marketplace
+        Your store is hidden from the marketplace. Go live to start selling!
       </div>
       <form method="POST" action="/erp/toggle-online" style="margin: 0;">
         <button type="submit" class="toggle-btn btn-go-live">
           🟢 Go Live Now!
         </button>
       </form>
-    {% endif %}
+    {% endif %}dif %}
   </div>
 
   <div class="card-grid">

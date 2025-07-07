@@ -12,6 +12,7 @@ def init_erp_db():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
+    # First, create tables if they don't exist
     c.execute('''
         CREATE TABLE IF NOT EXISTS vendors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +82,12 @@ def init_erp_db():
             FOREIGN KEY (booking_id) REFERENCES bookings(id)
         )
     ''')
+
+    # Check if category column exists in products table, if not add it
+    c.execute("PRAGMA table_info(products)")
+    columns = [column[1] for column in c.fetchall()]
+    if 'category' not in columns:
+        c.execute('ALTER TABLE products ADD COLUMN category TEXT')
 
     # Insert demo vendor
     c.execute('''
@@ -267,10 +274,16 @@ def groomers():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    user_location = session.get("location")
+    user_city = "Trivandrum"  # Hardcoded for now
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    c.execute("SELECT * FROM vendors WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%') AND is_online = 1")
+    
+    # Get all groomers in the same city
+    c.execute("""
+        SELECT * FROM vendors 
+        WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%')
+        AND LOWER(city) = LOWER(?)
+    """, (user_city,))
     db_vendors = c.fetchall()
     conn.close()
 
@@ -286,22 +299,10 @@ def groomers():
             "xp": 1500,
             "city": vendor[5] or "Unknown",
             "latitude": vendor[9],
-            "longitude": vendor[10]
+            "longitude": vendor[10],
+            "is_online": vendor[11]  # Add online status
         }
         vendors.append(vendor_data)
-
-    if user_location:
-        filtered_vendors = []
-        for v in vendors:
-            if v["latitude"] and v["longitude"]:
-                distance = haversine(
-                    user_location["lat"], user_location["lon"], v["latitude"], v["longitude"]
-                )
-                if distance <= 50:
-                    filtered_vendors.append(v)
-            else:
-                filtered_vendors.append(v)
-        vendors = filtered_vendors
 
     return render_template("groomers.html", vendors=vendors)
 
@@ -314,7 +315,7 @@ def vendor_profile(vendor_id):
     try:
         conn = sqlite3.connect("erp.db")
         c = conn.cursor()
-        c.execute("SELECT id, name, bio, image_url, city FROM vendors WHERE id = ?", (vendor_id,))
+        c.execute("SELECT id, name, bio, image_url, city, is_online FROM vendors WHERE id = ?", (vendor_id,))
         data = c.fetchone()
         conn.close()
 
@@ -325,6 +326,7 @@ def vendor_profile(vendor_id):
                 "description": data[2] or "Trusted pet care provider.",
                 "image": data[3] or "https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=400&fit=crop",
                 "city": data[4] or "Unknown",
+                "is_online": data[5],
                 "rating": 4,
                 "level": 8,
                 "xp": 1200,
@@ -730,7 +732,7 @@ def marketplace():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    user_location = session.get("location")
+    user_city = "Trivandrum"  # Hardcoded for now
 
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
@@ -738,22 +740,16 @@ def marketplace():
         SELECT DISTINCT v.*, 
                (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
         FROM vendors v 
-        WHERE v.is_online = 1 AND EXISTS (
+        WHERE v.is_online = 1 
+        AND LOWER(v.city) = LOWER(?)
+        AND EXISTS (
             SELECT 1 FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0
         )
-    """)
+    """, (user_city,))
     online_vendors = c.fetchall()
 
     vendors = []
     for vendor in online_vendors:
-        # Apply location filtering
-        if user_location and vendor[9] and vendor[10]:  # latitude and longitude
-            distance = haversine(
-                user_location["lat"], user_location["lon"], vendor[9], vendor[10]
-            )
-            if distance > 50:  # Skip vendors more than 50km away
-                continue
-
         vendor_data = {
             "id": vendor[0],
             "name": vendor[1],
@@ -764,7 +760,8 @@ def marketplace():
             "image_url": vendor[8],
             "latitude": vendor[9],
             "longitude": vendor[10],
-            "product_count": vendor[11]
+            "product_count": vendor[11],
+            "is_online": vendor[11]  # This will be 1 since we're filtering for online vendors
         }
         vendors.append(vendor_data)
 
@@ -779,17 +776,30 @@ def marketplace_vendor_products(vendor_id):
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Get vendor info
-    c.execute("SELECT name, city, bio FROM vendors WHERE id=?", (vendor_id,))
-    vendor = c.fetchone()
+    # Get vendor info including online status
+    c.execute("SELECT name, city, bio, is_online FROM vendors WHERE id=?", (vendor_id,))
+    vendor_data = c.fetchone()
 
-    # Get products with stock
-    c.execute("""
-        SELECT id, name, description, sale_price, quantity, image_url 
-        FROM products 
-        WHERE vendor_id=? AND quantity > 0
-    """, (vendor_id,))
-    products = c.fetchall()
+    if not vendor_data:
+        return "Vendor not found", 404
+
+    vendor = {
+        "name": vendor_data[0],
+        "city": vendor_data[1],
+        "bio": vendor_data[2],
+        "is_online": vendor_data[3]
+    }
+
+    # Get products with stock only if vendor is online
+    if vendor["is_online"]:
+        c.execute("""
+            SELECT id, name, description, sale_price, quantity, image_url 
+            FROM products 
+            WHERE vendor_id=? AND quantity > 0
+        """, (vendor_id,))
+        products = c.fetchall()
+    else:
+        products = []
 
     conn.close()
 

@@ -87,6 +87,63 @@
       color: #333;
     }
 
+    .btn-book {
+      background-color: #67b5f7;
+    }
+
+    .btn-book:hover {
+      background-color: #57a3f3;
+    }
+
+    .btn-shop {
+      background-color: #67b5f7;
+    }
+
+    .btn-shop:hover {
+      background-color: #57a3f3;
+    }
+
+    .vendor-status {
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .status-badge {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .status-badge.online {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.offline {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .offline-message {
+      color: #721c24;
+      font-style: italic;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+
+    .btn-disabled {
+      background-color: #6c757d;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: not-allowed;
+      opacity: 0.6;
+      margin: 0 5px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -112,9 +169,23 @@
       </ul>
     </div>
 
+    <div class="vendor-status">
+      {% if vendor.is_online %}
+        <span class="status-badge online">🟢 Online</span>
+      {% else %}
+        <span class="status-badge offline">🔴 Offline</span>
+        <p class="offline-message">This vendor is currently offline. Services and products are not available.</p>
+      {% endif %}
+    </div>
+
     <div class="actions">
-      <a href="{{ vendor.booking_url }}">📅 Book Now</a>
-      <a href="{{ vendor.market_url }}">🛒 View Marketplace</a>
+      {% if vendor.is_online %}
+        <a href="{{ vendor.booking_url }}">📅 Book Now</a>
+        <a href="{{ vendor.market_url }}">🛒 View Marketplace</a>
+      {% else %}
+        <span class="btn-disabled">📅 Booking Unavailable</span>
+        <span class="btn-disabled">🛒 Products Unavailable</span>
+      {% endif %}
     </div>
 
     <div class="stats">

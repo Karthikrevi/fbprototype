@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -77,22 +76,63 @@
     .buy-btn:hover {
       background-color: #ff8787;
     }
+    .btn-add-cart:hover {
+      background-color: #57a3f3;
+    }
+
+    .vendor-status {
+      margin: 15px 0;
+      text-align: center;
+    }
+
+    .status-badge {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .status-badge.online {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.offline {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .offline-message {
+      color: #721c24;
+      font-style: italic;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <a href="/marketplace" class="back-btn">← Back to Marketplace</a>
-    
+
     <div class="vendor-header">
       <h1>🛍️ {{ vendor[0] }}</h1>
       <p>📍 {{ vendor[1] }}</p>
       {% if vendor[2] %}
       <p>{{ vendor[2] }}</p>
       {% endif %}
+
+      <div class="vendor-status">
+        {% if vendor.is_online %}
+          <span class="status-badge online">🟢 Online</span>
+        {% else %}
+          <span class="status-badge offline">🔴 Offline</span>
+          <p class="offline-message">Currently Unavailable – Vendor Offline</p>
+        {% endif %}
+      </div>
     </div>
-    
+
     <h3 class="mb-4">Available Products</h3>
-    
+
     <div class="product-grid">
       {% if products %}
         {% for product in products %}
@@ -104,16 +144,16 @@
               <span class="text-muted">No Image</span>
             </div>
           {% endif %}
-          
+
           <div class="product-info">
             <h5>{{ product[1] }}</h5>
             <p class="text-muted">{{ product[2][:80] }}{% if product[2] and product[2]|length > 80 %}...{% endif %}</p>
-            
+
             <div class="d-flex justify-content-between align-items-center">
               <span class="price-tag">${{ product[3] }}</span>
               <span class="stock-info">{{ product[4] }} available</span>
             </div>
-            
+
             <button class="buy-btn" onclick="addToCart({{ product[0] }}, '{{ product[1] }}', {{ product[3] }})">
               🛒 Add to Cart
             </button>
@@ -129,7 +169,7 @@
         </div>
       {% endif %}
     </div>
-    
+
     {% if products %}
     <div class="text-center mt-5">
       <button class="btn btn-success btn-lg" onclick="proceedToCheckout()">
@@ -141,7 +181,7 @@
 
   <script>
     let cart = [];
-    
+
     function addToCart(productId, productName, price) {
       cart.push({
         id: productId,
@@ -149,27 +189,28 @@
         price: price,
         quantity: 1
       });
-      
+
       // Update button text
       event.target.innerHTML = '✅ Added to Cart';
       event.target.disabled = true;
-      
+
       // Show success message
       alert(`${productName} added to cart!`);
     }
-    
+
     function proceedToCheckout() {
       if (cart.length === 0) {
         alert('Please add some products to your cart first!');
         return;
       }
-      
+
       const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const platformFee = total * 0.1;
       const finalTotal = total + platformFee;
-      
+
       alert(`Cart Summary:\nSubtotal: $${total.toFixed(2)}\nPlatform Fee (10%): $${platformFee.toFixed(2)}\nTotal: $${finalTotal.toFixed(2)}\n\n(Razorpay integration coming soon!)`);
     }
   </script>
 </body>
 </html>
+`

@@ -85,6 +85,49 @@
     .profile-link:hover {
       background-color: #52b788;
     }
+
+    .btn-view:hover {
+      background-color: #57a3f3;
+    }
+
+    .status-badge {
+      margin-bottom: 8px;
+      text-align: right;
+    }
+
+    .online-badge {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .offline-badge {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .offline-vendor {
+      opacity: 0.6;
+      filter: grayscale(30%);
+    }
+
+    .btn-disabled {
+      background-color: #6c757d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      cursor: not-allowed;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -108,16 +151,27 @@
     {% if vendors and vendors|length > 1 %}
       {% for vendor in vendors %}
       {% if vendor.id != 'fluffy-paws' %}
-      <div class="vendor-card">
+      <div class="vendor-card {% if not vendor.is_online %}offline-vendor{% endif %}">
         <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
         <div class="vendor-details">
+          <div class="status-badge">
+            {% if vendor.is_online %}
+              <span class="online-badge">🟢 Online</span>
+            {% else %}
+              <span class="offline-badge">🔴 Offline</span>
+            {% endif %}
+          </div>
           <h3>{{ vendor.name }}</h3>
           <div class="vendor-meta">{{ vendor.description }}</div>
           <div class="rating-stars">⭐ {{ vendor.rating }} | Level {{ vendor.level }} | XP {{ vendor.xp }}</div>
           <div class="xp-bar">
             <div class="xp-fill" style="width: {{ vendor.xp / 50 }}%;"></div>
           </div>
-          <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
+          {% if vendor.is_online %}
+            <a href="/vendor/{{ vendor.id }}" class="profile-link">View Profile</a>
+          {% else %}
+            <span class="btn-disabled" title="Vendor is currently offline. Services and products not available.">Offline - Unavailable</span>
+          {% endif %}
         </div>
       </div>
       {% endif %}
