@@ -1184,6 +1184,11 @@ def add_product():
         barcode = request.form.get("barcode")
         batch_name = request.form.get("batch_name")
 
+        # Auto-generate barcode if not provided
+        if not barcode:
+            import time
+            barcode = f"FB{vendor_id}{int(time.time())}"
+
         # Handle image upload
         image_url = ""
         file = request.files.get("image")
@@ -1193,19 +1198,34 @@ def add_product():
             file.save(filepath)
             image_url = "/" + filepath
 
-        # Insert product
-        c.execute("""
-            INSERT INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode))
+        # Check if barcode already exists (if provided)
+        if barcode:
+            c.execute("SELECT id FROM products WHERE barcode = ?", (barcode,))
+            existing_product = c.fetchone()
+            if existing_product:
+                conn.close()
+                flash(f"Error: Barcode '{barcode}' already exists. Please use a unique barcode.")
+                return redirect(url_for("add_product"))
 
-        product_id = c.lastrowid
+        # Insert product
+        try:
+            c.execute("""
+                INSERT INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (vendor_id, name, description, category, buy_price, sale_price, quantity, image_url, barcode or None))
+
+            product_id = c.lastrowid
+        except sqlite3.IntegrityError as e:
+            conn.close()
+            flash(f"Error adding product: {str(e)}")
+            return redirect(url_for("add_product"))
 
         # Insert batch
+        batch_name_final = batch_name or f"BATCH-{barcode}-001"
         c.execute("""
             INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
             VALUES (?, ?, ?, ?, ?)
-        """, (product_id, batch_name or f"BATCH-{barcode}-001", quantity, buy_price, datetime.now().strftime("%Y-%m-%d")))
+        """, (product_id, batch_name_final, quantity, buy_price, datetime.now().strftime("%Y-%m-%d")))
 
         # Also insert into inventory_batches for tracking
         c.execute("""
@@ -1223,6 +1243,11 @@ def add_product():
             )
             WHERE id = ?
         """, (product_id, product_id))
+
+        # Verify the update worked
+        c.execute("SELECT quantity FROM products WHERE id = ?", (product_id,))
+        final_quantity = c.fetchone()[0]
+        print(f"Product {product_id} final quantity: {final_quantity}")  # Debug log
 
         conn.commit()
         conn.close()
@@ -1910,12 +1935,26 @@ def marketplace_vendor_products(vendor_id):
         "is_online": vendor_data[3]
     }
 
-    # Get products with stock only if vendor is online
+    # Get products with stock - recalculate inventory first to ensure accuracy
     if vendor["is_online"]:
+        # Recalculate inventory from batches to ensure accuracy
+        c.execute("""
+            UPDATE products 
+            SET quantity = (
+                SELECT COALESCE(SUM(remaining_quantity), 0) 
+                FROM inventory_batches 
+                WHERE product_id = products.id
+            )
+            WHERE vendor_id = ?
+        """, (vendor_id,))
+        conn.commit()
+
+        # Get products with stock
         c.execute("""
             SELECT id, name, description, sale_price, quantity, image_url 
             FROM products 
             WHERE vendor_id=? AND quantity > 0
+            ORDER BY name
         """, (vendor_id,))
         products = c.fetchall()
     else:
