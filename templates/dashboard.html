@@ -178,17 +178,17 @@
       <div class="pets-grid">
         {% for pet in pets %}
           <div class="pet-card">
-            <a href="/pet/{{ pet[0] }}" style="text-decoration: none; color: inherit;">
-              <img src="{{ pet[4] or '/static/uploads/default-pet.png' }}" alt="{{ pet[1] }}" class="pet-avatar">
-              <div class="pet-name">{{ pet[1] }}</div>
-              <div class="pet-breed">{{ pet[2] }}</div>
+            <a href="/pet-profile" style="text-decoration: none; color: inherit;">
+              <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" alt="{{ pet.name }}" class="pet-avatar">
+              <div class="pet-name">{{ pet.name }}</div>
+              <div class="pet-breed">{{ pet.breed }}</div>
             </a>
           </div>
         {% endfor %}
       </div>
 
       <div class="text-center">
-        <a href="/add-pet" class="btn-add-pet">+ Add New Pet</a>
+        <a href="/pet-profile" class="btn-add-pet">+ Manage Pets</a>
       </div>
     </div>
   </div>

@@ -450,7 +450,8 @@ def dashboard():
         return redirect(url_for("login"))
 
     email = session["user"]
-    return render_template("dashboard.html", email=email)
+    pets = db.get(f"pets:{email}", [])
+    return render_template("dashboard.html", email=email, pets=pets)
 
 # Groomers & Vendors
 def haversine(lat1, lon1, lat2, lon2):
