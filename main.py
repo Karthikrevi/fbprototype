@@ -476,14 +476,14 @@ def vendor_profile(vendor_id):
             "booking_url": f"/vendor/{vendor_id}/book",
             "market_url": f"/marketplace/vendor/{vendor_id}"
         }
-        
+
         # Static demo reviews
         reviews = [
             ("1", "fluffy-paws", 5, "Amazing service! My dog looks fantastic.", "Grooming", "user@example.com", "2024-01-15"),
             ("2", "fluffy-paws", 4, "Great experience, very professional staff.", "Grooming", "another@example.com", "2024-01-10"),
             ("3", "fluffy-paws", 5, "Best grooming service in town!", "Grooming", "happy@example.com", "2024-01-05")
         ]
-        
+
         return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
 
     if request.method == "POST":
@@ -492,7 +492,7 @@ def vendor_profile(vendor_id):
         rating = int(request.form.get("rating"))
         review_text = request.form.get("review_text", "")
         service_type = request.form.get("service_type", "Other")
-        
+
         conn = sqlite3.connect("erp.db")
         c = conn.cursor()
         c.execute("""
@@ -501,7 +501,7 @@ def vendor_profile(vendor_id):
         """, (vendor_id, user_email, rating, review_text, service_type))
         conn.commit()
         conn.close()
-        
+
         return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
     try:
@@ -512,22 +512,22 @@ def vendor_profile(vendor_id):
 
         if data:
             vendor_id_db = data[0]
-            
+
             # Calculate dynamic stats from reviews
             c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id_db,))
             review_stats = c.fetchone()
             avg_rating = round(review_stats[0], 1) if review_stats[0] else 0
             total_reviews = review_stats[1] or 0
-            
+
             # Calculate success rate (reviews with 4+ stars)
             c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (vendor_id_db,))
             good_reviews = c.fetchone()[0] or 0
             success_rate = round((good_reviews / total_reviews * 100), 1) if total_reviews > 0 else 100
-            
+
             # Calculate level based on total reviews (every 10 reviews = 1 level)
             level = min(1 + (total_reviews // 10), 20)  # Cap at level 20
             xp = total_reviews * 100  # 100 XP per review
-            
+
             vendor = {
                 "id": data[0],
                 "name": data[1],
@@ -544,7 +544,7 @@ def vendor_profile(vendor_id):
                 "booking_url": f"/vendor/{data[0]}/book",
                 "market_url": f"/marketplace/vendor/{data[0]}"
             }
-            
+
             # Get reviews for this vendor
             c.execute("""
                 SELECT id, vendor_id, rating, review_text, service_type, user_email, timestamp 
@@ -553,7 +553,7 @@ def vendor_profile(vendor_id):
                 ORDER BY timestamp DESC
             """, (vendor_id_db,))
             reviews = c.fetchall()
-            
+
             conn.close()
             return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
         else:
@@ -562,6 +562,29 @@ def vendor_profile(vendor_id):
     except Exception as e:
         print("Error loading vendor:", e)
         return "Error loading vendor profile"
+
+@app.route('/marketplace/vendor/fluffy-paws')
+def fluffy_paws_marketplace():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    vendor = {
+        "name": "Fluffy Paws Grooming",
+        "city": "Trivandrum",
+        "bio": "Expert grooming services for dogs and cats. Professional, caring, and experienced team.",
+        "is_online": True
+    }
+
+    # Static demo products for fluffy-paws
+    products = [
+        (1, "Premium Dog Shampoo", "Professional grade dog shampoo for all coat types", 25.00, 15, "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400"),
+        (2, "Cat Nail Clippers", "Professional stainless steel nail clippers for cats", 15.00, 12, "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400"),
+        (3, "Pet Brush Set", "Complete grooming brush set for dogs and cats", 22.00, 8, "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400"),
+        (4, "Flea Treatment Spray", "Effective flea treatment for dogs and cats", 18.00, 20, "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400"),
+        (5, "Pet Teeth Cleaning Kit", "Professional dental care kit for pets", 35.00, 6, "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400")
+    ]
+
+    return render_template("marketplace_vendor_products.html", vendor=vendor, products=products, vendor_id="fluffy-paws")
 
 # Boarding
 @app.route('/boarding')
@@ -630,19 +653,19 @@ def set_location():
 def submit_review(vendor_id):
     if "user" not in session:
         return redirect(url_for("login"))
-    
+
     user_email = session["user"]
     rating = int(request.form.get("rating"))
     review_text = request.form.get("review_text", "")
     service_type = request.form.get("service_type", "Other")
-    
+
     conn = sqlite3.connect("erp.db")
     c = conn.cursor()
-    
+
     # Check if user already reviewed this vendor
     c.execute("SELECT id FROM reviews WHERE vendor_id = ? AND user_email = ?", (vendor_id, user_email))
     existing_review = c.fetchone()
-    
+
     if existing_review:
         # Update existing review
         c.execute("""
@@ -656,10 +679,10 @@ def submit_review(vendor_id):
             INSERT INTO reviews (vendor_id, user_email, rating, review_text, service_type)
             VALUES (?, ?, ?, ?, ?)
         """, (vendor_id, user_email, rating, review_text, service_type))
-    
+
     conn.commit()
     conn.close()
-    
+
     return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
 # Logout
@@ -749,34 +772,34 @@ def erp_profile():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get vendor details
     c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
     vendor_data = c.fetchone()
-    
+
     if vendor_data:
         vendor_id = vendor_data[0]
-        
+
         # Calculate dynamic stats from reviews
         c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id,))
         review_stats = c.fetchone()
         avg_rating = round(review_stats[0], 1) if review_stats[0] else 0
         total_reviews = review_stats[1] or 0
-        
+
         # Calculate success rate (reviews with 4+ stars)
         c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (vendor_id,))
         good_reviews = c.fetchone()[0] or 0
         success_rate = round((good_reviews / total_reviews * 100), 1) if total_reviews > 0 else 100
-        
+
         # Get total orders from bookings and sales
         c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id = ?", (vendor_id,))
         total_bookings = c.fetchone()[0] or 0
-        
+
         c.execute("SELECT COUNT(*) FROM sales_log WHERE vendor_id = ?", (vendor_id,))
         total_sales = c.fetchone()[0] or 0
-        
+
         total_orders = total_bookings + total_sales
-        
+
         vendor_stats = {
             "rating": avg_rating,
             "total_reviews": total_reviews,
@@ -785,7 +808,7 @@ def erp_profile():
         }
     else:
         vendor_stats = {"rating": 0, "total_reviews": 0, "total_orders": 0, "success_rate": 100}
-    
+
     conn.close()
 
     return render_template("erp_profile_view.html", 
@@ -977,7 +1000,7 @@ def edit_product(product_id):
         c.execute("""
             UPDATE products 
             SET name=?, description=?, category=?, sale_price=?, image_url=?, barcode=?
-            WHERE id=? AND vendor_id=(SELECT id FROM vendors WHERE email=?)
+            WHERE id=? AND vendor_id=(SELECT id FROM vendors WHERE email=?)</code>
         """, (name, description, category, sale_price, image_url, barcode, product_id, email))
 
         conn.commit()
@@ -1052,12 +1075,12 @@ def toggle_vendor_online():
     # Check if vendor exists in SQLite database
     c.execute("SELECT is_online FROM vendors WHERE email=?", (email,))
     current_status = c.fetchone()
-    
+
     if current_status is None:
         # Vendor doesn't exist in SQLite, get their info from Replit db and create them
         vendor_key = f"vendor:{email}"
         vendor_data = db.get(vendor_key)
-        
+
         if vendor_data:
             # Create vendor in SQLite database
             c.execute('''

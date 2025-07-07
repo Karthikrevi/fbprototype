@@ -96,6 +96,18 @@
     .btn-edit:hover {
       background-color: #95d5b2;
     }
+
+    .appointment-item, .history-item {
+      background-color: #f8f9fa;
+      border-left: 4px solid #28a745;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 5px;
+    }
+
+    .history-item {
+      border-left-color: #6c757d;
+    }
   </style>
 </head>
 <body>
@@ -121,11 +133,29 @@
             <div class="info-bubble">🩸 Blood Type: {{ pet.blood or 'N/A' }}</div>
             <div class="info-bubble">🎂 Birthday: {{ pet.birthday or 'N/A' }}</div>
 
-            <div class="section-title">📅 Reminders</div>
-            <p class="coming-soon">Reminders for bookings and medications coming soon.</p>
+            <div class="section-title">📅 Upcoming Appointments</div>
+            {% if pet_bookings %}
+              {% for booking in pet_bookings %}
+                <div class="appointment-item">
+                  <strong>{{ booking.service }}</strong> - {{ booking.date }} at {{ booking.time }}
+                  <br><small>Status: {{ booking.status }}</small>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="coming-soon">No upcoming appointments.</p>
+            {% endif %}
 
             <div class="section-title">🧾 Visit History</div>
-            <p class="coming-soon">Booking receipts will appear here.</p>
+            {% if pet_booking_history %}
+              {% for booking in pet_booking_history %}
+                <div class="history-item">
+                  <strong>{{ booking.service }}</strong> - {{ booking.date }}
+                  <br><small>Status: {{ booking.status }}</small>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="coming-soon">No booking history yet.</p>
+            {% endif %}
 
             <div class="section-title">📂 Medical Records & Pet Passport</div>
             <p class="coming-soon">Coming soon.</p>
