@@ -137,10 +137,10 @@
           <option value="Expenses">Expenses</option>
         </select>
       </div>
-      <button style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Filter</button>
+      <button id="filterBtn" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Filter</button>
     </div>
     
-    <table>
+    <table id="ledgerTable">
       <thead>
         <tr>
           <th>Date</th>
@@ -204,5 +204,63 @@
       📊 Export CSV
     </button>
   </div>
+
+  <script>
+    document.getElementById('filterBtn').addEventListener('click', function() {
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+      const accountFilter = document.getElementById('accountFilter').value;
+      const table = document.getElementById('ledgerTable');
+      const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        
+        if (cells.length === 0) continue; // Skip header or empty rows
+        
+        const rowDate = cells[0].textContent.trim();
+        const rowAccount = cells[1].textContent.trim();
+        
+        let showRow = true;
+        
+        // Date filtering
+        if (fromDate && rowDate < fromDate) {
+          showRow = false;
+        }
+        if (toDate && rowDate > toDate) {
+          showRow = false;
+        }
+        
+        // Account filtering
+        if (accountFilter && !rowAccount.toLowerCase().includes(accountFilter.toLowerCase())) {
+          showRow = false;
+        }
+        
+        // Show/hide row
+        row.style.display = showRow ? '' : 'none';
+      }
+    });
+
+    // Reset filters
+    document.addEventListener('DOMContentLoaded', function() {
+      const resetBtn = document.createElement('button');
+      resetBtn.textContent = 'Reset';
+      resetBtn.style.cssText = 'padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;';
+      resetBtn.addEventListener('click', function() {
+        document.getElementById('fromDate').value = '';
+        document.getElementById('toDate').value = '';
+        document.getElementById('accountFilter').value = '';
+        
+        const table = document.getElementById('ledgerTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        for (let i = 0; i < rows.length; i++) {
+          rows[i].style.display = '';
+        }
+      });
+      
+      document.getElementById('filterBtn').parentNode.appendChild(resetBtn);
+    });
+  </script>
 </body>
 </html>
