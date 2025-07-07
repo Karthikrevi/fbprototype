@@ -1166,6 +1166,59 @@ def toggle_vendor_online():
 
     return redirect(url_for("erp_dashboard"))
 
+@app.route('/erp/receipts')
+def erp_receipts():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+
+    if vendor_result is None:
+        conn.close()
+        return render_template("erp_receipts.html", receipts=[], bookings=[], sales=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all receipts for this vendor's bookings
+    c.execute("""
+        SELECT r.id, r.booking_id, r.amount, r.paid_on, r.payment_mode,
+               b.user_email, b.service, b.date, b.time, b.status
+        FROM receipts r
+        JOIN bookings b ON r.booking_id = b.id
+        WHERE b.vendor_id = ?
+        ORDER BY r.paid_on DESC
+    """, (vendor_id,))
+    receipts = c.fetchall()
+
+    # Get all bookings for this vendor
+    c.execute("""
+        SELECT id, user_email, service, date, time, duration, status
+        FROM bookings
+        WHERE vendor_id = ?
+        ORDER BY date DESC
+    """, (vendor_id,))
+    bookings = c.fetchall()
+
+    # Get all sales for this vendor
+    c.execute("""
+        SELECT sl.id, sl.quantity, sl.unit_price, sl.total_amount, 
+               sl.customer_email, sl.sale_date, p.name as product_name
+        FROM sales_log sl
+        JOIN products p ON sl.product_id = p.id
+        WHERE sl.vendor_id = ?
+        ORDER BY sl.sale_date DESC
+    """, (vendor_id,))
+    sales = c.fetchall()
+
+    conn.close()
+    return render_template("erp_receipts.html", receipts=receipts, bookings=bookings, sales=sales)
+
 @app.route('/erp/logout')
 def erp_logout():
     session.pop("vendor", None)
