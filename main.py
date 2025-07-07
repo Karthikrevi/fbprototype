@@ -857,7 +857,7 @@ def erp_profile():
     conn.close()
 
     return render_template("erp_profile_view.html", 
-                         vendor=vendor_data or ("", email, "", "", "", "", "", "", ""),
+                         vendor=vendor_data or (0, email, email, "", "", "", "", "", "", ""),
                          stats=vendor_stats)
 
 @app.route('/erp/profile/edit', methods=["GET", "POST"])
@@ -1726,18 +1726,18 @@ def update_commission():
     if not session.get("master_admin"):
         return redirect(url_for("master_admin_login"))
     
-    marketplace_commission = float(request.form.get("marketplace_commission_rate", 10.0))
+    marketplace_platform_fee = float(request.form.get("marketplace_platform_fee", 2.99))
     grooming_commission = float(request.form.get("grooming_commission_rate", 15.0))
     
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     
-    # Update master commission rates
+    # Update master settings - marketplace uses fixed platform fee, grooming uses commission
     c.execute("""
         UPDATE master_settings 
         SET setting_value = ?, last_updated = CURRENT_TIMESTAMP 
-        WHERE setting_name = 'marketplace_commission_rate'
-    """, (marketplace_commission,))
+        WHERE setting_name = 'marketplace_listing_fee'
+    """, (marketplace_platform_fee,))
     
     c.execute("""
         UPDATE master_settings 
@@ -1745,16 +1745,10 @@ def update_commission():
         WHERE setting_name = 'grooming_commission_rate'
     """, (grooming_commission,))
     
-    # Update all vendor settings with new marketplace commission rate
-    c.execute("""
-        UPDATE settings_vendor 
-        SET platform_fee = ?
-    """, (marketplace_commission,))
-    
     conn.commit()
     conn.close()
     
-    flash(f"Commission rates updated: Marketplace {marketplace_commission}%, Grooming {grooming_commission}%")
+    flash(f"Settings updated: Marketplace Platform Fee ${marketplace_platform_fee}, Grooming Commission {grooming_commission}%")
     return redirect(url_for("master_admin_dashboard"))
 
 @app.route('/master/admin/logout')
