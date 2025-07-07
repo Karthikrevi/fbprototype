@@ -1,0 +1,607 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Checkout - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    .checkout-container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .checkout-header {
+      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .checkout-section {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ff7e5f;
+      padding-bottom: 10px;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+    .item-image {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-right: 15px;
+    }
+    .item-details {
+      flex: 1;
+    }
+    .item-name {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .item-vendor {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+    .item-price {
+      color: #28a745;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .quantity-btn {
+      width: 35px;
+      height: 35px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .quantity-btn:hover {
+      background: #f8f9fa;
+    }
+    .quantity-display {
+      font-weight: bold;
+      min-width: 30px;
+      text-align: center;
+    }
+    .remove-btn {
+      color: #dc3545;
+      border: none;
+      background: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .remove-btn:hover {
+      background: #ffebee;
+    }
+    .order-summary {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .summary-total {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #333;
+      border-top: 2px solid #ddd;
+      padding-top: 10px;
+    }
+    .payment-method {
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    .payment-method:hover {
+      border-color: #ff7e5f;
+    }
+    .payment-method.selected {
+      border-color: #ff7e5f;
+      background: #fff5f5;
+    }
+    .payment-icon {
+      font-size: 1.5rem;
+      margin-right: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .form-control {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 12px;
+    }
+    .form-control:focus {
+      border-color: #ff7e5f;
+      box-shadow: 0 0 0 0.2rem rgba(255, 126, 95, 0.25);
+    }
+    .place-order-btn {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      width: 100%;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .place-order-btn:hover {
+      transform: translateY(-2px);
+    }
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+      color: white;
+    }
+    .empty-cart {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    .promo-code {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .promo-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .promo-btn {
+      background: #ff7e5f;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .delivery-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .delivery-option {
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    .delivery-option:hover {
+      border-color: #ff7e5f;
+    }
+    .delivery-option.selected {
+      border-color: #ff7e5f;
+      background: #fff5f5;
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-container">
+    <a href="/marketplace" class="back-btn">← Back to Marketplace</a>
+    
+    <div class="checkout-header">
+      <h1>🛒 Checkout</h1>
+      <p>Review your order and complete your purchase</p>
+    </div>
+
+    <div class="row">
+      <!-- Left Column - Cart & Delivery -->
+      <div class="col-lg-8">
+        <!-- Cart Items -->
+        <div class="checkout-section">
+          <div class="section-title">🛍️ Your Cart</div>
+          <div id="cart-items">
+            <!-- Cart items will be populated by JavaScript -->
+          </div>
+          <div class="promo-code">
+            <input type="text" class="promo-input" placeholder="Enter promo code">
+            <button class="promo-btn">Apply</button>
+          </div>
+        </div>
+
+        <!-- Delivery Options -->
+        <div class="checkout-section">
+          <div class="section-title">🚚 Delivery Options</div>
+          <div class="delivery-options">
+            <div class="delivery-option selected" data-delivery="standard">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>Standard Delivery</strong>
+                  <div class="text-muted">3-5 business days</div>
+                </div>
+                <div class="text-success font-weight-bold">FREE</div>
+              </div>
+            </div>
+            <div class="delivery-option" data-delivery="express">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>Express Delivery</strong>
+                  <div class="text-muted">1-2 business days</div>
+                </div>
+                <div class="text-success font-weight-bold">$5.99</div>
+              </div>
+            </div>
+            <div class="delivery-option" data-delivery="same-day">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>Same Day Delivery</strong>
+                  <div class="text-muted">Within 6 hours</div>
+                </div>
+                <div class="text-success font-weight-bold">$12.99</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery Address -->
+        <div class="checkout-section">
+          <div class="section-title">📍 Delivery Address</div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" placeholder="Enter your full name">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" placeholder="Enter your phone number">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Street Address</label>
+            <input type="text" class="form-control" placeholder="Enter your street address">
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="form-label">City</label>
+                <input type="text" class="form-control" placeholder="City">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="form-label">State</label>
+                <input type="text" class="form-control" placeholder="State">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="form-label">ZIP Code</label>
+                <input type="text" class="form-control" placeholder="ZIP Code">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Payment & Summary -->
+      <div class="col-lg-4">
+        <!-- Payment Methods -->
+        <div class="checkout-section">
+          <div class="section-title">💳 Payment Method</div>
+          <div class="payment-method selected" data-payment="card">
+            <div class="d-flex align-items-center">
+              <span class="payment-icon">💳</span>
+              <div>
+                <strong>Credit/Debit Card</strong>
+                <div class="text-muted">Visa, Mastercard, American Express</div>
+              </div>
+            </div>
+          </div>
+          <div class="payment-method" data-payment="upi">
+            <div class="d-flex align-items-center">
+              <span class="payment-icon">📱</span>
+              <div>
+                <strong>UPI Payment</strong>
+                <div class="text-muted">Google Pay, PhonePe, Paytm</div>
+              </div>
+            </div>
+          </div>
+          <div class="payment-method" data-payment="cod">
+            <div class="d-flex align-items-center">
+              <span class="payment-icon">💰</span>
+              <div>
+                <strong>Cash on Delivery</strong>
+                <div class="text-muted">Pay when you receive</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Details (shown when card is selected) -->
+          <div id="card-details" class="mt-3">
+            <div class="form-group">
+              <label class="form-label">Card Number</label>
+              <input type="text" class="form-control" placeholder="1234 5678 9012 3456">
+            </div>
+            <div class="row">
+              <div class="col-md-8">
+                <div class="form-group">
+                  <label class="form-label">Expiry Date</label>
+                  <input type="text" class="form-control" placeholder="MM/YY">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="form-label">CVV</label>
+                  <input type="text" class="form-control" placeholder="123">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="checkout-section">
+          <div class="section-title">📋 Order Summary</div>
+          <div class="order-summary">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span id="subtotal">$0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Delivery Fee:</span>
+              <span id="delivery-fee">$0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Platform Fee:</span>
+              <span id="platform-fee">$0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Taxes:</span>
+              <span id="taxes">$0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Discount:</span>
+              <span id="discount" class="text-success">-$0.00</span>
+            </div>
+            <div class="summary-row summary-total">
+              <span>Total:</span>
+              <span id="total">$0.00</span>
+            </div>
+          </div>
+          <button class="place-order-btn mt-3" onclick="placeOrder()">
+            🚀 Place Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let cart = JSON.parse(localStorage.getItem('furrbutler_cart') || '[]');
+    let deliveryFee = 0;
+    let selectedPayment = 'card';
+
+    function initializeCheckout() {
+      if (cart.length === 0) {
+        document.getElementById('cart-items').innerHTML = `
+          <div class="empty-cart">
+            <h4>Your cart is empty</h4>
+            <p>Add some products to your cart before checking out.</p>
+            <a href="/marketplace" class="btn btn-primary">Continue Shopping</a>
+          </div>
+        `;
+        document.querySelector('.place-order-btn').disabled = true;
+        return;
+      }
+
+      renderCartItems();
+      setupEventListeners();
+      calculateTotals();
+    }
+
+    function renderCartItems() {
+      const cartItemsHtml = cart.map((item, index) => `
+        <div class="cart-item">
+          <img src="${item.image || 'https://via.placeholder.com/80'}" alt="${item.name}" class="item-image">
+          <div class="item-details">
+            <div class="item-name">${item.name}</div>
+            <div class="item-vendor">from ${item.vendor || 'Unknown Vendor'}</div>
+            <div class="item-price">$${item.price.toFixed(2)}</div>
+            <div class="quantity-controls">
+              <button class="quantity-btn" onclick="updateQuantity(${index}, -1)">-</button>
+              <span class="quantity-display">${item.quantity}</span>
+              <button class="quantity-btn" onclick="updateQuantity(${index}, 1)">+</button>
+              <button class="remove-btn" onclick="removeItem(${index})">🗑️ Remove</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      document.getElementById('cart-items').innerHTML = cartItemsHtml;
+    }
+
+    function updateQuantity(index, change) {
+      if (cart[index].quantity + change <= 0) {
+        removeItem(index);
+        return;
+      }
+      
+      cart[index].quantity += change;
+      localStorage.setItem('furrbutler_cart', JSON.stringify(cart));
+      renderCartItems();
+      calculateTotals();
+    }
+
+    function removeItem(index) {
+      cart.splice(index, 1);
+      localStorage.setItem('furrbutler_cart', JSON.stringify(cart));
+      
+      if (cart.length === 0) {
+        location.reload();
+      } else {
+        renderCartItems();
+        calculateTotals();
+      }
+    }
+
+    function setupEventListeners() {
+      // Delivery option selection
+      document.querySelectorAll('.delivery-option').forEach(option => {
+        option.addEventListener('click', function() {
+          document.querySelectorAll('.delivery-option').forEach(o => o.classList.remove('selected'));
+          this.classList.add('selected');
+          
+          const deliveryType = this.dataset.delivery;
+          deliveryFee = deliveryType === 'standard' ? 0 : 
+                       deliveryType === 'express' ? 5.99 : 12.99;
+          
+          calculateTotals();
+        });
+      });
+
+      // Payment method selection
+      document.querySelectorAll('.payment-method').forEach(method => {
+        method.addEventListener('click', function() {
+          document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+          this.classList.add('selected');
+          
+          selectedPayment = this.dataset.payment;
+          
+          // Show/hide card details
+          const cardDetails = document.getElementById('card-details');
+          cardDetails.style.display = selectedPayment === 'card' ? 'block' : 'none';
+        });
+      });
+    }
+
+    function calculateTotals() {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const platformFee = subtotal * 0.1; // 10% platform fee
+      const taxes = subtotal * 0.08; // 8% tax
+      const discount = 0; // No discount for now
+      const total = subtotal + deliveryFee + platformFee + taxes - discount;
+
+      document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById('delivery-fee').textContent = `$${deliveryFee.toFixed(2)}`;
+      document.getElementById('platform-fee').textContent = `$${platformFee.toFixed(2)}`;
+      document.getElementById('taxes').textContent = `$${taxes.toFixed(2)}`;
+      document.getElementById('discount').textContent = `-$${discount.toFixed(2)}`;
+      document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function placeOrder() {
+      if (cart.length === 0) {
+        alert('Your cart is empty!');
+        return;
+      }
+
+      // Validate form fields
+      const requiredFields = ['Full Name', 'Phone Number', 'Street Address', 'City', 'State', 'ZIP Code'];
+      const inputs = document.querySelectorAll('.form-control');
+      
+      for (let input of inputs) {
+        if (input.placeholder && requiredFields.some(field => input.placeholder.includes(field)) && !input.value.trim()) {
+          alert(`Please fill in ${input.placeholder}`);
+          input.focus();
+          return;
+        }
+      }
+
+      // Validate payment method
+      if (selectedPayment === 'card') {
+        const cardNumber = document.querySelector('input[placeholder="1234 5678 9012 3456"]').value;
+        const expiry = document.querySelector('input[placeholder="MM/YY"]').value;
+        const cvv = document.querySelector('input[placeholder="123"]').value;
+        
+        if (!cardNumber || !expiry || !cvv) {
+          alert('Please fill in all card details');
+          return;
+        }
+      }
+
+      // Calculate final total
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const total = subtotal + deliveryFee + (subtotal * 0.1) + (subtotal * 0.08);
+
+      // Show order confirmation
+      alert(`Order placed successfully!\n\nOrder Total: $${total.toFixed(2)}\nPayment Method: ${selectedPayment.toUpperCase()}\n\nThank you for your purchase!`);
+      
+      // Store purchase in localStorage for history
+      const purchase = {
+        items: cart,
+        total: total,
+        date: new Date().toISOString(),
+        payment_method: selectedPayment,
+        delivery_fee: deliveryFee
+      };
+      
+      const purchaseHistory = JSON.parse(localStorage.getItem('furrbutler_purchases') || '[]');
+      purchaseHistory.push(purchase);
+      localStorage.setItem('furrbutler_purchases', JSON.stringify(purchaseHistory));
+      
+      // Clear cart
+      localStorage.removeItem('furrbutler_cart');
+      
+      // Redirect to purchase history
+      window.location.href = '/marketplace/purchase-history';
+    }
+
+    // Initialize checkout when page loads
+    document.addEventListener('DOMContentLoaded', initializeCheckout);
+  </script>
+</body>
+</html>

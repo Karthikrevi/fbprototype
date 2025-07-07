@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -120,40 +119,95 @@
       </div>
     </div>
 
-    {% if purchases %}
-      {% for purchase in purchases %}
-      <div class="purchase-item">
-        {% if purchase[6] %}
-          <img src="{{ purchase[6] }}" alt="{{ purchase[5] }}" class="product-image">
-        {% else %}
-          <div class="product-image d-flex align-items-center justify-content-center" style="background-color: #f8f9fa;">
-            <span style="font-size: 2rem;">📦</span>
-          </div>
-        {% endif %}
+    <div id="purchase-list">
+      {% if purchases %}
+        {% for purchase in purchases %}
+        <div class="purchase-item">
+          {% if purchase[6] %}
+            <img src="{{ purchase[6] }}" alt="{{ purchase[5] }}" class="product-image">
+          {% else %}
+            <div class="product-image d-flex align-items-center justify-content-center" style="background-color: #f8f9fa;">
+              <span style="font-size: 2rem;">📦</span>
+            </div>
+          {% endif %}
 
-        <div class="purchase-details">
-          <div class="product-name">{{ purchase[5] }}</div>
-          <div class="vendor-name">from {{ purchase[7] }}</div>
-          <div class="purchase-meta">
-            Quantity: {{ purchase[1] }} | Unit Price: ₹{{ "%.2f"|format(purchase[2]) }}
+          <div class="purchase-details">
+            <div class="product-name">{{ purchase[5] }}</div>
+            <div class="vendor-name">from {{ purchase[7] }}</div>
+            <div class="purchase-meta">
+              Quantity: {{ purchase[1] }} | Unit Price: ₹{{ "%.2f"|format(purchase[2]) }}
+            </div>
+            <div class="purchase-meta">
+              Order Date: {{ purchase[4] }}
+            </div>
           </div>
-          <div class="purchase-meta">
-            Order Date: {{ purchase[4] }}
+
+          <div class="purchase-price">
+            ₹{{ "%.2f"|format(purchase[3]) }}
           </div>
         </div>
+        {% endfor %}
+      {% endif %}
+    </div>
 
-        <div class="purchase-price">
-          ₹{{ "%.2f"|format(purchase[3]) }}
-        </div>
+    <div class="no-purchases" id="no-purchases" style="display: none;">
+        <h4>No purchases yet</h4>
+        <p>You haven't made any purchases yet. Start shopping to see your order history here.</p>
+        <a href="/marketplace" class="btn btn-primary">Start Shopping</a>
       </div>
-      {% endfor %}
-    {% else %}
-      <div class="no-purchases">
-        <h3>🛒 No purchases yet</h3>
-        <p class="text-muted">Start shopping to see your purchase history here!</p>
-        <a href="/marketplace" class="btn btn-primary">Browse Products</a>
-      </div>
-    {% endif %}
+    </div>
+
+    <script>
+      function loadPurchaseHistory() {
+        const purchaseHistory = JSON.parse(localStorage.getItem('furrbutler_purchases') || '[]');
+        const purchaseList = document.getElementById('purchase-list');
+        const noPurchases = document.getElementById('no-purchases');
+
+        if (purchaseHistory.length === 0) {
+          noPurchases.style.display = 'block';
+          return;
+        }
+
+        let totalOrders = 0;
+        let totalSpent = 0;
+
+        const purchasesHtml = purchaseHistory.map(purchase => {
+          totalOrders++;
+          totalSpent += purchase.total;
+
+          const orderDate = new Date(purchase.date).toLocaleDateString();
+
+          return purchase.items.map(item => `
+            <div class="purchase-item">
+              <div class="product-image d-flex align-items-center justify-content-center" style="background-color: #f8f9fa;">
+                <span style="font-size: 2rem;">📦</span>
+              </div>
+              <div class="purchase-details">
+                <div class="product-name">${item.name}</div>
+                <div class="vendor-name">from ${item.vendor || 'Unknown Vendor'}</div>
+                <div class="purchase-meta">
+                  Quantity: ${item.quantity} | Unit Price: $${item.price.toFixed(2)}
+                </div>
+                <div class="purchase-meta">
+                  Order Date: ${orderDate}
+                </div>
+              </div>
+              <div class="purchase-price">
+                $${(item.price * item.quantity).toFixed(2)}
+              </div>
+            </div>
+          `).join('');
+        }).join('');
+
+        purchaseList.innerHTML = purchasesHtml;
+
+        // Update stats
+        document.querySelector('.stat-card .stat-number').textContent = totalOrders;
+        document.querySelectorAll('.stat-card .stat-number')[1].textContent = `$${totalSpent.toFixed(2)}`;
+      }
+
+      document.addEventListener('DOMContentLoaded', loadPurchaseHistory);
+    </script>
   </div>
 </body>
 </html>

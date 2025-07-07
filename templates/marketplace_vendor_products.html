@@ -187,7 +187,9 @@
         id: productId,
         name: productName,
         price: price,
-        quantity: 1
+        quantity: 1,
+        vendor: '{{ vendor.name }}',
+        image: null // Will be populated if image is available
       });
 
       // Update button text
@@ -204,11 +206,11 @@
         return;
       }
 
-      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const platformFee = total * 0.1;
-      const finalTotal = total + platformFee;
-
-      alert(`Cart Summary:\nSubtotal: $${total.toFixed(2)}\nPlatform Fee (10%): $${platformFee.toFixed(2)}\nTotal: $${finalTotal.toFixed(2)}\n\n(Razorpay integration coming soon!)`);
+      // Store cart in localStorage for checkout page
+      localStorage.setItem('furrbutler_cart', JSON.stringify(cart));
+      
+      // Redirect to checkout page
+      window.location.href = '/checkout';
     }
   </script>
 </body>

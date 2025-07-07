@@ -1525,6 +1525,13 @@ def marketplace_vendor_products(vendor_id):
 
     return render_template("marketplace_vendor_products.html", vendor=vendor, products=products, vendor_id=vendor_id)
 
+@app.route('/checkout')
+def checkout():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    return render_template("checkout.html")
+
 # Run app
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=81, debug=True)
