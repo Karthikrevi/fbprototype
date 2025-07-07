@@ -1,0 +1,19 @@
+
+{
+  "name": "FurrButler - Pet Services Platform",
+  "short_name": "FurrButler",
+  "description": "Complete pet care management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
