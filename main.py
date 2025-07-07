@@ -215,9 +215,25 @@ def init_erp_db():
     c.execute('''
         INSERT OR IGNORE INTO master_settings (setting_name, setting_value, description)
         VALUES 
-        ('platform_commission_rate', 10.0, 'Platform commission percentage'),
+        ('marketplace_commission_rate', 10.0, 'Commission percentage for marketplace sales'),
+        ('grooming_commission_rate', 15.0, 'Commission percentage for grooming services'),
         ('payment_processing_fee', 2.9, 'Payment processing fee percentage'),
         ('marketplace_listing_fee', 0.0, 'Fee for listing products on marketplace')
+    ''')
+
+    # Create platform earnings table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS platform_earnings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            transaction_type TEXT NOT NULL,
+            service_type TEXT NOT NULL,
+            base_amount REAL NOT NULL,
+            commission_rate REAL NOT NULL,
+            commission_amount REAL NOT NULL,
+            transaction_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
     ''')
 
     c.execute('''
@@ -728,6 +744,11 @@ def erp_login():
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]
+        
+        # Check for admin login
+        if email == "admin@furrbutler.com" and password == "admin123":
+            session["master_admin"] = True
+            return redirect(url_for("master_admin_dashboard"))
 
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
@@ -1609,13 +1630,40 @@ def master_admin_dashboard():
     c.execute("SELECT COALESCE(SUM(fee_amount), 0) FROM platform_fees")
     total_commission = c.fetchone()[0]
     
+    # Get platform earnings
+    c.execute("SELECT COALESCE(SUM(commission_amount), 0) FROM platform_earnings")
+    platform_earnings = c.fetchone()[0]
+    
+    # Get earnings breakdown by service type
+    c.execute("""
+        SELECT service_type, 
+               COALESCE(SUM(commission_amount), 0) as earnings,
+               COUNT(*) as transactions
+        FROM platform_earnings 
+        GROUP BY service_type
+    """)
+    earnings_breakdown = c.fetchall()
+    
+    # Get recent transactions for admin view
+    c.execute("""
+        SELECT pe.*, v.name as vendor_name
+        FROM platform_earnings pe
+        JOIN vendors v ON pe.vendor_id = v.id
+        ORDER BY pe.transaction_date DESC
+        LIMIT 10
+    """)
+    recent_transactions = c.fetchall()
+    
     conn.close()
     
     stats = {
         'total_vendors': total_vendors,
         'total_products': total_products,
         'total_sales': total_sales,
-        'total_commission': total_commission
+        'total_commission': total_commission,
+        'platform_earnings': platform_earnings,
+        'earnings_breakdown': earnings_breakdown,
+        'recent_transactions': recent_transactions
     }
     
     return render_template("master_admin_dashboard.html", settings=settings, stats=stats)
@@ -1625,28 +1673,35 @@ def update_commission():
     if not session.get("master_admin"):
         return redirect(url_for("master_admin_login"))
     
-    new_commission = float(request.form.get("commission_rate", 10.0))
+    marketplace_commission = float(request.form.get("marketplace_commission_rate", 10.0))
+    grooming_commission = float(request.form.get("grooming_commission_rate", 15.0))
     
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     
-    # Update master commission rate
+    # Update master commission rates
     c.execute("""
         UPDATE master_settings 
         SET setting_value = ?, last_updated = CURRENT_TIMESTAMP 
-        WHERE setting_name = 'platform_commission_rate'
-    """, (new_commission,))
+        WHERE setting_name = 'marketplace_commission_rate'
+    """, (marketplace_commission,))
     
-    # Update all vendor settings with new commission rate
+    c.execute("""
+        UPDATE master_settings 
+        SET setting_value = ?, last_updated = CURRENT_TIMESTAMP 
+        WHERE setting_name = 'grooming_commission_rate'
+    """, (grooming_commission,))
+    
+    # Update all vendor settings with new marketplace commission rate
     c.execute("""
         UPDATE settings_vendor 
         SET platform_fee = ?
-    """, (new_commission,))
+    """, (marketplace_commission,))
     
     conn.commit()
     conn.close()
     
-    flash(f"Commission rate updated to {new_commission}% for all vendors")
+    flash(f"Commission rates updated: Marketplace {marketplace_commission}%, Grooming {grooming_commission}%")
     return redirect(url_for("master_admin_dashboard"))
 
 @app.route('/master/admin/logout')

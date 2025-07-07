@@ -22,16 +22,19 @@
       box-shadow: 0 5px 15px rgba(0,0,0,0.1);
       margin-bottom: 20px;
       border-left: 5px solid;
+      text-align: center;
     }
     .stat-card.vendors { border-left-color: #28a745; }
     .stat-card.products { border-left-color: #007bff; }
     .stat-card.sales { border-left-color: #ffc107; }
     .stat-card.commission { border-left-color: #dc3545; }
+    .stat-card.earnings { border-left-color: #17a2b8; }
     .settings-card {
       background: white;
       border-radius: 15px;
       padding: 30px;
       box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
     .btn-update {
       background: linear-gradient(45deg, #28a745, #20c997);
@@ -41,8 +44,25 @@
       border-radius: 8px;
     }
     .commission-input {
-      max-width: 150px;
+      max-width: 120px;
       display: inline-block;
+      margin-right: 10px;
+    }
+    .earnings-breakdown {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .transaction-table {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .section-title {
+      color: #764ba2;
+      margin-bottom: 20px;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -70,19 +90,19 @@
 
     <!-- Platform Statistics -->
     <div class="row mb-4">
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="stat-card vendors">
           <h4>{{ stats.total_vendors }}</h4>
           <p class="mb-0">Total Vendors</p>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="stat-card products">
           <h4>{{ stats.total_products }}</h4>
           <p class="mb-0">Total Products</p>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="stat-card sales">
           <h4>${{ "%.2f"|format(stats.total_sales) }}</h4>
           <p class="mb-0">Total Sales</p>
@@ -91,41 +111,114 @@
       <div class="col-md-3">
         <div class="stat-card commission">
           <h4>${{ "%.2f"|format(stats.total_commission) }}</h4>
-          <p class="mb-0">Total Commission</p>
+          <p class="mb-0">Legacy Commission</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card earnings">
+          <h4>${{ "%.2f"|format(stats.platform_earnings) }}</h4>
+          <p class="mb-0">Platform Earnings</p>
         </div>
       </div>
     </div>
 
     <!-- Commission Management -->
     <div class="settings-card">
-      <h3 style="color: #764ba2; margin-bottom: 25px;">💰 Platform Commission Management</h3>
+      <h3 class="section-title">💰 Commission Rate Management</h3>
       
       <form method="POST" action="{{ url_for('update_commission') }}">
-        <div class="row align-items-end">
-          <div class="col-md-3">
-            <label class="form-label">Current Commission Rate (%)</label>
-            {% for setting in settings %}
-              {% if setting[1] == 'platform_commission_rate' %}
-                <input type="number" class="form-control commission-input" name="commission_rate" 
-                       value="{{ setting[2] }}" step="0.1" min="0" max="50" required>
-              {% endif %}
-            {% endfor %}
-          </div>
+        <div class="row">
           <div class="col-md-6">
-            <p class="text-muted mb-0">
-              This commission rate applies to all vendors platform-wide.<br>
-              Vendors cannot modify this rate - only platform owners can.
-            </p>
+            <h5>🛍️ Marketplace Commission</h5>
+            <div class="d-flex align-items-center mb-3">
+              {% for setting in settings %}
+                {% if setting[1] == 'marketplace_commission_rate' %}
+                  <input type="number" class="form-control commission-input" name="marketplace_commission_rate" 
+                         value="{{ setting[2] }}" step="0.1" min="0" max="50" required>
+                  <span class="me-2">%</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="text-muted small">Applied to all product sales through marketplace</p>
           </div>
-          <div class="col-md-3">
-            <button type="submit" class="btn btn-update">Update Commission Rate</button>
+          
+          <div class="col-md-6">
+            <h5>✂️ Grooming Services Commission</h5>
+            <div class="d-flex align-items-center mb-3">
+              {% for setting in settings %}
+                {% if setting[1] == 'grooming_commission_rate' %}
+                  <input type="number" class="form-control commission-input" name="grooming_commission_rate" 
+                         value="{{ setting[2] }}" step="0.1" min="0" max="50" required>
+                  <span class="me-2">%</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="text-muted small">Applied to all grooming and service bookings</p>
           </div>
+        </div>
+        
+        <div class="text-center">
+          <button type="submit" class="btn btn-update">Update Commission Rates</button>
         </div>
       </form>
 
-      <hr class="my-4">
+      <!-- Earnings Breakdown -->
+      <div class="earnings-breakdown">
+        <h5 class="section-title">📊 Earnings Breakdown</h5>
+        <div class="row">
+          {% for breakdown in stats.earnings_breakdown %}
+          <div class="col-md-6 mb-3">
+            <div class="card border-0">
+              <div class="card-body text-center">
+                <h6 class="card-title">{{ breakdown[0].title() }}</h6>
+                <h4 class="text-success">${{ "%.2f"|format(breakdown[1]) }}</h4>
+                <p class="text-muted mb-0">{{ breakdown[2] }} transactions</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
 
-      <h5 style="color: #6c757d;">📊 Platform Settings Overview</h5>
+    <!-- Recent Transactions -->
+    <div class="settings-card">
+      <h3 class="section-title">🔄 Recent Platform Transactions</h3>
+      <div class="transaction-table">
+        <table class="table table-striped mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Date</th>
+              <th>Vendor</th>
+              <th>Service Type</th>
+              <th>Base Amount</th>
+              <th>Commission Rate</th>
+              <th>Commission Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transaction in stats.recent_transactions %}
+            <tr>
+              <td>{{ transaction[7][:10] }}</td>
+              <td>{{ transaction[8] }}</td>
+              <td>
+                <span class="badge bg-{% if transaction[3] == 'marketplace' %}primary{% else %}success{% endif %}">
+                  {{ transaction[3].title() }}
+                </span>
+              </td>
+              <td>${{ "%.2f"|format(transaction[4]) }}</td>
+              <td>{{ transaction[5] }}%</td>
+              <td class="text-success fw-bold">${{ "%.2f"|format(transaction[6]) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Platform Settings Overview -->
+    <div class="settings-card">
+      <h5 class="section-title">⚙️ Platform Settings Overview</h5>
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
@@ -156,8 +249,13 @@
       </div>
 
       <div class="alert alert-info mt-3">
-        <strong>Note:</strong> Delivery pricing is managed individually by vendors in their settings dashboard. 
-        The platform commission is the only setting controlled centrally.
+        <strong>Note:</strong> 
+        <ul class="mb-0">
+          <li>Marketplace commission applies to all product sales</li>
+          <li>Grooming commission applies to all service bookings</li>
+          <li>Delivery pricing is managed individually by vendors</li>
+          <li>Platform earnings are tracked separately from legacy commission system</li>
+        </ul>
       </div>
     </div>
   </div>
