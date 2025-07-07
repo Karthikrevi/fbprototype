@@ -997,8 +997,17 @@ def profit_loss():
     result = c.fetchone()
 
     if result is None:
+        # Show P&L with zero values if vendor not found
+        pnl_data = {
+            'revenue': 0,
+            'cogs': 0,
+            'gross_profit': 0,
+            'expenses': 0,
+            'platform_fees': 0,
+            'net_profit': 0
+        }
         conn.close()
-        return redirect(url_for("vendor_login"))
+        return render_template("profit_loss.html", pnl=pnl_data)
 
     vendor_id = result[0]
 
@@ -1074,8 +1083,9 @@ def manage_expenses():
     result = c.fetchone()
 
     if result is None:
+        # Show empty expenses page if vendor not found
         conn.close()
-        return redirect(url_for("vendor_login"))
+        return render_template("manage_expenses.html", expenses=[])
 
     vendor_id = result[0]
 
@@ -1121,8 +1131,9 @@ def accounting_settings():
     result = c.fetchone()
 
     if result is None:
+        # Show settings page with default values if vendor not found
         conn.close()
-        return redirect(url_for("vendor_login"))
+        return render_template("accounting_settings.html", settings=None)
 
     vendor_id = result[0]
 
@@ -1165,8 +1176,12 @@ def sales_analytics():
     result = c.fetchone()
 
     if result is None:
+        # Show empty sales analytics if vendor not found
         conn.close()
-        return redirect(url_for("vendor_login"))
+        return render_template("sales_analytics.html", 
+                             sales=[], 
+                             monthly_summary=[], 
+                             top_products=[])
 
     vendor_id = result[0]
 
