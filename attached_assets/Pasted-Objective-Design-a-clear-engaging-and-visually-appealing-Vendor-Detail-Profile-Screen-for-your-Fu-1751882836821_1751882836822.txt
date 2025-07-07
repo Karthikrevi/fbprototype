@@ -1,0 +1,88 @@
+Objective:
+Design a clear, engaging, and visually appealing Vendor Detail/Profile Screen for your FurrButler prototype. This screen is accessed when users select a vendor from the Vendor Listings Screen. It clearly showcases vendor details, services offered, pricing, booking availability, and lovable branding elements to foster trust and warmth.
+
+📌 Design Guidelines:
+Layout & Style:
+
+Overall Feel: Clean, professional, yet warm and inviting.
+
+Color Palette: Pastel backgrounds, clear contrasts, and consistent FurrButler brand accents.
+
+Typography: Friendly, highly readable fonts like Inter or Poppins for clarity.
+
+Visual Elements: Rounded cards or sections, subtle shadows, gentle borders, and charming pet icons for added warmth.
+
+Branding & Visuals:
+
+Vendor’s prominently displayed image/logo at the top (banner-style or clear header).
+
+Clear use of pet-friendly visuals (paw prints, pet icons, heart symbols).
+
+FurrButler branding subtly integrated (e.g., small logo or accent elements at the top or footer).
+
+📱 Screen Components & Functionality:
+Top Navigation/Header:
+
+Sticky header containing:
+
+Vendor Name prominently displayed.
+
+Clearly visible back button/icon to navigate back to Vendor Listings.
+
+Optional share/save button for users to bookmark or share vendor profile.
+
+Vendor Main Information Section:
+
+Large, appealing banner image or clearly visible logo/photo at the top.
+
+Clearly readable Vendor Name.
+
+Short, friendly description or tagline (e.g., “Your pet’s second favorite place after home!”).
+
+Vendor Rating (star-based, e.g., ★★★★☆), clearly visible with numeric rating.
+
+Vendor’s current availability status clearly indicated (e.g., "Open Now" in green).
+
+Detailed Vendor Information Section:
+
+Clearly structured information displayed in cards or neat sections:
+
+Address: Full address with a clickable map link/icon (optional).
+
+Contact Information: Clearly visible phone number or contact button (optional).
+
+Working Hours: Clear, easy-to-read daily hours.
+
+Distance from User: e.g., "Located just 2 km from you!"
+
+Services & Pricing Section:
+
+Clearly displayed services provided (e.g., grooming, boarding, bathing, training).
+
+Individual pricing for each service clearly marked.
+
+Lovable icons next to each service for quick visual understanding.
+
+Clear Call-to-Action (CTA) button ("Book Now") prominently placed.
+
+User Reviews Section (Recommended Optional Feature):
+
+Lovable, scrollable section clearly showing user testimonials, star ratings, and comments.
+
+Option for users to read more reviews via an expandable button.
+
+✨ Lovable UX & Interaction Notes:
+Gentle, subtle animations when scrolling or interacting with sections (e.g., card lift on hover, slight bounce).
+
+Comforting microcopy encouraging users to book (e.g., "Charlie would love it here!").
+
+Ensure ease of navigation and intuitive interactions.
+
+🔍 Additional Functionality (Optional Enhancements):
+Option to directly initiate chat or WhatsApp contact with vendors.
+
+Easy-to-access vendor social media icons for quick credibility checks.
+
+🧑‍💻 Expected Outcome (Prototype Screen):
+An intuitive, fully interactive Vendor Detail/Profile Screen clearly connecting from the Vendor Listings, allowing seamless navigation toward booking functionality.
+
