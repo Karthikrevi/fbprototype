@@ -20,16 +20,16 @@ def init_erp_db():
         # Get current column structure
         c.execute("PRAGMA table_info(products)")
         existing_columns = [column[1] for column in c.fetchall()]
-        
+
         # If the table exists but doesn't have the right columns, recreate it
         required_columns = ['id', 'vendor_id', 'name', 'description', 'category', 'buy_price', 'sale_price', 'quantity', 'image_url', 'barcode']
         missing_columns = [col for col in required_columns if col not in existing_columns]
-        
+
         if missing_columns:
             # Backup existing data
             c.execute("SELECT * FROM products")
             existing_products = c.fetchall()
-            
+
             # Drop and recreate table
             c.execute("DROP TABLE products")
             products_table_exists = False
@@ -384,7 +384,7 @@ def groomers():
     user_city = "Trivandrum"  # Hardcoded for now
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get all groomers in the same city
     c.execute("""
         SELECT * FROM vendors 
@@ -819,7 +819,12 @@ def toggle_vendor_online():
     c = conn.cursor()
 
     c.execute("SELECT is_online FROM vendors WHERE email=?", (email,))
-    current_status = c.fetchone()[0]
+    current_status = c.fetchone()
+    if current_status is None:
+        conn.close()
+        return "Vendor not found", 404
+
+    current_status = current_status[0]
 
     new_status = 1 if current_status == 0 else 0
     c.execute("UPDATE vendors SET is_online=? WHERE email=?", (new_status, email))
@@ -843,10 +848,16 @@ def accounting_dashboard():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_id = c.fetchone()[0]
+    vendor_id = c.fetchone()
+
+    if vendor_id is None:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_id[0]
 
     # Quick stats
     c.execute("SELECT SUM(amount) FROM sales_log WHERE vendor_id=?", (vendor_id,))
@@ -879,9 +890,9 @@ def general_ledger():
         return redirect(url_for("erp_login"))
 
     email = session["vendor"]
-    conn = sqlite3.connect('erp.db')
+    conn= sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     c.execute("""
         SELECT le.*, v.id as vendor_id FROM ledger_entries le 
         JOIN vendors v ON le.vendor_id = v.id 
@@ -889,7 +900,7 @@ def general_ledger():
         ORDER BY le.timestamp DESC
     """, (email,))
     entries = c.fetchall()
-    
+
     conn.close()
     return render_template("general_ledger.html", entries=entries)
 
@@ -901,10 +912,16 @@ def profit_loss():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_id = c.fetchone()[0]
+    result = c.fetchone()
+
+    if result is None:
+        conn.close()
+        return redirect(url_for("erp_login"))
+
+    vendor_id = result[0]
 
     # Sales (Revenue)
     c.execute("SELECT SUM(total_amount) FROM sales_log WHERE vendor_id=?", (vendor_id,))
@@ -950,7 +967,7 @@ def inventory_report():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     c.execute("""
         SELECT p.name, p.quantity, p.buy_price, p.sale_price,
                (p.quantity * p.buy_price) as total_cost,
@@ -960,7 +977,7 @@ def inventory_report():
         WHERE v.email=?
     """, (email,))
     inventory = c.fetchall()
-    
+
     conn.close()
     return render_template("inventory_report.html", inventory=inventory)
 
@@ -972,10 +989,16 @@ def manage_expenses():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_id = c.fetchone()[0]
+    result = c.fetchone()
+
+    if result is None:
+        conn.close()
+        return redirect(url_for("erp_login"))
+
+    vendor_id = result[0]
 
     if request.method == "POST":
         category = request.form.get("category")
@@ -1001,7 +1024,7 @@ def manage_expenses():
     # Get all expenses
     c.execute("SELECT * FROM expenses WHERE vendor_id=? ORDER BY date DESC", (vendor_id,))
     expenses = c.fetchall()
-    
+
     conn.close()
     return render_template("manage_expenses.html", expenses=expenses)
 
@@ -1013,10 +1036,16 @@ def accounting_settings():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_id = c.fetchone()[0]
+    result = c.fetchone()
+
+    if result is None:
+        conn.close()
+        return redirect(url_for("erp_login"))
+
+    vendor_id = result[0]
 
     if request.method == "POST":
         gst_rate = float(request.form.get("gst_rate", 18.0))
@@ -1039,7 +1068,7 @@ def accounting_settings():
     # Get current settings
     c.execute("SELECT * FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
     settings = c.fetchone()
-    
+
     conn.close()
     return render_template("accounting_settings.html", settings=settings)
 
