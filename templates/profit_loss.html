@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profit & Loss Statement - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .pnl-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .pnl-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .pnl-row.total {
+      font-weight: bold;
+      font-size: 1.1rem;
+      border-bottom: 2px solid #333;
+      margin-top: 10px;
+    }
+    
+    .pnl-row.section-header {
+      background: #f8f9fa;
+      font-weight: bold;
+      color: #667eea;
+      margin: 20px -20px 10px -20px;
+      padding: 15px 20px;
+      border-bottom: none;
+    }
+    
+    .amount {
+      font-family: monospace;
+      font-weight: bold;
+    }
+    
+    .positive { color: #28a745; }
+    .negative { color: #dc3545; }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .export-btns {
+      text-align: center;
+      margin-top: 30px;
+    }
+    
+    .btn-export {
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      margin: 0 10px;
+      text-decoration: none;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Reports</a>
+  
+  <div class="header">
+    <h1>📜 Profit & Loss Statement</h1>
+    <p>Financial performance overview</p>
+  </div>
+
+  <div class="pnl-container">
+    <h3 style="text-align: center; margin-bottom: 30px; color: #333;">P&L Statement</h3>
+    
+    <div class="pnl-row section-header">
+      REVENUE
+    </div>
+    
+    <div class="pnl-row">
+      <span>Sales Revenue</span>
+      <span class="amount">₹{{ "%.2f"|format(pnl.revenue) }}</span>
+    </div>
+    
+    <div class="pnl-row total">
+      <span>Total Revenue</span>
+      <span class="amount positive">₹{{ "%.2f"|format(pnl.revenue) }}</span>
+    </div>
+
+    <div class="pnl-row section-header">
+      COST OF GOODS SOLD
+    </div>
+    
+    <div class="pnl-row">
+      <span>Cost of Products Sold</span>
+      <span class="amount">₹{{ "%.2f"|format(pnl.cogs) }}</span>
+    </div>
+    
+    <div class="pnl-row total">
+      <span>Gross Profit</span>
+      <span class="amount {{ 'positive' if pnl.gross_profit >= 0 else 'negative' }}">₹{{ "%.2f"|format(pnl.gross_profit) }}</span>
+    </div>
+
+    <div class="pnl-row section-header">
+      OPERATING EXPENSES
+    </div>
+    
+    <div class="pnl-row">
+      <span>Business Expenses</span>
+      <span class="amount">₹{{ "%.2f"|format(pnl.expenses) }}</span>
+    </div>
+    
+    <div class="pnl-row">
+      <span>Platform Fees</span>
+      <span class="amount">₹{{ "%.2f"|format(pnl.platform_fees) }}</span>
+    </div>
+    
+    <div class="pnl-row total">
+      <span>Total Operating Expenses</span>
+      <span class="amount negative">₹{{ "%.2f"|format(pnl.expenses + pnl.platform_fees) }}</span>
+    </div>
+
+    <div class="pnl-row total" style="font-size: 1.3rem; color: {{ 'green' if pnl.net_profit >= 0 else 'red' }}; border-bottom: 3px solid currentColor;">
+      <span>NET PROFIT</span>
+      <span class="amount">₹{{ "%.2f"|format(pnl.net_profit) }}</span>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+      <small style="color: #666;">
+        <strong>Gross Margin:</strong> {{ "%.1f"|format((pnl.gross_profit / pnl.revenue * 100) if pnl.revenue > 0 else 0) }}% |
+        <strong>Net Margin:</strong> {{ "%.1f"|format((pnl.net_profit / pnl.revenue * 100) if pnl.revenue > 0 else 0) }}%
+      </small>
+    </div>
+  </div>
+
+  <div class="export-btns">
+    <a href="#" class="btn-export">📄 Export PDF</a>
+    <a href="#" class="btn-export">📊 Export CSV</a>
+    <a href="#" class="btn-export">📧 Email Report</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Accounting Settings - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .settings-container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .settings-section {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .settings-section:last-child {
+      border-bottom: none;
+    }
+    
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    
+    .form-group small {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .checkbox-group input {
+      width: auto;
+      margin-right: 10px;
+    }
+    
+    .btn-save {
+      background: #28a745;
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1.1rem;
+    }
+    
+    .btn-save:hover {
+      background: #218838;
+    }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Reports</a>
+  
+  <div class="header">
+    <h1>⚙️ Accounting Settings</h1>
+    <p>Configure your business accounting preferences</p>
+  </div>
+
+  <div class="settings-container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert">
+          {% for message in messages %}
+            {{ message }}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="settings-section">
+        <div class="section-title">💰 Tax & Financial Settings</div>
+        
+        <div class="form-group">
+          <label>GST Rate (%)</label>
+          <input type="number" name="gst_rate" step="0.01" 
+                 value="{{ settings[2] if settings else 18.0 }}" required>
+          <small>Standard GST rate for your services and products</small>
+        </div>
+        
+        <div class="form-group">
+          <label>Platform Fee (%)</label>
+          <input type="number" name="platform_fee" step="0.01" 
+                 value="{{ settings[3] if settings else 10.0 }}" required>
+          <small>Commission charged by FurrButler platform</small>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">💳 Payment Methods</div>
+        
+        <div class="checkbox-group">
+          <input type="checkbox" name="razorpay_enabled" 
+                 {{ 'checked' if not settings or settings[4] }}>
+          <label>Enable Razorpay Online Payments</label>
+        </div>
+        
+        <div class="checkbox-group">
+          <input type="checkbox" name="cod_enabled" 
+                 {{ 'checked' if not settings or settings[5] }}>
+          <label>Enable Cash on Delivery</label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">📧 Reporting Preferences</div>
+        
+        <div class="checkbox-group">
+          <input type="checkbox" name="auto_reports" 
+                 {{ 'checked' if settings and settings[6] }}>
+          <label>Send monthly financial reports via email</label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-save">💾 Save Settings</button>
+    </form>
+  </div>
+
+  <div style="margin-top: 40px; text-align: center; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 15px;">
+    <h4 style="color: #667eea; margin-bottom: 15px;">⚠️ Important Notes</h4>
+    <ul style="text-align: left; max-width: 600px; margin: 0 auto; color: #666;">
+      <li>GST rate changes will apply to new transactions only</li>
+      <li>Platform fee is automatically calculated on each sale</li>
+      <li>Payment method changes affect checkout options for customers</li>
+      <li>Email reports are sent on the 1st of each month</li>
+    </ul>
+  </div>
+</body>
+</html>

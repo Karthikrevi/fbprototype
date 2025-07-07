@@ -83,11 +83,114 @@ def init_erp_db():
         )
     ''')
 
-    # Check if category column exists in products table, if not add it
+    # Accounting Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ledger_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            entry_type TEXT NOT NULL,
+            account TEXT NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            category TEXT NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            date TEXT NOT NULL,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS sales_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            product_id INTEGER,
+            quantity INTEGER,
+            unit_price REAL,
+            total_amount REAL,
+            customer_email TEXT,
+            sale_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS inventory_batches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            quantity INTEGER,
+            unit_cost REAL,
+            date_added TEXT DEFAULT CURRENT_TIMESTAMP,
+            remaining_quantity INTEGER,
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS payment_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            amount REAL,
+            payment_method TEXT,
+            razorpay_id TEXT,
+            status TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS platform_fees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            sale_id INTEGER,
+            fee_percentage REAL DEFAULT 10.0,
+            fee_amount REAL,
+            date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS settings_vendor (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER UNIQUE,
+            gst_rate REAL DEFAULT 18.0,
+            platform_fee REAL DEFAULT 10.0,
+            razorpay_enabled BOOLEAN DEFAULT 1,
+            cod_enabled BOOLEAN DEFAULT 1,
+            auto_reports BOOLEAN DEFAULT 0,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    # Check if missing columns exist in products table, if not add them
     c.execute("PRAGMA table_info(products)")
     columns = [column[1] for column in c.fetchall()]
     if 'category' not in columns:
         c.execute('ALTER TABLE products ADD COLUMN category TEXT')
+    if 'buy_price' not in columns:
+        c.execute('ALTER TABLE products ADD COLUMN buy_price REAL')
+    if 'vendor_id' not in columns:
+        c.execute('ALTER TABLE products ADD COLUMN vendor_id INTEGER')
+        # Update existing products to have vendor_id
+        c.execute("""
+            UPDATE products 
+            SET vendor_id = (
+                SELECT id FROM vendors WHERE email = products.vendor_email
+            ) 
+            WHERE vendor_email IS NOT NULL
+        """)
 
     # Insert demo vendor
     c.execute('''
@@ -725,6 +828,216 @@ def toggle_vendor_online():
 def erp_logout():
     session.pop("vendor", None)
     return redirect(url_for("erp_login"))
+
+# ---- ACCOUNTING & REPORTING ROUTES ----
+
+@app.route('/erp/reports')
+def accounting_dashboard():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_id = c.fetchone()[0]
+
+    # Quick stats
+    c.execute("SELECT SUM(amount) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    total_sales = c.fetchone()[0] or 0
+
+    c.execute("SELECT SUM(amount) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    total_expenses = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM products WHERE vendor_id=?", (vendor_id,))
+    total_products = c.fetchone()[0] or 0
+
+    c.execute("SELECT SUM(quantity) FROM products WHERE vendor_id=?", (vendor_id,))
+    total_inventory = c.fetchone()[0] or 0
+
+    conn.close()
+
+    stats = {
+        'total_sales': total_sales,
+        'total_expenses': total_expenses,
+        'net_profit': total_sales - total_expenses,
+        'total_products': total_products,
+        'total_inventory': total_inventory
+    }
+
+    return render_template("accounting_dashboard.html", stats=stats)
+
+@app.route('/erp/reports/ledger')
+def general_ledger():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT le.*, v.id as vendor_id FROM ledger_entries le 
+        JOIN vendors v ON le.vendor_id = v.id 
+        WHERE v.email=? 
+        ORDER BY le.timestamp DESC
+    """, (email,))
+    entries = c.fetchall()
+    
+    conn.close()
+    return render_template("general_ledger.html", entries=entries)
+
+@app.route('/erp/reports/pnl')
+def profit_loss():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_id = c.fetchone()[0]
+
+    # Sales (Revenue)
+    c.execute("SELECT SUM(total_amount) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    total_revenue = c.fetchone()[0] or 0
+
+    # Cost of Goods Sold (COGS) - calculated from inventory
+    c.execute("""
+        SELECT SUM(sl.quantity * ib.unit_cost) 
+        FROM sales_log sl 
+        JOIN inventory_batches ib ON sl.product_id = ib.product_id 
+        WHERE sl.vendor_id=?
+    """, (vendor_id,))
+    cogs = c.fetchone()[0] or 0
+
+    # Operating Expenses
+    c.execute("SELECT SUM(amount) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    total_expenses = c.fetchone()[0] or 0
+
+    # Platform Fees
+    c.execute("SELECT SUM(fee_amount) FROM platform_fees WHERE vendor_id=?", (vendor_id,))
+    platform_fees = c.fetchone()[0] or 0
+
+    gross_profit = total_revenue - cogs
+    net_profit = gross_profit - total_expenses - platform_fees
+
+    pnl_data = {
+        'revenue': total_revenue,
+        'cogs': cogs,
+        'gross_profit': gross_profit,
+        'expenses': total_expenses,
+        'platform_fees': platform_fees,
+        'net_profit': net_profit
+    }
+
+    conn.close()
+    return render_template("profit_loss.html", pnl=pnl_data)
+
+@app.route('/erp/reports/inventory')
+def inventory_report():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT p.name, p.quantity, p.buy_price, p.sale_price,
+               (p.quantity * p.buy_price) as total_cost,
+               (p.quantity * p.sale_price) as total_value
+        FROM products p 
+        JOIN vendors v ON p.vendor_id = v.id 
+        WHERE v.email=?
+    """, (email,))
+    inventory = c.fetchall()
+    
+    conn.close()
+    return render_template("inventory_report.html", inventory=inventory)
+
+@app.route('/erp/reports/expenses', methods=["GET", "POST"])
+def manage_expenses():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_id = c.fetchone()[0]
+
+    if request.method == "POST":
+        category = request.form.get("category")
+        amount = float(request.form.get("amount"))
+        description = request.form.get("description")
+        date = request.form.get("date")
+
+        # Add expense
+        c.execute("""
+            INSERT INTO expenses (vendor_id, category, amount, description, date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (vendor_id, category, amount, description, date))
+
+        # Add to ledger
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description)
+            VALUES (?, 'debit', ?, ?, ?)
+        """, (vendor_id, category, amount, description))
+
+        conn.commit()
+        return redirect(url_for("manage_expenses"))
+
+    # Get all expenses
+    c.execute("SELECT * FROM expenses WHERE vendor_id=? ORDER BY date DESC", (vendor_id,))
+    expenses = c.fetchall()
+    
+    conn.close()
+    return render_template("manage_expenses.html", expenses=expenses)
+
+@app.route('/erp/reports/settings', methods=["GET", "POST"])
+def accounting_settings():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_id = c.fetchone()[0]
+
+    if request.method == "POST":
+        gst_rate = float(request.form.get("gst_rate", 18.0))
+        platform_fee = float(request.form.get("platform_fee", 10.0))
+        razorpay_enabled = 1 if request.form.get("razorpay_enabled") else 0
+        cod_enabled = 1 if request.form.get("cod_enabled") else 0
+        auto_reports = 1 if request.form.get("auto_reports") else 0
+
+        # Insert or update settings
+        c.execute("""
+            INSERT OR REPLACE INTO settings_vendor 
+            (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports))
+
+        conn.commit()
+        flash("Settings updated successfully!")
+        return redirect(url_for("accounting_settings"))
+
+    # Get current settings
+    c.execute("SELECT * FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    settings = c.fetchone()
+    
+    conn.close()
+    return render_template("accounting_settings.html", settings=settings)
 
 # Marketplace route
 @app.route('/marketplace')
