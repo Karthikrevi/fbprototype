@@ -53,7 +53,26 @@
   </style>
 </head>
 <body>
-  <h2>Welcome to Your ERP, {{ vendor }}</h2>
+  <h2>Welcome to Your ERP, {{ vendor.name or vendor.email }}</h2>
+
+  <!-- Online Status Toggle -->
+  <div style="text-align: center; margin-bottom: 30px;">
+    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block;">
+      {% if vendor.is_online %}
+        <h3 style="color: #28a745; margin: 0;">🟢 You're Online</h3>
+        <p style="margin: 10px 0; color: #666;">Visible to Pet Parents</p>
+        <form method="POST" action="/erp/toggle-online" style="margin: 0;">
+          <button type="submit" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Go Offline</button>
+        </form>
+      {% else %}
+        <h3 style="color: #dc3545; margin: 0;">🔴 You're Offline</h3>
+        <p style="margin: 10px 0; color: #666;">Hidden from Marketplace</p>
+        <form method="POST" action="/erp/toggle-online" style="margin: 0;">
+          <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Go Live</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
 
   <div class="card-grid">
     <a href="/erp/profile" class="card">

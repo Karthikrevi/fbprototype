@@ -23,7 +23,8 @@ def init_erp_db():
             bio TEXT,
             image_url TEXT,
             latitude REAL,
-            longitude REAL
+            longitude REAL,
+            is_online BOOLEAN DEFAULT 0
         )
     ''')
 
@@ -70,24 +71,19 @@ def init_erp_db():
 
 # Run the DB setup on startup
 init_erp_db()
-# TEMP FIX: Add latitude & longitude columns if missing
-#def patch_vendor_location_columns():
-    #conn = sqlite3.connect('erp.db')
-    #c = conn.cursor()
-    #try:
-        #c.execute("ALTER TABLE vendors ADD COLUMN latitude REAL")
-    #except sqlite3.OperationalError:
-        #pass  # Column already exists
 
-    #try:
-        #c.execute("ALTER TABLE vendors ADD COLUMN longitude REAL")
-    #except sqlite3.OperationalError:
-        #pass  # Column already exists
+# Patch existing database to add online status column
+def patch_vendor_online_status():
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN is_online BOOLEAN DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    conn.commit()
+    conn.close()
 
-    #conn.commit()
-    #conn.close()
-
-#patch_vendor_location_columns()
+patch_vendor_online_status()
 
 
 
@@ -243,10 +239,10 @@ def groomers():
 
     user_location = session.get("location")
 
-    # Get vendors from ERP database with grooming category (case-insensitive)
+    # Get vendors from ERP database with grooming category (case-insensitive) and online status
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    c.execute("SELECT * FROM vendors WHERE LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%'")
+    c.execute("SELECT * FROM vendors WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%') AND is_online = 1")
     db_vendors = c.fetchall()
     conn.close()
 
@@ -372,14 +368,14 @@ def boarding():
 
     user_location = session.get("location")
 
-    # Get vendors from ERP database with boarding/hotel category
+    # Get vendors from ERP database with boarding/hotel category and online status
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    c.execute("SELECT * FROM vendors WHERE category IN ('boarding', 'hotel', 'pet boarding', 'daycare')")
+    c.execute("SELECT * FROM vendors WHERE category IN ('boarding', 'hotel', 'pet boarding', 'daycare') AND is_online = 1")
     boarding_vendors = c.fetchall()
 
-    # Get vendors from ERP database with restaurant category
-    c.execute("SELECT * FROM vendors WHERE category IN ('restaurant', 'cafe', 'pet restaurant', 'pet cafe', 'pet-friendly restaurant')")
+    # Get vendors from ERP database with restaurant category and online status
+    c.execute("SELECT * FROM vendors WHERE category IN ('restaurant', 'cafe', 'pet restaurant', 'pet cafe', 'pet-friendly restaurant') AND is_online = 1")
     restaurant_vendors = c.fetchall()
     conn.close()
 
@@ -658,7 +654,21 @@ def erp_register():
 def erp_dashboard():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
-    return render_template("erp_dashboard.html", vendor=session["vendor"])
+    
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT name, is_online FROM vendors WHERE email=?", (email,))
+    vendor_data = c.fetchone()
+    conn.close()
+    
+    vendor_info = {
+        "email": email,
+        "name": vendor_data[0] if vendor_data else email,
+        "is_online": vendor_data[1] if vendor_data else 0
+    }
+    
+    return render_template("erp_dashboard.html", vendor=vendor_info)
 
 #ERP Profile
 @app.route('/erp/profile', methods=["GET"])
@@ -805,10 +815,78 @@ def erp_bookings():
 
     return render_template("erp_booking.html", bookings=bookings)
 
+@app.route('/erp/toggle-online', methods=["POST"])
+def toggle_vendor_online():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get current online status
+    c.execute("SELECT is_online FROM vendors WHERE email=?", (email,))
+    current_status = c.fetchone()[0]
+    
+    # Toggle the status
+    new_status = 1 if current_status == 0 else 0
+    c.execute("UPDATE vendors SET is_online=? WHERE email=?", (new_status, email))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for("erp_dashboard"))
+
 @app.route('/erp/logout')
 def erp_logout():
     session.pop("vendor", None)
     return redirect(url_for("erp_login"))
+
+# Marketplace route
+@app.route('/marketplace')
+def marketplace():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    user_location = session.get("location")
+    
+    # Get all online vendors with products in stock
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""
+        SELECT DISTINCT v.* FROM vendors v 
+        JOIN products p ON v.id = p.vendor_id 
+        WHERE v.is_online = 1 AND p.stock > 0
+    """)
+    online_vendors = c.fetchall()
+    conn.close()
+    
+    vendors = []
+    for vendor in online_vendors:
+        # Apply location filtering
+        if user_location and vendor[9] and vendor[10]:  # latitude and longitude
+            distance = haversine(
+                user_location["lat"], user_location["lon"], vendor[9], vendor[10]
+            )
+            if distance > 100:  # Skip vendors more than 100km away
+                continue
+        elif user_location and vendor[5]:  # city fallback
+            # For now, just check if same city (you can enhance this logic)
+            pass
+        
+        vendor_data = {
+            "id": vendor[0],
+            "name": vendor[1],
+            "email": vendor[2],
+            "category": vendor[4],
+            "city": vendor[5],
+            "bio": vendor[7],
+            "image_url": vendor[8],
+            "latitude": vendor[9],
+            "longitude": vendor[10]
+        }
+        vendors.append(vendor_data)
+    
+    return render_template("marketplace.html", vendors=vendors)
 
 # Run app
 if __name__ == '__main__':
