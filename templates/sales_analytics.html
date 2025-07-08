@@ -168,11 +168,11 @@
                     <tbody>
                         {% for sale in sales %}
                         <tr>
-                            <td>{{ sale[7] if sale|length > 7 else sale[6] }}</td>
+                            <td>{{ sale[6] }}</td>
                             <td>{{ sale[8] if sale|length > 8 else 'Unknown Product' }}</td>
                             <td>{{ sale[2] }}</td>
-                            <td>₹{{ "%.2f"|format(sale[3]) }}</td>
-                            <td>₹{{ "%.2f"|format(sale[4]) }}</td>
+                            <td>₹{{ "%.2f"|format(sale[3]|float) }}</td>
+                            <td>₹{{ "%.2f"|format(sale[4]|float) }}</td>
                             <td>{{ sale[5] or 'Anonymous' }}</td>
                         </tr>
                         {% endfor %}

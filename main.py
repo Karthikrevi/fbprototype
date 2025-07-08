@@ -1891,22 +1891,9 @@ def sales_analytics():
 
     conn.close()
 
-    # Convert sales data for template compatibility
-    formatted_sales = []
-    for sale in sales:
-        formatted_sales.append({
-            'id': sale[0],
-            'vendor_id': sale[1],
-            'quantity': sale[2],
-            'unit_price': sale[3],
-            'total_amount': sale[4],
-            'customer_email': sale[5],
-            'sale_date': sale[6],
-            'product_name': sale[8]  # Corrected index
-        })
-
+    conn.close()
     return render_template("sales_analytics.html", 
-                         sales=formatted_sales,
+                         sales=sales,
                          monthly_summary=monthly_summary, 
                          top_products=top_products)
 
