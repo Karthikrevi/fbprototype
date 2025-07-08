@@ -1001,6 +1001,9 @@ def erp_register():
         except sqlite3.IntegrityError:
             conn.close()
             return "Vendor already exists with that email."
+        except Exception as e:
+            conn.close()
+            return f"Error registering vendor: {e}"
 
     return render_template("vendor_register.html")
 
