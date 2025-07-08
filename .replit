@@ -15,29 +15,16 @@ deploymentTarget = "static"
 publicDir = "static"
 
 [[ports]]
-localPort = 5000
+localPort = 81
 externalPort = 80
 
 [workflows]
-runButton = "Run"
+runButton = "Start App"
 
 [[workflows.workflow]]
 name = "Start App"
 author = 34675581
 mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-
-[[workflows.workflow]]
-name = "Run"
-author = 34675581
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pkill -f \"python main.py\" || true"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
