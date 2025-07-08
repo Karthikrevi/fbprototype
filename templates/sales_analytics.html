@@ -61,7 +61,7 @@
                 <div class="stat-box">
                     {% set total_revenue = 0 %}
                     {% for sale in sales %}
-                        {% set total_revenue = total_revenue + sale[5] %}
+                        {% set total_revenue = total_revenue + (sale[4]|float if sale[4] else 0) %}
                     {% endfor %}
                     <div class="stat-value">₹{{ "%.2f"|format(total_revenue) }}</div>
                     <div class="stat-label">Total Revenue</div>
@@ -71,7 +71,7 @@
                 <div class="stat-box">
                     {% set total_units = 0 %}
                     {% for sale in sales %}
-                        {% set total_units = total_units + sale[2] %}
+                        {% set total_units = total_units + (sale[2]|int if sale[2] else 0) %}
                     {% endfor %}
                     <div class="stat-value">{{ total_units }}</div>
                     <div class="stat-label">Units Sold</div>
@@ -81,7 +81,7 @@
                 <div class="stat-box">
                     {% set total_revenue = 0 %}
                     {% for sale in sales %}
-                        {% set total_revenue = total_revenue + sale[5] %}
+                        {% set total_revenue = total_revenue + (sale[4]|float if sale[4] else 0) %}
                     {% endfor %}
                     <div class="stat-value">₹{{ "%.2f"|format(total_revenue / sales|length if sales|length > 0 else 0) }}</div>
                     <div class="stat-label">Avg Order Value</div>

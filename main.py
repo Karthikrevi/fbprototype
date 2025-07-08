@@ -646,7 +646,7 @@ def vendor_profile(vendor_id):
                 "id": data[0],
                 "name": data[1],
                 "description": data[2] or "Trusted pet care provider.",
-                "image": data[3] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=600&h=400&fit=crop&crop=face",
+                "image": data[3] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=600&h=400&fit=crop=face",
                 "city": data[4] or "Unknown",
                 "is_online": data[5],
                 "rating": avg_rating,
@@ -757,7 +757,7 @@ def pet_profile():
     # Get pet-specific bookings and purchase history
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get bookings for this user
     c.execute("""
         SELECT service, date, time, status 
@@ -766,7 +766,7 @@ def pet_profile():
         ORDER BY date DESC
     """, (user,))
     pet_bookings = c.fetchall()
-    
+
     # Get booking history (completed bookings)
     c.execute("""
         SELECT service, date, time, status 
@@ -775,7 +775,7 @@ def pet_profile():
         ORDER BY date DESC
     """, (user,))
     pet_booking_history = c.fetchall()
-    
+
     conn.close()
 
     return render_template("pet_profile.html", breeds=breeds, pets=pets, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
@@ -795,17 +795,17 @@ def book_vendor_service(vendor_id):
         return redirect(url_for("login"))
 
     user_email = session["user"]
-    
+
     # Handle demo vendor
     if vendor_id == "fluffy-paws":
         vendor_name = "Fluffy Paws Grooming"
         services = ["Full Grooming", "Nail Trimming", "Ear Cleaning", "Teeth Cleaning", "Flea Treatment"]
-        
+
         if request.method == "POST":
             service = request.form.get("service")
             date = request.form.get("date")
             time = request.form.get("time", "10:00")
-            
+
             # Store booking in database (using vendor_id=0 for demo)
             conn = sqlite3.connect('erp.db')
             c = conn.cursor()
@@ -815,38 +815,38 @@ def book_vendor_service(vendor_id):
             """, (0, user_email, service, date, time, "pending"))
             conn.commit()
             conn.close()
-            
+
             flash(f"Booking confirmed for {service} on {date}")
             return redirect(url_for("vendor_profile", vendor_id=vendor_id))
-        
+
         return render_template("booking.html", vendor_name=vendor_name, services=services)
-    
+
     # Handle database vendors
     try:
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
         c.execute("SELECT id, name FROM vendors WHERE id = ?", (vendor_id,))
         vendor_data = c.fetchone()
-        
+
         if vendor_data:
             vendor_name = vendor_data[1]
             services = ["Pet Grooming", "Pet Care", "Consultation", "Health Check"]
-            
+
             if request.method == "POST":
                 service = request.form.get("service")
                 date = request.form.get("date")
                 time = request.form.get("time", "10:00")
-                
+
                 c.execute("""
                     INSERT INTO bookings (vendor_id, user_email, service, date, time, status)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (vendor_id, user_email, service, date, time, "pending"))
                 conn.commit()
                 conn.close()
-                
+
                 flash(f"Booking confirmed for {service} on {date}")
                 return redirect(url_for("vendor_profile", vendor_id=vendor_id))
-            
+
             conn.close()
             return render_template("booking.html", vendor_name=vendor_name, services=services)
         else:
@@ -1257,20 +1257,20 @@ def add_product():
         # Verify the update worked
         c.execute("SELECT quantity FROM products WHERE id = ?", (product_id,))
         final_quantity = c.fetchone()[0]
-        
+
         # Record initial inventory expense in expenses table
         c.execute("""
             INSERT INTO expenses (vendor_id, category, amount, description, date)
             VALUES (?, 'Inventory', ?, ?, ?)
         """, (vendor_id, total_cost, f"Initial inventory - {name} ({quantity} units @ ₹{buy_price} each)", 
               datetime.now().strftime("%Y-%m-%d")))
-        
+
         # Add to ledger - Inventory Asset (Debit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
             VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
         """, (vendor_id, total_cost, f"Initial Inventory - {name} ({quantity} units @ ₹{buy_price} each)"))
-        
+
         # Add to ledger - Cash (Credit) - assuming cash payment for initial inventory
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
@@ -1494,7 +1494,7 @@ def vendor_take_break():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Set vendor on break
     c.execute('''
         UPDATE vendors 
@@ -1503,10 +1503,10 @@ def vendor_take_break():
             is_online=0
         WHERE email=?
     ''', (datetime.now().strftime("%Y-%m-%d"), email))
-    
+
     conn.commit()
     conn.close()
-    
+
     flash("You are now on break. Your profile is hidden from customers.")
     return redirect(url_for("erp_profile"))
 
@@ -1518,7 +1518,7 @@ def vendor_deactivate():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Deactivate vendor account
     c.execute('''
         UPDATE vendors 
@@ -1526,10 +1526,10 @@ def vendor_deactivate():
             is_online=0
         WHERE email=?
     ''', (email,))
-    
+
     conn.commit()
     conn.close()
-    
+
     flash("Your account has been deactivated. Contact support to reactivate.")
     return redirect(url_for("erp_logout"))
 
@@ -1541,7 +1541,7 @@ def vendor_reactivate():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Reactivate vendor account
     c.execute('''
         UPDATE vendors 
@@ -1551,10 +1551,10 @@ def vendor_reactivate():
             break_reason=NULL
         WHERE email=?
     ''', (email,))
-    
+
     conn.commit()
     conn.close()
-    
+
     flash("Welcome back! Your account has been reactivated.")
     return redirect(url_for("erp_profile"))
 
@@ -1891,10 +1891,110 @@ def sales_analytics():
 
     conn.close()
 
+    # Convert sales data for template compatibility
+    formatted_sales = []
+    for sale in sales:
+        formatted_sales.append({
+            'id': sale[0],
+            'vendor_id': sale[1],
+            'quantity': sale[2],
+            'unit_price': sale[3],
+            'total_amount': sale[4],
+            'customer_email': sale[5],
+            'sale_date': sale[6],
+            'product_name': sale[8]  # Corrected index
+        })
+
     return render_template("sales_analytics.html", 
-                         sales=sales, 
+                         sales=formatted_sales,
                          monthly_summary=monthly_summary, 
                          top_products=top_products)
+
+@app.route('/erp/reports/inventory-analytics')
+def inventory_analytics():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+
+    if result is None:
+        conn.close()
+        return render_template("inventory_analytics.html", analytics={})
+
+    vendor_id = result[0]
+
+    # Calculate inventory analytics for each product
+    c.execute("""
+        SELECT p.id, p.name, p.quantity, p.buy_price, p.sale_price,
+               COALESCE(SUM(sl.quantity), 0) as total_sold,
+               COUNT(DISTINCT DATE(sl.sale_date)) as sales_days
+        FROM products p
+        LEFT JOIN sales_log sl ON p.id = sl.product_id 
+            AND sl.sale_date >= date('now', '-30 days')
+        WHERE p.vendor_id = ?
+        GROUP BY p.id, p.name, p.quantity, p.buy_price, p.sale_price
+    """, (vendor_id,))
+    products = c.fetchall()
+
+    analytics = []
+    for product in products:
+        product_id, name, current_stock, buy_price, sale_price, sold_30_days, sales_days = product
+
+        # Calculate daily sales rate (average)
+        daily_sales_rate = sold_30_days / 30 if sold_30_days > 0 else 0
+
+        # Calculate inventory turnover (times per month)
+        avg_inventory = current_stock + (sold_30_days / 2) if sold_30_days > 0 else current_stock
+        turnover_rate = (sold_30_days / avg_inventory) if avg_inventory > 0 else 0
+
+        # Calculate days of stock remaining
+        days_remaining = current_stock / daily_sales_rate if daily_sales_rate > 0 else 999
+
+        # Safety stock recommendation (10 days of average sales + buffer)
+        safety_stock = max(1, int(daily_sales_rate * 10 * 1.2)) if daily_sales_rate > 0 else 5
+
+        # Reorder point (safety stock + lead time demand, assuming 7 days lead time)
+        reorder_point = safety_stock + int(daily_sales_rate * 7)
+
+        # Holding cost calculation (2% per month of inventory value)
+        holding_cost_monthly = current_stock * (buy_price or 0) * 0.02
+
+        # Status determination
+        if current_stock <= reorder_point:
+            status = "Reorder Now"
+            status_class = "danger"
+        elif current_stock <= safety_stock:
+            status = "Low Stock"
+            status_class = "warning"
+        else:
+            status = "Good"
+            status_class = "success"
+
+        analytics.append({
+            'id': product_id,
+            'name': name,
+            'current_stock': current_stock,
+            'daily_sales_rate': round(daily_sales_rate, 2),
+            'days_remaining': int(days_remaining) if days_remaining < 999 else "∞",
+            'turnover_rate': round(turnover_rate, 2),
+            'safety_stock': safety_stock,
+            'reorder_point': reorder_point,
+            'holding_cost_monthly': round(holding_cost_monthly, 2),
+            'sold_30_days': sold_30_days,
+            'status': status,
+            'status_class': status_class,
+            'buy_price': buy_price or 0,
+            'sale_price': sale_price or 0
+        })
+
+    conn.close()
+    return render_template("inventory_analytics.html", analytics=analytics)
 
 # Marketplace route
 @app.route('/marketplace')
@@ -2007,7 +2107,7 @@ def place_order():
 
     user_email = session["user"]
     data = request.get_json()
-    
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
@@ -2025,7 +2125,7 @@ def place_order():
             data['delivery_fee'],
             data.get('estimated_delivery', '')
         ))
-        
+
         order_id = c.lastrowid
 
         # Add order items
@@ -2037,7 +2137,7 @@ def place_order():
 
         conn.commit()
         conn.close()
-        
+
         return {"success": True, "order_id": order_id}
     except Exception as e:
         conn.rollback()
@@ -2092,7 +2192,7 @@ def erp_orders():
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
     vendor_result = c.fetchone()
-    
+
     if not vendor_result:
         conn.close()
         return render_template("erp_orders.html", orders=[])
@@ -2143,7 +2243,7 @@ def purchase_history():
         return redirect(url_for("login"))
 
     user_email = session["user"]
-    
+
     # Get purchase history from database (you can expand this later)
     # For now, return empty list - purchases will be handled via localStorage on frontend
     purchases = []
@@ -2340,7 +2440,7 @@ def pos_system():
     # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
     vendor_result = c.fetchone()
-    
+
     if not vendor_result:
         conn.close()
         return render_template("pos_system.html", products=[])
@@ -2366,7 +2466,7 @@ def process_pos_sale():
 
     email = session["vendor"]
     data = request.get_json()
-    
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
@@ -2376,7 +2476,7 @@ def process_pos_sale():
         vendor_result = c.fetchone()
         if not vendor_result:
             return {"success": False, "error": "Vendor not found"}, 404
-        
+
         vendor_id = vendor_result[0]
 
         total_sale_amount = 0
@@ -2387,23 +2487,23 @@ def process_pos_sale():
             product_id = item['id']
             quantity_sold = item['quantity']
             sale_price = item['price']
-            
+
             # Check current stock
             c.execute("SELECT quantity, name FROM products WHERE id = ? AND vendor_id = ?", (product_id, vendor_id))
             product_data = c.fetchone()
-            
+
             if not product_data:
                 return {"success": False, "error": f"Product {product_id} not found"}, 400
-            
+
             current_stock, product_name = product_data
-            
+
             if current_stock < quantity_sold:
                 return {"success": False, "error": f"Insufficient stock for {product_name}"}, 400
-            
+
             # Calculate sale amount
             item_total = sale_price * quantity_sold
             total_sale_amount += item_total
-            
+
             # Update inventory using FIFO (First In, First Out)
             remaining_to_sell = quantity_sold
             c.execute("""
@@ -2413,47 +2513,47 @@ def process_pos_sale():
                 ORDER BY date_added ASC
             """, (product_id,))
             batches = c.fetchall()
-            
+
             total_cogs = 0  # Cost of Goods Sold
-            
+
             for batch in batches:
                 if remaining_to_sell <= 0:
                     break
-                
+
                 batch_id, batch_remaining, unit_cost = batch
                 units_from_batch = min(remaining_to_sell, batch_remaining)
-                
+
                 # Update batch quantity
                 new_remaining = batch_remaining - units_from_batch
                 c.execute("UPDATE inventory_batches SET remaining_quantity = ? WHERE id = ?", 
                          (new_remaining, batch_id))
-                
+
                 # Calculate COGS for this portion
                 total_cogs += units_from_batch * unit_cost
                 remaining_to_sell -= units_from_batch
-            
+
             # Update product quantity
             c.execute("UPDATE products SET quantity = quantity - ? WHERE id = ?", (quantity_sold, product_id))
-            
+
             # Record sale in sales log
             c.execute("""
                 INSERT INTO sales_log (vendor_id, product_id, quantity, unit_price, total_amount, customer_email, sale_date)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (vendor_id, product_id, quantity_sold, sale_price, item_total, 
                   data.get('customer_email', ''), datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-            
+
             # Add to ledger - Revenue (Credit)
             c.execute("""
                 INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
                 VALUES (?, 'credit', 'Sales Revenue', ?, ?, 'Product Sales')
             """, (vendor_id, item_total, f"POS Sale - {product_name} x{quantity_sold}"))
-            
+
             # Add to ledger - COGS (Debit)
             c.execute("""
                 INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
                 VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Inventory')
             """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
-            
+
             receipt_items.append({
                 'name': product_name,
                 'quantity': quantity_sold,
@@ -2466,7 +2566,7 @@ def process_pos_sale():
             INSERT INTO receipts (booking_id, amount, paid_on, payment_mode)
             VALUES (?, ?, ?, ?)
         """, (None, total_sale_amount, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data.get('payment_method', 'cash')))
-        
+
         receipt_id = c.lastrowid
 
         conn.commit()
@@ -2501,7 +2601,7 @@ def add_inventory_stock(product_id):
         if not vendor_result:
             flash("Vendor not found")
             return redirect(url_for("erp_products"))
-        
+
         vendor_id = vendor_result[0]
 
         # Verify product belongs to vendor
@@ -2510,52 +2610,52 @@ def add_inventory_stock(product_id):
         if not product_data:
             flash("Product not found")
             return redirect(url_for("erp_products"))
-        
+
         product_name = product_data[0]
-        
+
         # Get form data
         quantity = int(request.form.get("quantity", 0))
         unit_cost = float(request.form.get("unit_cost", 0))
         batch_name = request.form.get("batch_name", f"BATCH-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-        
+
         if quantity <= 0 or unit_cost <= 0:
             flash("Invalid quantity or cost")
             return redirect(url_for("view_product", product_id=product_id))
-        
+
         total_cost = quantity * unit_cost
-        
+
         # Add inventory batch
         c.execute("""
             INSERT INTO inventory_batches (product_id, quantity, unit_cost, remaining_quantity)
             VALUES (?, ?, ?, ?)
         """, (product_id, quantity, unit_cost, quantity))
-        
+
         # Add product batch for tracking
         c.execute("""
             INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
             VALUES (?, ?, ?, ?, ?)
         """, (product_id, batch_name, quantity, unit_cost, datetime.now().strftime("%Y-%m-%d")))
-        
+
         # Update product total quantity
         c.execute("""
             UPDATE products 
             SET quantity = quantity + ?, buy_price = ?
             WHERE id = ?
         """, (quantity, unit_cost, product_id))
-        
+
         # Record inventory expense automatically
         c.execute("""
             INSERT INTO expenses (vendor_id, category, amount, description, date)
             VALUES (?, 'Inventory', ?, ?, ?)
         """, (vendor_id, total_cost, f"Inventory purchase - {product_name} ({quantity} units @ ₹{unit_cost} each)", 
               datetime.now().strftime("%Y-%m-%d")))
-        
+
         # Add to ledger - Inventory Asset (Debit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
             VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
         """, (vendor_id, total_cost, f"Inventory Purchase - {product_name} ({quantity} units @ ₹{unit_cost} each)"))
-        
+
         # Add to ledger - Cash/Accounts Payable (Credit)
         c.execute("""
             INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
@@ -2564,7 +2664,7 @@ def add_inventory_stock(product_id):
 
         conn.commit()
         conn.close()
-        
+
         flash(f"Successfully added {quantity} units to inventory. Expense of ${total_cost} recorded automatically.")
         return redirect(url_for("view_product", product_id=product_id))
 
