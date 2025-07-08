@@ -37,4 +37,8 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "chmod +x start.sh && ./start.sh"
+args = "pkill -f \"python main.py\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
