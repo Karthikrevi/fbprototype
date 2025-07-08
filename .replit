@@ -15,7 +15,7 @@ deploymentTarget = "static"
 publicDir = "static"
 
 [[ports]]
-localPort = 81
+localPort = 5000
 externalPort = 80
 
 [workflows]
