@@ -59,6 +59,22 @@
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
+                    {% set pos_sales = sales|selectattr(7, 'equalto', 'POS Sale')|list|length %}
+                    <div class="stat-value">{{ pos_sales }}</div>
+                    <div class="stat-label">POS Sales</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    {% set online_sales = sales|length - (sales|selectattr(7, 'equalto', 'POS Sale')|list|length) %}
+                    <div class="stat-value">{{ online_sales }}</div>
+                    <div class="stat-label">Online Sales</div>
+                </div>
+            </div>
+            </div>
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-box">
                     {% set total_revenue = 0 %}
                     {% for sale in sales %}
                         {% set total_revenue = total_revenue + (sale[4]|float if sale[4] else 0) %}
@@ -85,6 +101,18 @@
                     {% endfor %}
                     <div class="stat-value">₹{{ "%.2f"|format(total_revenue / sales|length if sales|length > 0 else 0) }}</div>
                     <div class="stat-label">Avg Order Value</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    {% set pos_revenue = 0 %}
+                    {% for sale in sales %}
+                        {% if sale|length > 7 and sale[7] == 'POS Sale' %}
+                            {% set pos_revenue = pos_revenue + (sale[4]|float if sale[4] else 0) %}
+                        {% endif %}
+                    {% endfor %}
+                    <div class="stat-value">₹{{ "%.2f"|format(pos_revenue) }}</div>
+                    <div class="stat-label">POS Revenue</div>
                 </div>
             </div>
         </div>
@@ -159,6 +187,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Product</th>
+                            <th>Type</th>
                             <th>Quantity</th>
                             <th>Unit Price</th>
                             <th>Total</th>
@@ -168,12 +197,17 @@
                     <tbody>
                         {% for sale in sales %}
                         <tr>
-                            <td>{{ sale[6] }}</td>
+                            <td>{{ sale[6][:10] if sale[6] else 'N/A' }}</td>
                             <td>{{ sale[8] if sale|length > 8 else 'Unknown Product' }}</td>
+                            <td>
+                                <span class="badge {{ 'bg-success' if sale[7] == 'POS Sale' else 'bg-primary' }}">
+                                    {{ sale[7] if sale|length > 7 else 'Online Sale' }}
+                                </span>
+                            </td>
                             <td>{{ sale[2] }}</td>
                             <td>₹{{ "%.2f"|format(sale[3]|float) }}</td>
                             <td>₹{{ "%.2f"|format(sale[4]|float) }}</td>
-                            <td>{{ sale[5] or 'Anonymous' }}</td>
+                            <td>{{ sale[5] or 'Walk-in Customer' if sale[7] == 'POS Sale' else 'Anonymous' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

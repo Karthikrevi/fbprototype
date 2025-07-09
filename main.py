@@ -1853,10 +1853,15 @@ def sales_analytics():
 
     vendor_id = result[0]
 
-    # Get sales data with product names
+    # Get sales data with product names - including POS and online sales
     c.execute("""
         SELECT sl.id, sl.vendor_id, sl.quantity, sl.unit_price, sl.total_amount, 
-               sl.customer_email, sl.sale_date, sl.sale_date, p.name as product_name 
+               sl.customer_email, sl.sale_date, 
+               CASE 
+                 WHEN sl.customer_email = '' OR sl.customer_email IS NULL THEN 'POS Sale'
+                 ELSE 'Online Sale'
+               END as sale_type,
+               p.name as product_name 
         FROM sales_log sl 
         JOIN products p ON sl.product_id = p.id 
         WHERE sl.vendor_id=? 
@@ -2529,16 +2534,16 @@ def process_pos_sale():
             """, (vendor_id, product_id, quantity_sold, sale_price, item_total, 
                   data.get('customer_email', ''), datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-            # Add to ledger - Revenue (Credit)
+            # Add to ledger - Revenue (Credit) - POS Sales
             c.execute("""
                 INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
-                VALUES (?, 'credit', 'Sales Revenue', ?, ?, 'Product Sales')
+                VALUES (?, 'credit', 'Sales Revenue', ?, ?, 'POS Sales')
             """, (vendor_id, item_total, f"POS Sale - {product_name} x{quantity_sold}"))
 
             # Add to ledger - COGS (Debit)
             c.execute("""
                 INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
-                VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Inventory')
+                VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Product Sales')
             """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
 
             receipt_items.append({
