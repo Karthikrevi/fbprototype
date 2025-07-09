@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendor Management - FurrButler Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    .admin-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 0;
+      margin-bottom: 30px;
+    }
+    .vendor-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border-left: 5px solid;
+    }
+    .vendor-card.active { border-left-color: #28a745; }
+    .vendor-card.on_break { border-left-color: #ffc107; }
+    .vendor-card.deactivated { border-left-color: #dc3545; }
+    .vendor-card.default { border-left-color: #6c757d; }
+    .vendor-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .vendor-info {
+      flex-grow: 1;
+    }
+    .vendor-name {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .vendor-email {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    .credential-box {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .credential-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .credential-item:last-child {
+      margin-bottom: 0;
+    }
+    .credential-label {
+      font-weight: 600;
+      color: #495057;
+    }
+    .credential-value {
+      font-family: 'Courier New', monospace;
+      background: #ffffff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #ced4da;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .credential-value:hover {
+      background: #e9ecef;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin: 15px 0;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #495057;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+      text-transform: uppercase;
+    }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .status-active { background: #d4edda; color: #155724; }
+    .status-on_break { background: #fff3cd; color: #856404; }
+    .status-deactivated { background: #f8d7da; color: #721c24; }
+    .status-default { background: #e2e3e5; color: #383d41; }
+    .btn-status {
+      margin: 5px;
+      padding: 5px 15px;
+      font-size: 0.8rem;
+    }
+    .search-box {
+      margin-bottom: 20px;
+    }
+    .copy-btn {
+      background: none;
+      border: none;
+      color: #007bff;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-left: 5px;
+    }
+    .copy-btn:hover {
+      color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1>👥 Vendor Management</h1>
+        <div>
+          <a href="{{ url_for('master_admin_dashboard') }}" class="btn btn-outline-light me-2">← Dashboard</a>
+          <a href="{{ url_for('master_admin_logout') }}" class="btn btn-outline-light">Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Search Box -->
+    <div class="search-box">
+      <input type="text" class="form-control" id="vendorSearch" placeholder="🔍 Search vendors by name, email, or category...">
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="vendor-card">
+          <div class="text-center">
+            <h4>{{ vendor_stats|length }}</h4>
+            <p class="mb-0">Total Vendors</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="vendor-card">
+          <div class="text-center">
+            <h4>{{ vendor_stats|selectattr('vendor.9', 'equalto', 1)|list|length }}</h4>
+            <p class="mb-0">Online Now</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="vendor-card">
+          <div class="text-center">
+            <h4>{{ vendor_stats|selectattr('vendor.10', 'equalto', 'active')|list|length }}</h4>
+            <p class="mb-0">Active Accounts</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="vendor-card">
+          <div class="text-center">
+            <h4>${{ "%.2f"|format(vendor_stats|sum(attribute='total_sales')) }}</h4>
+            <p class="mb-0">Total Sales</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vendor List -->
+    <div id="vendorsList">
+      {% for stat in vendor_stats %}
+        {% set vendor = stat.vendor %}
+        <div class="vendor-card {{ vendor[10] or 'default' }}" data-vendor-info="{{ vendor[1]|lower }} {{ vendor[2]|lower }} {{ vendor[4]|lower }}">
+          <div class="vendor-header">
+            <div class="vendor-info">
+              <div class="vendor-name">{{ vendor[1] or 'Unnamed Vendor' }}</div>
+              <div class="vendor-email">{{ vendor[2] }}</div>
+              <span class="status-badge status-{{ vendor[10] or 'default' }}">
+                {{ vendor[10] or 'No Status' }}
+              </span>
+              {% if vendor[9] == 1 %}
+                <span class="badge bg-success ms-2">🟢 Online</span>
+              {% else %}
+                <span class="badge bg-secondary ms-2">🔴 Offline</span>
+              {% endif %}
+            </div>
+            <div class="text-end">
+              <form method="POST" action="{{ url_for('update_vendor_status') }}" class="d-inline">
+                <input type="hidden" name="vendor_id" value="{{ vendor[0] }}">
+                <select name="status" onchange="this.form.submit()" class="form-select form-select-sm" style="width: auto;">
+                  <option value="active" {% if vendor[10] == 'active' %}selected{% endif %}>Active</option>
+                  <option value="on_break" {% if vendor[10] == 'on_break' %}selected{% endif %}>On Break</option>
+                  <option value="deactivated" {% if vendor[10] == 'deactivated' %}selected{% endif %}>Deactivated</option>
+                </select>
+              </form>
+            </div>
+          </div>
+
+          <!-- Login Credentials -->
+          <div class="credential-box">
+            <h6 class="mb-3">🔐 Login Credentials</h6>
+            <div class="credential-item">
+              <span class="credential-label">Email:</span>
+              <span class="credential-value" onclick="copyToClipboard('{{ vendor[2] }}')">
+                {{ vendor[2] }}
+                <button class="copy-btn" title="Copy to clipboard">📋</button>
+              </span>
+            </div>
+            <div class="credential-item">
+              <span class="credential-label">Password:</span>
+              <span class="credential-value" onclick="copyToClipboard('{{ vendor[3] }}')">
+                {{ vendor[3] }}
+                <button class="copy-btn" title="Copy to clipboard">📋</button>
+              </span>
+            </div>
+          </div>
+
+          <!-- Vendor Details -->
+          <div class="row">
+            <div class="col-md-6">
+              <strong>Category:</strong> {{ vendor[4] or 'Not specified' }}<br>
+              <strong>City:</strong> {{ vendor[5] or 'Not specified' }}<br>
+              <strong>Phone:</strong> {{ vendor[6] or 'Not provided' }}<br>
+              {% if vendor[11] %}
+                <strong>Break Since:</strong> {{ vendor[11] }}<br>
+              {% endif %}
+              {% if vendor[12] %}
+                <strong>Break Reason:</strong> {{ vendor[12] }}<br>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <div class="stats-row">
+                <div class="stat-item">
+                  <div class="stat-value">{{ stat.total_products }}</div>
+                  <div class="stat-label">Products</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">${{ stat.total_sales }}</div>
+                  <div class="stat-label">Sales</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ stat.total_bookings }}</div>
+                  <div class="stat-label">Bookings</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ stat.avg_rating }}⭐</div>
+                  <div class="stat-label">Rating</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% if vendor[7] %}
+            <div class="mt-3">
+              <strong>Bio:</strong> {{ vendor[7] }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if not vendor_stats %}
+      <div class="text-center py-5">
+        <h4 class="text-muted">No vendors found</h4>
+        <p class="text-muted">No vendor accounts have been created yet.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Search functionality
+    document.getElementById('vendorSearch').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const vendorCards = document.querySelectorAll('[data-vendor-info]');
+      
+      vendorCards.forEach(card => {
+        const vendorInfo = card.getAttribute('data-vendor-info');
+        if (vendorInfo.includes(searchTerm)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+
+    // Copy to clipboard functionality
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        // Show temporary success message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success position-fixed';
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 200px;';
+        alert.innerHTML = '✅ Copied to clipboard!';
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+          document.body.removeChild(alert);
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy to clipboard');
+      });
+    }
+
+    // Auto-refresh online status every 30 seconds
+    setInterval(() => {
+      location.reload();
+    }, 30000);
+  </script>
+</body>
+</html>

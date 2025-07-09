@@ -2487,6 +2487,78 @@ def update_platform_settings():
     except Exception as e:
         return {"success": False, "message": str(e)}, 500
 
+@app.route('/master/admin/vendors')
+def manage_vendors():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get all vendors with their details
+    c.execute("""
+        SELECT id, name, email, password, category, city, phone, bio, 
+               is_online, account_status, break_start_date, break_reason
+        FROM vendors 
+        ORDER BY name
+    """)
+    vendors = c.fetchall()
+
+    # Get vendor statistics
+    vendor_stats = []
+    for vendor in vendors:
+        vendor_id = vendor[0]
+        
+        # Get total products
+        c.execute("SELECT COUNT(*) FROM products WHERE vendor_id = ?", (vendor_id,))
+        total_products = c.fetchone()[0]
+        
+        # Get total sales
+        c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id = ?", (vendor_id,))
+        total_sales = c.fetchone()[0]
+        
+        # Get total bookings
+        c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id = ?", (vendor_id,))
+        total_bookings = c.fetchone()[0]
+        
+        # Get average rating
+        c.execute("SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE vendor_id = ?", (vendor_id,))
+        avg_rating = c.fetchone()[0]
+        
+        vendor_stats.append({
+            'vendor': vendor,
+            'total_products': total_products,
+            'total_sales': round(total_sales, 2),
+            'total_bookings': total_bookings,
+            'avg_rating': round(avg_rating, 1)
+        })
+
+    conn.close()
+    return render_template("admin_vendor_management.html", vendor_stats=vendor_stats)
+
+@app.route('/master/admin/vendors/update-status', methods=["POST"])
+def update_vendor_status():
+    if not session.get("master_admin"):
+        return {"success": False, "message": "Unauthorized"}, 403
+
+    try:
+        vendor_id = request.form.get("vendor_id")
+        new_status = request.form.get("status")
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        c.execute("UPDATE vendors SET account_status = ? WHERE id = ?", (new_status, vendor_id))
+        conn.commit()
+        conn.close()
+        
+        flash(f"Vendor status updated to {new_status}")
+        return redirect(url_for("manage_vendors"))
+        
+    except Exception as e:
+        flash(f"Error updating vendor status: {str(e)}")
+        return redirect(url_for("manage_vendors"))
+
 @app.route('/master/admin/logout')
 def master_admin_logout():
     session.pop("master_admin", None)
