@@ -1,0 +1,68 @@
+I want to enhance the **inventory and reporting module** with useful business analytics and logistics formulas. Please create an HTML + backend Python (Flask + SQLite) system for the following reports:
+>
+> ### 🔍 Inventory & Business Reports to Include:
+>
+> 1. **Economic Order Quantity (EOQ)**
+>
+>    ```
+>    EOQ = √((2 × D × S) / H)
+>    ```
+>
+>    * Inputs: Yearly demand (D), Order cost (S), Holding cost per unit/year (H)
+>    * Output: Suggested quantity to order
+> 2. **Reorder Point (ROP)**
+>
+>    ```
+>    ROP = Average Daily Usage × Lead Time
+>    ```
+>
+>    * Inputs: Daily sales, Lead time (in days)
+>    * Output: When to restock
+> 3. **Inventory Turnover Ratio**
+>
+>    ```
+>    Turnover = Cost of Goods Sold / Average Inventory
+>    ```
+>
+>    * Use existing purchase + sales data to calculate efficiency
+> 4. **FIFO Batch Tracking**
+>
+>    * Display batches with their `batch_id`, cost, and date
+>    * When a product is sold, reduce stock from oldest batch first
+> 5. **Contribution Margin**
+>
+>    ```
+>    Margin = (Sale Price - Cost Price) / Sale Price
+>    ```
+>
+>    * Show per product
+> 6. **Top-Selling Products**
+>
+>    * Rank items by number of units sold
+>    * Show % of total sales and revenue per product
+> 7. **Low Stock Alert**
+>
+>    * Highlight products below Reorder Point (ROP)
+> 8. **Delivery Cost Estimator**
+>
+>    ```
+>    Delivery Cost = (Fixed Cost + Distance × ₹/km) / Deliveries
+>    ```
+>
+>    * Input: Distance, rate/km, delivery count
+> 9. **Service Utilization %**
+>
+>    ```
+>    Utilization = Hours Used / Available Hours × 100
+>    ```
+>
+>    * For groomers/boarding vendors to measure usage
+>
+> ### 💡 Requirements:
+>
+> * Reports should be on a new `/erp/reports` page with a dashboard-style layout
+> * Use fake placeholder data if needed (we will connect to live sales/inventory later)
+> * Use clean UI (like Tailwind or CSS you’ve used before) for cards/charts
+> * Bonus: allow reports to be **downloaded as PDF or CSV**
+>
+> 🎯 Goal: Help vendors see their sales trends, plan restocking, improve profitability, and reduce waste using these formulas.
