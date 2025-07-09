@@ -1,0 +1,69 @@
+
+> Please create **3 vendor accounts** in the system and populate them with realistic data to test the reporting and analytics modules. Each vendor should have unique login credentials and different data durations:
+>
+> ---
+>
+> ### 🧾 **Vendor Profiles to Create:**
+>
+> 1. **Vendor A – “Fluffy Paws”**
+>
+>    * **Email:** [fluffy@erp.com](mailto:fluffy@erp.com)
+>    * **Password:** test123
+>    * **Duration:** 3 months of sales
+> 2. **Vendor B – “Waggy Tails”**
+>
+>    * **Email:** [waggy@erp.com](mailto:waggy@erp.com)
+>    * **Password:** test123
+>    * **Duration:** 6 months of sales
+> 3. **Vendor C – “Royal Woofs”**
+>
+>    * **Email:** [royal@erp.com](mailto:royal@erp.com)
+>    * **Password:** test123
+>    * **Duration:** 12 months of sales
+>
+> ---
+>
+> ### 🛍️ **Data to Populate:**
+>
+> For each vendor:
+>
+> * Add **10 products** across different categories:
+>
+>   * Pet Food, Toys, Grooming Supplies, Health Products, Accessories
+>   * Vary buy price, sale price, reorder points, and stock levels.
+> * Simulate **daily/monthly sales data** for the time period assigned:
+>
+>   * Include turnover rates (fast, slow, stagnant products)
+>   * Add **top-selling products** and **dead stock**
+>   * Update inventory and generate holding cost
+> * Add **Grooming/Service bookings**:
+>
+>   * Services: "Haircut", "Nail Trim", "Dental Clean", "Spa Bath"
+>   * Add price, duration, and simulated booking dates
+>   * Ensure services appear in accounting, sales, and reporting modules
+> * Generate:
+>
+>   * Holding cost per product
+>   * Total sales
+>   * Top 3 most profitable items
+>   * Sales velocity classification
+>   * Inventory turnover ratios
+>   * Cost-to-sales analysis
+>   * Stagnant stock detection
+>   * Grooming revenue summary
+>
+> ---
+>
+> ### 🔁 **Extra:**
+>
+> * Please ensure the vendors are **visible in the app UI** (e.g., /groomers).
+> * Mark them as “Online” by default.
+> * Ensure that data reflects in:
+>
+>   * `/erp/inventory_report`
+>   * `/erp/inventory_analytics`
+>   * `/erp/bookings_report`
+>   * `/erp/profit_and_loss`
+>   * `/erp/dashboard`
+>
+> This is to test the full analytics and accounting experience with varied vendor history and service types. You may hardcode the data or simulate random events, as long as it’s realistic and useful for testing UI/logic.
