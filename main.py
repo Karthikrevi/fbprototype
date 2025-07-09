@@ -458,14 +458,26 @@ def vendor_login():
         if not email or not password:
             return "Please enter both email and password."
 
-        vendor_key = f"vendor:{email}"
-        vendor = db.get(vendor_key)
+        # Check SQLite database first
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM vendors WHERE email=? AND password=?", (email, password))
+        vendor = c.fetchone()
+        conn.close()
 
-        if vendor and vendor["password"] == password:
+        if vendor:
             session["vendor"] = email
             return redirect(url_for("erp_dashboard"))
         else:
-            return "Invalid vendor login."
+            # Fallback to old Replit database for backward compatibility
+            vendor_key = f"vendor:{email}"
+            vendor = db.get(vendor_key)
+            
+            if vendor and vendor["password"] == password:
+                session["vendor"] = email
+                return redirect(url_for("erp_dashboard"))
+            else:
+                return "Invalid vendor login."
 
     return render_template("vendor_login.html")
 
