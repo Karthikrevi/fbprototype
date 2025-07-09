@@ -160,7 +160,7 @@ def create_sales_data(vendor_id, vendor_name, product_ids, months_history):
                 c.execute("""
                     INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
                     VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Product Sales')
-                """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
+                """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity}"))
 
                 # Add to ledger - Sales Revenue (Credit)
                 c.execute("""
