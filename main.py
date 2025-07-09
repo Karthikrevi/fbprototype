@@ -832,8 +832,7 @@ def book_vendor_service(vendor_id):
             flash(f"Booking confirmed for {service} on {date}")
             return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
-        return render_template("booking```python
-.html", vendor_name=vendor_name, services=services)
+        return render_template("booking.html", vendor_name=vendor_name, services=services)
 
     # Handle database vendors
     try:
