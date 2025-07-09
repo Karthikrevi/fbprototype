@@ -2,11 +2,6 @@
 import sqlite3
 import random
 from datetime import datetime, timedelta
-import hashlib
-
-def hash_password(password):
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode()).hexdigest()
 
 def create_test_vendors():
     """Create 3 test vendor accounts"""
@@ -49,13 +44,14 @@ def create_test_vendors():
     vendor_ids = []
     
     for vendor in vendors_data:
-        hashed_password = hash_password(vendor['password'])
+        # Use plain text password to match Flask app's authentication system
+        plain_password = vendor['password']
         
         try:
             c.execute("""
                 INSERT INTO vendors (name, email, password, phone, city, category, bio, is_online)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-            """, (vendor['name'], vendor['email'], hashed_password, vendor['phone'], 
+            """, (vendor['name'], vendor['email'], plain_password, vendor['phone'], 
                   vendor['city'], vendor['category'], vendor['bio']))
             
             vendor_id = c.lastrowid
