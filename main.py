@@ -1917,76 +1917,160 @@ def inventory_analytics():
 
     if result is None:
         conn.close()
-        return render_template("inventory_analytics.html", analytics={})
+        return render_template("inventory_analytics.html", analytics=[], operational_insights={})
 
     vendor_id = result[0]
 
-    # Calculate inventory analytics for each product
+    # Enhanced query to get comprehensive product analytics
     c.execute("""
-        SELECT p.id, p.name, p.quantity, p.buy_price, p.sale_price,
-               COALESCE(SUM(sl.quantity), 0) as total_sold,
-               COUNT(DISTINCT DATE(sl.sale_date)) as sales_days
+        SELECT p.id, p.name, p.category, p.quantity as current_stock, 
+               p.buy_price, p.sale_price,
+               COALESCE(SUM(sl.quantity), 0) as total_sold_30_days,
+               COALESCE(AVG(sl.quantity), 0) as avg_sale_quantity,
+               COUNT(DISTINCT DATE(sl.sale_date)) as active_sales_days,
+               COALESCE(SUM(sl.total_amount), 0) as total_revenue_30_days
         FROM products p
         LEFT JOIN sales_log sl ON p.id = sl.product_id 
             AND sl.sale_date >= date('now', '-30 days')
         WHERE p.vendor_id = ?
-        GROUP BY p.id, p.name, p.quantity, p.buy_price, p.sale_price
+        GROUP BY p.id, p.name, p.category, p.quantity, p.buy_price, p.sale_price
     """, (vendor_id,))
     products = c.fetchall()
 
     analytics = []
+    static_holding_rate = 0.02  # 2% monthly holding cost rate
+
     for product in products:
-        product_id, name, current_stock, buy_price, sale_price, sold_30_days, sales_days = product
+        (product_id, name, category, current_stock, buy_price, sale_price, 
+         total_sold_30_days, avg_sale_quantity, active_sales_days, total_revenue_30_days) = product
 
-        # Calculate daily sales rate (average)
-        daily_sales_rate = sold_30_days / 30 if sold_30_days > 0 else 0
+        # Ensure we have valid prices
+        buy_price = buy_price or 0
+        sale_price = sale_price or 0
 
-        # Calculate inventory turnover (times per month)
-        avg_inventory = current_stock + (sold_30_days / 2) if sold_30_days > 0 else current_stock
-        turnover_rate = (sold_30_days / avg_inventory) if avg_inventory > 0 else 0
+        # Calculate daily sales rate
+        daily_sales_rate = total_sold_30_days / 30 if total_sold_30_days > 0 else 0
 
-        # Calculate days of stock remaining
+        # Calculate Average Inventory (Starting + Ending) / 2
+        # Assuming starting inventory was current_stock + sold items
+        starting_inventory = current_stock + total_sold_30_days
+        avg_inventory = (starting_inventory + current_stock) / 2 if starting_inventory > 0 else current_stock
+
+        # Calculate Turnover Rate = Total Sales / Average Inventory
+        turnover_rate = total_sold_30_days / avg_inventory if avg_inventory > 0 else 0
+
+        # Calculate Stock-to-Sales Ratio = Average Inventory / Sales
+        stock_to_sales_ratio = avg_inventory / total_sold_30_days if total_sold_30_days > 0 else float('inf')
+
+        # Calculate Gross Margin % = (Sell Price - Buy Price) / Sell Price × 100
+        gross_margin_percent = ((sale_price - buy_price) / sale_price * 100) if sale_price > 0 else 0
+
+        # Calculate Holding Cost per Month = Buy Price × Current Stock × Holding Rate
+        holding_cost_monthly = buy_price * current_stock * static_holding_rate
+
+        # Classify velocity based on turnover rate
+        if turnover_rate >= 2.0:
+            velocity_class = "Fast-moving"
+            velocity_color = "success"
+        elif turnover_rate >= 0.5:
+            velocity_class = "Slow-moving"
+            velocity_color = "warning"
+        else:
+            velocity_class = "Stagnant"
+            velocity_color = "danger"
+
+        # Calculate days remaining
         days_remaining = current_stock / daily_sales_rate if daily_sales_rate > 0 else 999
 
-        # Safety stock recommendation (10 days of average sales + buffer)
-        safety_stock = max(1, int(daily_sales_rate * 10 * 1.2)) if daily_sales_rate > 0 else 5
+        # Safety stock calculation (assuming 7-14 days safety buffer)
+        safety_stock = max(1, int(daily_sales_rate * 14)) if daily_sales_rate > 0 else 5
 
-        # Reorder point (safety stock + lead time demand, assuming 7 days lead time)
-        reorder_point = safety_stock + int(daily_sales_rate * 7)
-
-        # Holding cost calculation (2% per month of inventory value)
-        holding_cost_monthly = current_stock * (buy_price or 0) * 0.02
-
-        # Status determination
-        if current_stock <= reorder_point:
-            status = "Reorder Now"
-            status_class = "danger"
-        elif current_stock <= safety_stock:
-            status = "Low Stock"
-            status_class = "warning"
+        # Stock status based on safety stock
+        if current_stock < safety_stock:
+            stock_status = "Reorder Now"
+            stock_status_class = "danger"
+        elif current_stock < (safety_stock * 2):
+            stock_status = "Low Stock"
+            stock_status_class = "warning"
         else:
-            status = "Good"
-            status_class = "success"
+            stock_status = "Good"
+            stock_status_class = "success"
+
+        # Calculate inventory value
+        inventory_value = current_stock * buy_price
 
         analytics.append({
             'id': product_id,
             'name': name,
+            'category': category or 'Uncategorized',
             'current_stock': current_stock,
             'daily_sales_rate': round(daily_sales_rate, 2),
             'days_remaining': int(days_remaining) if days_remaining < 999 else "∞",
             'turnover_rate': round(turnover_rate, 2),
-            'safety_stock': safety_stock,
-            'reorder_point': reorder_point,
+            'avg_inventory': round(avg_inventory, 2),
+            'stock_to_sales_ratio': round(stock_to_sales_ratio, 2) if stock_to_sales_ratio != float('inf') else "∞",
+            'gross_margin_percent': round(gross_margin_percent, 1),
             'holding_cost_monthly': round(holding_cost_monthly, 2),
-            'sold_30_days': sold_30_days,
-            'status': status,
-            'status_class': status_class,
-            'buy_price': buy_price or 0,
-            'sale_price': sale_price or 0
+            'velocity_class': velocity_class,
+            'velocity_color': velocity_color,
+            'stock_status': stock_status,
+            'stock_status_class': stock_status_class,
+            'safety_stock': safety_stock,
+            'reorder_point': safety_stock * 2,
+            'buy_price': buy_price,
+            'sale_price': sale_price,
+            'total_revenue_30_days': round(total_revenue_30_days, 2),
+            'inventory_value': round(inventory_value, 2),
+            'status': stock_status,  # For backward compatibility
+            'status_class': stock_status_class  # For backward compatibility
         })
 
+    # Calculate Operational Insights
+    total_inventory_value = sum(item['inventory_value'] for item in analytics)
+    total_holding_cost = sum(item['holding_cost_monthly'] for item in analytics)
+    avg_turnover_rate = sum(item['turnover_rate'] for item in analytics) / len(analytics) if analytics else 0
+    products_needing_attention = len([item for item in analytics if item['stock_status'] in ['Reorder Now', 'Low Stock']])
+
+    # Most profitable products (top 5 by gross margin %)
+    most_profitable = sorted(analytics, key=lambda x: x['gross_margin_percent'], reverse=True)[:5]
+
+    # Highest holding cost products (top 5)
+    highest_holding_cost = sorted(analytics, key=lambda x: x['holding_cost_monthly'], reverse=True)[:5]
+
+    # Low turnover products (bottom 5 by turnover rate)
+    low_turnover = sorted([item for item in analytics if item['turnover_rate'] > 0], 
+                         key=lambda x: x['turnover_rate'])[:5]
+
+    # Top revenue generators (top 5 by 30-day revenue)
+    top_revenue = sorted(analytics, key=lambda x: x['total_revenue_30_days'], reverse=True)[:5]
+
+    # Fast-moving products (turnover rate >= 2.0)
+    fast_moving = [item for item in analytics if item['turnover_rate'] >= 2.0][:5]
+
+    # Products needing reorder
+    reorder_needed = [item for item in analytics if item['stock_status'] == 'Reorder Now']
+
+    # Stagnant products (no sales in 30 days)
+    stagnant_products = [item for item in analytics if item['turnover_rate'] == 0]
+
+    operational_insights = {
+        'total_inventory_value': total_inventory_value,
+        'total_holding_cost': total_holding_cost,
+        'avg_turnover_rate': avg_turnover_rate,
+        'products_needing_attention': products_needing_attention,
+        'most_profitable': most_profitable,
+        'highest_holding_cost': highest_holding_cost,
+        'low_turnover': low_turnover,
+        'top_revenue': top_revenue,
+        'fast_moving': fast_moving,
+        'reorder_needed': reorder_needed,
+        'stagnant_products': stagnant_products
+    }
+
     conn.close()
-    return render_template("inventory_analytics.html", analytics=analytics)
+    return render_template("inventory_analytics.html", 
+                         analytics=analytics, 
+                         operational_insights=operational_insights)
 
 # Marketplace route
 @app.route('/marketplace')
