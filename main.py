@@ -1687,4 +1687,4 @@ def profit_loss():
     pnl_data = {
         'revenue': total_revenue,
         'cogs': cogs,
-        'gross_profit
+        'gross_profit'
