@@ -19,8 +19,9 @@ def create_test_vendors():
             'email': 'fluffy@erp.com',
             'password': 'test123',
             'phone': '+91-9876543210',
-            'address': 'Pet Street, Mumbai, Maharashtra',
-            'business_type': 'Pet Store',
+            'city': 'Mumbai',
+            'category': 'Pet Store',
+            'bio': 'Premium pet products and supplies in Mumbai',
             'months_history': 3
         },
         {
@@ -28,8 +29,9 @@ def create_test_vendors():
             'email': 'waggy@erp.com', 
             'password': 'test123',
             'phone': '+91-9876543211',
-            'address': 'Doggy Lane, Delhi, NCR',
-            'business_type': 'Pet Store & Grooming',
+            'city': 'Delhi',
+            'category': 'Pet Store & Grooming',
+            'bio': 'Complete pet care services and grooming in Delhi',
             'months_history': 6
         },
         {
@@ -37,8 +39,9 @@ def create_test_vendors():
             'email': 'royal@erp.com',
             'password': 'test123', 
             'phone': '+91-9876543212',
-            'address': 'Royal Pet Plaza, Bangalore, Karnataka',
-            'business_type': 'Premium Pet Services',
+            'city': 'Bangalore',
+            'category': 'Premium Pet Services',
+            'bio': 'Luxury pet services and premium products in Bangalore',
             'months_history': 12
         }
     ]
@@ -50,10 +53,10 @@ def create_test_vendors():
         
         try:
             c.execute("""
-                INSERT INTO vendors (name, email, password, phone, address, business_type, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'Online')
+                INSERT INTO vendors (name, email, password, phone, city, category, bio, is_online)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
             """, (vendor['name'], vendor['email'], hashed_password, vendor['phone'], 
-                  vendor['address'], vendor['business_type']))
+                  vendor['city'], vendor['category'], vendor['bio']))
             
             vendor_id = c.lastrowid
             vendor_ids.append({'id': vendor_id, 'months_history': vendor['months_history'], 'name': vendor['name']})
@@ -82,34 +85,34 @@ def create_products_for_vendor(vendor_id, vendor_name):
     
     products_data = [
         # Pet Food
-        {'name': 'Premium Dog Food (5kg)', 'category': 'Pet Food', 'buy_price': 800, 'sale_price': 1200, 'quantity': random.randint(50, 200), 'reorder_point': 20},
-        {'name': 'Cat Treats (500g)', 'category': 'Pet Food', 'buy_price': 150, 'sale_price': 250, 'quantity': random.randint(30, 150), 'reorder_point': 15},
+        {'name': 'Premium Dog Food (5kg)', 'category': 'Pet Food', 'buy_price': 800, 'sale_price': 1200, 'quantity': random.randint(50, 200)},
+        {'name': 'Cat Treats (500g)', 'category': 'Pet Food', 'buy_price': 150, 'sale_price': 250, 'quantity': random.randint(30, 150)},
         
         # Toys
-        {'name': 'Squeaky Ball Set', 'category': 'Toys', 'buy_price': 200, 'sale_price': 350, 'quantity': random.randint(40, 120), 'reorder_point': 10},
-        {'name': 'Interactive Puzzle Toy', 'category': 'Toys', 'buy_price': 500, 'sale_price': 800, 'quantity': random.randint(20, 80), 'reorder_point': 8},
+        {'name': 'Squeaky Ball Set', 'category': 'Toys', 'buy_price': 200, 'sale_price': 350, 'quantity': random.randint(40, 120)},
+        {'name': 'Interactive Puzzle Toy', 'category': 'Toys', 'buy_price': 500, 'sale_price': 800, 'quantity': random.randint(20, 80)},
         
         # Grooming Supplies
-        {'name': 'Pet Shampoo (250ml)', 'category': 'Grooming Supplies', 'buy_price': 300, 'sale_price': 450, 'quantity': random.randint(25, 100), 'reorder_point': 12},
-        {'name': 'Nail Clippers', 'category': 'Grooming Supplies', 'buy_price': 400, 'sale_price': 600, 'quantity': random.randint(15, 60), 'reorder_point': 5},
+        {'name': 'Pet Shampoo (250ml)', 'category': 'Grooming Supplies', 'buy_price': 300, 'sale_price': 450, 'quantity': random.randint(25, 100)},
+        {'name': 'Nail Clippers', 'category': 'Grooming Supplies', 'buy_price': 400, 'sale_price': 600, 'quantity': random.randint(15, 60)},
         
         # Health Products
-        {'name': 'Vitamin Supplements', 'category': 'Health Products', 'buy_price': 600, 'sale_price': 950, 'quantity': random.randint(30, 90), 'reorder_point': 10},
-        {'name': 'Flea & Tick Spray', 'category': 'Health Products', 'buy_price': 250, 'sale_price': 400, 'quantity': random.randint(20, 80), 'reorder_point': 8},
+        {'name': 'Vitamin Supplements', 'category': 'Health Products', 'buy_price': 600, 'sale_price': 950, 'quantity': random.randint(30, 90)},
+        {'name': 'Flea & Tick Spray', 'category': 'Health Products', 'buy_price': 250, 'sale_price': 400, 'quantity': random.randint(20, 80)},
         
         # Accessories
-        {'name': 'Designer Pet Collar', 'category': 'Accessories', 'buy_price': 300, 'sale_price': 550, 'quantity': random.randint(25, 100), 'reorder_point': 12},
-        {'name': 'Pet Carrier Bag', 'category': 'Accessories', 'buy_price': 1200, 'sale_price': 1800, 'quantity': random.randint(10, 50), 'reorder_point': 5}
+        {'name': 'Designer Pet Collar', 'category': 'Accessories', 'buy_price': 300, 'sale_price': 550, 'quantity': random.randint(25, 100)},
+        {'name': 'Pet Carrier Bag', 'category': 'Accessories', 'buy_price': 1200, 'sale_price': 1800, 'quantity': random.randint(10, 50)}
     ]
     
     product_ids = []
     
     for product in products_data:
         c.execute("""
-            INSERT INTO products (vendor_id, name, category, buy_price, sale_price, quantity, reorder_point)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO products (vendor_id, name, category, buy_price, sale_price, quantity)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (vendor_id, product['name'], product['category'], product['buy_price'], 
-              product['sale_price'], product['quantity'], product['reorder_point']))
+              product['sale_price'], product['quantity']))
         
         product_id = c.lastrowid
         product_ids.append({
