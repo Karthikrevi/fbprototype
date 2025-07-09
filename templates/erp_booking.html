@@ -122,20 +122,22 @@
 
   <table>
     <tr>
-      <th>Pet</th>
+      <th>Pet Name</th>
+      <th>Pet Parent</th>
+      <th>Contact</th>
       <th>Service</th>
       <th>Date</th>
-      <th>Duration</th>
       <th>Status</th>
       <th>Actions</th>
     </tr>
     {% for booking in bookings %}
     <tr>
-      <td>{{ booking[1] }}</td>
-      <td>{{ booking[2] }}</td>
+      <td>{{ booking[8] or 'Not specified' }}</td>
+      <td>{{ booking[9] or 'Not specified' }}</td>
+      <td>{{ booking[10] or 'Not specified' }}</td>
       <td>{{ booking[3] }}</td>
       <td>{{ booking[4] }}</td>
-      <td>{{ booking[5] }}</td>
+      <td>{{ booking[7] }}</td>
       <td>
         <form method="POST" action="/erp/bookings/update/{{ booking[0] }}" style="display: inline-block;">
           <select name="status" onchange="this.form.submit()" style="padding: 5px 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.8rem;">

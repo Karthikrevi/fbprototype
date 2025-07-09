@@ -96,6 +96,9 @@ def init_erp_db():
             status TEXT DEFAULT 'pending',
             status_details TEXT,
             estimated_completion TEXT,
+            pet_name TEXT,
+            pet_parent_name TEXT,
+            pet_parent_phone TEXT,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
     ''')
@@ -316,6 +319,22 @@ def init_erp_db():
 
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN break_reason TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    # Add pet parent information columns to bookings table
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN pet_name TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN pet_parent_name TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN pet_parent_phone TEXT")
     except sqlite3.OperationalError:
         pass  # Column already exists
 
@@ -742,6 +761,8 @@ def pet_profile():
 
     if request.method == "POST":
         name = request.form.get("name")
+        parent_name = request.form.get("parent_name")
+        parent_phone = request.form.get("parent_phone")
         birthday = request.form.get("birthday")
         breed = request.form.get("breed")
         blood = request.form.get("blood")
@@ -756,6 +777,8 @@ def pet_profile():
 
         pet = {
             "name": name,
+            "parent_name": parent_name,
+            "parent_phone": parent_phone,
             "birthday": birthday,
             "breed": breed,
             "blood": blood,
@@ -817,14 +840,17 @@ def book_vendor_service(vendor_id):
             service = request.form.get("service")
             date = request.form.get("date")
             time = request.form.get("time", "10:00")
+            pet_name = request.form.get("pet_name")
+            pet_parent_name = request.form.get("pet_parent_name")
+            pet_parent_phone = request.form.get("pet_parent_phone")
 
             # Store booking in database (using vendor_id=0 for demo)
             conn = sqlite3.connect('erp.db')
             c = conn.cursor()
             c.execute("""
-                INSERT INTO bookings (vendor_id, user_email, service, date, time, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (0, user_email, service, date, time, "pending"))
+                INSERT INTO bookings (vendor_id, user_email, service, date, time, status, pet_name, pet_parent_name, pet_parent_phone)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (0, user_email, service, date, time, "pending", pet_name, pet_parent_name, pet_parent_phone))
             conn.commit()
             conn.close()
 
@@ -848,11 +874,14 @@ def book_vendor_service(vendor_id):
                 service = request.form.get("service")
                 date = request.form.get("date")
                 time = request.form.get("time", "10:00")
+                pet_name = request.form.get("pet_name")
+                pet_parent_name = request.form.get("pet_parent_name")
+                pet_parent_phone = request.form.get("pet_parent_phone")
 
                 c.execute("""
-                    INSERT INTO bookings (vendor_id, user_email, service, date, time, status)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (vendor_id, user_email, service, date, time, "pending"))
+                    INSERT INTO bookings (vendor_id, user_email, service, date, time, status, pet_name, pet_parent_name, pet_parent_phone)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (vendor_id, user_email, service, date, time, "pending", pet_name, pet_parent_name, pet_parent_phone))
                 conn.commit()
                 conn.close()
 
@@ -941,7 +970,8 @@ def my_bookings():
 
     # Get all bookings for this user with vendor info
     c.execute("""
-        SELECT b.id, b.service, b.date, b.time, b.status, v.name as vendor_name, v.phone
+        SELECT b.id, b.service, b.date, b.time, b.status, v.name as vendor_name, v.phone, 
+               b.pet_name, b.pet_parent_name, b.pet_parent_phone
         FROM bookings b
         JOIN vendors v ON b.vendor_id = v.id
         WHERE b.user_email = ?

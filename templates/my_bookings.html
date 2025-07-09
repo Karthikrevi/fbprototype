@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,7 +83,7 @@
 <body>
   <div class="container">
     <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
-    
+
     <h1>📅 My Bookings</h1>
     <p class="text-center text-muted">Track your pet's grooming and service appointments</p>
 
@@ -121,16 +120,28 @@
 
         <div class="booking-info">
           <div class="info-item">
-            <div class="info-label">Service Provider</div>
-            <div class="info-value">{{ booking[5] }}</div>
+            <div class="info-label">Service</div>
+            <div class="info-value">{{ booking[1] }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Pet</div>
+            <div class="info-value">{{ booking[7] or 'Not specified' }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Pet Parent</div>
+            <div class="info-value">{{ booking[8] or 'Not specified' }}</div>
+          </div>
+           <div class="info-item">
+            <div class="info-label">Parent Contact</div>
+            <div class="info-value">{{ booking[9] or 'Not specified' }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Date & Time</div>
             <div class="info-value">{{ booking[2] }} at {{ booking[3] }}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">Service</div>
-            <div class="info-value">{{ booking[1] }}</div>
+            <div class="info-label">Service Provider</div>
+            <div class="info-value">{{ booking[5] }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Contact</div>
