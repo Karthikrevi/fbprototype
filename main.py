@@ -2025,24 +2025,27 @@ def inventory_analytics():
             'status_class': stock_status_class  # For backward compatibility
         })
 
-    # Calculate Operational Insights
+    # Calculate Operational Insights with proper data formatting
     total_inventory_value = sum(item['inventory_value'] for item in analytics)
     total_holding_cost = sum(item['holding_cost_monthly'] for item in analytics)
     avg_turnover_rate = sum(item['turnover_rate'] for item in analytics) / len(analytics) if analytics else 0
     products_needing_attention = len([item for item in analytics if item['stock_status'] in ['Reorder Now', 'Low Stock']])
 
     # Most profitable products (top 5 by gross margin %)
-    most_profitable = sorted(analytics, key=lambda x: x['gross_margin_percent'], reverse=True)[:5]
+    most_profitable = sorted([item for item in analytics if item['gross_margin_percent'] > 0], 
+                           key=lambda x: x['gross_margin_percent'], reverse=True)[:5]
 
     # Highest holding cost products (top 5)
-    highest_holding_cost = sorted(analytics, key=lambda x: x['holding_cost_monthly'], reverse=True)[:5]
+    highest_holding_cost = sorted([item for item in analytics if item['holding_cost_monthly'] > 0], 
+                                key=lambda x: x['holding_cost_monthly'], reverse=True)[:5]
 
-    # Low turnover products (bottom 5 by turnover rate)
-    low_turnover = sorted([item for item in analytics if item['turnover_rate'] > 0], 
-                         key=lambda x: x['turnover_rate'])[:5]
+    # Low turnover products (bottom 5 by turnover rate, excluding zero turnover)
+    low_turnover_products = [item for item in analytics if 0 < item['turnover_rate'] < 1.0]
+    low_turnover = sorted(low_turnover_products, key=lambda x: x['turnover_rate'])[:5]
 
     # Top revenue generators (top 5 by 30-day revenue)
-    top_revenue = sorted(analytics, key=lambda x: x['total_revenue_30_days'], reverse=True)[:5]
+    top_revenue = sorted([item for item in analytics if item['total_revenue_30_days'] > 0], 
+                        key=lambda x: x['total_revenue_30_days'], reverse=True)[:5]
 
     # Fast-moving products (turnover rate >= 2.0)
     fast_moving = [item for item in analytics if item['turnover_rate'] >= 2.0][:5]
@@ -2051,12 +2054,12 @@ def inventory_analytics():
     reorder_needed = [item for item in analytics if item['stock_status'] == 'Reorder Now']
 
     # Stagnant products (no sales in 30 days)
-    stagnant_products = [item for item in analytics if item['turnover_rate'] == 0]
+    stagnant_products = [item for item in analytics if item['turnover_rate'] == 0][:5]
 
     operational_insights = {
-        'total_inventory_value': total_inventory_value,
-        'total_holding_cost': total_holding_cost,
-        'avg_turnover_rate': avg_turnover_rate,
+        'total_inventory_value': round(total_inventory_value, 2),
+        'total_holding_cost': round(total_holding_cost, 2),
+        'avg_turnover_rate': round(avg_turnover_rate, 2),
         'products_needing_attention': products_needing_attention,
         'most_profitable': most_profitable,
         'highest_holding_cost': highest_holding_cost,

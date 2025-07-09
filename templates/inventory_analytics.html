@@ -1,5 +1,3 @@
-
-<line_number>1</line_number>
 <!DOCTYPE html>
 <html>
 <head>
@@ -51,7 +49,7 @@
 </head>
 <body>
     <a href="/erp/reports" class="back-btn">← Back to Reports</a>
-    
+
     <div class="container mt-4">
         <div class="text-center mb-4">
             <h1>📦 Inventory Analytics</h1>
@@ -132,11 +130,12 @@
                             </td>
                         </tr>
                         {% endfor %}
-                        
+
                         {% if not analytics %}
                         <tr>
                             <td colspan="9" style="text-align: center; color: #666; padding: 40px;">
                                 No products found. Add products to see inventory analytics.
+                                <br><small class="text-muted">Debug: analytics = {{ analytics|length }}, operational_insights = {{ operational_insights.keys()|list }}</small>
                             </td>
                         </tr>
                         {% endif %}
@@ -225,11 +224,12 @@
                             <td>{{ item.days_remaining }}</td>
                         </tr>
                         {% endfor %}
-                        
+
                         {% if not analytics %}
                         <tr>
                             <td colspan="8" style="text-align: center; color: #666; padding: 40px;">
                                 No products found. Add products to see inventory analytics.
+                                <br><small class="text-muted">Debug: analytics = {{ analytics|length }}, operational_insights = {{ operational_insights.keys()|list }}</small>
                             </td>
                         </tr>
                         {% endif %}
@@ -241,7 +241,7 @@
         <!-- 📦 Operational Insights Section -->
         <div class="analytics-card">
             <h3>📦 Operational Insights</h3>
-            
+
             <div class="row mb-4">
                 <!-- Summary Statistics -->
                 <div class="col-md-3">
