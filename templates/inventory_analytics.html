@@ -176,6 +176,218 @@
             </div>
         </div>
 
+        <!-- Enhanced Inventory Analysis Table -->
+        <div class="analytics-card">
+            <h3>📊 Enhanced Product Analysis</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Current Stock</th>
+                            <th>Turnover Rate</th>
+                            <th>Gross Margin %</th>
+                            <th>Holding Cost</th>
+                            <th>Velocity</th>
+                            <th>Stock Status</th>
+                            <th>Days Remaining</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in analytics %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.name }}</strong>
+                                <small class="text-muted d-block">{{ item.category }}</small>
+                            </td>
+                            <td>{{ item.current_stock }}</td>
+                            <td>
+                                <span class="badge bg-{{ item.velocity_color }}">
+                                    {{ item.turnover_rate }}x
+                                </span>
+                            </td>
+                            <td>
+                                <span class="{% if item.gross_margin_percent > 30 %}text-success{% elif item.gross_margin_percent > 10 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ item.gross_margin_percent }}%
+                                </span>
+                            </td>
+                            <td>₹{{ item.holding_cost_monthly }}</td>
+                            <td>
+                                <span class="badge bg-{{ item.velocity_color }}">
+                                    {{ item.velocity_class }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ item.stock_status_class }}">
+                                    {{ item.stock_status }}
+                                </span>
+                            </td>
+                            <td>{{ item.days_remaining }}</td>
+                        </tr>
+                        {% endfor %}
+                        
+                        {% if not analytics %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: #666; padding: 40px;">
+                                No products found. Add products to see inventory analytics.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 📦 Operational Insights Section -->
+        <div class="analytics-card">
+            <h3>📦 Operational Insights</h3>
+            
+            <div class="row mb-4">
+                <!-- Summary Statistics -->
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value">₹{{ "%.0f"|format(operational_insights.total_inventory_value) }}</div>
+                        <div class="metric-label">Total Inventory Value</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value">₹{{ "%.0f"|format(operational_insights.total_holding_cost) }}</div>
+                        <div class="metric-label">Monthly Holding Cost</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value">{{ "%.1f"|format(operational_insights.avg_turnover_rate) }}x</div>
+                        <div class="metric-label">Avg Turnover Rate</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value">{{ operational_insights.products_needing_attention }}</div>
+                        <div class="metric-label">Need Attention</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Most Profitable Products -->
+                <div class="col-md-4">
+                    <h6>💰 Most Profitable Products</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in operational_insights.most_profitable %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ item.name }}</span>
+                            <span class="text-success">{{ item.gross_margin_percent }}%</span>
+                        </li>
+                        {% endfor %}
+                        {% if not operational_insights.most_profitable %}
+                        <li class="list-group-item text-muted">No profitable products found</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Highest Holding Cost -->
+                <div class="col-md-4">
+                    <h6>📦 Highest Holding Cost</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in operational_insights.highest_holding_cost %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ item.name }}</span>
+                            <span class="text-warning">₹{{ item.holding_cost_monthly }}</span>
+                        </li>
+                        {% endfor %}
+                        {% if not operational_insights.highest_holding_cost %}
+                        <li class="list-group-item text-muted">No high holding cost items</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Low Turnover Products -->
+                <div class="col-md-4">
+                    <h6>🐌 Low Turnover Products</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in operational_insights.low_turnover %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ item.name }}</span>
+                            <span class="text-danger">{{ item.turnover_rate }}x</span>
+                        </li>
+                        {% endfor %}
+                        {% if not operational_insights.low_turnover %}
+                        <li class="list-group-item text-muted">All products have good turnover</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <!-- Top Revenue Generators -->
+                <div class="col-md-4">
+                    <h6>🏆 Top Revenue Generators</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in operational_insights.top_revenue %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ item.name }}</span>
+                            <span class="text-success">₹{{ item.total_revenue_30_days }}</span>
+                        </li>
+                        {% endfor %}
+                        {% if not operational_insights.top_revenue %}
+                        <li class="list-group-item text-muted">No revenue data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Fast-Moving Products -->
+                <div class="col-md-4">
+                    <h6>🔥 Fast-Moving Products</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in operational_insights.fast_moving %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ item.name }}</span>
+                            <span class="text-success">{{ item.turnover_rate }}x</span>
+                        </li>
+                        {% endfor %}
+                        {% if not operational_insights.fast_moving %}
+                        <li class="list-group-item text-muted">No fast-moving products yet</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Reorder Alerts -->
+                <div class="col-md-4">
+                    <h6>🚨 Reorder Alerts</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in operational_insights.reorder_needed %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ item.name }}</span>
+                            <span class="text-danger">{{ item.current_stock }} left</span>
+                        </li>
+                        {% endfor %}
+                        {% if not operational_insights.reorder_needed %}
+                        <li class="list-group-item text-success">All products have adequate stock</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Stagnant Products Alert -->
+            {% if operational_insights.stagnant_products %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="alert alert-warning">
+                        <h6>⚠️ Stagnant Products (No Sales in 30 Days)</h6>
+                        <ul class="mb-0">
+                            {% for item in operational_insights.stagnant_products %}
+                            <li>{{ item.name }} - {{ item.current_stock }} units (₹{{ item.inventory_value }} value)</li>
+                            {% endfor %}
+                        </ul>
+                        <small class="text-muted">Consider promotional strategies or liquidation for these products.</small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Performance Insights -->
         <div class="analytics-card">
             <h3>📈 Performance Insights</h3>
@@ -183,13 +395,10 @@
                 <div class="col-md-4">
                     <h6>🔥 Fast Moving Products</h6>
                     <ul>
-                        {% set fast_moving = analytics|sort(attribute='turnover_rate', reverse=true)[:3] %}
-                        {% for item in fast_moving %}
-                        {% if item.turnover_rate > 0.5 %}
+                        {% for item in operational_insights.fast_moving %}
                         <li>{{ item.name }} ({{ item.turnover_rate }}x turnover)</li>
-                        {% endif %}
                         {% endfor %}
-                        {% if not fast_moving or fast_moving[0].turnover_rate <= 0.5 %}
+                        {% if not operational_insights.fast_moving %}
                         <li class="text-muted">No fast-moving products yet</li>
                         {% endif %}
                     </ul>
@@ -197,13 +406,10 @@
                 <div class="col-md-4">
                     <h6>🐌 Slow Moving Products</h6>
                     <ul>
-                        {% set slow_moving = analytics|sort(attribute='turnover_rate')[:3] %}
-                        {% for item in slow_moving %}
-                        {% if item.current_stock > 0 and item.turnover_rate < 0.2 %}
+                        {% for item in operational_insights.low_turnover %}
                         <li>{{ item.name }} ({{ item.turnover_rate }}x turnover)</li>
-                        {% endif %}
                         {% endfor %}
-                        {% if not slow_moving or slow_moving[0].turnover_rate >= 0.2 %}
+                        {% if not operational_insights.low_turnover %}
                         <li class="text-muted">All products moving well</li>
                         {% endif %}
                     </ul>
@@ -211,13 +417,10 @@
                 <div class="col-md-4">
                     <h6>💰 High Value Stock</h6>
                     <ul>
-                        {% set high_value = analytics|sort(attribute='holding_cost_monthly', reverse=true)[:3] %}
-                        {% for item in high_value %}
-                        {% if item.holding_cost_monthly > 10 %}
+                        {% for item in operational_insights.highest_holding_cost %}
                         <li>{{ item.name }} (₹{{ item.holding_cost_monthly }}/month)</li>
-                        {% endif %}
                         {% endfor %}
-                        {% if not high_value or high_value[0].holding_cost_monthly <= 10 %}
+                        {% if not operational_insights.highest_holding_cost %}
                         <li class="text-muted">No high-value stock concerns</li>
                         {% endif %}
                     </ul>

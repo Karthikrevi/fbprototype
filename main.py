@@ -2544,7 +2544,7 @@ def process_pos_sale():
             c.execute("""
                 INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
                 VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Product Sales')
-            """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
+            """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantitysold}"))
 
             receipt_items.append({
                 'name': product_name,
@@ -2666,6 +2666,14 @@ def add_inventory_stock(product_id):
         flash(f"Error adding inventory: {str(e)}")
         return redirect(url_for("view_product", product_id=product_id))
 
+# Add alias route for inventory analytics
+@app.route('/erp/inventory/analytics')
+def inventory_analytics_alias():
+    """Alias route for inventory analytics to match requested URL structure"""
+    return inventory_analytics()
+
 # Run app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=81, debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
