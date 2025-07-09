@@ -966,6 +966,11 @@ def erp_home():
         return redirect(url_for("erp_login"))
     return redirect(url_for("erp_dashboard"))
 
+@app.route('/erp-login')
+def erp_login_redirect():
+    """Redirect route for /erp-login to unified ERP login page"""
+    return render_template("erp_login_unified.html")
+
 @app.route('/erp/login', methods=["GET", "POST"])
 def erp_login():
     if request.method == "POST":
