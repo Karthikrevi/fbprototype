@@ -748,18 +748,25 @@ def vets():
     return render_template("vets.html")
 
 # Pet Profile Routes
-@app.route('/pet-profile', methods=["GET", "POST"])
+@app.route('/pet-profile')
 def pet_profile():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    with open("dog_breeds.json", "r") as f:
-        breeds = json.load(f)
-
     user = session["user"]
     pets = db.get(f"pets:{user}", [])
 
+    return render_template("pet_profile.html", pets=pets)
+
+@app.route('/add-pet', methods=["GET", "POST"])
+def add_pet():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
     if request.method == "POST":
+        user = session["user"]
+        pets = db.get(f"pets:{user}", [])
+        
         name = request.form.get("name")
         parent_name = request.form.get("parent_name")
         parent_phone = request.form.get("parent_phone")
@@ -787,7 +794,27 @@ def pet_profile():
 
         pets.append(pet)
         db[f"pets:{user}"] = pets
+        flash(f"Pet {name} added successfully!")
         return redirect(url_for("pet_profile"))
+
+    with open("dog_breeds.json", "r") as f:
+        breeds = json.load(f)
+
+    return render_template("add_pet.html", breeds=breeds)
+
+@app.route('/pet/<int:pet_index>')
+def pet_detail(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+
+    pet = pets[pet_index]
 
     # Get pet-specific bookings and purchase history
     conn = sqlite3.connect('erp.db')
@@ -813,7 +840,7 @@ def pet_profile():
 
     conn.close()
 
-    return render_template("pet_profile.html", breeds=breeds, pets=pets, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
+    return render_template("pet_detail.html", pet=pet, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
 
 @app.route('/set-location')
 def set_location():

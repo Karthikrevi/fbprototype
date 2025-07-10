@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -77,155 +76,89 @@
       padding: 8px 16px;
       border-radius: 6px;
     }
-    .form-container {
+    .btn-add-pet {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border: none;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 30px;
+    }
+    .btn-add-pet:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+      color: white;
+    }
+    .pets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+    }
+    .pet-card-preview {
       background: white;
       border-radius: 15px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 30px;
-      margin-bottom: 30px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+    .pet-card-preview:hover {
+      transform: translateY(-5px);
+    }
+    .pet-card-preview .pet-header {
+      padding: 20px;
+    }
+    .pet-card-preview .pet-photo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 10px;
+    }
+    .no-pets {
+      text-align: center;
+      padding: 50px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
-    
-    <h1 class="text-center mb-4">🐾 My Pets</h1>
 
-    <!-- Add New Pet Form -->
-    <div class="form-container">
-      <h3>Add New Pet</h3>
-      <form method="POST" enctype="multipart/form-data">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label">Pet Name</label>
-              <input type="text" class="form-control" name="name" required>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label">Pet Parent Name</label>
-              <input type="text" class="form-control" name="parent_name" required>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label">Birthday</label>
-              <input type="date" class="form-control" name="birthday">
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label">Contact Phone</label>
-              <input type="tel" class="form-control" name="parent_phone" placeholder="e.g., +91-9876543210">
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label">Breed</label>
-              <select class="form-control" name="breed">
-                <option value="">Select a breed</option>
-                {% for breed in breeds %}
-                  <option value="{{ breed }}">{{ breed }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label">Blood Type</label>
-              <input type="text" class="form-control" name="blood" placeholder="e.g., DEA 1.1 positive">
-            </div>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Pet Photo</label>
-          <input type="file" class="form-control" name="photo" accept="image/*">
-        </div>
-        <button type="submit" class="btn btn-primary">Add Pet</button>
-      </form>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>🐾 My Pets</h1>
+      <a href="/add-pet" class="btn-add-pet">+ Add New Pet</a>
     </div>
 
-    <!-- Existing Pets -->
-    {% for pet in pets %}
-    <div class="pet-card">
-      <div class="pet-header">
-        <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" 
-             alt="{{ pet.name }}" class="pet-photo">
-        <h2>{{ pet.name }}</h2>
-        <p>{{ pet.breed }} • Born: {{ pet.birthday }}</p>
-      </div>
-      
-      <div class="pet-details">
-        <div class="row">
-          <div class="col-md-4">
-            <h5>Pet Information</h5>
-            <p><strong>Pet Parent:</strong> {{ pet.parent_name or 'Not specified' }}</p>
-            <p><strong>Contact:</strong> {{ pet.parent_phone or 'Not specified' }}</p>
-            <p><strong>Blood Type:</strong> {{ pet.blood or 'Not specified' }}</p>
-            <p><strong>Age:</strong> 
-              {% if pet.birthday %}
-                {{ ((2024 - pet.birthday.split('-')[0]|int) if pet.birthday else 'Unknown') }} years old
-              {% else %}
-                Unknown
-              {% endif %}
-            </p>
-          </div>
-          <div class="col-md-8">
-            <h5>Quick Actions</h5>
-            <a href="/groomers" class="btn btn-success me-2">Book Grooming</a>
-            <a href="/vets" class="btn btn-success me-2">Book Vet Visit</a>
-            <a href="/boarding" class="btn btn-success">Book Boarding</a>
+    {% if pets %}
+      <div class="pets-grid">
+        {% for pet in pets %}
+        <div class="pet-card-preview" onclick="location.href='/pet/{{ loop.index0 }}'">
+          <div class="pet-header">
+            <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" 
+                 alt="{{ pet.name }}" class="pet-photo">
+            <h3>{{ pet.name }}</h3>
+            <p>{{ pet.breed }} • {{ pet.parent_name or 'Owner not specified' }}</p>
           </div>
         </div>
+        {% endfor %}
       </div>
-    </div>
+    {% else %}
+      <div class="no-pets">
+        <h3>No pets added yet</h3>
+        <p>Add your first pet to get started!</p>
+        <a href="/add-pet" class="btn-add-pet">+ Add Your First Pet</a>
+      </div>
+    {% endif %}
 
-    <!-- Appointments for this pet -->
-    <div class="appointments-section">
-      <h3>🗓️ Upcoming Appointments for {{ pet.name }}</h3>
-      <div class="appointment-item">
-        <h5>Grooming Appointment</h5>
-        <p><strong>Date:</strong> January 25, 2024 at 2:00 PM</p>
-        <p><strong>Service:</strong> Full Grooming Package</p>
-        <p><strong>Provider:</strong> Fluffy Paws Grooming</p>
-        <span class="badge bg-success">Confirmed</span>
-      </div>
-      <div class="appointment-item">
-        <h5>Veterinary Checkup</h5>
-        <p><strong>Date:</strong> February 5, 2024 at 10:30 AM</p>
-        <p><strong>Service:</strong> Annual Health Checkup</p>
-        <p><strong>Provider:</strong> Pet Care Clinic</p>
-        <span class="badge bg-warning">Pending</span>
-      </div>
-    </div>
-
-    <!-- Reminders for this pet -->
-    <div class="reminders-section">
-      <h3>🔔 Reminders for {{ pet.name }}</h3>
-      <div class="reminder-item">
-        <h5>Vaccination Due</h5>
-        <p>Annual rabies vaccination due on March 15, 2024</p>
-        <span class="badge bg-danger">High Priority</span>
-      </div>
-      <div class="reminder-item">
-        <h5>Flea Treatment</h5>
-        <p>Monthly flea treatment due on February 1, 2024</p>
-        <span class="badge bg-info">Medium Priority</span>
-      </div>
-    </div>
-    {% endfor %}
-
-    <!-- Purchase History -->
+    <!-- Purchase History Section -->
     <div class="purchase-history-section">
       <h3>🛒 Recent Purchases</h3>
       <p>View your complete <a href="/purchase-history">purchase history</a> from the marketplace.</p>
-      
+
       <div class="purchase-item">
         <h5>Premium Dog Shampoo</h5>
         <p><strong>Date:</strong> January 20, 2024</p>
@@ -233,7 +166,7 @@
         <p><strong>Vendor:</strong> Fluffy Paws Grooming</p>
         <span class="badge bg-success">Delivered</span>
       </div>
-      
+
       <div class="purchase-item">
         <h5>Cat Nail Clippers</h5>
         <p><strong>Date:</strong> January 18, 2024</p>
@@ -242,13 +175,6 @@
         <span class="badge bg-primary">Shipped</span>
       </div>
     </div>
-
-    {% if not pets %}
-    <div class="text-center">
-      <h3>No pets added yet</h3>
-      <p>Add your first pet using the form above!</p>
-    </div>
-    {% endif %}
   </div>
 </body>
 </html>
