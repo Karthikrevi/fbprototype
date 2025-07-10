@@ -840,7 +840,49 @@ def pet_detail(pet_index):
 
     conn.close()
 
-    return render_template("pet_detail.html", pet=pet, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
+    return render_template("pet_detail.html", pet=pet, pet_index=pet_index, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
+
+@app.route('/pet/<int:pet_index>/edit', methods=["GET", "POST"])
+def edit_pet(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+
+    if request.method == "POST":
+        # Update the pet information
+        pets[pet_index]["name"] = request.form.get("name")
+        pets[pet_index]["parent_name"] = request.form.get("parent_name")
+        pets[pet_index]["parent_phone"] = request.form.get("parent_phone")
+        pets[pet_index]["birthday"] = request.form.get("birthday")
+        pets[pet_index]["breed"] = request.form.get("breed")
+        pets[pet_index]["blood"] = request.form.get("blood")
+
+        # Handle photo upload
+        file = request.files.get("photo")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            pets[pet_index]["photo"] = "/" + filepath
+
+        # Save updated pets list
+        db[f"pets:{user}"] = pets
+        flash(f"Pet {pets[pet_index]['name']} updated successfully!")
+        return redirect(url_for("pet_detail", pet_index=pet_index))
+
+    pet = pets[pet_index]
+    
+    # Load dog breeds for the dropdown
+    with open("dog_breeds.json", "r") as f:
+        breeds = json.load(f)
+
+    return render_template("edit_pet.html", pet=pet, pet_index=pet_index, breeds=breeds)
 
 @app.route('/set-location')
 def set_location():
