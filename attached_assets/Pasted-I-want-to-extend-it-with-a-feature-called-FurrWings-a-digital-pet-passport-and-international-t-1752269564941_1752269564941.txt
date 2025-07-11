@@ -1,0 +1,135 @@
+I want to extend it with a feature called **FurrWings** – a digital pet passport and international travel workflow.
+
+We’ve already completed Phase 1 (pet profile + passport checklist).  
+Now, please help me implement **Phase 2+**, including the following modules:
+
+---
+
+## ✅ 1. STATIC DIGITAL SIGNATURE SYSTEM (F-DSC)
+
+### Goal:
+Allow vets to upload health/vaccine docs and apply a **tamper-evident, non-IT-Act-compliant digital signature**.
+
+### Implementation:
+- Extend `passport_documents` table to include:
+  - `is_signed` (BOOLEAN)
+  - `doc_hash` (TEXT)
+  - `signature_timestamp` (DATETIME)
+- On upload:
+  - If “Sign Document” checkbox is ticked, hash the document using:
+    ```python
+    hash = sha256(file_bytes + vet_id + timestamp).hexdigest()
+    ```
+  - Store the hash and set `is_signed = True`
+  - Log signature info visibly in the UI
+
+### Disclaimer (displayed on all signed docs and vet portal):
+````
+
+This digital signature is valid within the FurrButler ecosystem. It is not certified under the Indian IT Act, 2000. For export validation, documents are submitted via certified authorities or partner handlers. This system ensures document traceability, tamper protection, and vet identity verification within the FurrWings network.
+
+````
+
+---
+
+## ✅ 2. VET ERP PANEL
+
+### URL: `/vet/dashboard`
+- Vet login required
+- Display:
+  - Assigned pets and their passport checklist
+  - Upload forms for `vaccine` and `health_cert` types only
+  - “Digitally Sign Document” checkbox
+- Show:
+  - Current doc status (approved, rejected, pending)
+  - Uploaded timestamp
+  - Document hash if signed
+  - Reapply form if needed (with amendment reason)
+
+---
+
+## ✅ 3. HANDLER ERP PANEL
+
+### URL: `/handler/dashboard`
+- Handler login required
+- Show:
+  - Pets assigned to this handler
+  - Upload forms for:
+    - DGFT document (ANF-2M or export permit)
+    - AQCS NOC or quarantine release
+  - Manual input field for DGFT reference number
+  - Upload verification proof
+- Optional API placeholder:
+  ```python
+  def submit_to_dgft_api(doc, handler_id):
+      # mock DGFT submission call
+      return {'status': 'submitted', 'reference': 'DGFT-78912'}
+````
+
+---
+
+## ✅ 4. ISOLATION CENTER ERP PANEL
+
+### URL: `/isolation/dashboard`
+
+* Isolation center login
+* Show assigned bookings
+* Options per booking:
+
+  * Approve or Reject intake
+  * Upload daily photo/video of the pet (gallery per pet)
+  * Update status (e.g., “In Quarantine”, “Cleared for Release”)
+  * Upload “Discharge Summary” document
+
+---
+
+## 🔒 FILE STORAGE:
+
+* Store all uploads in `/static/uploads/`
+* Signed docs have matching `.sig.txt` file with:
+
+  * Vet name
+  * License number
+  * DSC-ID
+  * Timestamp
+  * Doc hash
+* Optional: attach a static QR code linking to `/verify/<doc_id>`
+
+---
+
+## 🧾 DATABASE TABLES TO EXTEND/ADD:
+
+* `passport_documents`
+
+  * Add: `is_signed`, `doc_hash`, `signature_timestamp`, `vet_id`
+* `vets`, `handlers`, `isolation_centers`
+
+  * Minimal info: name, license/ID, email, login
+
+---
+
+## 🧪 TEST CASE
+
+* Pet ID 101: “Luna”
+* Vet ID 1: Dr. Kavya (KL-1324)
+* Handler ID 2: Global Paws Pvt Ltd
+* Isolation Center ID 3: Bark & Board
+
+### Flow:
+
+* Vet logs in → uploads health cert with F-DSC
+* Handler logs in → uploads DGFT doc + AQCS NOC
+* Isolation logs in → approves booking, uploads media, closes out with discharge
+* Pet Passport updates as docs arrive → visible hash + signature info for vet docs
+
+---
+
+Let’s begin by:
+
+1. Updating `passport_documents` schema
+2. Building `/vet/dashboard` with role validation, upload logic, and static F-DSC generation
+3. Then move to handler and isolation panels.
+
+```
+
+---
