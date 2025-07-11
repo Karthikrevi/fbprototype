@@ -3113,6 +3113,157 @@ def business_analysis():
     
     return render_template("business_analysis.html")
 
+# Business Analysis Data API
+@app.route('/api/business-analysis', methods=["POST"])
+def business_analysis_api():
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    email = session["vendor"]
+    data = request.get_json()
+    analysis_type = data.get("type", "comprehensive")
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return {"error": "Vendor not found"}, 404
+    
+    vendor_id = vendor_result[0]
+    
+    # Get comprehensive business data
+    business_data = {}
+    
+    # Sales summary
+    c.execute("""
+        SELECT COUNT(*) as total_transactions,
+               SUM(total_amount) as total_revenue,
+               AVG(total_amount) as avg_transaction_value,
+               SUM(quantity) as total_units_sold
+        FROM sales_log 
+        WHERE vendor_id = ? AND sale_date >= date('now', '-90 days')
+    """, (vendor_id,))
+    
+    sales_data = c.fetchone()
+    business_data['sales_summary'] = {
+        'total_transactions': sales_data[0] or 0,
+        'total_revenue': sales_data[1] or 0,
+        'avg_transaction_value': sales_data[2] or 0,
+        'total_units_sold': sales_data[3] or 0
+    }
+    
+    # Product performance
+    c.execute("""
+        SELECT p.name, p.sale_price, p.buy_price, p.quantity,
+               COALESCE(SUM(sl.quantity), 0) as units_sold,
+               COALESCE(SUM(sl.total_amount), 0) as revenue,
+               ((p.sale_price - p.buy_price) / p.sale_price * 100) as margin_percent
+        FROM products p
+        LEFT JOIN sales_log sl ON p.id = sl.product_id 
+            AND sl.sale_date >= date('now', '-90 days')
+        WHERE p.vendor_id = ?
+        GROUP BY p.id, p.name, p.sale_price, p.buy_price, p.quantity
+        ORDER BY revenue DESC
+        LIMIT 10
+    """, (vendor_id,))
+    
+    product_data = c.fetchall()
+    business_data['product_performance'] = []
+    for product in product_data:
+        business_data['product_performance'].append({
+            'name': product[0],
+            'sale_price': product[1],
+            'buy_price': product[2],
+            'current_stock': product[3],
+            'units_sold': product[4],
+            'revenue': product[5],
+            'margin_percent': product[6]
+        })
+    
+    # Expense breakdown
+    c.execute("""
+        SELECT category, SUM(amount) as total_amount
+        FROM expenses 
+        WHERE vendor_id = ? AND date >= date('now', '-90 days')
+        GROUP BY category
+        ORDER BY total_amount DESC
+    """, (vendor_id,))
+    
+    expense_data = c.fetchall()
+    business_data['expenses'] = []
+    for expense in expense_data:
+        business_data['expenses'].append({
+            'category': expense[0],
+            'amount': expense[1]
+        })
+    
+    # Inventory metrics
+    c.execute("""
+        SELECT COUNT(*) as total_products,
+               SUM(quantity) as total_units,
+               SUM(quantity * buy_price) as total_inventory_value,
+               COUNT(CASE WHEN quantity <= 5 THEN 1 END) as low_stock_items
+        FROM products 
+        WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    inventory_data = c.fetchone()
+    business_data['inventory_metrics'] = {
+        'total_products': inventory_data[0] or 0,
+        'total_units': inventory_data[1] or 0,
+        'total_inventory_value': inventory_data[2] or 0,
+        'low_stock_items': inventory_data[3] or 0
+    }
+    
+    # Monthly trends
+    c.execute("""
+        SELECT strftime('%Y-%m', sale_date) as month,
+               COUNT(*) as transactions,
+               SUM(total_amount) as revenue
+        FROM sales_log 
+        WHERE vendor_id = ? AND sale_date >= date('now', '-12 months')
+        GROUP BY strftime('%Y-%m', sale_date)
+        ORDER BY month DESC
+        LIMIT 12
+    """, (vendor_id,))
+    
+    monthly_data = c.fetchall()
+    business_data['monthly_trends'] = []
+    for month in monthly_data:
+        business_data['monthly_trends'].append({
+            'month': month[0],
+            'transactions': month[1],
+            'revenue': month[2]
+        })
+    
+    # Key performance indicators
+    total_revenue = business_data['sales_summary']['total_revenue']
+    total_expenses = sum(expense['amount'] for expense in business_data['expenses'])
+    net_profit = total_revenue - total_expenses
+    profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    business_data['kpis'] = {
+        'total_revenue': total_revenue,
+        'total_expenses': total_expenses,
+        'net_profit': net_profit,
+        'profit_margin': profit_margin,
+        'inventory_turnover': business_data['sales_summary']['total_units_sold'] / business_data['inventory_metrics']['total_units'] if business_data['inventory_metrics']['total_units'] > 0 else 0
+    }
+    
+    conn.close()
+    
+    return {
+        "success": True,
+        "data": business_data,
+        "analysis_type": analysis_type,
+        "vendor_email": email
+    }
+
 # ---- CHAT SYSTEM ROUTES ----
 
 @app.route('/chat')

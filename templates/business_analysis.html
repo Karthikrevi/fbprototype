@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -155,7 +154,7 @@
         <div class="analysis-card">
             <h3><i class="fas fa-chart-line"></i> Select Analysis Type</h3>
             <p class="text-muted">Choose the type of business analysis you need:</p>
-            
+
             <div class="text-center">
                 <button class="analysis-type-btn active" onclick="selectAnalysisType('comprehensive')" id="btn-comprehensive">
                     <i class="fas fa-chart-pie"></i> Comprehensive Analysis
@@ -227,11 +226,11 @@
         <div class="analysis-card" id="dataPreview">
             <h3><i class="fas fa-database"></i> Business Data Summary</h3>
             <p class="text-muted">Overview of data that will be analyzed by AI:</p>
-            
+
             <div class="metric-grid" id="businessMetrics">
                 <!-- Metrics will be loaded here -->
             </div>
-            
+
             <div class="text-center mt-4">
                 <button class="btn btn-primary btn-lg" onclick="loadBusinessData()">
                     <i class="fas fa-sync-alt"></i> Load Current Data
@@ -267,7 +266,7 @@
 
         function selectAnalysisType(type) {
             selectedAnalysisType = type;
-            
+
             // Update button styles
             document.querySelectorAll('.analysis-type-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -282,18 +281,18 @@
         function saveApiConfig() {
             const apiKey = document.getElementById('apiKey').value;
             const model = document.getElementById('modelSelect').value;
-            
+
             if (!apiKey) {
                 alert('Please enter your OpenAI API key');
                 return;
             }
-            
+
             // TODO: Implement secure API key storage
             localStorage.setItem('openai_api_key', apiKey);
             localStorage.setItem('openai_model', model);
-            
+
             apiConfigured = true;
-            
+
             // Update status
             const statusEl = document.getElementById('aiStatus');
             statusEl.className = 'ai-status ready';
@@ -301,26 +300,26 @@
                 <h4><i class="fas fa-check-circle"></i> AI Ready for Analysis</h4>
                 <p class="mb-0">ChatGPT API configured successfully. Ready to analyze your business data.</p>
             `;
-            
+
             document.getElementById('apiConfig').style.display = 'none';
             document.getElementById('analyzeBtn').disabled = false;
         }
 
         function testApiConnection() {
             const apiKey = document.getElementById('apiKey').value;
-            
+
             if (!apiKey) {
                 alert('Please enter your API key first');
                 return;
             }
-            
+
             // TODO: Implement actual API test
             alert('API test functionality will be implemented with actual ChatGPT integration');
         }
 
         function loadBusinessData() {
             document.getElementById('loadingSpinner').style.display = 'block';
-            
+
             fetch('/api/business-analysis', {
                 method: 'POST',
                 headers: {
@@ -344,21 +343,29 @@
         function displayBusinessMetrics(data) {
             const metricsEl = document.getElementById('businessMetrics');
             metricsEl.innerHTML = `
-                <div class="metric-box">
-                    <div class="metric-value">${data.sales_summary.total_transactions}</div>
-                    <div class="metric-label">Total Orders</div>
+                <div class="metric-card">
+                    <div class="metric-value">${data.sales_summary?.total_transactions || 0}</div>
+                    <div class="metric-label">Total Orders (90 days)</div>
                 </div>
-                <div class="metric-box">
-                    <div class="metric-value">₹${data.sales_summary.total_revenue.toFixed(0)}</div>
+                <div class="metric-card">
+                    <div class="metric-value">₹${(data.sales_summary?.total_revenue || 0).toLocaleString()}</div>
                     <div class="metric-label">Total Revenue</div>
                 </div>
-                <div class="metric-box">
-                    <div class="metric-value">${data.product_performance.length}</div>
-                    <div class="metric-label">Products</div>
+                <div class="metric-card">
+                    <div class="metric-value">${data.inventory_metrics?.total_products || 0}</div>
+                    <div class="metric-label">Total Products</div>
                 </div>
-                <div class="metric-box">
-                    <div class="metric-value">${data.expenses.length}</div>
-                    <div class="metric-label">Expense Categories</div>
+                <div class="metric-card">
+                    <div class="metric-value">${data.inventory_metrics?.low_stock_items || 0}</div>
+                    <div class="metric-label">Low Stock Items</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">₹${(data.kpis?.net_profit || 0).toLocaleString()}</div>
+                    <div class="metric-label">Net Profit</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${(data.kpis?.profit_margin || 0).toFixed(1)}%</div>
+                    <div class="metric-label">Profit Margin</div>
                 </div>
             `;
         }
@@ -368,18 +375,18 @@
                 alert('Please configure your ChatGPT API key first');
                 return;
             }
-            
+
             if (!businessData) {
                 alert('Please load business data first');
                 return;
             }
-            
+
             document.getElementById('loadingSpinner').style.display = 'block';
-            
+
             // TODO: Implement actual ChatGPT API call
             setTimeout(() => {
                 document.getElementById('loadingSpinner').style.display = 'none';
-                
+
                 // Mock analysis result
                 const analysisContent = `
                     <h4>📊 Business Performance Analysis</h4>
@@ -402,7 +409,7 @@
                         <li>Implement targeted marketing strategies</li>
                     </ul>
                 `;
-                
+
                 document.getElementById('analysisContent').innerHTML = analysisContent;
                 document.getElementById('analysisResult').style.display = 'block';
             }, 3000);
