@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -122,7 +121,7 @@
                   <form method="POST" action="/vet/upload" enctype="multipart/form-data">
                     <input type="hidden" name="pet_id" value="{{ pet.id }}">
                     <input type="hidden" name="doc_type" value="vaccine">
-                    
+
                     <div class="row">
                       <div class="col-md-8">
                         <label class="form-label">Upload Vaccination Record</label>
@@ -134,7 +133,7 @@
                         </button>
                       </div>
                     </div>
-                    
+
                     <div class="signature-checkbox mt-3">
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="sign_document" id="sign_vaccine_{{ pet.id }}">
@@ -173,7 +172,7 @@
                   <form method="POST" action="/vet/upload" enctype="multipart/form-data">
                     <input type="hidden" name="pet_id" value="{{ pet.id }}">
                     <input type="hidden" name="doc_type" value="health_cert">
-                    
+
                     <div class="row">
                       <div class="col-md-8">
                         <label class="form-label">Upload Health Certificate</label>
@@ -185,7 +184,7 @@
                         </button>
                       </div>
                     </div>
-                    
+
                     <div class="signature-checkbox mt-3">
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="sign_document" id="sign_health_{{ pet.id }}">
@@ -211,7 +210,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
 <body>
   <div class="header">
     <div class="container">
@@ -225,7 +223,14 @@
     </div>
   </div>
 
-  <div class="container">
+  <div class="container-fluid mt-4">
+      <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+          <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+            <h2 class="mb-2">🏥 Veterinary Dashboard</h2>
+            <a href="/vet/logout" class="btn btn-outline-danger">Logout</a>
+          </div>
+
     <div class="disclaimer">
       <strong><i class="fas fa-info-circle"></i> F-DSC Digital Signature Disclaimer:</strong><br>
       This digital signature is valid within the FurrButler ecosystem. It is not certified under the Indian IT Act, 2000. 
@@ -242,7 +247,7 @@
               <small>Pet ID: {{ pet.id }}</small>
             </div>
             <div class="card-body">
-              
+
               <!-- Vaccine Document Section -->
               <h6><i class="fas fa-syringe"></i> Vaccination Records</h6>
               {% if 'vaccine' in pet.doc_status %}
@@ -267,7 +272,7 @@
                 <form action="/vet/upload" method="POST" enctype="multipart/form-data">
                   <input type="hidden" name="pet_id" value="{{ pet.id }}">
                   <input type="hidden" name="doc_type" value="vaccine">
-                  
+
                   <div class="row">
                     <div class="col-md-8">
                       <label class="form-label">Upload Vaccination Record</label>
@@ -279,7 +284,7 @@
                       </button>
                     </div>
                   </div>
-                  
+
                   <div class="signature-checkbox mt-3">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" name="sign_document" id="sign_vaccine_{{ pet.id }}">
@@ -318,7 +323,7 @@
                 <form action="/vet/upload" method="POST" enctype="multipart/form-data">
                   <input type="hidden" name="pet_id" value="{{ pet.id }}">
                   <input type="hidden" name="doc_type" value="health_cert">
-                  
+
                   <div class="row">
                     <div class="col-md-8">
                       <label class="form-label">Upload Health Certificate</label>
@@ -330,7 +335,7 @@
                       </button>
                     </div>
                   </div>
-                  
+
                   <div class="signature-checkbox mt-3">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" name="sign_document" id="sign_health_{{ pet.id }}">

@@ -25,6 +25,22 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             overflow: hidden;
         }
+        
+        @media (max-width: 768px) {
+            .chat-layout {
+                flex-direction: column;
+                height: 85vh;
+            }
+            .conversations-sidebar {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            .chat-container {
+                padding: 10px;
+            }
+        }
         .conversations-sidebar {
             width: 300px;
             background: #f8f9fa;
