@@ -1,0 +1,113 @@
+I'm building a Flask web app called **FurrButler**, and I want to integrate a **Pet Passport System** (called **FurrWings**) as the first step in a larger international pet travel ecosystem. This will be part of a potential patent, so accuracy is important.
+
+Please help me implement **Phase 1** of the system:  
+**The Pet Passport Checklist UI** inside the existing Pet Profile.
+
+---
+
+## 🎯 FUNCTIONAL GOAL (Phase 1)
+Create a **Pet Passport tab/page** linked to each pet profile.  
+This page should display a **dynamic checklist UI** for international travel documentation with:
+- Upload fields for relevant documents
+- Role-based access (only certain users can upload specific fields)
+- Status tracking per document
+- Overall completion meter
+
+---
+
+## 🔐 SYSTEM ROLES
+There are 3 roles:
+- **Pet Parent** – can view the checklist, initiate travel, and track progress
+- **Vet** – can upload and sign medical documents (vaccine, health cert)
+- **Handler** – can upload DGFT + AQCS related docs
+
+Assume basic login/role setup already exists. Pet profiles are stored with unique pet IDs.
+
+---
+
+## 🧩 DATA MODEL DESIGN (SQLite)
+Extend the existing database with:
+
+### `passport_documents` table:
+- `id` (PK)
+- `pet_id` (FK)
+- `doc_type` (ENUM: 'microchip', 'vaccine', 'health_cert', 'dgft', 'aqcs', 'quarantine')
+- `uploaded_by_role` (ENUM: 'parent', 'vet', 'handler')
+- `uploaded_by_user_id`
+- `filename`
+- `upload_time`
+- `status` (ENUM: 'pending', 'approved', 'rejected')
+- `comments` (nullable)
+
+Each document upload is stored separately, attached to a pet_id and doc_type.
+
+---
+
+## 🧑‍💻 FLASK ROUTES NEEDED
+
+### Route 1: `/pet/<pet_id>/passport`
+- Method: `GET`
+- Purpose: Display passport checklist page
+- Query pet profile + all associated `passport_documents`
+- Render an HTML template with:
+  - Pet details
+  - A visual checklist:
+    - Show current document status
+    - Show uploaded filename and timestamp
+    - Show upload buttons only for allowed roles
+
+### Route 2: `/passport/upload`
+- Method: `POST`
+- Form fields:
+  - `pet_id`
+  - `doc_type`
+  - `file` (accept PDF/JPG/PNG)
+- Role-based logic:
+  - Vets can only upload `vaccine`, `health_cert`
+  - Handlers can only upload `dgft`, `aqcs`
+  - Parents can only upload `microchip` or view-only
+- Save to `passport_documents`, store file securely in `/static/uploads/`
+
+Return to checklist page after upload.
+
+---
+
+## 🖼️ TEMPLATE: `passport_checklist.html`
+- Shows each item in checklist format with:
+  - ✅ Status icon (approved, pending, rejected)
+  - 📎 Filename with download link (if uploaded)
+  - ⏰ Timestamp
+  - 👤 Uploaded by (role + name)
+  - 📝 Comment if rejected
+  - 📤 Upload form (only visible to valid role for that doc_type)
+
+Include a **completion progress bar** at the top (e.g., 3/6 complete).
+
+---
+
+## ✅ SECURITY + VALIDATION
+- Validate file type (PDF, JPG, PNG)
+- Validate user role before allowing uploads
+- Store files in `/static/uploads/` with unique names per pet + doc_type
+- Auto-timestamp each upload
+- Set default status = 'pending' on upload
+
+---
+
+## 🔄 NEXT PHASE HOOKS (Optional placeholders for now)
+- Add “Generate Passport” button only when all 6 docs = approved
+- Placeholder button for “Send to Handler” if DGFT fields are missing
+
+---
+
+## 🧪 TEST CASE
+Create a mock pet profile (ID = 101, Name = Luna)
+Create a mock vet (role = 'vet')
+Allow upload of a sample health certificate from the vet side
+
+---
+
+Let’s start by:
+- Generating `passport_documents` table migration script
+- Creating `/pet/<pet_id>/passport` route with full checklist rendering logic
+- Then build `/passport/upload` with upload validation and role-based logic
