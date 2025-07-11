@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handler Dashboard - FurrWings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    .header {
+      background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);
+      color: white;
+      padding: 20px 0;
+      margin-bottom: 30px;
+    }
+    .pet-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      overflow: hidden;
+    }
+    .upload-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+    .document-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-shipping-fast"></i> Welcome, {{ handler_name }}</h2>
+          <p class="mb-0">FurrWings Handler Portal</p>
+        </div>
+        <a href="/handler/login" class="btn btn-outline-light">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row">
+      {% for pet in pets %}
+        <div class="col-md-6">
+          <div class="pet-card">
+            <div class="card-header bg-warning text-dark">
+              <h5><i class="fas fa-paw"></i> {{ pet.name }}</h5>
+              <small>Pet ID: {{ pet.id }}</small>
+            </div>
+            <div class="card-body">
+              
+              <!-- DGFT Document Section -->
+              <h6><i class="fas fa-file-export"></i> DGFT Certificate (ANF-2M)</h6>
+              {% if 'dgft' in pet.doc_status %}
+                <div class="document-status">
+                  <span class="status-badge bg-{{ 'success' if pet.doc_status.dgft.status == 'approved' else 'warning' if pet.doc_status.dgft.status == 'pending' else 'danger' }} text-white">
+                    {{ pet.doc_status.dgft.status.title() }}
+                  </span>
+                  <span>{{ pet.doc_status.dgft.filename }}</span>
+                </div>
+                <small class="text-muted">Uploaded: {{ pet.doc_status.dgft.upload_time }}</small>
+                {% if pet.doc_status.dgft.dgft_reference %}
+                  <br><small class="text-primary"><strong>DGFT Ref:</strong> {{ pet.doc_status.dgft.dgft_reference }}</small>
+                {% endif %}
+              {% else %}
+                <p class="text-muted">No DGFT document uploaded</p>
+              {% endif %}
+
+              <div class="upload-section">
+                <form action="/handler/upload" method="POST" enctype="multipart/form-data">
+                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
+                  <input type="hidden" name="doc_type" value="dgft">
+                  
+                  <div class="mb-3">
+                    <label class="form-label">DGFT Reference Number (Optional)</label>
+                    <input type="text" class="form-control" name="dgft_reference" placeholder="Auto-generated if not provided">
+                  </div>
+                  
+                  <div class="row">
+                    <div class="col-md-8">
+                      <label class="form-label">Upload DGFT Document</label>
+                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                      <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-upload"></i> Upload
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <hr>
+
+              <!-- AQCS Document Section -->
+              <h6><i class="fas fa-shield-alt"></i> AQCS NOC</h6>
+              {% if 'aqcs' in pet.doc_status %}
+                <div class="document-status">
+                  <span class="status-badge bg-{{ 'success' if pet.doc_status.aqcs.status == 'approved' else 'warning' if pet.doc_status.aqcs.status == 'pending' else 'danger' }} text-white">
+                    {{ pet.doc_status.aqcs.status.title() }}
+                  </span>
+                  <span>{{ pet.doc_status.aqcs.filename }}</span>
+                </div>
+                <small class="text-muted">Uploaded: {{ pet.doc_status.aqcs.upload_time }}</small>
+              {% else %}
+                <p class="text-muted">No AQCS document uploaded</p>
+              {% endif %}
+
+              <div class="upload-section">
+                <form action="/handler/upload" method="POST" enctype="multipart/form-data">
+                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
+                  <input type="hidden" name="doc_type" value="aqcs">
+                  
+                  <div class="row">
+                    <div class="col-md-8">
+                      <label class="form-label">Upload AQCS NOC</label>
+                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                      <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-upload"></i> Upload
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <hr>
+
+              <!-- Quarantine Document Section -->
+              <h6><i class="fas fa-home"></i> Quarantine Clearance</h6>
+              {% if 'quarantine' in pet.doc_status %}
+                <div class="document-status">
+                  <span class="status-badge bg-{{ 'success' if pet.doc_status.quarantine.status == 'approved' else 'warning' if pet.doc_status.quarantine.status == 'pending' else 'danger' }} text-white">
+                    {{ pet.doc_status.quarantine.status.title() }}
+                  </span>
+                  <span>{{ pet.doc_status.quarantine.filename }}</span>
+                </div>
+                <small class="text-muted">Uploaded: {{ pet.doc_status.quarantine.upload_time }}</small>
+              {% else %}
+                <p class="text-muted">No quarantine clearance uploaded</p>
+              {% endif %}
+
+              <div class="upload-section">
+                <form action="/handler/upload" method="POST" enctype="multipart/form-data">
+                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
+                  <input type="hidden" name="doc_type" value="quarantine">
+                  
+                  <div class="row">
+                    <div class="col-md-8">
+                      <label class="form-label">Upload Quarantine Clearance</label>
+                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                      <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-upload"></i> Upload
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

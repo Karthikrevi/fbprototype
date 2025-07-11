@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from math import radians, cos, sin, asin, sqrt
 import sqlite3
 from datetime import datetime
+import hashlib
 
 # Initialize ERP database if not exists
 def init_erp_db():
@@ -373,12 +374,89 @@ def init_erp_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             pet_id INTEGER NOT NULL,
             doc_type TEXT NOT NULL CHECK(doc_type IN ('microchip', 'vaccine', 'health_cert', 'dgft', 'aqcs', 'quarantine')),
-            uploaded_by_role TEXT NOT NULL CHECK(uploaded_by_role IN ('parent', 'vet', 'handler')),
+            uploaded_by_role TEXT NOT NULL CHECK(uploaded_by_role IN ('parent', 'vet', 'handler', 'isolation')),
             uploaded_by_user_id TEXT NOT NULL,
             filename TEXT NOT NULL,
             upload_time TEXT DEFAULT CURRENT_TIMESTAMP,
             status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
-            comments TEXT
+            comments TEXT,
+            is_signed BOOLEAN DEFAULT 0,
+            doc_hash TEXT,
+            signature_timestamp TEXT,
+            vet_id INTEGER,
+            dgft_reference TEXT
+        )
+    ''')
+
+    # FurrWings role-specific tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            license_number TEXT NOT NULL,
+            phone TEXT,
+            clinic_name TEXT,
+            city TEXT,
+            is_active BOOLEAN DEFAULT 1
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS handlers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            company_name TEXT NOT NULL,
+            license_number TEXT,
+            phone TEXT,
+            city TEXT,
+            is_active BOOLEAN DEFAULT 1
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS isolation_centers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            center_name TEXT NOT NULL,
+            license_number TEXT,
+            phone TEXT,
+            address TEXT,
+            city TEXT,
+            is_active BOOLEAN DEFAULT 1
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_media (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_id INTEGER NOT NULL,
+            uploaded_by_role TEXT NOT NULL,
+            uploaded_by_user_id TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            media_type TEXT NOT NULL CHECK(media_type IN ('photo', 'video')),
+            upload_time TEXT DEFAULT CURRENT_TIMESTAMP,
+            description TEXT
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_id INTEGER NOT NULL,
+            booking_type TEXT NOT NULL CHECK(booking_type IN ('isolation', 'quarantine')),
+            center_id INTEGER,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'in_progress', 'completed', 'rejected')),
+            check_in_date TEXT,
+            check_out_date TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (center_id) REFERENCES isolation_centers(id)
         )
     ''')
 
@@ -424,6 +502,22 @@ def init_erp_db():
         INSERT OR IGNORE INTO vendors (name, email, password, category, city, latitude, longitude, is_online)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', ("Demo Groomer", "demo@furrbutler.com", "demo123", "Groomer", "Trivandrum", 8.5241, 76.9366, 1))
+
+    # Insert demo FurrWings users
+    c.execute('''
+        INSERT OR IGNORE INTO vets (name, email, password, license_number, phone, clinic_name, city)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', ("Dr. Kavya Sharma", "vet@furrwings.com", "vet123", "KL-1324", "+91-9876543210", "PetCare Clinic", "Trivandrum"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO handlers (name, email, password, company_name, license_number, phone, city)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', ("Global Paws Handler", "handler@furrwings.com", "handler123", "Global Paws Pvt Ltd", "DGFT-2024-001", "+91-9876543211", "Trivandrum"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO isolation_centers (name, email, password, center_name, license_number, phone, address, city)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ("Bark & Board Manager", "isolation@furrwings.com", "isolation123", "Bark & Board Isolation Center", "ISO-2024-001", "+91-9876543212", "123 Pet Street", "Trivandrum"))
 
     # Get demo vendor ID
     c.execute("SELECT id FROM vendors WHERE email = 'demo@furrbutler.com'")
@@ -499,6 +593,53 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Utility to check file type
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# F-DSC Digital Signature System
+def generate_fdsc_signature(file_bytes, user_id, user_type, license_number):
+    """Generate F-DSC (FurrButler Digital Signature Certificate) for documents"""
+    timestamp = datetime.now().isoformat()
+    signature_data = file_bytes + user_id.encode() + timestamp.encode() + license_number.encode()
+    doc_hash = hashlib.sha256(signature_data).hexdigest()
+    
+    return {
+        'doc_hash': doc_hash,
+        'timestamp': timestamp,
+        'user_id': user_id,
+        'user_type': user_type,
+        'license_number': license_number
+    }
+
+def create_signature_file(signature_info, filepath, user_name, user_type):
+    """Create .sig.txt file with signature information"""
+    sig_filepath = filepath + '.sig.txt'
+    
+    disclaimer = """
+This digital signature is valid within the FurrButler ecosystem. It is not certified under the Indian IT Act, 2000. 
+For export validation, documents are submitted via certified authorities or partner handlers. 
+This system ensures document traceability, tamper protection, and identity verification within the FurrWings network.
+"""
+    
+    signature_content = f"""FurrButler Digital Signature Certificate (F-DSC)
+================================================================
+
+Document Hash: {signature_info['doc_hash']}
+Signed By: {user_name}
+User Type: {user_type.upper()}
+License/ID: {signature_info['license_number']}
+F-DSC ID: FDSC-{signature_info['user_type'].upper()}-{signature_info['license_number'][-4:]}
+Timestamp: {signature_info['timestamp']}
+DSC Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+DISCLAIMER:
+{disclaimer}
+
+Verification URL: /verify/document/{signature_info['doc_hash']}
+"""
+    
+    with open(sig_filepath, 'w') as f:
+        f.write(signature_content)
+    
+    return sig_filepath
 
 # Home
 @app.route('/')
@@ -1037,6 +1178,406 @@ def edit_pet(pet_index):
 
     return render_template("edit_pet.html", pet=pet, pet_index=pet_index, breeds=breeds)
 
+@app.route('/vet/dashboard')
+def vet_dashboard():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+
+    vet_email = session["vet"]
+    vet_id = session["vet_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get all pets that need vet documents (simplified - showing all pets for demo)
+    c.execute("""
+        SELECT DISTINCT pd.pet_id, 
+               (SELECT COUNT(*) FROM passport_documents WHERE pet_id = pd.pet_id AND doc_type IN ('vaccine', 'health_cert')) as vet_docs_count
+        FROM passport_documents pd
+        UNION
+        SELECT 1 as pet_id, 0 as vet_docs_count  -- Demo pet Luna
+    """)
+    
+    pets_data = c.fetchall()
+    
+    # Get vet documents status for each pet
+    pets = []
+    for pet_data in pets_data:
+        pet_id = pet_data[0]
+        
+        # Get vaccine and health cert status
+        c.execute("""
+            SELECT doc_type, filename, status, upload_time, is_signed, doc_hash, signature_timestamp
+            FROM passport_documents 
+            WHERE pet_id = ? AND doc_type IN ('vaccine', 'health_cert') AND uploaded_by_role = 'vet'
+            ORDER BY upload_time DESC
+        """, (pet_id,))
+        
+        docs = c.fetchall()
+        doc_status = {}
+        for doc in docs:
+            doc_status[doc[0]] = {
+                'filename': doc[1],
+                'status': doc[2],
+                'upload_time': doc[3],
+                'is_signed': doc[4],
+                'doc_hash': doc[5],
+                'signature_timestamp': doc[6]
+            }
+        
+        pets.append({
+            'id': pet_id,
+            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
+            'doc_status': doc_status
+        })
+
+    conn.close()
+    return render_template("vet_dashboard.html", pets=pets, vet_name=session["vet_name"])
+
+@app.route('/vet/upload', methods=["POST"])
+def vet_upload_document():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+
+    pet_id = request.form.get("pet_id")
+    doc_type = request.form.get("doc_type")
+    should_sign = request.form.get("sign_document") == "on"
+    
+    if doc_type not in ['vaccine', 'health_cert']:
+        flash("Vets can only upload vaccine and health certificate documents")
+        return redirect(url_for("vet_dashboard"))
+
+    # Handle file upload
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("No file selected")
+        return redirect(url_for("vet_dashboard"))
+
+    # Validate file type
+    allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png'}
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        flash("Invalid file type. Please upload PDF, JPG, or PNG files only.")
+        return redirect(url_for("vet_dashboard"))
+
+    # Create unique filename
+    import time
+    timestamp = str(int(time.time()))
+    original_extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"vet_{pet_id}_{doc_type}_{timestamp}.{original_extension}"
+    
+    # Save file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    # Generate F-DSC signature if requested
+    doc_hash = None
+    signature_timestamp = None
+    is_signed = 0
+    
+    if should_sign:
+        # Read file for signature
+        with open(filepath, 'rb') as f:
+            file_bytes = f.read()
+        
+        signature_info = generate_fdsc_signature(
+            file_bytes, 
+            session["vet"], 
+            "vet", 
+            session["vet_license"]
+        )
+        
+        doc_hash = signature_info['doc_hash']
+        signature_timestamp = signature_info['timestamp']
+        is_signed = 1
+        
+        # Create signature file
+        create_signature_file(
+            signature_info, 
+            filepath, 
+            session["vet_name"], 
+            "vet"
+        )
+
+    # Save to database
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        INSERT INTO passport_documents 
+        (pet_id, doc_type, uploaded_by_role, uploaded_by_user_id, filename, is_signed, doc_hash, signature_timestamp, vet_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (pet_id, doc_type, "vet", session["vet"], filename, is_signed, doc_hash, signature_timestamp, session["vet_id"]))
+    
+    conn.commit()
+    conn.close()
+
+    if should_sign:
+        flash(f"{doc_type.replace('_', ' ').title()} document uploaded and digitally signed with F-DSC!")
+    else:
+        flash(f"{doc_type.replace('_', ' ').title()} document uploaded successfully!")
+    
+    return redirect(url_for("vet_dashboard"))
+
+@app.route('/handler/dashboard')
+def handler_dashboard():
+    if "handler" not in session:
+        return redirect(url_for("handler_login"))
+
+    handler_email = session["handler"]
+    handler_id = session["handler_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get all pets that need handler documents (simplified - showing all pets for demo)
+    c.execute("""
+        SELECT DISTINCT pd.pet_id, 
+               (SELECT COUNT(*) FROM passport_documents WHERE pet_id = pd.pet_id AND doc_type IN ('dgft', 'aqcs', 'quarantine')) as handler_docs_count
+        FROM passport_documents pd
+        UNION
+        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
+    """)
+    
+    pets_data = c.fetchall()
+    
+    # Get handler documents status for each pet
+    pets = []
+    for pet_data in pets_data:
+        pet_id = pet_data[0]
+        
+        # Get DGFT, AQCS, and quarantine docs status
+        c.execute("""
+            SELECT doc_type, filename, status, upload_time, dgft_reference
+            FROM passport_documents 
+            WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
+            ORDER BY upload_time DESC
+        """, (pet_id,))
+        
+        docs = c.fetchall()
+        doc_status = {}
+        for doc in docs:
+            doc_status[doc[0]] = {
+                'filename': doc[1],
+                'status': doc[2],
+                'upload_time': doc[3],
+                'dgft_reference': doc[4]
+            }
+        
+        pets.append({
+            'id': pet_id,
+            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
+            'doc_status': doc_status
+        })
+
+    conn.close()
+    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
+
+@app.route('/handler/upload', methods=["POST"])
+def handler_upload_document():
+    if "handler" not in session:
+        return redirect(url_for("handler_login"))
+
+    pet_id = request.form.get("pet_id")
+    doc_type = request.form.get("doc_type")
+    dgft_reference = request.form.get("dgft_reference", "")
+    
+    if doc_type not in ['dgft', 'aqcs', 'quarantine']:
+        flash("Handlers can only upload DGFT, AQCS, and quarantine documents")
+        return redirect(url_for("handler_dashboard"))
+
+    # Handle file upload
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("No file selected")
+        return redirect(url_for("handler_dashboard"))
+
+    # Validate file type
+    allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png'}
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        flash("Invalid file type. Please upload PDF, JPG, or PNG files only.")
+        return redirect(url_for("handler_dashboard"))
+
+    # Create unique filename
+    import time
+    timestamp = str(int(time.time()))
+    original_extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"handler_{pet_id}_{doc_type}_{timestamp}.{original_extension}"
+    
+    # Save file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    # Mock DGFT API submission for DGFT documents
+    if doc_type == 'dgft' and not dgft_reference:
+        # Mock API call
+        dgft_reference = f"DGFT-{timestamp[-6:]}"
+
+    # Save to database
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        INSERT INTO passport_documents 
+        (pet_id, doc_type, uploaded_by_role, uploaded_by_user_id, filename, dgft_reference)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (pet_id, doc_type, "handler", session["handler"], filename, dgft_reference))
+    
+    conn.commit()
+    conn.close()
+
+    flash(f"{doc_type.upper()} document uploaded successfully!" + (f" Reference: {dgft_reference}" if dgft_reference else ""))
+    return redirect(url_for("handler_dashboard"))
+
+@app.route('/isolation/dashboard')
+def isolation_dashboard():
+    if "isolation" not in session:
+        return redirect(url_for("isolation_login"))
+
+    isolation_email = session["isolation"]
+    isolation_id = session["isolation_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get all pet bookings for this isolation center
+    c.execute("""
+        SELECT pb.id, pb.pet_id, pb.status, pb.check_in_date, pb.check_out_date, pb.notes,
+               COUNT(pm.id) as media_count
+        FROM pet_bookings pb
+        LEFT JOIN pet_media pm ON pb.pet_id = pm.pet_id
+        WHERE pb.center_id = ? AND pb.booking_type = 'isolation'
+        GROUP BY pb.id
+        ORDER BY pb.created_at DESC
+    """, (isolation_id,))
+    
+    bookings_data = c.fetchall()
+    
+    bookings = []
+    for booking in bookings_data:
+        # Get media files for this pet
+        c.execute("""
+            SELECT filename, media_type, upload_time, description
+            FROM pet_media 
+            WHERE pet_id = ? AND uploaded_by_role = 'isolation'
+            ORDER BY upload_time DESC
+        """, (booking[1],))
+        
+        media_files = c.fetchall()
+        
+        bookings.append({
+            'id': booking[0],
+            'pet_id': booking[1],
+            'pet_name': f'Pet {booking[1]}' if booking[1] != 1 else 'Luna',
+            'status': booking[2],
+            'check_in_date': booking[3],
+            'check_out_date': booking[4],
+            'notes': booking[5],
+            'media_count': booking[6],
+            'media_files': media_files
+        })
+
+    conn.close()
+    return render_template("isolation_dashboard.html", bookings=bookings, center_name=session["isolation_name"])
+
+@app.route('/isolation/update-booking', methods=["POST"])
+def isolation_update_booking():
+    if "isolation" not in session:
+        return redirect(url_for("isolation_login"))
+
+    booking_id = request.form.get("booking_id")
+    new_status = request.form.get("status")
+    notes = request.form.get("notes", "")
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        UPDATE pet_bookings 
+        SET status = ?, notes = ?
+        WHERE id = ? AND center_id = ?
+    """, (new_status, notes, booking_id, session["isolation_id"]))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(f"Booking status updated to {new_status}")
+    return redirect(url_for("isolation_dashboard"))
+
+@app.route('/isolation/upload-media', methods=["POST"])
+def isolation_upload_media():
+    if "isolation" not in session:
+        return redirect(url_for("isolation_login"))
+
+    pet_id = request.form.get("pet_id")
+    media_type = request.form.get("media_type")
+    description = request.form.get("description", "")
+    
+    # Handle file upload
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("No file selected")
+        return redirect(url_for("isolation_dashboard"))
+
+    # Validate file type based on media type
+    if media_type == 'photo':
+        allowed_extensions = {'jpg', 'jpeg', 'png'}
+    else:  # video
+        allowed_extensions = {'mp4', 'mov', 'avi'}
+    
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        flash(f"Invalid file type for {media_type}.")
+        return redirect(url_for("isolation_dashboard"))
+
+    # Create unique filename
+    import time
+    timestamp = str(int(time.time()))
+    original_extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"isolation_{pet_id}_{media_type}_{timestamp}.{original_extension}"
+    
+    # Save file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    # Save to database
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        INSERT INTO pet_media 
+        (pet_id, uploaded_by_role, uploaded_by_user_id, filename, media_type, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (pet_id, "isolation", session["isolation"], filename, media_type, description))
+    
+    conn.commit()
+    conn.close()
+
+    flash(f"{media_type.title()} uploaded successfully!")
+    return redirect(url_for("isolation_dashboard"))
+
+@app.route('/verify/document/<doc_hash>')
+def verify_document(doc_hash):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT pd.*, v.name as vet_name, v.license_number
+        FROM passport_documents pd
+        LEFT JOIN vets v ON pd.vet_id = v.id
+        WHERE pd.doc_hash = ? AND pd.is_signed = 1
+    """, (doc_hash,))
+    
+    document = c.fetchone()
+    conn.close()
+    
+    if not document:
+        return render_template("document_verification.html", 
+                             verified=False, 
+                             message="Document not found or not digitally signed")
+    
+    return render_template("document_verification.html", 
+                         verified=True, 
+                         document=document)
+
 @app.route('/passport/upload', methods=["POST"])
 def passport_upload():
     if "user" not in session:
@@ -1275,6 +1816,77 @@ def my_bookings():
 def logout():
     session.clear()
     return redirect(url_for("home"))
+
+# ---- FURRWINGS ROLE-BASED LOGIN ROUTES ----
+
+@app.route('/vet/login', methods=["GET", "POST"])
+def vet_login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM vets WHERE email=? AND password=? AND is_active=1", (email, password))
+        vet = c.fetchone()
+        conn.close()
+
+        if vet:
+            session["vet"] = email
+            session["vet_id"] = vet[0]
+            session["vet_name"] = vet[1]
+            session["vet_license"] = vet[3]
+            return redirect(url_for("vet_dashboard"))
+        else:
+            flash("Invalid vet credentials")
+
+    return render_template("vet_login.html")
+
+@app.route('/handler/login', methods=["GET", "POST"])
+def handler_login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM handlers WHERE email=? AND password=? AND is_active=1", (email, password))
+        handler = c.fetchone()
+        conn.close()
+
+        if handler:
+            session["handler"] = email
+            session["handler_id"] = handler[0]
+            session["handler_name"] = handler[1]
+            session["handler_license"] = handler[5]
+            return redirect(url_for("handler_dashboard"))
+        else:
+            flash("Invalid handler credentials")
+
+    return render_template("handler_login.html")
+
+@app.route('/isolation/login', methods=["GET", "POST"])
+def isolation_login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM isolation_centers WHERE email=? AND password=? AND is_active=1", (email, password))
+        center = c.fetchone()
+        conn.close()
+
+        if center:
+            session["isolation"] = email
+            session["isolation_id"] = center[0]
+            session["isolation_name"] = center[1]
+            session["isolation_license"] = center[5]
+            return redirect(url_for("isolation_dashboard"))
+        else:
+            flash("Invalid isolation center credentials")
+
+    return render_template("isolation_login.html")
 
 # ---- ERP ROUTES ----
 

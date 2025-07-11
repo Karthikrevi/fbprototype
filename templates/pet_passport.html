@@ -237,7 +237,24 @@
                       {% else %}bg-danger{% endif %}">
                       {{ doc_status[doc_type]['status'].title() }}
                     </span>
+                    {% if doc_status[doc_type].get('is_signed') %}
+                      <span class="badge bg-primary ms-2">
+                        <i class="fas fa-certificate"></i> F-DSC Signed
+                      </span>
+                    {% endif %}
                   </p>
+                  {% if doc_status[doc_type].get('doc_hash') %}
+                    <p class="mb-1">
+                      <i class="fas fa-fingerprint"></i> F-DSC Hash: 
+                      <code>{{ doc_status[doc_type]['doc_hash'][:16] }}...</code>
+                      <a href="/verify/document/{{ doc_status[doc_type]['doc_hash'] }}" target="_blank" class="ms-2">
+                        <i class="fas fa-external-link-alt"></i> Verify
+                      </a>
+                    </p>
+                    <p class="mb-1">
+                      <i class="fas fa-clock"></i> Signed: {{ doc_status[doc_type]['signature_timestamp'] }}
+                    </p>
+                  {% endif %}
                   {% if doc_status[doc_type]['comments'] %}
                     <p class="mb-1">
                       <i class="fas fa-comment"></i> Comment: {{ doc_status[doc_type]['comments'] }}

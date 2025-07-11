@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Verification - FurrWings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .verification-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+    .verification-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .status-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 2rem;
+    }
+    .verified {
+      background-color: #28a745;
+      color: white;
+    }
+    .not-verified {
+      background-color: #dc3545;
+      color: white;
+    }
+    .document-details {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    .disclaimer {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="verification-container">
+    <div class="verification-header">
+      <h2>🛂 FurrWings Document Verification</h2>
+      
+      {% if verified %}
+        <div class="status-icon verified">
+          <i class="fas fa-check"></i>
+        </div>
+        <h4 class="text-success">Document Verified</h4>
+        <p class="text-muted">This document has been digitally signed and verified within the FurrWings system.</p>
+      {% else %}
+        <div class="status-icon not-verified">
+          <i class="fas fa-times"></i>
+        </div>
+        <h4 class="text-danger">Verification Failed</h4>
+        <p class="text-muted">{{ message }}</p>
+      {% endif %}
+    </div>
+
+    {% if verified and document %}
+      <div class="document-details">
+        <h5><i class="fas fa-file-alt"></i> Document Information</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>Document Type:</strong> {{ document[2].replace('_', ' ').title() }}</p>
+            <p><strong>Filename:</strong> {{ document[5] }}</p>
+            <p><strong>Upload Date:</strong> {{ document[6] }}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>Signed By:</strong> {{ document[11] or 'N/A' }}</p>
+            <p><strong>License Number:</strong> {{ document[12] or 'N/A' }}</p>
+            <p><strong>Signature Date:</strong> {{ document[10] }}</p>
+          </div>
+        </div>
+        
+        <hr>
+        
+        <h6><i class="fas fa-shield-alt"></i> Digital Signature Details</h6>
+        <p><strong>Document Hash:</strong> <code>{{ document[9] }}</code></p>
+        <p><strong>F-DSC ID:</strong> FDSC-VET-{{ document[12][-4:] if document[12] else 'XXXX' }}</p>
+        <p><strong>Status:</strong> 
+          <span class="badge bg-{{ 'success' if document[7] == 'approved' else 'warning' if document[7] == 'pending' else 'danger' }}">
+            {{ document[7].title() }}
+          </span>
+        </p>
+      </div>
+    {% endif %}
+
+    <div class="disclaimer">
+      <strong><i class="fas fa-info-circle"></i> F-DSC Disclaimer:</strong><br>
+      This digital signature is valid within the FurrButler ecosystem. It is not certified under the Indian IT Act, 2000. 
+      For export validation, documents are submitted via certified authorities or partner handlers. 
+      This system ensures document traceability, tamper protection, and vet identity verification within the FurrWings network.
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/" class="btn btn-outline-primary">Back to FurrButler</a>
+    </div>
+  </div>
+</body>
+</html>
