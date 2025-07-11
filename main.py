@@ -388,6 +388,32 @@ def init_erp_db():
         )
     ''')
 
+    # Add missing columns to passport_documents table if they don't exist
+    try:
+        c.execute("ALTER TABLE passport_documents ADD COLUMN is_signed BOOLEAN DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE passport_documents ADD COLUMN doc_hash TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE passport_documents ADD COLUMN signature_timestamp TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE passport_documents ADD COLUMN vet_id INTEGER")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE passport_documents ADD COLUMN dgft_reference TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
     # FurrWings role-specific tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS vets (
@@ -3650,7 +3676,7 @@ def process_pos_sale():
             c.execute("""
                 INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
                 VALUES (?, 'debit', 'Cost of Goods Sold', ?, ?, 'Product Sales')
-            """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantitysold}"))
+            """, (vendor_id, total_cogs, f"COGS - {product_name} x{quantity_sold}"))
 
             receipt_items.append({
                 'name': product_name,
