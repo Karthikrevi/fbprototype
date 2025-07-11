@@ -2977,6 +2977,43 @@ def inventory_analytics_alias():
     """Alias route for inventory analytics to match requested URL structure"""
     return inventory_analytics()
 
+# Import the inventory bot
+from inventory_bot import inventory_bot
+
+# Inventory Bot Routes
+@app.route('/erp/inventory-bot')
+def inventory_bot_interface():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    return render_template("inventory_bot_chat.html")
+
+@app.route('/erp/inventory-bot/query', methods=["POST"])
+def inventory_bot_query():
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    query = data.get("query", "")
+    vendor_email = session["vendor"]
+    
+    if not query:
+        return {"error": "Query is required"}, 400
+    
+    try:
+        response = inventory_bot.process_query(query, vendor_email)
+        return {"response": response}
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+# Business Analysis Route
+@app.route('/erp/business-analysis')
+def business_analysis():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    return render_template("business_analysis.html")
+
 # ---- CHAT SYSTEM ROUTES ----
 
 @app.route('/chat')
