@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from replit import db
 import os
 import json
@@ -301,6 +302,34 @@ def init_erp_db():
         )
     ''')
 
+    # Chat system tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chat_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            user_email TEXT,
+            last_message_time TEXT DEFAULT CURRENT_TIMESTAMP,
+            vendor_unread_count INTEGER DEFAULT 0,
+            user_unread_count INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER,
+            sender_type TEXT NOT NULL,
+            sender_id TEXT NOT NULL,
+            message_text TEXT NOT NULL,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            is_read BOOLEAN DEFAULT 0,
+            message_type TEXT DEFAULT 'text',
+            FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id)
+        )
+    ''')
+
     # Add new columns if they don't exist
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN account_status TEXT DEFAULT 'active'")
@@ -407,6 +436,7 @@ init_erp_db()
 
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
@@ -2947,8 +2977,277 @@ def inventory_analytics_alias():
     """Alias route for inventory analytics to match requested URL structure"""
     return inventory_analytics()
 
+# ---- CHAT SYSTEM ROUTES ----
+
+@app.route('/chat')
+def chat_interface():
+    if "user" not in session and "vendor" not in session:
+        return redirect(url_for("login"))
+    
+    return render_template("chat.html")
+
+@app.route('/api/chat/conversations')
+def get_conversations():
+    if "user" not in session and "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    if "vendor" in session:
+        vendor_email = session["vendor"]
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email = ?", (vendor_email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            return {"conversations": []}
+        
+        vendor_id = vendor_result[0]
+        
+        # Get conversations for vendor
+        c.execute("""
+            SELECT cc.id, cc.user_email, cc.last_message_time, cc.vendor_unread_count, cc.user_unread_count,
+                   (SELECT message_text FROM chat_messages WHERE conversation_id = cc.id ORDER BY timestamp DESC LIMIT 1) as last_message
+            FROM chat_conversations cc
+            WHERE cc.vendor_id = ?
+            ORDER BY cc.last_message_time DESC
+        """, (vendor_id,))
+        
+        conversations = []
+        for conv in c.fetchall():
+            conversations.append({
+                "id": conv[0],
+                "user_email": conv[1],
+                "vendor_name": conv[1],  # For consistency
+                "last_message_time": conv[2],
+                "vendor_unread_count": conv[3],
+                "user_unread_count": conv[4],
+                "last_message": conv[5]
+            })
+    else:
+        user_email = session["user"]
+        
+        # Get conversations for user
+        c.execute("""
+            SELECT cc.id, cc.vendor_id, cc.last_message_time, cc.vendor_unread_count, cc.user_unread_count,
+                   v.name as vendor_name,
+                   (SELECT message_text FROM chat_messages WHERE conversation_id = cc.id ORDER BY timestamp DESC LIMIT 1) as last_message
+            FROM chat_conversations cc
+            JOIN vendors v ON cc.vendor_id = v.id
+            WHERE cc.user_email = ?
+            ORDER BY cc.last_message_time DESC
+        """, (user_email,))
+        
+        conversations = []
+        for conv in c.fetchall():
+            conversations.append({
+                "id": conv[0],
+                "vendor_id": conv[1],
+                "last_message_time": conv[2],
+                "vendor_unread_count": conv[3],
+                "user_unread_count": conv[4],
+                "vendor_name": conv[5],
+                "last_message": conv[6]
+            })
+    
+    conn.close()
+    return {"conversations": conversations}
+
+@app.route('/api/chat/messages/<int:conversation_id>')
+def get_messages(conversation_id):
+    if "user" not in session and "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Verify user has access to this conversation
+    if "vendor" in session:
+        vendor_email = session["vendor"]
+        c.execute("SELECT id FROM vendors WHERE email = ?", (vendor_email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            return {"error": "Unauthorized"}, 401
+        
+        vendor_id = vendor_result[0]
+        c.execute("SELECT id FROM chat_conversations WHERE id = ? AND vendor_id = ?", 
+                 (conversation_id, vendor_id))
+    else:
+        user_email = session["user"]
+        c.execute("SELECT id FROM chat_conversations WHERE id = ? AND user_email = ?", 
+                 (conversation_id, user_email))
+    
+    if not c.fetchone():
+        return {"error": "Conversation not found"}, 404
+    
+    # Get messages
+    c.execute("""
+        SELECT id, sender_type, sender_id, message_text, timestamp, is_read
+        FROM chat_messages
+        WHERE conversation_id = ?
+        ORDER BY timestamp ASC
+    """, (conversation_id,))
+    
+    messages = []
+    for msg in c.fetchall():
+        messages.append({
+            "id": msg[0],
+            "sender_type": msg[1],
+            "sender_id": msg[2],
+            "message_text": msg[3],
+            "timestamp": msg[4],
+            "is_read": msg[5]
+        })
+    
+    conn.close()
+    return {"messages": messages}
+
+@app.route('/api/chat/send', methods=["POST"])
+def send_message():
+    if "user" not in session and "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    conversation_id = data.get("conversation_id")
+    message_text = data.get("message")
+    
+    if not conversation_id or not message_text:
+        return {"error": "Missing required data"}, 400
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Determine sender info
+    if "vendor" in session:
+        sender_type = "vendor"
+        sender_id = session["vendor"]
+        
+        # Verify access and get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email = ?", (sender_id,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            return {"error": "Unauthorized"}, 401
+        
+        vendor_id = vendor_result[0]
+        c.execute("SELECT id FROM chat_conversations WHERE id = ? AND vendor_id = ?", 
+                 (conversation_id, vendor_id))
+        
+        if not c.fetchone():
+            return {"error": "Conversation not found"}, 404
+        
+        # Update unread count for user
+        c.execute("UPDATE chat_conversations SET user_unread_count = user_unread_count + 1 WHERE id = ?", 
+                 (conversation_id,))
+    else:
+        sender_type = "user"
+        sender_id = session["user"]
+        
+        # Verify access
+        c.execute("SELECT id FROM chat_conversations WHERE id = ? AND user_email = ?", 
+                 (conversation_id, sender_id))
+        
+        if not c.fetchone():
+            return {"error": "Conversation not found"}, 404
+        
+        # Update unread count for vendor
+        c.execute("UPDATE chat_conversations SET vendor_unread_count = vendor_unread_count + 1 WHERE id = ?", 
+                 (conversation_id,))
+    
+    # Insert message
+    c.execute("""
+        INSERT INTO chat_messages (conversation_id, sender_type, sender_id, message_text)
+        VALUES (?, ?, ?, ?)
+    """, (conversation_id, sender_type, sender_id, message_text))
+    
+    # Update conversation last message time
+    c.execute("UPDATE chat_conversations SET last_message_time = CURRENT_TIMESTAMP WHERE id = ?", 
+             (conversation_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    # Emit real-time message
+    socketio.emit('new_message', {
+        'conversation_id': conversation_id,
+        'sender_type': sender_type,
+        'message': message_text
+    }, room=f'conversation_{conversation_id}')
+    
+    return {"success": True}
+
+@app.route('/api/chat/mark-read/<int:conversation_id>', methods=["POST"])
+def mark_messages_read(conversation_id):
+    if "user" not in session and "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Update unread count
+    if "vendor" in session:
+        c.execute("UPDATE chat_conversations SET vendor_unread_count = 0 WHERE id = ?", 
+                 (conversation_id,))
+    else:
+        c.execute("UPDATE chat_conversations SET user_unread_count = 0 WHERE id = ?", 
+                 (conversation_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return {"success": True}
+
+@app.route('/api/chat/start-conversation', methods=["POST"])
+def start_conversation():
+    if "user" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    vendor_id = data.get("vendor_id")
+    
+    if not vendor_id:
+        return {"error": "Vendor ID required"}, 400
+    
+    user_email = session["user"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Check if conversation already exists
+    c.execute("SELECT id FROM chat_conversations WHERE vendor_id = ? AND user_email = ?", 
+             (vendor_id, user_email))
+    existing = c.fetchone()
+    
+    if existing:
+        return {"conversation_id": existing[0]}
+    
+    # Create new conversation
+    c.execute("""
+        INSERT INTO chat_conversations (vendor_id, user_email)
+        VALUES (?, ?)
+    """, (vendor_id, user_email))
+    
+    conversation_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return {"conversation_id": conversation_id}
+
+# ---- WEBSOCKET HANDLERS ----
+
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    join_room(room)
+    emit('status', {'msg': f'Joined room {room}'})
+
+@socketio.on('leave')
+def on_leave(data):
+    room = data['room']
+    leave_room(room)
+    emit('status', {'msg': f'Left room {room}'})
+
 # Run app
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)
