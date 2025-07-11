@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -292,6 +291,25 @@
                 <button class="quick-action-btn" onclick="sendQuickQuery('Show me profit margins')">Profit Analysis</button>
             </div>
         </div>
+        <div class="alert alert-info">
+                    <strong>💡 Try asking advanced questions:</strong><br>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>📊 Performance Analytics:</strong><br>
+                            • "How am I doing this month?"<br>
+                            • "What's dragging my sales down?"<br>
+                            • "Show me my inventory turnover"<br>
+                            • "Which is my best selling product?"<br>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>🎯 Smart Insights:</strong><br>
+                            • "Do I need to restock anything?"<br>
+                            • "Show me dead stock"<br>
+                            • "What's the profit margin on collars?"<br>
+                            • "How much profit am I making per item?"<br>
+                        </div>
+                    </div>
+                </div>
 
         <div class="chat-input">
             <div class="input-group">
@@ -319,14 +337,14 @@
         function addMessage(content, isUser = false, messageData = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message message-${isUser ? 'user' : 'bot'}`;
-            
+
             let messageContent = `
                 <div class="message-avatar ${isUser ? 'user-avatar' : 'bot-avatar'}">
                     <i class="fas fa-${isUser ? 'user' : 'robot'}"></i>
                 </div>
                 <div class="message-content">${content}</div>
             `;
-            
+
             // Add feedback buttons for bot messages
             if (!isUser && messageData && messageData.log_id) {
                 messageContent += `
@@ -340,7 +358,7 @@
                     </div>
                 `;
             }
-            
+
             messageDiv.innerHTML = messageContent;
             chatMessages.appendChild(messageDiv);
             scrollToBottom();
@@ -367,11 +385,11 @@
             // Disable input and button
             sendBtn.disabled = true;
             messageInput.disabled = true;
-            
+
             // Add user message
             addMessage(message, true);
             messageInput.value = '';
-            
+
             // Show typing indicator
             showTyping();
 
@@ -379,7 +397,7 @@
                 const requestBody = { 
                     query: message
                 };
-                
+
                 if (currentSessionId) {
                     requestBody.session_id = currentSessionId;
                 }
@@ -393,22 +411,22 @@
                 });
 
                 const data = await response.json();
-                
+
                 // Hide typing indicator
                 hideTyping();
-                
+
                 if (response.ok) {
                     // Update session ID
                     if (data.session_id) {
                         currentSessionId = data.session_id;
                     }
-                    
+
                     // Add confidence indicator for low confidence responses
                     let botMessage = data.response;
                     if (data.confidence && data.confidence < 0.6) {
                         botMessage += `\n\n<small><em>I'm ${Math.round(data.confidence * 100)}% confident about this answer.</em></small>`;
                     }
-                    
+
                     addMessage(botMessage, false, {
                         log_id: data.log_id,
                         intent: data.intent,
@@ -450,11 +468,11 @@
                         btn.disabled = true;
                         btn.style.opacity = '0.5';
                     });
-                    
+
                     // Highlight the selected button
                     buttonElement.style.opacity = '1';
                     buttonElement.style.color = feedback === 1 ? '#28a745' : '#dc3545';
-                    
+
                     // Show thank you message
                     const thankYou = document.createElement('small');
                     thankYou.textContent = 'Thank you for your feedback!';

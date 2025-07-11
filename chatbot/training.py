@@ -211,6 +211,52 @@ class TrainingManager:
                 ("costs", "expense_analysis"),
                 ("spending", "expense_analysis"),
                 ("expenditure", "expense_analysis"),
+                
+                # Advanced business intents
+                ("how am i doing this month", "monthly_performance"),
+                ("monthly performance", "monthly_performance"),
+                ("am i doing well", "monthly_performance"),
+                ("this month results", "monthly_performance"),
+                ("performance summary", "monthly_performance"),
+                
+                ("inventory turnover", "inventory_turnover"),
+                ("turnover ratio", "inventory_turnover"),
+                ("how often turning stock", "inventory_turnover"),
+                ("stock rotation", "inventory_turnover"),
+                
+                ("dead stock", "dead_stock_analysis"),
+                ("stagnant inventory", "dead_stock_analysis"),
+                ("slow moving products", "dead_stock_analysis"),
+                ("not selling", "dead_stock_analysis"),
+                
+                ("best selling product", "best_selling_product"),
+                ("top selling", "best_selling_product"),
+                ("most popular product", "best_selling_product"),
+                ("bestseller", "best_selling_product"),
+                
+                ("profit margin on", "product_margin"),
+                ("margin for", "product_margin"),
+                ("how profitable is", "product_margin"),
+                ("cost to sale ratio", "product_margin"),
+                
+                ("what's dragging my sales", "sales_problems"),
+                ("sales problems", "sales_problems"),
+                ("why are sales low", "sales_problems"),
+                ("sales down", "sales_problems"),
+                
+                ("need to restock", "restock_needed"),
+                ("should i reorder", "restock_needed"),
+                ("running low on stock", "restock_needed"),
+                ("inventory low", "restock_needed"),
+                
+                ("safety stock for", "safety_stock_check"),
+                ("enough safety stock", "safety_stock_check"),
+                ("buffer stock", "safety_stock_check"),
+                
+                ("ideal order quantity", "ideal_order_quantity"),
+                ("optimal order", "ideal_order_quantity"),
+                ("how much to order", "ideal_order_quantity"),
+                ("eoq", "ideal_order_quantity"),
             ]
             
             # Store training data in database

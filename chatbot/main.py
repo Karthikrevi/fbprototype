@@ -13,6 +13,8 @@ try:
     from .vector_matcher import VectorMatcher
     from .training import TrainingManager
     from .logger import ConversationLogger
+    from .analytics_engine import AdvancedAnalyticsEngine
+    from .nlp_processor import BusinessQueryProcessor
 except ImportError:
     # Fallback for direct execution
     from database import ChatbotDatabase
@@ -20,6 +22,8 @@ except ImportError:
     from vector_matcher import VectorMatcher
     from training import TrainingManager
     from logger import ConversationLogger
+    from analytics_engine import AdvancedAnalyticsEngine
+    from nlp_processor import BusinessQueryProcessor
 
 class SmartInventoryBot:
     def __init__(self, db_path: str = 'erp.db'):
@@ -31,6 +35,8 @@ class SmartInventoryBot:
         self.vector_matcher = VectorMatcher()
         self.logger = ConversationLogger(db_path)
         self.training_manager = TrainingManager(db_path)
+        self.analytics_engine = AdvancedAnalyticsEngine(db_path)
+        self.nlp_processor = BusinessQueryProcessor()
 
         # Intent to function mapping
         self.intent_handlers = {
@@ -39,7 +45,18 @@ class SmartInventoryBot:
             'revenue_report': self.get_sales_summary,
             'profit_summary': self.get_profit_analysis,
             'inventory_performance': self.get_inventory_analytics,
-            'expense_analysis': self.get_expense_summary
+            'expense_analysis': self.get_expense_summary,
+            # Advanced business intents
+            'monthly_performance': self.handle_monthly_performance,
+            'inventory_turnover': self.handle_inventory_turnover,
+            'safety_stock_check': self.handle_safety_stock,
+            'ideal_order_quantity': self.handle_eoq,
+            'product_margin': self.handle_product_margin,
+            'dead_stock_analysis': self.handle_dead_stock,
+            'best_selling_product': self.handle_best_sellers,
+            'restock_needed': self.get_low_stock_products,
+            'sales_problems': self.handle_sales_analysis,
+            'general_business': self.handle_general_business
         }
 
         # Initialize if needed
@@ -65,8 +82,21 @@ class SmartInventoryBot:
         if resolved_query != query:
             query = resolved_query
 
-        # Classify intent
-        intent, confidence = self.classifier.predict(query)
+        # Process with NLP for business context
+        nlp_result = self.nlp_processor.process_business_query(query)
+        business_intent = nlp_result.get('intent')
+        business_confidence = nlp_result.get('confidence', 0.0)
+        
+        # Classify intent with traditional ML
+        ml_intent, ml_confidence = self.classifier.predict(query)
+        
+        # Choose best intent based on confidence
+        if business_confidence > ml_confidence and business_intent != 'general_business':
+            intent = business_intent
+            confidence = business_confidence
+        else:
+            intent = ml_intent
+            confidence = ml_confidence
 
         response = ""
         response_data = {}
@@ -179,6 +209,83 @@ class SmartInventoryBot:
 • Total Expenses: ₹{expenses.get('total', 0)}
 • Average Daily Expense: ₹{expenses.get('daily_average', 0)}
 • Top Category: {expenses.get('top_category', 'N/A')}"""
+
+        elif intent == 'monthly_performance':
+            return data.get('summary_text', 'Monthly performance data not available.')
+
+        elif intent == 'inventory_turnover':
+            if 'turnover_ratio' in data:
+                return f"""📊 **Inventory Turnover Analysis**
+• Turnover Ratio: {data['turnover_ratio']}x per year
+• Cost of Goods Sold: ₹{data['cogs']}
+• Average Inventory Value: ₹{data['avg_inventory_value']}
+• Assessment: {data['interpretation']}
+
+💡 Higher turnover means faster inventory movement and better cash flow."""
+            else:
+                return "Unable to calculate inventory turnover ratio."
+
+        elif intent == 'dead_stock_analysis':
+            dead_stock_data = data.get('dead_stock_items', [])
+            if dead_stock_data:
+                response = f"🚨 **Dead Stock Alert** ({data.get('total_items', 0)} items)\n"
+                response += f"💰 Total Capital Tied: ₹{data.get('total_tied_capital', 0)}\n\n"
+                
+                for item in dead_stock_data[:5]:  # Show top 5
+                    response += f"• **{item['product_name']}**\n"
+                    response += f"  Stock: {item['quantity']} units (₹{item['tied_capital']})\n"
+                    response += f"  Action: {item['recommended_action']}\n\n"
+                
+                return response
+            else:
+                return "✅ No dead stock found! All products are moving well."
+
+        elif intent == 'best_selling_product':
+            top_performers = data.get('top_by_volume', [])
+            if top_performers:
+                response = "🏆 **Best Selling Products (by Volume)**\n"
+                for i, product in enumerate(top_performers, 1):
+                    response += f"{i}. {product['name']} - {product['volume']} units (₹{product['revenue']})\n"
+                return response
+            else:
+                return "No sales data available for analysis."
+
+        elif intent == 'product_margin':
+            cost_analysis = data.get('cost_analysis', [])
+            if cost_analysis:
+                response = "💰 **Product Margin Analysis**\n"
+                for product in cost_analysis[:5]:  # Show top 5
+                    response += f"• **{product['product_name']}**\n"
+                    response += f"  Margin: {product['margin_percent']}% ({product['margin_status']})\n"
+                    response += f"  Recommendation: {product['recommendation']}\n\n"
+                return response
+            else:
+                return "No product margin data available."
+
+        elif intent == 'sales_problems':
+            sales_data = data.get('sales_summary', {}).get('summary', {})
+            dead_stock = data.get('dead_stock', {})
+            
+            response = "🔍 **Sales Analysis**\n\n"
+            response += f"📊 **Current Performance:**\n"
+            response += f"• Orders: {sales_data.get('total_orders', 0)}\n"
+            response += f"• Revenue: ₹{sales_data.get('total_revenue', 0)}\n\n"
+            
+            if dead_stock.get('total_items', 0) > 0:
+                response += f"⚠️ **Issues Found:**\n"
+                response += f"• {dead_stock['total_items']} products with slow movement\n"
+                response += f"• ₹{dead_stock.get('total_tied_capital', 0)} in tied capital\n\n"
+                response += "💡 **Recommendations:**\n"
+                response += "• Focus marketing on slow-moving items\n"
+                response += "• Consider clearance sales or bundles\n"
+                response += "• Analyze pricing strategy"
+            else:
+                response += "✅ **Good News:** No major issues detected!"
+            
+            return response
+
+        elif intent in ['safety_stock_check', 'ideal_order_quantity', 'general_business']:
+            return data.get('message', 'Analysis completed.')
 
         return "I processed your request but couldn't format the response properly."
 
@@ -430,6 +537,61 @@ Could you rephrase your question?"""
         }
 
         return {'expenses': expenses}
+
+    # Advanced Analytics Handlers
+    def handle_monthly_performance(self, vendor_email: str) -> Dict:
+        """Handle monthly performance queries"""
+        return self.analytics_engine.generate_monthly_performance_summary(vendor_email)
+
+    def handle_inventory_turnover(self, vendor_email: str) -> Dict:
+        """Handle inventory turnover queries"""
+        return self.analytics_engine.calculate_inventory_turnover_ratio(vendor_email)
+
+    def handle_safety_stock(self, vendor_email: str) -> Dict:
+        """Handle safety stock queries - for now return general info"""
+        return {
+            'message': 'To check safety stock for a specific product, ask: "Do I have enough safety stock for [product name]?"',
+            'general_recommendation': 'Safety stock helps prevent stockouts during demand spikes or supply delays.'
+        }
+
+    def handle_eoq(self, vendor_email: str) -> Dict:
+        """Handle EOQ queries - for now return general info"""
+        return {
+            'message': 'To calculate optimal order quantity for a specific product, ask: "What\'s the ideal order quantity for [product name]?"',
+            'general_info': 'Economic Order Quantity (EOQ) helps minimize total inventory costs by balancing ordering and holding costs.'
+        }
+
+    def handle_product_margin(self, vendor_email: str) -> Dict:
+        """Handle product margin analysis"""
+        return self.analytics_engine.analyze_cost_to_sale_ratio(vendor_email)
+
+    def handle_dead_stock(self, vendor_email: str) -> Dict:
+        """Handle dead stock analysis"""
+        return self.analytics_engine.detect_dead_stock(vendor_email)
+
+    def handle_best_sellers(self, vendor_email: str) -> Dict:
+        """Handle best selling products queries"""
+        return self.analytics_engine.get_top_performers_advanced(vendor_email)
+
+    def handle_sales_analysis(self, vendor_email: str) -> Dict:
+        """Handle sales problem analysis"""
+        # Get comprehensive sales data
+        sales_summary = self.get_sales_summary(vendor_email)
+        dead_stock = self.analytics_engine.detect_dead_stock(vendor_email)
+        top_performers = self.analytics_engine.get_top_performers_advanced(vendor_email)
+        
+        return {
+            'sales_summary': sales_summary,
+            'dead_stock': dead_stock,
+            'top_performers': top_performers,
+            'analysis_type': 'sales_problems'
+        }
+
+    def handle_general_business(self, vendor_email: str) -> Dict:
+        """Handle general business queries"""
+        return {
+            'message': 'I can help you with various business insights. Try asking about specific areas like sales performance, inventory management, or profit analysis.'
+        }
 
     def submit_feedback(self, log_id: int, feedback: int) -> bool:
         """Submit feedback for an interaction"""
