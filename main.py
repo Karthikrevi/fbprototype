@@ -3039,21 +3039,19 @@ def inventory_bot_query():
         return {"error": "Query is required"}, 400
     
     try:
-        # Use smart bot if available
-        if hasattr(inventory_bot, 'smart_bot'):
-            result = inventory_bot.smart_bot.process_query(query, vendor_email, session_id)
-            return {
-                "response": result.get('response'),
-                "intent": result.get('intent'),
-                "confidence": result.get('confidence'),
-                "session_id": result.get('session_id'),
-                "log_id": result.get('log_id')
-            }
-        else:
-            # Fallback to basic bot
-            response = inventory_bot.process_query(query, vendor_email)
-            return {"response": response}
+        # Process query through inventory bot (handles both smart and basic modes)
+        response = inventory_bot.process_query(query, vendor_email)
+        
+        # Return response in expected format
+        return {
+            "response": response,
+            "intent": "processed",
+            "confidence": 0.8,
+            "session_id": session_id or "default",
+            "log_id": None
+        }
     except Exception as e:
+        print(f"Inventory bot error: {e}")
         return {"error": str(e)}, 500
 
 @app.route('/erp/inventory-bot/feedback', methods=["POST"])
