@@ -204,6 +204,35 @@
             background: #667eea;
             color: white;
         }
+        .message-feedback {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+        }
+        .feedback-btn {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            margin-right: 5px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        .feedback-btn:hover {
+            background: #f8f9fa;
+        }
+        .feedback-btn.helpful:hover {
+            color: #28a745;
+            border-color: #28a745;
+        }
+        .feedback-btn.not-helpful:hover {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        .feedback-btn:disabled {
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -284,17 +313,35 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function addMessage(content, isUser = false) {
+        let currentSessionId = null;
+        let currentLogId = null;
+
+        function addMessage(content, isUser = false, messageData = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message message-${isUser ? 'user' : 'bot'}`;
             
-            messageDiv.innerHTML = `
+            let messageContent = `
                 <div class="message-avatar ${isUser ? 'user-avatar' : 'bot-avatar'}">
                     <i class="fas fa-${isUser ? 'user' : 'robot'}"></i>
                 </div>
                 <div class="message-content">${content}</div>
             `;
             
+            // Add feedback buttons for bot messages
+            if (!isUser && messageData && messageData.log_id) {
+                messageContent += `
+                    <div class="message-feedback">
+                        <button class="feedback-btn helpful" onclick="submitFeedback(${messageData.log_id}, 1, this)">
+                            <i class="fas fa-thumbs-up"></i>
+                        </button>
+                        <button class="feedback-btn not-helpful" onclick="submitFeedback(${messageData.log_id}, 0, this)">
+                            <i class="fas fa-thumbs-down"></i>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = messageContent;
             chatMessages.appendChild(messageDiv);
             scrollToBottom();
         }
@@ -329,12 +376,20 @@
             showTyping();
 
             try {
+                const requestBody = { 
+                    query: message
+                };
+                
+                if (currentSessionId) {
+                    requestBody.session_id = currentSessionId;
+                }
+
                 const response = await fetch('/erp/inventory-bot/query', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ query: message })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -343,7 +398,22 @@
                 hideTyping();
                 
                 if (response.ok) {
-                    addMessage(data.response);
+                    // Update session ID
+                    if (data.session_id) {
+                        currentSessionId = data.session_id;
+                    }
+                    
+                    // Add confidence indicator for low confidence responses
+                    let botMessage = data.response;
+                    if (data.confidence && data.confidence < 0.6) {
+                        botMessage += `\n\n<small><em>I'm ${Math.round(data.confidence * 100)}% confident about this answer.</em></small>`;
+                    }
+                    
+                    addMessage(botMessage, false, {
+                        log_id: data.log_id,
+                        intent: data.intent,
+                        confidence: data.confidence
+                    });
                 } else {
                     addMessage(`Sorry, I encountered an error: ${data.error || 'Unknown error'}`);
                 }
@@ -357,6 +427,44 @@
             sendBtn.disabled = false;
             messageInput.disabled = false;
             messageInput.focus();
+        }
+
+        async function submitFeedback(logId, feedback, buttonElement) {
+            try {
+                const response = await fetch('/erp/inventory-bot/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        log_id: logId,
+                        feedback: feedback
+                    })
+                });
+
+                if (response.ok) {
+                    // Disable both feedback buttons
+                    const feedbackDiv = buttonElement.parentElement;
+                    const buttons = feedbackDiv.querySelectorAll('.feedback-btn');
+                    buttons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                    });
+                    
+                    // Highlight the selected button
+                    buttonElement.style.opacity = '1';
+                    buttonElement.style.color = feedback === 1 ? '#28a745' : '#dc3545';
+                    
+                    // Show thank you message
+                    const thankYou = document.createElement('small');
+                    thankYou.textContent = 'Thank you for your feedback!';
+                    thankYou.style.color = '#666';
+                    thankYou.style.marginLeft = '10px';
+                    feedbackDiv.appendChild(thankYou);
+                }
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+            }
         }
 
         // Handle Enter key

@@ -2977,7 +2977,7 @@ def inventory_analytics_alias():
     """Alias route for inventory analytics to match requested URL structure"""
     return inventory_analytics()
 
-# Import the inventory bot
+# Import the smart inventory bot
 from inventory_bot import inventory_bot
 
 # Inventory Bot Routes
@@ -2995,14 +2995,76 @@ def inventory_bot_query():
     
     data = request.get_json()
     query = data.get("query", "")
+    session_id = data.get("session_id")
     vendor_email = session["vendor"]
     
     if not query:
         return {"error": "Query is required"}, 400
     
     try:
-        response = inventory_bot.process_query(query, vendor_email)
-        return {"response": response}
+        # Use smart bot if available
+        if hasattr(inventory_bot, 'smart_bot'):
+            result = inventory_bot.smart_bot.process_query(query, vendor_email, session_id)
+            return {
+                "response": result.get('response'),
+                "intent": result.get('intent'),
+                "confidence": result.get('confidence'),
+                "session_id": result.get('session_id'),
+                "log_id": result.get('log_id')
+            }
+        else:
+            # Fallback to basic bot
+            response = inventory_bot.process_query(query, vendor_email)
+            return {"response": response}
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/erp/inventory-bot/feedback', methods=["POST"])
+def inventory_bot_feedback():
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    log_id = data.get("log_id")
+    feedback = data.get("feedback")  # 1 for helpful, 0 for not helpful
+    
+    if log_id is None or feedback is None:
+        return {"error": "log_id and feedback are required"}, 400
+    
+    try:
+        if hasattr(inventory_bot, 'smart_bot'):
+            success = inventory_bot.smart_bot.submit_feedback(log_id, feedback)
+            return {"success": success}
+        else:
+            return {"success": False, "error": "Smart bot not available"}
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/erp/inventory-bot/analytics')
+def inventory_bot_analytics():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    try:
+        if hasattr(inventory_bot, 'smart_bot'):
+            analytics = inventory_bot.smart_bot.get_analytics_dashboard()
+            return render_template("bot_analytics.html", analytics=analytics)
+        else:
+            return "Analytics not available", 404
+    except Exception as e:
+        return f"Error loading analytics: {str(e)}", 500
+
+@app.route('/erp/inventory-bot/retrain', methods=["POST"])
+def inventory_bot_retrain():
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    try:
+        if hasattr(inventory_bot, 'smart_bot'):
+            result = inventory_bot.smart_bot.retrain_model()
+            return {"success": result.get('success'), "message": "Model retrained successfully" if result.get('success') else result.get('error')}
+        else:
+            return {"success": False, "error": "Smart bot not available"}
     except Exception as e:
         return {"error": str(e)}, 500
 
