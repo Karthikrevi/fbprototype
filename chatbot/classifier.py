@@ -241,3 +241,130 @@ class IntentClassifier:
             "training_samples": len(queries),
             "test_samples": len(X_test)
         }
+import pickle
+import os
+from typing import Tuple, Optional
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+class IntentClassifier:
+    def __init__(self):
+        self.pipeline = None
+        self.model_path = os.path.join(os.path.dirname(__file__), 'models', 'intent_classifier.pkl')
+        self.load_model()
+    
+    def load_model(self):
+        """Load the trained model if it exists"""
+        try:
+            if os.path.exists(self.model_path):
+                with open(self.model_path, 'rb') as f:
+                    self.pipeline = pickle.load(f)
+                print(f"Model loaded from {self.model_path}")
+            else:
+                print("No trained model found. Creating basic model...")
+                self._create_basic_model()
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            self._create_basic_model()
+    
+    def _create_basic_model(self):
+        """Create a basic model with sample training data"""
+        # Sample training data for basic functionality
+        training_data = [
+            ("show me top products", "top_selling_products"),
+            ("what are my best selling items", "top_selling_products"),
+            ("top selling products", "top_selling_products"),
+            ("best products", "top_selling_products"),
+            ("popular products", "top_selling_products"),
+            
+            ("low stock products", "low_stock_alerts"),
+            ("which products are low", "low_stock_alerts"),
+            ("inventory alerts", "low_stock_alerts"),
+            ("products running out", "low_stock_alerts"),
+            ("reorder needed", "low_stock_alerts"),
+            
+            ("revenue report", "revenue_report"),
+            ("sales summary", "revenue_report"),
+            ("how much money did I make", "revenue_report"),
+            ("sales report", "revenue_report"),
+            ("monthly sales", "revenue_report"),
+            
+            ("profit analysis", "profit_summary"),
+            ("profit margin", "profit_summary"),
+            ("how much profit", "profit_summary"),
+            ("profit report", "profit_summary"),
+            
+            ("inventory performance", "inventory_performance"),
+            ("product performance", "inventory_performance"),
+            ("inventory analytics", "inventory_performance"),
+            ("turnover rate", "inventory_performance"),
+            
+            ("expense report", "expense_analysis"),
+            ("expenses", "expense_analysis"),
+            ("costs", "expense_analysis"),
+            ("spending", "expense_analysis"),
+        ]
+        
+        texts = [item[0] for item in training_data]
+        labels = [item[1] for item in training_data]
+        
+        # Create and train the pipeline
+        self.pipeline = Pipeline([
+            ('tfidf', TfidfVectorizer(max_features=1000, lowercase=True)),
+            ('classifier', MultinomialNB())
+        ])
+        
+        self.pipeline.fit(texts, labels)
+        
+        # Save the model
+        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
+        with open(self.model_path, 'wb') as f:
+            pickle.dump(self.pipeline, f)
+        print(f"Basic model created and saved to {self.model_path}")
+    
+    def predict(self, text: str) -> Tuple[str, float]:
+        """Predict intent and confidence for given text"""
+        if not self.pipeline:
+            return "unknown", 0.0
+        
+        try:
+            # Get prediction probabilities
+            probabilities = self.pipeline.predict_proba([text])[0]
+            max_prob_index = np.argmax(probabilities)
+            confidence = probabilities[max_prob_index]
+            
+            # Get the predicted class
+            predicted_intent = self.pipeline.classes_[max_prob_index]
+            
+            return predicted_intent, confidence
+        except Exception as e:
+            print(f"Error predicting intent: {e}")
+            return "unknown", 0.0
+    
+    def retrain(self, training_data: list) -> bool:
+        """Retrain the model with new data"""
+        try:
+            if not training_data:
+                return False
+            
+            texts = [item[0] for item in training_data]
+            labels = [item[1] for item in training_data]
+            
+            # Create new pipeline
+            self.pipeline = Pipeline([
+                ('tfidf', TfidfVectorizer(max_features=1000, lowercase=True)),
+                ('classifier', MultinomialNB())
+            ])
+            
+            self.pipeline.fit(texts, labels)
+            
+            # Save the updated model
+            with open(self.model_path, 'wb') as f:
+                pickle.dump(self.pipeline, f)
+            
+            return True
+        except Exception as e:
+            print(f"Error retraining model: {e}")
+            return False

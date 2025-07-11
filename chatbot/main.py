@@ -201,7 +201,7 @@ Try asking:
 • "Which products are low in stock?"
 • "What's my revenue this month?"
 • "Analyze my inventory performance"
-• "What are my expenses?"\""""
+• "What are my expenses?""""
 
         elif any(word in query_lower for word in ['thank', 'thanks']):
             return "You're welcome! Feel free to ask me anything about your inventory and sales data."
