@@ -1,0 +1,97 @@
+> I'm currently building an inventory chatbot for my vendor ERP system (called FurrButler). Right now, the bot gives hardcoded or rule-based answers based on keywords. It’s not functionally intelligent and fails when vendors phrase queries differently.
+>
+> I want you to help me **transform this into a smart, evolving assistant** using **lightweight ML + NLP techniques**. It should improve over time as vendors use it, even if it's not as advanced as GPT.
+>
+> Please help me implement the following **in Python using SQLite as backend** and libraries like `scikit-learn`, `spaCy`, or `sentence-transformers` where needed:
+>
+> ### 🎯 Core Goals:
+>
+> 1. **Intent Recognition**
+>
+>    * I want to classify vendor queries like:
+>
+>      * “What sold the most this month?” → `top_selling_products`
+>      * “Which item is low in stock?” → `low_stock_alerts`
+>      * “What’s my revenue last week?” → `revenue_report`
+>      * “Did I make a profit?” → `profit_summary`
+>    * Include ML-based intent recognition (TF-IDF + logistic regression or spaCy text categorizer).
+>    * Enable retraining as new intents are logged over time.
+> 2. **Query Logging**
+>
+>    * Log every user query, timestamp, response, and optional user feedback (`Was this helpful? Y/N`) into a `bot_logs` table.
+>    * This table will be used for incremental training.
+> 3. **Semantic Similarity Matching (Fallbacks)**
+>
+>    * When intent is uncertain, fallback to vector similarity (e.g., using `sentence-transformers`) and:
+>
+>      * Find closest past queries
+>      * Reuse most relevant past answer
+>    * Implement basic vector search (no external DBs; use cosine similarity + in-memory list or SQLite vector tables if possible).
+> 4. **Feedback-Driven Retraining**
+>
+>    * Write a function that retrains the intent classifier weekly based on newly logged vendor queries and their feedback.
+>    * Improve accuracy over time.
+> 5. **Conversational Flexibility**
+>
+>    * Bot should understand differently worded phrases like:
+>
+>      * “How much did I sell in April?”
+>      * “Tell me sales for last month”
+>      * “Revenue April?”
+>    * All of these should map to the correct intent (`revenue_report`).
+> 6. **Memory + Context Awareness (optional)**
+>
+>    * Short-term context tracking (e.g., if vendor says “how about last week?” after a sales query, it should understand reference).
+> 7. **Command Execution Engine**
+>
+>    * Once the intent is classified, map it to a Python function that fetches the relevant data from the inventory DB (`products`, `sales_log`, `grooming_bookings`, `ledger_entries` etc.).
+> 8. **Intent-to-Action Pipeline**
+>
+>    * Your final architecture should look like:
+>
+>      ```
+>      [User Query]
+>          ↓
+>      [Intent Classifier / Similarity Matcher]
+>          ↓
+>      [Mapped Python Function Execution]
+>          ↓
+>      [Response to User + Logged]
+>      ```
+> 9. **Explainability Dashboard (Optional)**
+>
+>    * A simple dashboard (CLI or HTML) to view:
+>
+>      * Top queries
+>      * Frequently misunderstood prompts
+>      * Classifier confidence levels
+>      * Intent distribution
+>
+> ### 🔧 Implementation Constraints:
+>
+> * Must run on Replit (or other small Python host)
+> * Use SQLite for logging/training data
+> * No heavy models or external cloud dependencies (keep it fast and local)
+> * Give me starter code I can iterate on
+>
+> ### Bonus Features (if time permits):
+>
+> * Use clustering to group unknown intents and suggest new categories
+> * Auto-flag repeated vendor issues ("Why is X out of stock?" across multiple vendors)
+> * Add forecasting suggestions like “You're running out of Dog Shampoo every 2 weeks — consider reordering now”
+>
+> Help me architect this into a usable Python module with files organized as:
+>
+> ```
+> chatbot/
+>   ├── main.py
+>   ├── classifier.py
+>   ├── vector_matcher.py
+>   ├── training.py
+>   ├── logger.py
+>   └── database.py
+> ```
+>
+> Each file should be manageable and extensible.
+>
+> ✨ The end goal is for my inventory bot to behave more like a data assistant — one that understands human-style queries and gets smarter with every interaction.
