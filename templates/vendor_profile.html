@@ -103,6 +103,14 @@
       background-color: #57a3f3;
     }
 
+    .btn-chat {
+      background-color: #28a745;
+    }
+
+    .btn-chat:hover {
+      background-color: #218838;
+    }
+
     .vendor-status {
       margin: 20px 0;
       text-align: center;
@@ -216,9 +224,11 @@
       {% if vendor.is_online %}
         <a href="{{ vendor.booking_url }}">📅 Book Now</a>
         <a href="{{ vendor.market_url }}">🛒 View Marketplace</a>
+        <a href="#" class="btn-chat" onclick="startChat({{ vendor.id }})">💬 Chat with Vendor</a>
       {% else %}
         <span class="btn-disabled">📅 Booking Unavailable</span>
         <span class="btn-disabled">🛒 Products Unavailable</span>
+        <span class="btn-disabled">💬 Chat Unavailable</span>
       {% endif %}
     </div>
 
@@ -288,5 +298,33 @@
       <p>Service coverage, experience, and other details can be added later.</p>
     </div>
   </div>
+
+  <script>
+    function startChat(vendorId) {
+      // Start a conversation with the vendor
+      fetch('/api/chat/start-conversation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendor_id: vendorId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.conversation_id) {
+          // Redirect to chat page
+          window.location.href = '/chat';
+        } else {
+          alert('Unable to start conversation. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error starting conversation:', error);
+        alert('Unable to start conversation. Please try again.');
+      });
+    }
+  </script>
 </body>
 </html>
