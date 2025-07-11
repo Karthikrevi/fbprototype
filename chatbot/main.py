@@ -7,11 +7,19 @@ from datetime import datetime
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from .database import ChatbotDatabase
-from .classifier import IntentClassifier
-from .vector_matcher import VectorMatcher
-from .training import TrainingManager
-from .logger import ConversationLogger
+try:
+    from .database import ChatbotDatabase
+    from .classifier import IntentClassifier
+    from .vector_matcher import VectorMatcher
+    from .training import TrainingManager
+    from .logger import ConversationLogger
+except ImportError:
+    # Fallback for direct execution
+    from database import ChatbotDatabase
+    from classifier import IntentClassifier
+    from vector_matcher import VectorMatcher
+    from training import TrainingManager
+    from logger import ConversationLogger
 
 class SmartInventoryBot:
     def __init__(self, db_path: str = 'erp.db'):

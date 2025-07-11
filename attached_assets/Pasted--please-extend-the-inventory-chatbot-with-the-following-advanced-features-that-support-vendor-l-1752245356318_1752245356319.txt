@@ -1,0 +1,75 @@
+
+>please extend the inventory chatbot with the following **advanced features** that support vendor-level decision-making and operational insights.
+>
+> ---
+>
+> ### 📊 **Analytics & Reporting Enhancements**
+>
+> The chatbot should intelligently process vendor queries related to business performance and generate contextual answers or suggestions.
+>
+> #### ➕ Include the following logistics and inventory formulas:
+>
+> * **Inventory Turnover Ratio** = COGS / Average Inventory
+> * **Stock Cover Duration** = Inventory / Daily Sales Avg
+> * **Lead Time Demand** = Lead Time × Average Daily Usage
+> * **Economic Order Quantity (EOQ)**
+> * **Safety Stock** = (Max Daily Usage × Max Lead Time) – (Avg Daily Usage × Avg Lead Time)
+> * **Fill Rate** = (Orders Fulfilled / Total Orders) × 100
+> * **Shrinkage Rate** = (Recorded Inventory - Actual Inventory) / Recorded Inventory
+>
+> These should be integrated into the analytics engine so the bot can answer questions like:
+>
+> * “How often am I turning over stock?”
+> * “Do I have enough safety stock for flea shampoo?”
+> * “What’s my ideal reorder quantity?”
+>
+> #### ➕ Advanced Inventory Intelligence:
+>
+> * Show **dead stock alerts** based on stagnation.
+> * Surface **top 3 selling products** by volume, revenue, and margin.
+> * Provide **cost-to-sale ratio** analytics.
+> * Add **product sales breakdowns** by category.
+>
+> ---
+>
+> ### 💬 **Natural Language Prompt Handling Enhancements**
+>
+> Improve the bot’s flexibility in recognizing vague or business-oriented queries, such as:
+>
+> * “Am I doing well this month?”
+> * “What’s dragging my sales down?”
+> * “Do I need to restock anything?”
+> * “How much am I making on average per item?”
+>
+> These should be interpreted using **intent recognition and vector similarity fallback**, triggering proper analytic responses using DB data and formulaic outputs.
+>
+> ---
+>
+> ### 🧠 **Business Advisory Bot Features**
+>
+> Allow the bot to:
+>
+> * Offer **profit margin suggestions** (e.g., “Your price for Product X is too low based on cost.”)
+> * Recommend **stock clearance** strategies for slow-moving items.
+> * Forecast **stock-outs** using basic moving averages.
+> * Recommend **bundles** or offers based on purchase patterns.
+> * Summarize **monthly performance reports** in natural language.
+>
+> Sample queries it should handle:
+>
+> * “What’s the profit margin on pet collars?”
+> * “How did I perform in June?”
+> * “Is flea spray still in demand?”
+> * “What’s my best-selling product this year?”
+>
+> ---
+>
+> ### 📝 Logging for Continuous Learning:
+>
+> * Log user prompts + classified intents + confidence scores.
+> * Allow retraining of the intent recognizer with a feedback mechanism.
+> * Optionally suggest **new intents** from unknown prompt clusters.
+>
+> ---
+>
+> These enhancements will allow vendors to **use WhatsApp or the ERP chatbot interface** not just to check stock — but to **run their business smarter, spot inefficiencies, and grow**.
