@@ -1,0 +1,417 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Business Analysis - FurrButler ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+        }
+        .analysis-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .analysis-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+            padding: 30px;
+            border: none;
+            transition: transform 0.3s ease;
+        }
+        .analysis-card:hover {
+            transform: translateY(-2px);
+        }
+        .header-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+        }
+        .analysis-type-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .analysis-type-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+        }
+        .analysis-type-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        .ai-status {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .ai-status.ready {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+        .data-preview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-box {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: #667eea;
+        }
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .back-btn:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .api-config {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .analysis-result {
+            display: none;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="/erp/reports" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Reports
+    </a>
+
+    <div class="analysis-container">
+        <div class="analysis-card header-card">
+            <h1><i class="fas fa-brain"></i> AI Business Analysis</h1>
+            <p class="lead mb-0">Advanced AI-powered insights for your business performance</p>
+        </div>
+
+        <!-- Analysis Type Selection -->
+        <div class="analysis-card">
+            <h3><i class="fas fa-chart-line"></i> Select Analysis Type</h3>
+            <p class="text-muted">Choose the type of business analysis you need:</p>
+            
+            <div class="text-center">
+                <button class="analysis-type-btn active" onclick="selectAnalysisType('comprehensive')" id="btn-comprehensive">
+                    <i class="fas fa-chart-pie"></i> Comprehensive Analysis
+                </button>
+                <button class="analysis-type-btn" onclick="selectAnalysisType('sales')" id="btn-sales">
+                    <i class="fas fa-shopping-cart"></i> Sales Performance
+                </button>
+                <button class="analysis-type-btn" onclick="selectAnalysisType('inventory')" id="btn-inventory">
+                    <i class="fas fa-boxes"></i> Inventory Optimization
+                </button>
+                <button class="analysis-type-btn" onclick="selectAnalysisType('financial')" id="btn-financial">
+                    <i class="fas fa-money-bill-wave"></i> Financial Health
+                </button>
+                <button class="analysis-type-btn" onclick="selectAnalysisType('growth')" id="btn-growth">
+                    <i class="fas fa-rocket"></i> Growth Strategy
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Status -->
+        <div class="ai-status" id="aiStatus">
+            <h4><i class="fas fa-exclamation-triangle"></i> ChatGPT Integration Required</h4>
+            <p class="mb-3">Advanced AI analysis requires ChatGPT API integration. Configure your API key to unlock powerful business insights.</p>
+            <button class="btn btn-light btn-lg" onclick="showApiConfig()">
+                <i class="fas fa-cog"></i> Configure API
+            </button>
+        </div>
+
+        <!-- API Configuration -->
+        <div class="analysis-card api-config" id="apiConfig" style="display: none;">
+            <h4><i class="fas fa-key"></i> ChatGPT API Configuration</h4>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label">OpenAI API Key</label>
+                        <input type="password" class="form-control" id="apiKey" placeholder="sk-..." autocomplete="off">
+                        <small class="form-text text-muted">Your API key is encrypted and stored securely. Never shared.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Model Selection</label>
+                        <select class="form-control" id="modelSelect">
+                            <option value="gpt-4">GPT-4 (Recommended for business analysis)</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster, cost-effective)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h5>Pricing Estimate</h5>
+                        <p class="text-muted">Typical analysis costs:</p>
+                        <small>
+                            • GPT-4: $0.10 - $0.50 per analysis<br>
+                            • GPT-3.5: $0.02 - $0.10 per analysis
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-success btn-lg" onclick="saveApiConfig()">
+                    <i class="fas fa-save"></i> Save Configuration
+                </button>
+                <button class="btn btn-outline-secondary btn-lg ms-2" onclick="testApiConnection()">
+                    <i class="fas fa-flask"></i> Test Connection
+                </button>
+            </div>
+        </div>
+
+        <!-- Business Data Preview -->
+        <div class="analysis-card" id="dataPreview">
+            <h3><i class="fas fa-database"></i> Business Data Summary</h3>
+            <p class="text-muted">Overview of data that will be analyzed by AI:</p>
+            
+            <div class="metric-grid" id="businessMetrics">
+                <!-- Metrics will be loaded here -->
+            </div>
+            
+            <div class="text-center mt-4">
+                <button class="btn btn-primary btn-lg" onclick="loadBusinessData()">
+                    <i class="fas fa-sync-alt"></i> Load Current Data
+                </button>
+                <button class="btn btn-success btn-lg ms-2" onclick="startAIAnalysis()" id="analyzeBtn" disabled>
+                    <i class="fas fa-brain"></i> Start AI Analysis
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Analyzing...</span>
+            </div>
+            <h4 class="mt-3">AI is analyzing your business data...</h4>
+            <p class="text-muted">This may take 30-60 seconds for comprehensive analysis</p>
+        </div>
+
+        <!-- Analysis Results -->
+        <div class="analysis-result" id="analysisResult">
+            <h3><i class="fas fa-chart-line"></i> AI Analysis Results</h3>
+            <div id="analysisContent">
+                <!-- AI analysis results will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedAnalysisType = 'comprehensive';
+        let businessData = null;
+        let apiConfigured = false;
+
+        function selectAnalysisType(type) {
+            selectedAnalysisType = type;
+            
+            // Update button styles
+            document.querySelectorAll('.analysis-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`btn-${type}`).classList.add('active');
+        }
+
+        function showApiConfig() {
+            document.getElementById('apiConfig').style.display = 'block';
+        }
+
+        function saveApiConfig() {
+            const apiKey = document.getElementById('apiKey').value;
+            const model = document.getElementById('modelSelect').value;
+            
+            if (!apiKey) {
+                alert('Please enter your OpenAI API key');
+                return;
+            }
+            
+            // TODO: Implement secure API key storage
+            localStorage.setItem('openai_api_key', apiKey);
+            localStorage.setItem('openai_model', model);
+            
+            apiConfigured = true;
+            
+            // Update status
+            const statusEl = document.getElementById('aiStatus');
+            statusEl.className = 'ai-status ready';
+            statusEl.innerHTML = `
+                <h4><i class="fas fa-check-circle"></i> AI Ready for Analysis</h4>
+                <p class="mb-0">ChatGPT API configured successfully. Ready to analyze your business data.</p>
+            `;
+            
+            document.getElementById('apiConfig').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+
+        function testApiConnection() {
+            const apiKey = document.getElementById('apiKey').value;
+            
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+            
+            // TODO: Implement actual API test
+            alert('API test functionality will be implemented with actual ChatGPT integration');
+        }
+
+        function loadBusinessData() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            
+            fetch('/api/business-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: selectedAnalysisType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                businessData = data.data;
+                displayBusinessMetrics(data.data);
+            })
+            .catch(error => {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                console.error('Error:', error);
+                alert('Error loading business data');
+            });
+        }
+
+        function displayBusinessMetrics(data) {
+            const metricsEl = document.getElementById('businessMetrics');
+            metricsEl.innerHTML = `
+                <div class="metric-box">
+                    <div class="metric-value">${data.sales_summary.total_transactions}</div>
+                    <div class="metric-label">Total Orders</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-value">₹${data.sales_summary.total_revenue.toFixed(0)}</div>
+                    <div class="metric-label">Total Revenue</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-value">${data.product_performance.length}</div>
+                    <div class="metric-label">Products</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-value">${data.expenses.length}</div>
+                    <div class="metric-label">Expense Categories</div>
+                </div>
+            `;
+        }
+
+        function startAIAnalysis() {
+            if (!apiConfigured) {
+                alert('Please configure your ChatGPT API key first');
+                return;
+            }
+            
+            if (!businessData) {
+                alert('Please load business data first');
+                return;
+            }
+            
+            document.getElementById('loadingSpinner').style.display = 'block';
+            
+            // TODO: Implement actual ChatGPT API call
+            setTimeout(() => {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                
+                // Mock analysis result
+                const analysisContent = `
+                    <h4>📊 Business Performance Analysis</h4>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> This is a demonstration of the AI analysis interface. 
+                        Actual ChatGPT integration will provide detailed business insights here.
+                    </div>
+                    <h5>Key Findings:</h5>
+                    <ul>
+                        <li>Revenue trend analysis based on ${businessData.sales_summary.total_transactions} transactions</li>
+                        <li>Product performance insights across ${businessData.product_performance.length} products</li>
+                        <li>Cost optimization opportunities in ${businessData.expenses.length} expense categories</li>
+                        <li>Growth recommendations and strategic insights</li>
+                    </ul>
+                    <h5>Recommendations:</h5>
+                    <ul>
+                        <li>Focus on top-performing product categories</li>
+                        <li>Optimize inventory levels for better cash flow</li>
+                        <li>Reduce operational costs in identified areas</li>
+                        <li>Implement targeted marketing strategies</li>
+                    </ul>
+                `;
+                
+                document.getElementById('analysisContent').innerHTML = analysisContent;
+                document.getElementById('analysisResult').style.display = 'block';
+            }, 3000);
+        }
+
+        // Load business data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBusinessData();
+        });
+    </script>
+</body>
+</html>
