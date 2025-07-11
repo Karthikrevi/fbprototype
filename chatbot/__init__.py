@@ -1,16 +1,31 @@
 
-# Chatbot package
 """
-FurrButler Inventory Chatbot Package
+FurrButler Chatbot Module
 
-This package contains the smart inventory chatbot components:
-- Intent classification
-- Vector similarity matching
-- Conversation logging
-- Training management
+Advanced AI-powered inventory and business analytics chatbot
 """
 
-from .main import SmartInventoryBot
-
-__version__ = "1.0.0"
-__all__ = ["SmartInventoryBot"]
+try:
+    # Initialize core components
+    from .database import ChatbotDatabase
+    from .classifier import IntentClassifier
+    from .vector_matcher import VectorMatcher
+    from .training import TrainingManager
+    from .logger import ConversationLogger
+    from .analytics_engine import AdvancedAnalyticsEngine
+    from .nlp_processor import BusinessQueryProcessor
+    
+    # Initialize main bot (only import if needed to avoid circular imports)
+    __all__ = [
+        'ChatbotDatabase',
+        'IntentClassifier', 
+        'VectorMatcher',
+        'TrainingManager',
+        'ConversationLogger',
+        'AdvancedAnalyticsEngine',
+        'BusinessQueryProcessor'
+    ]
+    
+except ImportError as e:
+    print(f"Warning: Could not import all chatbot components: {e}")
+    __all__ = []

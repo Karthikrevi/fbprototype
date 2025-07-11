@@ -302,6 +302,43 @@ def init_erp_db():
         )
     ''')
 
+    # Chatbot system tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chatbot_queries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            vendor_email TEXT,
+            query TEXT NOT NULL,
+            intent TEXT,
+            confidence REAL,
+            response TEXT,
+            feedback INTEGER,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chatbot_training_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            query TEXT NOT NULL,
+            intent TEXT NOT NULL,
+            response TEXT,
+            is_validated INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chatbot_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT UNIQUE NOT NULL,
+            vendor_email TEXT NOT NULL,
+            started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_activity TEXT DEFAULT CURRENT_TIMESTAMP,
+            query_count INTEGER DEFAULT 0
+        )
+    ''')
+
     # Chat system tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS chat_conversations (

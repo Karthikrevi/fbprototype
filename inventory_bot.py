@@ -1,4 +1,3 @@
-
 # Import the new smart bot
 import sys
 import os
@@ -12,12 +11,12 @@ if chatbot_path not in sys.path:
 
 try:
     from chatbot.main import smart_bot
-    
+
     class InventoryBot:
         """Legacy wrapper for backward compatibility"""
         def __init__(self):
             self.smart_bot = smart_bot
-        
+
         def process_query(self, query, vendor_email):
             """Process query using the smart bot"""
             try:
@@ -26,18 +25,18 @@ try:
             except Exception as e:
                 print(f"Smart bot error: {e}")
                 return f"Sorry, I encountered an error: {str(e)}"
-    
+
     # Create bot instance
     inventory_bot = InventoryBot()
-    
+
 except ImportError as e:
     print(f"Warning: Could not import smart bot, falling back to basic bot: {e}")
-    
+
     # Fallback to basic bot if smart bot fails to import
     class InventoryBot:
         def __init__(self):
             self.db_path = 'erp.db'
-        
+
         def get_vendor_id(self, vendor_email):
             """Get vendor ID from email"""
             try:
@@ -50,19 +49,19 @@ except ImportError as e:
             except Exception as e:
                 print(f"Database error: {e}")
                 return None
-        
+
         def process_query(self, query, vendor_email):
             """Basic fallback query processing"""
             query_lower = query.lower()
             vendor_id = self.get_vendor_id(vendor_email)
-            
+
             if not vendor_id:
                 return "Sorry, I couldn't find your vendor account."
-            
+
             try:
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
-                
+
                 if any(word in query_lower for word in ['top', 'best', 'selling', 'popular']):
                     c.execute("""
                         SELECT p.name, SUM(sl.quantity) as total_sold
@@ -73,7 +72,7 @@ except ImportError as e:
                         ORDER BY total_sold DESC
                         LIMIT 5
                     """, (vendor_id,))
-                    
+
                     results = c.fetchall()
                     if results:
                         response = "🏆 Top Selling Products (Last 30 Days):\n"
@@ -84,7 +83,7 @@ except ImportError as e:
                     else:
                         conn.close()
                         return "No sales data found for the last 30 days."
-                
+
                 elif any(word in query_lower for word in ['low', 'stock', 'inventory']):
                     c.execute("""
                         SELECT name, quantity
@@ -93,7 +92,7 @@ except ImportError as e:
                         ORDER BY quantity ASC
                         LIMIT 10
                     """, (vendor_id,))
-                    
+
                     results = c.fetchall()
                     if results:
                         response = "⚠️ Low Stock Alert:\n"
@@ -104,23 +103,23 @@ except ImportError as e:
                     else:
                         conn.close()
                         return "✅ All products have adequate stock levels!"
-                
+
                 elif any(word in query_lower for word in ['revenue', 'sales', 'money', 'profit']):
                     c.execute("""
                         SELECT COUNT(*) as orders, SUM(total_amount) as revenue, SUM(quantity) as units
                         FROM sales_log 
                         WHERE vendor_id = ? AND sale_date >= date('now', '-30 days')
                     """, (vendor_id,))
-                    
+
                     result = c.fetchone()
                     orders, revenue, units = result if result else (0, 0, 0)
-                    
+
                     conn.close()
                     return f"""📊 Sales Summary (Last 30 Days):
 • Total Orders: {orders or 0}
 • Total Revenue: ₹{revenue or 0:.2f}
 • Units Sold: {units or 0}"""
-                
+
                 else:
                     conn.close()
                     return """I can help you with:
@@ -129,8 +128,8 @@ except ImportError as e:
 • Sales and revenue reports ("what's my revenue")
 
 What would you like to know?"""
-                    
+
             except Exception as e:
                 return f"Sorry, I encountered a database error: {str(e)}"
-    
+
     inventory_bot = InventoryBot()
