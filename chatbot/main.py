@@ -1,11 +1,47 @@
 import os
 import sys
 import sqlite3
+import random
 from typing import Dict, Tuple, Optional
 from datetime import datetime
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Bot personality constants
+BOT_NAME = "Furry"
+BOT_PERSONALITY = {
+    'intro': "Hi! I'm Furry, your friendly vendor assistant! 🐕 I help you manage inventory, track sales, and analyze your business data. What can I fetch for you today?",
+    'fallback': "Woof! I'm still learning that trick. Could you ask me about your inventory, sales, or business analytics instead? 🐾",
+    'greeting_keywords': ['hi', 'hello', 'hey', 'yo', 'namaste', 'hola', 'howdy', 'sup', 'good morning', 'good afternoon', 'good evening'],
+    'casual_responses': [
+        "Hey there! 🐕",
+        "Woof! How can I help you today?",
+        "Hi! I'm here to fetch your data! 🐾",
+        "Hello! Ready to dig into your business insights?",
+        "Hey! Your loyal inventory assistant is here! 🦴"
+    ],
+    'how_are_you_responses': [
+        "I'm paws-itively great today! 🐕",
+        "Feeling fetch-tastic! How about you?",
+        "I'm doing paw-some! Ready to help with your business! 🐾",
+        "Tail-wagging good! What can I analyze for you?",
+        "I'm having a ruff-ly good day! 🦴"
+    ],
+    'thank_you_responses': [
+        "You're welcome! 🐕",
+        "Happy to help! That's what good dogs do! 🐾",
+        "Woof! Anytime! 🦴",
+        "My pleasure! Got any more questions for me?",
+        "You're paw-some! Glad I could help! 🐕"
+    ],
+    'name_responses': [
+        f"I'm {BOT_NAME}, your friendly vendor helper bot! 🐕",
+        f"Woof! I'm {BOT_NAME}, here to help you manage your business! 🐾",
+        f"My name is {BOT_NAME}! I'm your loyal inventory assistant! 🦴",
+        f"I'm {BOT_NAME}, your paw-some business analytics companion! 🐕"
+    ]
+}
 
 try:
     from .database import ChatbotDatabase
@@ -62,6 +98,49 @@ class SmartInventoryBot:
         # Initialize if needed
         self._initialize_if_needed()
 
+    def handle_casual_conversation(self, user_input: str) -> str:
+        """Handle casual conversation and greetings"""
+        user_input_lower = user_input.lower().strip()
+        
+        # Handle greetings
+        if any(greeting in user_input_lower for greeting in BOT_PERSONALITY['greeting_keywords']):
+            return random.choice(BOT_PERSONALITY['casual_responses'])
+        
+        # Handle name questions
+        if any(phrase in user_input_lower for phrase in ['what\'s your name', 'who are you', 'your name', 'what are you']):
+            return random.choice(BOT_PERSONALITY['name_responses'])
+        
+        # Handle "how are you" questions
+        if any(phrase in user_input_lower for phrase in ['how are you', 'how\'s it going', 'how you doing', 'what\'s up']):
+            return random.choice(BOT_PERSONALITY['how_are_you_responses'])
+        
+        # Handle thank you
+        if any(phrase in user_input_lower for phrase in ['thank you', 'thanks', 'thank u', 'thx', 'appreciate it']):
+            return random.choice(BOT_PERSONALITY['thank_you_responses'])
+        
+        # Handle introduction request
+        if any(phrase in user_input_lower for phrase in ['introduce yourself', 'tell me about yourself', 'what do you do']):
+            return BOT_PERSONALITY['intro']
+        
+        # Handle help requests
+        if any(phrase in user_input_lower for phrase in ['help', 'what can you do', 'commands', 'options']):
+            return f"""Woof! I'm {BOT_NAME}, and I can help you with:
+🐕 **Inventory Management:** Check stock levels, low stock alerts
+📊 **Sales Analytics:** Top selling products, revenue reports
+💰 **Business Insights:** Profit analysis, expense tracking
+📈 **Performance Reports:** Monthly summaries, inventory turnover
+
+Just ask me things like:
+• "Show me my top selling products"
+• "Which products are low in stock?"
+• "What's my revenue this month?"
+• "Analyze my inventory performance"
+
+What would you like to know? 🐾"""
+        
+        # Not a casual conversation - return None to let business logic handle it
+        return None
+
     def _initialize_if_needed(self):
         """Initialize the bot if it's the first run"""
         # Check if we have a trained model
@@ -76,6 +155,28 @@ class SmartInventoryBot:
         # Start session if needed
         if not session_id:
             session_id = self.logger.start_session(vendor_email)
+
+        # First, check for casual conversation
+        casual_response = self.handle_casual_conversation(query)
+        if casual_response:
+            # Log the casual interaction
+            log_id = self.logger.log_interaction(
+                session_id=session_id,
+                query=query,
+                intent='casual_conversation',
+                confidence=1.0,
+                response=casual_response,
+                additional_context={'vendor_email': vendor_email}
+            )
+            
+            return {
+                'response': casual_response,
+                'intent': 'casual_conversation',
+                'confidence': 1.0,
+                'session_id': session_id,
+                'log_id': log_id,
+                'data': {}
+            }
 
         # Resolve contextual queries
         resolved_query = self.logger.resolve_contextual_query(session_id, query)
@@ -295,7 +396,8 @@ class SmartInventoryBot:
 
         # Check for specific keywords and provide helpful suggestions
         if any(word in query_lower for word in ['help', 'what can you do']):
-            return """I can help you with:
+            return f"""Woof! I'm {BOT_NAME}, and I can help you with:
+🐕 **Business Analytics:**
 • Sales summaries and revenue analysis
 • Top selling products
 • Low stock alerts and reorder recommendations
@@ -303,30 +405,17 @@ class SmartInventoryBot:
 • Profit margin insights
 • Expense tracking
 
-Try asking:
+🐾 **Try asking:**
 • "Show me my top selling products"
 • "Which products are low in stock?"
 • "What's my revenue this month?"
 • "Analyze my inventory performance"
-• "What are my expenses?\""""
+• "What are my expenses?"
 
-        elif any(word in query_lower for word in ['thank', 'thanks']):
-            return "You're welcome! Feel free to ask me anything about your inventory and sales data."
-
-        elif any(word in query_lower for word in ['hello', 'hi', 'hey']):
-            return "Hello! I'm your inventory assistant. How can I help you analyze your business data today?"
+What would you like to fetch for you? 🦴"""
 
         else:
-            return """I'm not sure I understand that query. I can help you with inventory and sales analytics.
-
-Try asking about:
-• Your top selling products
-• Low stock alerts
-• Revenue and profit reports
-• Inventory performance
-• Expense analysis
-
-Could you rephrase your question?"""
+            return BOT_PERSONALITY['fallback']
 
     # Data retrieval methods (same as original but enhanced)
     def get_vendor_id(self, vendor_email: str) -> Optional[int]:
