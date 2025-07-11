@@ -10,7 +10,8 @@ class InventoryBot:
         self.supported_queries = [
             'sales', 'inventory', 'stock', 'product', 'revenue', 'profit', 'turnover',
             'fast moving', 'slow moving', 'low stock', 'reorder', 'best selling',
-            'worst performing', 'analytics', 'performance', 'margin'
+            'worst performing', 'analytics', 'performance', 'margin', 'top', 'best',
+            'popular', 'moving', 'sold', 'selling', 'performers', 'items', 'successful'
         ]
     
     def is_query_supported(self, query):
@@ -159,8 +160,13 @@ class InventoryBot:
 • Units Sold: {summary['total_units']}
 • Average Order Value: ₹{summary['avg_order_value']}"""
             
-            # Top products queries
-            elif any(word in query_lower for word in ['top products', 'best selling', 'popular']):
+            # Top products queries - expanded to include more variations
+            elif any(phrase in query_lower for phrase in [
+                'top products', 'best selling', 'popular', 'top selling', 'best products',
+                'top moving', 'fast moving', 'most sold', 'highest selling', 'best performers',
+                'top performers', 'most popular', 'bestsellers', 'top items', 'best items',
+                'which products sell', 'what sells best', 'most successful products'
+            ]):
                 top_products = self.get_top_products(vendor_id)
                 if top_products:
                     response = "🏆 **Top Selling Products (Last 30 Days)**\n"
@@ -171,7 +177,10 @@ class InventoryBot:
                     return "No sales data found for the last 30 days."
             
             # Low stock queries
-            elif any(word in query_lower for word in ['low stock', 'reorder', 'stock alert']):
+            elif any(phrase in query_lower for phrase in [
+                'low stock', 'reorder', 'stock alert', 'running low', 'out of stock',
+                'need to reorder', 'stock levels', 'inventory alert', 'almost empty'
+            ]):
                 low_stock = self.get_low_stock_products(vendor_id)
                 if low_stock:
                     response = "⚠️ **Low Stock Alert**\n"
@@ -182,7 +191,11 @@ class InventoryBot:
                     return "✅ All products have adequate stock levels!"
             
             # Performance analysis
-            elif any(word in query_lower for word in ['performance', 'analytics', 'turnover']):
+            elif any(phrase in query_lower for phrase in [
+                'performance', 'analytics', 'turnover', 'inventory performance', 
+                'product performance', 'how are products doing', 'product analysis',
+                'which products are fast', 'which products are slow', 'stagnant products'
+            ]):
                 analytics = self.get_inventory_analytics(vendor_id)
                 if analytics:
                     fast_moving = [p for p in analytics if p['performance'] == 'Fast-moving']
@@ -233,7 +246,13 @@ class InventoryBot:
 • Inventory performance analysis
 • Profit margin analysis
 
-Try asking: "Show me my sales summary" or "Which products are low in stock?"
+Try asking:
+• "Show me my top moving products"
+• "Which products are my best sellers?"
+• "What's my sales summary?"
+• "Which products are low in stock?"
+• "Show me my inventory performance"
+• "What are my most profitable products?"
 """
         
         except Exception as e:
