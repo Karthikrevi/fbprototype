@@ -1,0 +1,320 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ pet.name }} - Pet Passport (FurrWings) - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+      color: white;
+    }
+    .passport-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .pet-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .pet-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid white;
+    }
+    .progress-section {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .progress {
+      height: 12px;
+      border-radius: 10px;
+    }
+    .checklist-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .checklist-item {
+      border-bottom: 1px solid #e9ecef;
+      padding: 25px;
+      transition: background-color 0.3s ease;
+    }
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+    .checklist-item:hover {
+      background-color: #f8f9fa;
+    }
+    .status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 20px;
+      font-size: 18px;
+    }
+    .status-approved {
+      background-color: #28a745;
+      color: white;
+    }
+    .status-pending {
+      background-color: #ffc107;
+      color: white;
+    }
+    .status-rejected {
+      background-color: #dc3545;
+      color: white;
+    }
+    .status-missing {
+      background-color: #6c757d;
+      color: white;
+    }
+    .upload-form {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+    .document-info {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-top: 8px;
+    }
+    .role-badge {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 12px;
+    }
+    .role-parent {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+    .role-vet {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+    .role-handler {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+    .btn-upload {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+    }
+    .alert-info {
+      border-left: 4px solid #17a2b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/pet/{{ pet_index }}" class="back-btn">← Back to {{ pet.name }}'s Profile</a>
+
+    <div class="passport-header">
+      <div class="pet-info">
+        <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" 
+             alt="{{ pet.name }}" class="pet-photo">
+        <div>
+          <h2>🛂 {{ pet.name }}'s Pet Passport</h2>
+          <p class="mb-0">FurrWings International Travel Documentation</p>
+        </div>
+      </div>
+      
+      <!-- Role Switcher for Testing -->
+      <div class="mt-3">
+        <small>Current Role: <span class="role-badge role-{{ user_role }}">{{ user_role.title() }}</span></small>
+        <div class="btn-group btn-group-sm ms-3" role="group">
+          <a href="?role=parent" class="btn btn-outline-light {% if user_role == 'parent' %}active{% endif %}">Parent</a>
+          <a href="?role=vet" class="btn btn-outline-light {% if user_role == 'vet' %}active{% endif %}">Vet</a>
+          <a href="?role=handler" class="btn btn-outline-light {% if user_role == 'handler' %}active{% endif %}">Handler</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <h5>Documentation Progress</h5>
+      <div class="progress mb-3">
+        <div class="progress-bar bg-success" style="width: {{ completion_percentage }}%"></div>
+      </div>
+      <p class="mb-0">{{ completion_percentage }}% Complete - 
+        {% if completion_percentage == 100 %}
+          <span class="text-success">Ready for travel! 🎉</span>
+        {% elif completion_percentage >= 80 %}
+          <span class="text-warning">Almost ready</span>
+        {% else %}
+          <span class="text-info">Documentation in progress</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="checklist-container">
+      {% for doc_type, doc_info in required_docs.items() %}
+        <div class="checklist-item">
+          <div class="d-flex align-items-start">
+            <div class="status-icon 
+              {% if doc_type in doc_status %}
+                {% if doc_status[doc_type]['status'] == 'approved' %}status-approved
+                {% elif doc_status[doc_type]['status'] == 'pending' %}status-pending
+                {% else %}status-rejected{% endif %}
+              {% else %}status-missing{% endif %}">
+              {% if doc_type in doc_status %}
+                {% if doc_status[doc_type]['status'] == 'approved' %}
+                  <i class="fas fa-check"></i>
+                {% elif doc_status[doc_type]['status'] == 'pending' %}
+                  <i class="fas fa-clock"></i>
+                {% else %}
+                  <i class="fas fa-times"></i>
+                {% endif %}
+              {% else %}
+                <i class="fas fa-minus"></i>
+              {% endif %}
+            </div>
+            
+            <div class="flex-grow-1">
+              <h5 class="mb-2">{{ doc_info.name }}</h5>
+              
+              {% if doc_type in doc_status %}
+                <div class="document-info">
+                  <p class="mb-1">
+                    <i class="fas fa-file"></i> {{ doc_status[doc_type]['filename'] }}
+                    <a href="/static/uploads/{{ doc_status[doc_type]['filename'] }}" target="_blank" class="ms-2">
+                      <i class="fas fa-external-link-alt"></i> View
+                    </a>
+                  </p>
+                  <p class="mb-1">
+                    <i class="fas fa-clock"></i> Uploaded: {{ doc_status[doc_type]['upload_time'] }}
+                  </p>
+                  <p class="mb-1">
+                    <i class="fas fa-user"></i> By: 
+                    <span class="role-badge role-{{ doc_status[doc_type]['uploaded_by_role'] }}">
+                      {{ doc_status[doc_type]['uploaded_by_role'].title() }}
+                    </span>
+                    ({{ doc_status[doc_type]['uploaded_by_user_id'] }})
+                  </p>
+                  <p class="mb-1">
+                    <i class="fas fa-info-circle"></i> Status: 
+                    <span class="badge 
+                      {% if doc_status[doc_type]['status'] == 'approved' %}bg-success
+                      {% elif doc_status[doc_type]['status'] == 'pending' %}bg-warning
+                      {% else %}bg-danger{% endif %}">
+                      {{ doc_status[doc_type]['status'].title() }}
+                    </span>
+                  </p>
+                  {% if doc_status[doc_type]['comments'] %}
+                    <p class="mb-1">
+                      <i class="fas fa-comment"></i> Comment: {{ doc_status[doc_type]['comments'] }}
+                    </p>
+                  {% endif %}
+                </div>
+              {% else %}
+                <p class="text-muted mb-2">No document uploaded yet</p>
+              {% endif %}
+
+              <!-- Upload form - only show if user has permission -->
+              {% if user_role in doc_info.allowed_roles %}
+                <div class="upload-form">
+                  <form action="/passport/upload" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="pet_id" value="{{ pet_id }}">
+                    <input type="hidden" name="pet_index" value="{{ pet_index }}">
+                    <input type="hidden" name="doc_type" value="{{ doc_type }}">
+                    <input type="hidden" name="user_role" value="{{ user_role }}">
+                    
+                    <div class="row align-items-end">
+                      <div class="col-md-8">
+                        <label class="form-label small">Upload {{ doc_info.name }}</label>
+                        <input type="file" class="form-control form-control-sm" name="file" 
+                               accept=".pdf,.jpg,.jpeg,.png" required>
+                        <div class="form-text">Accepted formats: PDF, JPG, PNG (Max 10MB)</div>
+                      </div>
+                      <div class="col-md-4">
+                        <button type="submit" class="btn btn-upload btn-sm w-100">
+                          <i class="fas fa-upload"></i> Upload
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              {% elif doc_type not in doc_status %}
+                <div class="alert alert-info py-2 px-3 mb-0">
+                  <small>
+                    <i class="fas fa-info-circle"></i> 
+                    This document can only be uploaded by: 
+                    {% for role in doc_info.allowed_roles %}
+                      <span class="role-badge role-{{ role }}">{{ role.title() }}</span>
+                      {% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                  </small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if completion_percentage == 100 %}
+      <div class="text-center mt-4">
+        <div class="alert alert-success">
+          <h5><i class="fas fa-plane"></i> Passport Complete!</h5>
+          <p class="mb-3">All required documents have been approved. {{ pet.name }} is ready for international travel!</p>
+          <button class="btn btn-success btn-lg" disabled>
+            <i class="fas fa-passport"></i> Generate Official Passport (Coming Soon)
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+      <p class="text-muted">
+        <i class="fas fa-shield-alt"></i> 
+        FurrWings Pet Passport System - Secure international pet travel documentation
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Auto-refresh page every 30 seconds to check for status updates
+    setTimeout(function() {
+      location.reload();
+    }, 30000);
+  </script>
+</body>
+</html>

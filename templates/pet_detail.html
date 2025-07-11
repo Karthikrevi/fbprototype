@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -76,7 +75,7 @@
 <body>
   <div class="container">
     <a href="/pet-profile" class="back-btn">← Back to My Pets</a>
-    
+
     <div class="pet-card">
       <div class="pet-header">
         <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" 
@@ -84,7 +83,7 @@
         <h2>{{ pet.name }}</h2>
         <p>{{ pet.breed }} • Born: {{ pet.birthday }}</p>
       </div>
-      
+
       <div class="pet-details">
         <div class="row">
           <div class="col-md-4">
@@ -147,3 +146,4 @@
   </div>
 </body>
 </html>
+```

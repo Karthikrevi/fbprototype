@@ -367,6 +367,21 @@ def init_erp_db():
         )
     ''')
 
+    # Pet Passport System tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS passport_documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_id INTEGER NOT NULL,
+            doc_type TEXT NOT NULL CHECK(doc_type IN ('microchip', 'vaccine', 'health_cert', 'dgft', 'aqcs', 'quarantine')),
+            uploaded_by_role TEXT NOT NULL CHECK(uploaded_by_role IN ('parent', 'vet', 'handler')),
+            uploaded_by_user_id TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            upload_time TEXT DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+            comments TEXT
+        )
+    ''')
+
     # Add new columns if they don't exist
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN account_status TEXT DEFAULT 'active'")
@@ -909,6 +924,77 @@ def pet_detail(pet_index):
 
     return render_template("pet_detail.html", pet=pet, pet_index=pet_index, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
 
+@app.route('/pet/<int:pet_index>/passport')
+def pet_passport(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+
+    pet = pets[pet_index]
+    pet_id = pet_index + 1  # Simple ID mapping for now
+
+    # Get passport documents for this pet
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, status, comments
+        FROM passport_documents 
+        WHERE pet_id = ?
+        ORDER BY upload_time DESC
+    """, (pet_id,))
+    
+    documents = c.fetchall()
+    conn.close()
+
+    # Organize documents by type
+    doc_status = {}
+    for doc in documents:
+        doc_type = doc[0]
+        if doc_type not in doc_status or doc[4] > doc_status[doc_type]['upload_time']:  # Keep latest
+            doc_status[doc_type] = {
+                'uploaded_by_role': doc[1],
+                'uploaded_by_user_id': doc[2],
+                'filename': doc[3],
+                'upload_time': doc[4],
+                'status': doc[5],
+                'comments': doc[6]
+            }
+
+    # Define required documents and their allowed uploaders
+    required_docs = {
+        'microchip': {'name': 'Microchip Certificate', 'allowed_roles': ['parent']},
+        'vaccine': {'name': 'Vaccination Records', 'allowed_roles': ['vet']},
+        'health_cert': {'name': 'Health Certificate', 'allowed_roles': ['vet']},
+        'dgft': {'name': 'DGFT Certificate', 'allowed_roles': ['handler']},
+        'aqcs': {'name': 'AQCS Certificate', 'allowed_roles': ['handler']},
+        'quarantine': {'name': 'Quarantine Clearance', 'allowed_roles': ['handler']}
+    }
+
+    # Calculate completion percentage
+    completed_docs = sum(1 for doc_type in required_docs.keys() if doc_type in doc_status and doc_status[doc_type]['status'] == 'approved')
+    completion_percentage = int((completed_docs / len(required_docs)) * 100)
+
+    # Determine user role (simplified - with role switching for testing)
+    user_role = request.args.get('role', 'parent')
+    if user_role not in ['parent', 'vet', 'handler']:
+        user_role = 'parent'
+
+    return render_template("pet_passport.html", 
+                         pet=pet, 
+                         pet_index=pet_index,
+                         pet_id=pet_id,
+                         doc_status=doc_status,
+                         required_docs=required_docs,
+                         completion_percentage=completion_percentage,
+                         user_role=user_role)
+
 @app.route('/pet/<int:pet_index>/edit', methods=["GET", "POST"])
 def edit_pet(pet_index):
     if "user" not in session:
@@ -950,6 +1036,72 @@ def edit_pet(pet_index):
         breeds = json.load(f)
 
     return render_template("edit_pet.html", pet=pet, pet_index=pet_index, breeds=breeds)
+
+@app.route('/passport/upload', methods=["POST"])
+def passport_upload():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    pet_id = request.form.get("pet_id")
+    pet_index = request.form.get("pet_index")
+    doc_type = request.form.get("doc_type")
+    user_role = request.form.get("user_role", "parent")  # This would come from actual user role system
+    
+    if not pet_id or not doc_type:
+        flash("Missing required information")
+        return redirect(url_for("pet_passport", pet_index=pet_index))
+
+    # Define role permissions
+    role_permissions = {
+        'microchip': ['parent'],
+        'vaccine': ['vet'],
+        'health_cert': ['vet'],
+        'dgft': ['handler'],
+        'aqcs': ['handler'],
+        'quarantine': ['handler']
+    }
+
+    # Check if user role can upload this document type
+    if user_role not in role_permissions.get(doc_type, []):
+        flash(f"You don't have permission to upload {doc_type} documents")
+        return redirect(url_for("pet_passport", pet_index=pet_index))
+
+    # Handle file upload
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("No file selected")
+        return redirect(url_for("pet_passport", pet_index=pet_index))
+
+    # Validate file type
+    allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png'}
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        flash("Invalid file type. Please upload PDF, JPG, or PNG files only.")
+        return redirect(url_for("pet_passport", pet_index=pet_index))
+
+    # Create unique filename
+    import time
+    timestamp = str(int(time.time()))
+    original_extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"pet_{pet_id}_{doc_type}_{timestamp}.{original_extension}"
+    
+    # Save file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    # Save to database
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        INSERT INTO passport_documents (pet_id, doc_type, uploaded_by_role, uploaded_by_user_id, filename)
+        VALUES (?, ?, ?, ?, ?)
+    """, (pet_id, doc_type, user_role, session["user"], filename))
+    
+    conn.commit()
+    conn.close()
+
+    flash(f"{doc_type.replace('_', ' ').title()} document uploaded successfully!")
+    return redirect(url_for("pet_passport", pet_index=pet_index))
 
 @app.route('/set-location')
 def set_location():

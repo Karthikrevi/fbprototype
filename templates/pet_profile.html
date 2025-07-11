@@ -136,12 +136,18 @@
     {% if pets %}
       <div class="pets-grid">
         {% for pet in pets %}
-        <div class="pet-card-preview" onclick="location.href='/pet/{{ loop.index0 }}'">
+        <div class="pet-card-preview">
           <div class="pet-header">
             <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" 
                  alt="{{ pet.name }}" class="pet-photo">
             <h3>{{ pet.name }}</h3>
             <p>{{ pet.breed }} • {{ pet.parent_name or 'Owner not specified' }}</p>
+            <div class="mt-3">
+              <a href="/pet/{{ loop.index0 }}" class="btn btn-sm btn-outline-light me-2">View Profile</a>
+              <a href="/pet/{{ loop.index0 }}/passport" class="btn btn-sm btn-light">
+                <i class="fas fa-passport"></i> Passport
+              </a>
+            </div>
           </div>
         </div>
         {% endfor %}
