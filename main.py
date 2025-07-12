@@ -4004,53 +4004,7 @@ def handler_update_booking_status():
 
 
 
-@app.route('/handler/upload-document', methods=["POST"])
-def handler_upload_document():
-    if "handler_profile" not in session:
-        return redirect(url_for("handler_profile_login"))
 
-    booking_id = request.form.get("booking_id")
-    document_type = request.form.get("document_type")
-    description = request.form.get("description", "")
-    handler_id = session["handler_profile_id"]
-
-    # Handle file upload
-    file = request.files.get("file")
-    if not file or not file.filename:
-        flash("No file selected")
-        return redirect(url_for("handler_profile_dashboard"))
-
-    # Validate file type
-    allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png'}
-    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
-        flash("Invalid file type. Please upload PDF, JPG, or PNG files only.")
-        return redirect(url_for("handler_profile_dashboard"))
-
-    # Create unique filename
-    import time
-    timestamp = str(int(time.time()))
-    original_extension = file.filename.rsplit('.', 1)[1].lower()
-    filename = f"handler_{handler_id}_{booking_id}_{timestamp}.{original_extension}"
-    
-    # Save file
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-
-    # Save document record
-    c.execute("""
-        INSERT INTO handler_documents 
-        (booking_id, handler_id, document_type, filename, description)
-        VALUES (?, ?, ?, ?, ?)
-    """, (booking_id, handler_id, document_type, filename, description))
-
-    conn.commit()
-    conn.close()
-
-    flash(f"{document_type} uploaded successfully!")
-    return redirect(url_for("handler_profile_dashboard"))
 
 # Admin escrow management routes
 @app.route('/admin/escrow')
