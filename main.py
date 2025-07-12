@@ -1997,7 +1997,37 @@ def handler_login():
 
         if handler:
             session["handler"] = email
+            session["handler_id"] = handler[0]
+            session["handler_name"] = handler[1]
+            session["handler_license"] = handler[5]
+            return redirect(url_for("handler_dashboard"))
+        else:
+            flash("Invalid handler credentials")
 
+    return render_template("handler_login.html")
+
+@app.route('/isolation/login', methods=["GET", "POST"])
+def isolation_login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM isolation_centers WHERE email=? AND password=? AND is_active=1", (email, password))
+        center = c.fetchone()
+        conn.close()
+
+        if center:
+            session["isolation"] = email
+            session["isolation_id"] = center[0]
+            session["isolation_name"] = center[1]
+            session["isolation_license"] = center[5]
+            return redirect(url_for("isolation_dashboard"))
+        else:
+            flash("Invalid isolation center credentials")
+
+    return render_template("isolation_login.html")
 
 # Bulk Barcode Processing
 @app.route('/erp/process-bulk-barcodes', methods=['POST'])
