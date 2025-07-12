@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handler Profiles - FurrWings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 0;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .handler-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    .handler-card:hover {
+      transform: translateY(-5px);
+    }
+    .handler-image {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .success-rate {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+    }
+    .price-tag {
+      background: linear-gradient(45deg, #007bff, #0056b3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 25px;
+      font-weight: 600;
+    }
+    .btn-book {
+      background: linear-gradient(45deg, #ff6b6b, #ff8787);
+      border: none;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-weight: 500;
+    }
+    .btn-book:hover {
+      background: linear-gradient(45deg, #ff5252, #ff6b6b);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-globe"></i> FurrWings Handlers</h2>
+          <p class="mb-0 text-muted">International Pet Transport Specialists</p>
+        </div>
+        <a href="/dashboard" class="btn btn-outline-primary">Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row">
+      {% for handler in handlers %}
+        <div class="col-lg-6">
+          <div class="handler-card">
+            <div class="card-body p-4">
+              <div class="row align-items-center">
+                <div class="col-md-4 text-center">
+                  <img src="{{ handler.profile_image }}" alt="{{ handler.name }}" class="handler-image mb-3">
+                  <div class="success-rate">
+                    <i class="fas fa-check-circle"></i> {{ handler.success_rate }}% Success
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <h5 class="card-title">{{ handler.name }}</h5>
+                  <p class="text-muted mb-2">
+                    <i class="fas fa-map-marker-alt"></i> {{ handler.country }}
+                  </p>
+                  <p class="card-text">{{ handler.bio[:100] }}...</p>
+                  
+                  <div class="mb-3">
+                    <small class="text-muted">
+                      <i class="fas fa-star"></i> {{ handler.total_bookings }} completed trips |
+                      <i class="fas fa-calendar"></i> {{ handler.experience_years }} years exp |
+                      <i class="fas fa-language"></i> {{ handler.languages }}
+                    </small>
+                  </div>
+
+                  <div class="mb-3">
+                    <span class="badge bg-info me-2">{{ handler.services_offered.split(',')[0] }}</span>
+                    {% if handler.services_offered.split(',') | length > 1 %}
+                      <span class="badge bg-secondary">+{{ handler.services_offered.split(',') | length - 1 }} more</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="price-tag">
+                      <i class="fas fa-dollar-sign"></i> ${{ "%.0f"|format(handler.base_price) }} base
+                    </div>
+                    <div>
+                      <a href="/handler/{{ handler.id }}" class="btn btn-outline-primary btn-sm me-2">View Details</a>
+                      <a href="/handler/{{ handler.id }}/book" class="btn-book btn">Book Now</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

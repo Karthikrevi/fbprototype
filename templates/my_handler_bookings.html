@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Handler Bookings - FurrWings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 0;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .booking-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    .booking-card:hover {
+      transform: translateY(-2px);
+    }
+    .handler-image {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .escrow-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-suitcase-rolling"></i> My Handler Bookings</h2>
+          <p class="mb-0 text-muted">Track your international pet transport bookings</p>
+        </div>
+        <div>
+          <a href="/handlers" class="btn btn-outline-primary">Book New Handler</a>
+          <a href="/dashboard" class="btn btn-outline-secondary">Dashboard</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    {% if bookings %}
+      <div class="row">
+        {% for booking in bookings %}
+          <div class="col-lg-6">
+            <div class="booking-card">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-start">
+                  <img src="{{ booking.handler_image }}" alt="{{ booking.handler_name }}" class="handler-image me-3">
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <h6 class="mb-1">{{ booking.handler_name }}</h6>
+                        <small class="text-muted">{{ booking.handler_country }}</small>
+                      </div>
+                      <div class="text-end">
+                        <div class="h6 text-primary mb-0">${{ "%.2f"|format(booking.total_amount) }}</div>
+                        <small class="text-muted">Booking #{{ booking.id }}</small>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <div class="row">
+                        <div class="col-6">
+                          <strong><i class="fas fa-paw"></i> Pet:</strong><br>
+                          <span>{{ booking.pet_name }} ({{ booking.pet_type }})</span>
+                        </div>
+                        <div class="col-6">
+                          <strong><i class="fas fa-map-marker-alt"></i> Destination:</strong><br>
+                          <span>{{ booking.destination_country }}</span>
+                        </div>
+                      </div>
+                      
+                      {% if booking.travel_date %}
+                      <div class="mt-2">
+                        <strong><i class="fas fa-calendar"></i> Travel Date:</strong>
+                        <span>{{ booking.travel_date }}</span>
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div>
+                        <span class="badge bg-{{ 'success' if booking.booking_status == 'completed' else 'info' if booking.booking_status == 'docs_uploaded' else 'warning' }}">
+                          {{ booking.booking_status.replace('_', ' ').title() }}
+                        </span>
+                      </div>
+                      <div>
+                        <span class="escrow-badge bg-{{ 'success' if booking.escrow_status == 'released' else 'primary' if booking.escrow_status == 'held' else 'danger' }} text-white">
+                          <i class="fas fa-shield-alt"></i> {{ booking.escrow_status.title() }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="fas fa-clock"></i> Booked {{ booking.created_at.split(' ')[0] }}
+                      </small>
+                      <div>
+                        <a href="/handler/invoice/{{ booking.id }}" class="btn btn-outline-primary btn-sm">
+                          <i class="fas fa-receipt"></i> Invoice
+                        </a>
+                        <a href="/handler/{{ booking.handler_id }}" class="btn btn-outline-secondary btn-sm">
+                          <i class="fas fa-user"></i> Handler
+                        </a>
+                      </div>
+                    </div>
+
+                    {% if booking.escrow_status == 'held' %}
+                    <div class="mt-3 p-3 bg-light rounded">
+                      <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        <small>
+                          <strong>Escrow Protection Active:</strong> Funds are held securely until handler completes service and uploads required documents.
+                        </small>
+                      </div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <div class="card mx-auto" style="max-width: 500px;">
+          <div class="card-body py-5">
+            <i class="fas fa-suitcase-rolling text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3">No Bookings Yet</h4>
+            <p class="text-muted">You haven't booked any handlers for international pet transport yet.</p>
+            <a href="/handlers" class="btn btn-primary">
+              <i class="fas fa-search"></i> Browse Handlers
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

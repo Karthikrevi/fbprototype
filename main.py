@@ -486,6 +486,92 @@ def init_erp_db():
         )
     ''')
 
+    # Handler profiles and escrow management tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS handler_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            country TEXT NOT NULL,
+            base_price REAL NOT NULL,
+            services_offered TEXT,
+            experience_years INTEGER DEFAULT 0,
+            success_rate REAL DEFAULT 100.0,
+            total_bookings INTEGER DEFAULT 0,
+            profile_image TEXT,
+            bio TEXT,
+            languages TEXT,
+            certifications TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS handler_bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            handler_id INTEGER NOT NULL,
+            pet_parent_email TEXT NOT NULL,
+            pet_name TEXT NOT NULL,
+            pet_type TEXT NOT NULL,
+            destination_country TEXT NOT NULL,
+            travel_date TEXT,
+            total_amount REAL NOT NULL,
+            handler_fee REAL NOT NULL,
+            platform_fee REAL NOT NULL,
+            escrow_status TEXT DEFAULT 'held' CHECK(escrow_status IN ('held', 'released', 'refunded')),
+            booking_status TEXT DEFAULT 'pending' CHECK(booking_status IN ('pending', 'confirmed', 'docs_uploaded', 'completed', 'cancelled')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            documents_uploaded_at TEXT,
+            escrow_released_at TEXT,
+            auto_release_time TEXT,
+            notes TEXT,
+            FOREIGN KEY (handler_id) REFERENCES handler_profiles(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS handler_documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            booking_id INTEGER NOT NULL,
+            handler_id INTEGER NOT NULL,
+            document_type TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            upload_time TEXT DEFAULT CURRENT_TIMESTAMP,
+            description TEXT,
+            FOREIGN KEY (booking_id) REFERENCES handler_bookings(id),
+            FOREIGN KEY (handler_id) REFERENCES handler_profiles(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS handler_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            handler_id INTEGER NOT NULL,
+            booking_id INTEGER NOT NULL,
+            pet_parent_email TEXT NOT NULL,
+            rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+            review_text TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (handler_id) REFERENCES handler_profiles(id),
+            FOREIGN KEY (booking_id) REFERENCES handler_bookings(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS escrow_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            booking_id INTEGER NOT NULL,
+            transaction_type TEXT NOT NULL CHECK(transaction_type IN ('hold', 'release', 'refund')),
+            amount REAL NOT NULL,
+            initiated_by TEXT NOT NULL,
+            reason TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (booking_id) REFERENCES handler_bookings(id)
+        )
+    ''')
+
     # Add new columns if they don't exist
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN account_status TEXT DEFAULT 'active'")
@@ -544,6 +630,20 @@ def init_erp_db():
         INSERT OR IGNORE INTO isolation_centers (name, email, password, center_name, license_number, phone, address, city)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', ("Bark & Board Manager", "isolation@furrwings.com", "isolation123", "Bark & Board Isolation Center", "ISO-2024-001", "+91-9876543212", "123 Pet Street", "Trivandrum"))
+
+    # Insert demo handler profiles
+    demo_handlers = [
+        ("Sarah Johnson", "sarah@globalpaws.com", "handler123", "USA", 1200.00, "International Pet Transport, USDA Documentation", 8, 98.5, 45, "https://images.unsplash.com/photo-1494790108755-2616b332446c?w=400", "Certified international pet transport specialist with 8+ years experience", "English, Spanish", "USDA Certified, IATA Live Animal Regulations", 1),
+        ("Marco Silva", "marco@petmover.com", "handler123", "Brazil", 800.00, "South American Pet Transport, Quarantine Management", 5, 96.2, 32, "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400", "Specialized in South American pet relocations and quarantine procedures", "Portuguese, English, Spanish", "Brazilian Ministry Certified", 1),
+        ("Yuki Tanaka", "yuki@asiapet.com", "handler123", "Japan", 1500.00, "Asian Pet Transport, Health Certification", 12, 99.1, 78, "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400", "Expert in Asian pet transport regulations with perfect success rate", "Japanese, English, Mandarin", "Japan Animal Quarantine Service Certified", 1)
+    ]
+
+    for handler in demo_handlers:
+        c.execute('''
+            INSERT OR IGNORE INTO handler_profiles 
+            (name, email, password, country, base_price, services_offered, experience_years, success_rate, total_bookings, profile_image, bio, languages, certifications, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', handler)
 
     # Get demo vendor ID
     c.execute("SELECT id FROM vendors WHERE email = 'demo@furrbutler.com'")
@@ -3520,6 +3620,579 @@ def master_admin_logout():
     session.pop("master_admin", None)
     flash("You have been logged out successfully")
     return redirect(url_for("home"))
+
+# ---- HANDLER ESCROW MANAGEMENT ROUTES ----
+
+@app.route('/handlers')
+def handlers_list():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, name, country, base_price, services_offered, experience_years, 
+               success_rate, total_bookings, profile_image, bio, languages, 
+               certifications, is_active
+        FROM handler_profiles 
+        WHERE is_active = 1
+        ORDER BY success_rate DESC, total_bookings DESC
+    """)
+    
+    handlers_data = c.fetchall()
+    handlers = []
+    
+    for handler in handlers_data:
+        handlers.append({
+            'id': handler[0],
+            'name': handler[1],
+            'country': handler[2],
+            'base_price': handler[3],
+            'services_offered': handler[4],
+            'experience_years': handler[5],
+            'success_rate': handler[6],
+            'total_bookings': handler[7],
+            'profile_image': handler[8],
+            'bio': handler[9],
+            'languages': handler[10],
+            'certifications': handler[11]
+        })
+    
+    conn.close()
+    return render_template("handlers.html", handlers=handlers)
+
+@app.route('/handler/<int:handler_id>')
+def handler_detail(handler_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get handler details
+    c.execute("""
+        SELECT id, name, country, base_price, services_offered, experience_years, 
+               success_rate, total_bookings, profile_image, bio, languages, 
+               certifications, is_active
+        FROM handler_profiles 
+        WHERE id = ?
+    """, (handler_id,))
+    
+    handler_data = c.fetchone()
+    if not handler_data:
+        return "Handler not found", 404
+    
+    handler = {
+        'id': handler_data[0],
+        'name': handler_data[1],
+        'country': handler_data[2],
+        'base_price': handler_data[3],
+        'services_offered': handler_data[4],
+        'experience_years': handler_data[5],
+        'success_rate': handler_data[6],
+        'total_bookings': handler_data[7],
+        'profile_image': handler_data[8],
+        'bio': handler_data[9],
+        'languages': handler_data[10],
+        'certifications': handler_data[11]
+    }
+    
+    # Get reviews
+    c.execute("""
+        SELECT hr.id, hr.handler_id, hr.pet_parent_email, hr.rating, hr.review_text, hr.created_at
+        FROM handler_reviews hr
+        WHERE hr.handler_id = ?
+        ORDER BY hr.created_at DESC
+    """, (handler_id,))
+    
+    reviews = c.fetchall()
+    conn.close()
+    
+    return render_template("handler_detail.html", handler=handler, reviews=reviews)
+
+@app.route('/handler/<int:handler_id>/book', methods=["GET", "POST"])
+def book_handler(handler_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get handler details
+    c.execute("""
+        SELECT id, name, country, base_price, email
+        FROM handler_profiles 
+        WHERE id = ? AND is_active = 1
+    """, (handler_id,))
+    
+    handler_data = c.fetchone()
+    if not handler_data:
+        return "Handler not found", 404
+    
+    handler = {
+        'id': handler_data[0],
+        'name': handler_data[1],
+        'country': handler_data[2],
+        'base_price': handler_data[3],
+        'email': handler_data[4]
+    }
+    
+    if request.method == "POST":
+        pet_name = request.form.get("pet_name")
+        pet_type = request.form.get("pet_type")
+        destination_country = request.form.get("destination_country")
+        travel_date = request.form.get("travel_date")
+        notes = request.form.get("notes", "")
+        
+        pet_parent_email = session["user"]
+        total_amount = handler['base_price']
+        handler_fee = total_amount * 0.9  # 90% to handler
+        platform_fee = total_amount * 0.1  # 10% platform fee
+        
+        # Calculate auto-release time (48 hours from now)
+        from datetime import datetime, timedelta
+        auto_release_time = (datetime.now() + timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Create booking
+        c.execute("""
+            INSERT INTO handler_bookings 
+            (handler_id, pet_parent_email, pet_name, pet_type, destination_country, 
+             travel_date, total_amount, handler_fee, platform_fee, auto_release_time, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (handler_id, pet_parent_email, pet_name, pet_type, destination_country,
+              travel_date, total_amount, handler_fee, platform_fee, auto_release_time, notes))
+        
+        booking_id = c.lastrowid
+        
+        # Create initial escrow transaction
+        c.execute("""
+            INSERT INTO escrow_transactions 
+            (booking_id, transaction_type, amount, initiated_by, reason)
+            VALUES (?, 'hold', ?, ?, 'Initial booking escrow hold')
+        """, (booking_id, total_amount, pet_parent_email))
+        
+        # Update handler's total bookings
+        c.execute("""
+            UPDATE handler_profiles 
+            SET total_bookings = total_bookings + 1 
+            WHERE id = ?
+        """, (handler_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return redirect(url_for("handler_invoice", booking_id=booking_id))
+    
+    conn.close()
+    return render_template("handler_booking.html", handler=handler)
+
+@app.route('/handler/invoice/<int:booking_id>')
+def handler_invoice(booking_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get booking details with handler info
+    c.execute("""
+        SELECT hb.*, hp.name as handler_name, hp.email as handler_email, hp.country
+        FROM handler_bookings hb
+        JOIN handler_profiles hp ON hb.handler_id = hp.id
+        WHERE hb.id = ? AND hb.pet_parent_email = ?
+    """, (booking_id, session["user"]))
+    
+    booking_data = c.fetchone()
+    if not booking_data:
+        return "Booking not found", 404
+    
+    booking = {
+        'id': booking_data[0],
+        'handler_id': booking_data[1],
+        'pet_parent_email': booking_data[2],
+        'pet_name': booking_data[3],
+        'pet_type': booking_data[4],
+        'destination_country': booking_data[5],
+        'travel_date': booking_data[6],
+        'total_amount': booking_data[7],
+        'handler_fee': booking_data[8],
+        'platform_fee': booking_data[9],
+        'escrow_status': booking_data[10],
+        'booking_status': booking_data[11],
+        'created_at': booking_data[12],
+        'documents_uploaded_at': booking_data[13],
+        'escrow_released_at': booking_data[14],
+        'auto_release_time': booking_data[15],
+        'notes': booking_data[16]
+    }
+    
+    handler = {
+        'name': booking_data[17],
+        'email': booking_data[18],
+        'country': booking_data[19]
+    }
+    
+    conn.close()
+    return render_template("handler_invoice.html", booking=booking, handler=handler)
+
+@app.route('/my-handler-bookings')
+def my_handler_bookings():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all bookings for this user
+    c.execute("""
+        SELECT hb.*, hp.name as handler_name, hp.country, hp.profile_image
+        FROM handler_bookings hb
+        JOIN handler_profiles hp ON hb.handler_id = hp.id
+        WHERE hb.pet_parent_email = ?
+        ORDER BY hb.created_at DESC
+    """, (session["user"],))
+    
+    bookings_data = c.fetchall()
+    bookings = []
+    
+    for booking in bookings_data:
+        bookings.append({
+            'id': booking[0],
+            'handler_id': booking[1],
+            'pet_name': booking[3],
+            'pet_type': booking[4],
+            'destination_country': booking[5],
+            'travel_date': booking[6],
+            'total_amount': booking[7],
+            'handler_fee': booking[8],
+            'platform_fee': booking[9],
+            'escrow_status': booking[10],
+            'booking_status': booking[11],
+            'created_at': booking[12],
+            'handler_name': booking[17],
+            'handler_country': booking[18],
+            'handler_image': booking[19]
+        })
+    
+    conn.close()
+    return render_template("my_handler_bookings.html", bookings=bookings)
+
+# Handler login and dashboard routes
+@app.route('/handler/profile/login', methods=["GET", "POST"])
+def handler_profile_login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM handler_profiles WHERE email=? AND password=? AND is_active=1", (email, password))
+        handler = c.fetchone()
+        conn.close()
+
+        if handler:
+            session["handler_profile"] = email
+            session["handler_profile_id"] = handler[0]
+            session["handler_profile_name"] = handler[1]
+            return redirect(url_for("handler_profile_dashboard"))
+        else:
+            flash("Invalid handler credentials")
+
+    return render_template("handler_profile_login.html")
+
+@app.route('/handler/profile/dashboard')
+def handler_profile_dashboard():
+    if "handler_profile" not in session:
+        return redirect(url_for("handler_profile_login"))
+
+    handler_id = session["handler_profile_id"]
+    handler_name = session["handler_profile_name"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get handler bookings
+    c.execute("""
+        SELECT hb.*, 
+               (SELECT COUNT(*) FROM handler_documents WHERE booking_id = hb.id) as doc_count
+        FROM handler_bookings hb
+        WHERE hb.handler_id = ?
+        ORDER BY hb.created_at DESC
+    """, (handler_id,))
+    
+    bookings_data = c.fetchall()
+    bookings = []
+    
+    for booking in bookings_data:
+        # Get documents for this booking
+        c.execute("""
+            SELECT document_type, filename, upload_time, description
+            FROM handler_documents 
+            WHERE booking_id = ?
+            ORDER BY upload_time DESC
+        """, (booking[0],))
+        documents = c.fetchall()
+        
+        bookings.append({
+            'id': booking[0],
+            'pet_parent_email': booking[2],
+            'pet_name': booking[3],
+            'pet_type': booking[4],
+            'destination_country': booking[5],
+            'travel_date': booking[6],
+            'total_amount': booking[7],
+            'handler_fee': booking[8],
+            'platform_fee': booking[9],
+            'escrow_status': booking[10],
+            'booking_status': booking[11],
+            'created_at': booking[12],
+            'notes': booking[16],
+            'documents': documents
+        })
+
+    # Calculate stats
+    total_bookings = len(bookings)
+    total_earnings = sum(b['handler_fee'] for b in bookings if b['escrow_status'] == 'released')
+    
+    stats = {
+        'total_bookings': total_bookings,
+        'total_earnings': total_earnings
+    }
+
+    conn.close()
+    return render_template("handler_dashboard.html", 
+                         bookings=bookings, 
+                         handler_name=handler_name,
+                         stats=stats)
+
+@app.route('/handler/update-booking-status', methods=["POST"])
+def handler_update_booking_status():
+    if "handler_profile" not in session:
+        return redirect(url_for("handler_profile_login"))
+
+    booking_id = request.form.get("booking_id")
+    new_status = request.form.get("status")
+    handler_id = session["handler_profile_id"]
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Update booking status
+    c.execute("""
+        UPDATE handler_bookings 
+        SET booking_status = ?
+        WHERE id = ? AND handler_id = ?
+    """, (new_status, booking_id, handler_id))
+
+    # If status is docs_uploaded, set the timestamp
+    if new_status == 'docs_uploaded':
+        c.execute("""
+            UPDATE handler_bookings 
+            SET documents_uploaded_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND handler_id = ?
+        """, (booking_id, handler_id))
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Booking status updated to {new_status.replace('_', ' ').title()}")
+    return redirect(url_for("handler_profile_dashboard"))
+
+@app.route('/handler/upload-document', methods=["POST"])
+def handler_upload_document():
+    if "handler_profile" not in session:
+        return redirect(url_for("handler_profile_login"))
+
+    booking_id = request.form.get("booking_id")
+    document_type = request.form.get("document_type")
+    description = request.form.get("description", "")
+    handler_id = session["handler_profile_id"]
+
+    # Handle file upload
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("No file selected")
+        return redirect(url_for("handler_profile_dashboard"))
+
+    # Create unique filename
+    import time
+    timestamp = str(int(time.time()))
+    original_extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"handler_{handler_id}_{booking_id}_{timestamp}.{original_extension}"
+    
+    # Save file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Save document record
+    c.execute("""
+        INSERT INTO handler_documents 
+        (booking_id, handler_id, document_type, filename, description)
+        VALUES (?, ?, ?, ?, ?)
+    """, (booking_id, handler_id, document_type, filename, description))
+
+    conn.commit()
+    conn.close()
+
+    flash(f"{document_type} uploaded successfully!")
+    return redirect(url_for("handler_profile_dashboard"))
+
+# Admin escrow management routes
+@app.route('/admin/escrow')
+def admin_escrow_dashboard():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get statistics
+    c.execute("SELECT COUNT(*) FROM handler_bookings")
+    total_bookings = c.fetchone()[0]
+
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM handler_bookings WHERE escrow_status = 'held'")
+    total_held = c.fetchone()[0]
+
+    c.execute("SELECT COALESCE(SUM(platform_fee), 0) FROM handler_bookings")
+    total_platform_fees = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM handler_bookings WHERE escrow_status = 'held' AND booking_status = 'docs_uploaded'")
+    pending_releases = c.fetchone()[0]
+
+    stats = {
+        'total_bookings': total_bookings,
+        'total_held': total_held,
+        'total_platform_fees': total_platform_fees,
+        'pending_releases': pending_releases
+    }
+
+    # Get all bookings with handler details
+    c.execute("""
+        SELECT hb.*, hp.name as handler_name, hp.email as handler_email
+        FROM handler_bookings hb
+        JOIN handler_profiles hp ON hb.handler_id = hp.id
+        ORDER BY hb.created_at DESC
+    """)
+    bookings_data = c.fetchall()
+
+    bookings = []
+    for booking in bookings_data:
+        bookings.append({
+            'id': booking[0],
+            'handler_id': booking[1],
+            'pet_parent_email': booking[2],
+            'pet_name': booking[3],
+            'pet_type': booking[4],
+            'destination_country': booking[5],
+            'travel_date': booking[6],
+            'total_amount': booking[7],
+            'handler_fee': booking[8],
+            'platform_fee': booking[9],
+            'escrow_status': booking[10],
+            'booking_status': booking[11],
+            'created_at': booking[12],
+            'auto_release_time': booking[15],
+            'handler_name': booking[17],
+            'handler_email': booking[18]
+        })
+
+    # Get recent escrow transactions
+    c.execute("""
+        SELECT * FROM escrow_transactions 
+        ORDER BY timestamp DESC 
+        LIMIT 20
+    """)
+    recent_transactions = c.fetchall()
+
+    conn.close()
+    return render_template("admin_escrow_dashboard.html", 
+                         stats=stats, 
+                         bookings=bookings, 
+                         recent_transactions=recent_transactions)
+
+@app.route('/admin/escrow/release', methods=["POST"])
+def admin_release_escrow():
+    if not session.get("master_admin"):
+        return {"error": "Unauthorized"}, 403
+
+    data = request.get_json()
+    booking_id = data.get("booking_id")
+    reason = data.get("reason", "Manual release by admin")
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    try:
+        # Update escrow status
+        c.execute("""
+            UPDATE handler_bookings 
+            SET escrow_status = 'released', escrow_released_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND escrow_status = 'held'
+        """, (booking_id,))
+
+        # Get booking details for transaction log
+        c.execute("SELECT total_amount FROM handler_bookings WHERE id = ?", (booking_id,))
+        amount = c.fetchone()[0]
+
+        # Log the transaction
+        c.execute("""
+            INSERT INTO escrow_transactions 
+            (booking_id, transaction_type, amount, initiated_by, reason)
+            VALUES (?, 'release', ?, 'admin', ?)
+        """, (booking_id, amount, reason))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True}
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"error": str(e)}, 500
+
+@app.route('/admin/escrow/refund', methods=["POST"])
+def admin_refund_escrow():
+    if not session.get("master_admin"):
+        return {"error": "Unauthorized"}, 403
+
+    data = request.get_json()
+    booking_id = data.get("booking_id")
+    reason = data.get("reason", "Manual refund by admin")
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    try:
+        # Update escrow status
+        c.execute("""
+            UPDATE handler_bookings 
+            SET escrow_status = 'refunded', booking_status = 'cancelled'
+            WHERE id = ? AND escrow_status = 'held'
+        """, (booking_id,))
+
+        # Get booking details for transaction log
+        c.execute("SELECT total_amount FROM handler_bookings WHERE id = ?", (booking_id,))
+        amount = c.fetchone()[0]
+
+        # Log the transaction
+        c.execute("""
+            INSERT INTO escrow_transactions 
+            (booking_id, transaction_type, amount, initiated_by, reason)
+            VALUES (?, 'refund', ?, 'admin', ?)
+        """, (booking_id, amount, reason))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True}
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"error": str(e)}, 500
 
 # Add route to get vendor's delivery prices for checkout
 @app.route('/api/vendor/<int:vendor_id>/delivery-prices')

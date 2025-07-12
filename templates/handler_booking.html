@@ -1,0 +1,145 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book {{ handler.name }} - FurrWings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .booking-container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .fee-breakdown {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .disclaimer {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .btn-confirm {
+      background: linear-gradient(45df, #28a745, #20c997);
+      border: none;
+      color: white;
+      padding: 15px 40px;
+      border-radius: 25px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="booking-container">
+    <div class="card-header bg-primary text-white p-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h4><i class="fas fa-plane"></i> Book Handler</h4>
+          <p class="mb-0">{{ handler.name }} - {{ handler.country }}</p>
+        </div>
+        <a href="/handler/{{ handler.id }}" class="btn btn-outline-light">Back</a>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <form method="POST">
+        <div class="row">
+          <div class="col-md-6">
+            <h5><i class="fas fa-paw"></i> Pet Information</h5>
+            
+            <div class="mb-3">
+              <label class="form-label">Pet Name *</label>
+              <input type="text" class="form-control" name="pet_name" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Pet Type *</label>
+              <select class="form-control" name="pet_type" required>
+                <option value="">Select Pet Type</option>
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Bird">Bird</option>
+                <option value="Rabbit">Rabbit</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Destination Country *</label>
+              <input type="text" class="form-control" name="destination_country" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Preferred Travel Date</label>
+              <input type="date" class="form-control" name="travel_date">
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <h5><i class="fas fa-calculator"></i> Pricing</h5>
+            
+            <div class="fee-breakdown">
+              <div class="d-flex justify-content-between mb-2">
+                <span>Handler Fee (90%)</span>
+                <span class="fw-bold">${{ "%.2f"|format(handler.base_price * 0.9) }}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Handler Liaison & Escrow Management (10%)</span>
+                <span class="fw-bold">${{ "%.2f"|format(handler.base_price * 0.1) }}</span>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between">
+                <span class="fw-bold">Total Amount</span>
+                <span class="fw-bold text-primary">${{ "%.2f"|format(handler.base_price) }}</span>
+              </div>
+            </div>
+
+            <div class="disclaimer">
+              <h6><i class="fas fa-exclamation-triangle"></i> Important Notice</h6>
+              <p class="mb-0">
+                <em>This is a simulated escrow system for demonstration only. Actual financial transactions are not yet live.</em>
+              </p>
+            </div>
+
+            <div class="alert alert-info">
+              <h6><i class="fas fa-shield-alt"></i> Escrow Protection</h6>
+              <ul class="mb-0">
+                <li>Funds held securely until service completion</li>
+                <li>Handler must upload required documents</li>
+                <li>Auto-release after 48 hours of document upload</li>
+                <li>Manual release option available</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Special Requirements or Notes</label>
+          <textarea class="form-control" name="notes" rows="3" placeholder="Any special requirements, dietary needs, or other important information..."></textarea>
+        </div>
+
+        <div class="text-center">
+          <button type="submit" class="btn-confirm btn">
+            <i class="fas fa-lock"></i> Confirm Booking & Hold in Escrow
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

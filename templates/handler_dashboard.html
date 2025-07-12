@@ -17,24 +17,24 @@
       padding: 20px 0;
       margin-bottom: 30px;
     }
-    .pet-card {
+    .booking-card {
       background: white;
       border-radius: 15px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       margin-bottom: 30px;
       overflow: hidden;
     }
+    .escrow-status {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+    }
     .upload-section {
       background: #f8f9fa;
       padding: 20px;
       border-radius: 10px;
       margin-top: 15px;
-    }
-    .document-status {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
     }
     .status-badge {
       padding: 4px 12px;
@@ -60,126 +60,140 @@
     <div class="row justify-content-center">
       <div class="col-12 col-xl-10">
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-          <h2 class="mb-2">📋 Handler Dashboard</h2>
-          <a href="/handler/logout" class="btn btn-outline-danger">Logout</a>
+          <h2 class="mb-2">📋 Handler Bookings</h2>
+          <div>
+            <span class="badge bg-success me-2">{{ stats.total_bookings }} Total Bookings</span>
+            <span class="badge bg-primary me-2">${{ "%.2f"|format(stats.total_earnings) }} Potential Earnings</span>
+            <a href="/handler/logout" class="btn btn-outline-danger">Logout</a>
+          </div>
         </div>
     <div class="row">
-      {% for pet in pets %}
-        <div class="col-md-6">
-          <div class="pet-card">
+      {% for booking in bookings %}
+        <div class="col-lg-6">
+          <div class="booking-card">
             <div class="card-header bg-warning text-dark">
-              <h5><i class="fas fa-paw"></i> {{ pet.name }}</h5>
-              <small>Pet ID: {{ pet.id }}</small>
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5><i class="fas fa-paw"></i> {{ booking.pet_name }} ({{ booking.pet_type }})</h5>
+                  <small>Booking #{{ booking.id }} | {{ booking.pet_parent_email }}</small>
+                </div>
+                <div class="text-end">
+                  <div class="escrow-status bg-{{ 'success' if booking.escrow_status == 'released' else 'primary' if booking.escrow_status == 'held' else 'danger' }} text-white">
+                    ${{ "%.2f"|format(booking.handler_fee) }}
+                  </div>
+                  <small>{{ booking.escrow_status.title() }}</small>
+                </div>
+              </div>
             </div>
             <div class="card-body">
 
-              <!-- DGFT Document Section -->
-              <h6><i class="fas fa-file-export"></i> DGFT Certificate (ANF-2M)</h6>
-              {% if 'dgft' in pet.doc_status %}
-                <div class="document-status">
-                  <span class="status-badge bg-{{ 'success' if pet.doc_status.dgft.status == 'approved' else 'warning' if pet.doc_status.dgft.status == 'pending' else 'danger' }} text-white">
-                    {{ pet.doc_status.dgft.status.title() }}
-                  </span>
-                  <span>{{ pet.doc_status.dgft.filename }}</span>
+              <!-- Booking Details -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <strong><i class="fas fa-map-marker-alt"></i> Destination:</strong><br>
+                  <span class="text-muted">{{ booking.destination_country }}</span>
                 </div>
-                <small class="text-muted">Uploaded: {{ pet.doc_status.dgft.upload_time }}</small>
-                {% if pet.doc_status.dgft.dgft_reference %}
-                  <br><small class="text-primary"><strong>DGFT Ref:</strong> {{ pet.doc_status.dgft.dgft_reference }}</small>
-                {% endif %}
-              {% else %}
-                <p class="text-muted">No DGFT document uploaded</p>
+                <div class="col-md-6">
+                  <strong><i class="fas fa-calendar"></i> Travel Date:</strong><br>
+                  <span class="text-muted">{{ booking.travel_date or 'TBD' }}</span>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <strong><i class="fas fa-tasks"></i> Status:</strong><br>
+                  <span class="badge bg-{{ 'success' if booking.booking_status == 'completed' else 'warning' if booking.booking_status == 'docs_uploaded' else 'primary' }}">
+                    {{ booking.booking_status.replace('_', ' ').title() }}
+                  </span>
+                </div>
+                <div class="col-md-6">
+                  <strong><i class="fas fa-shield-alt"></i> Escrow:</strong><br>
+                  <span class="badge bg-{{ 'success' if booking.escrow_status == 'released' else 'primary' if booking.escrow_status == 'held' else 'danger' }}">
+                    {{ booking.escrow_status.title() }}
+                  </span>
+                </div>
+              </div>
+
+              {% if booking.notes %}
+              <div class="mb-3">
+                <strong><i class="fas fa-sticky-note"></i> Special Notes:</strong><br>
+                <span class="text-muted">{{ booking.notes }}</span>
+              </div>
               {% endif %}
 
+              <!-- Status Update Section -->
               <div class="upload-section">
-                <form action="/handler/upload" method="POST" enctype="multipart/form-data">
-                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
-                  <input type="hidden" name="doc_type" value="dgft">
+                <h6><i class="fas fa-edit"></i> Update Booking Status</h6>
+                <form action="/handler/update-booking-status" method="POST">
+                  <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                  <div class="row align-items-end">
+                    <div class="col-md-8">
+                      <label class="form-label">Status</label>
+                      <select class="form-control" name="status" required>
+                        <option value="pending" {{ 'selected' if booking.booking_status == 'pending' else '' }}>Pending</option>
+                        <option value="confirmed" {{ 'selected' if booking.booking_status == 'confirmed' else '' }}>Confirmed</option>
+                        <option value="docs_uploaded" {{ 'selected' if booking.booking_status == 'docs_uploaded' else '' }}>Documents Uploaded</option>
+                        <option value="completed" {{ 'selected' if booking.booking_status == 'completed' else '' }}>Completed</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save"></i> Update
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
 
+              <hr>
+
+              <!-- Document Upload Section -->
+              <div class="upload-section">
+                <h6><i class="fas fa-upload"></i> Upload Travel Documents</h6>
+                
+                {% if booking.documents %}
                   <div class="mb-3">
-                    <label class="form-label">DGFT Reference Number (Optional)</label>
-                    <input type="text" class="form-control" name="dgft_reference" placeholder="Auto-generated if not provided">
+                    <strong>Uploaded Documents:</strong>
+                    {% for doc in booking.documents %}
+                      <div class="d-flex justify-content-between align-items-center border p-2 rounded mb-2">
+                        <div>
+                          <span>{{ doc.document_type }}</span>
+                          <small class="text-muted d-block">{{ doc.filename }}</small>
+                        </div>
+                        <small class="text-muted">{{ doc.upload_time }}</small>
+                      </div>
+                    {% endfor %}
                   </div>
+                {% endif %}
 
+                <form action="/handler/upload-document" method="POST" enctype="multipart/form-data">
+                  <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                  
                   <div class="row">
-                    <div class="col-md-8">
-                      <label class="form-label">Upload DGFT Document</label>
+                    <div class="col-md-4">
+                      <label class="form-label">Document Type</label>
+                      <select class="form-control" name="document_type" required>
+                        <option value="">Select Type</option>
+                        <option value="Health Certificate">Health Certificate</option>
+                        <option value="Import Permit">Import Permit</option>
+                        <option value="Vaccination Records">Vaccination Records</option>
+                        <option value="Export Certificate">Export Certificate</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label">Upload File</label>
                       <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
+                    <div class="col-md-3 d-flex align-items-end">
                       <button type="submit" class="btn btn-warning w-100">
                         <i class="fas fa-upload"></i> Upload
                       </button>
                     </div>
                   </div>
-                </form>
-              </div>
-
-              <hr>
-
-              <!-- AQCS Document Section -->
-              <h6><i class="fas fa-shield-alt"></i> AQCS NOC</h6>
-              {% if 'aqcs' in pet.doc_status %}
-                <div class="document-status">
-                  <span class="status-badge bg-{{ 'success' if pet.doc_status.aqcs.status == 'approved' else 'warning' if pet.doc_status.aqcs.status == 'pending' else 'danger' }} text-white">
-                    {{ pet.doc_status.aqcs.status.title() }}
-                  </span>
-                  <span>{{ pet.doc_status.aqcs.filename }}</span>
-                </div>
-                <small class="text-muted">Uploaded: {{ pet.doc_status.aqcs.upload_time }}</small>
-              {% else %}
-                <p class="text-muted">No AQCS document uploaded</p>
-              {% endif %}
-
-              <div class="upload-section">
-                <form action="/handler/upload" method="POST" enctype="multipart/form-data">
-                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
-                  <input type="hidden" name="doc_type" value="aqcs">
-
-                  <div class="row">
-                    <div class="col-md-8">
-                      <label class="form-label">Upload AQCS NOC</label>
-                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                      <button type="submit" class="btn btn-warning w-100">
-                        <i class="fas fa-upload"></i> Upload
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-              <hr>
-
-              <!-- Quarantine Document Section -->
-              <h6><i class="fas fa-home"></i> Quarantine Clearance</h6>
-              {% if 'quarantine' in pet.doc_status %}
-                <div class="document-status">
-                  <span class="status-badge bg-{{ 'success' if pet.doc_status.quarantine.status == 'approved' else 'warning' if pet.doc_status.quarantine.status == 'pending' else 'danger' }} text-white">
-                    {{ pet.doc_status.quarantine.status.title() }}
-                  </span>
-                  <span>{{ pet.doc_status.quarantine.filename }}</span>
-                </div>
-                <small class="text-muted">Uploaded: {{ pet.doc_status.quarantine.upload_time }}</small>
-              {% else %}
-                <p class="text-muted">No quarantine clearance uploaded</p>
-              {% endif %}
-
-              <div class="upload-section">
-                <form action="/handler/upload" method="POST" enctype="multipart/form-data">
-                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
-                  <input type="hidden" name="doc_type" value="quarantine">
-
-                  <div class="row">
-                    <div class="col-md-8">
-                      <label class="form-label">Upload Quarantine Clearance</label>
-                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                      <button type="submit" class="btn btn-warning w-100">
-                        <i class="fas fa-upload"></i> Upload
-                      </button>
-                    </div>
+                  
+                  <div class="mt-2">
+                    <input type="text" class="form-control" name="description" placeholder="Description (optional)">
                   </div>
                 </form>
               </div>
