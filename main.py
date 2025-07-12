@@ -4350,8 +4350,10 @@ def process_pos_sale():
                 'total': item_total
             })
 
-        # Calculate offline transaction commission
-        commission_amount = total_sale_amount * (offline_transaction_fee / 100)
+        # Calculate offline transaction commission - minimum of 0.01% or 0.01 currency units
+        percentage_commission = total_sale_amount * (offline_transaction_fee / 100)
+        minimum_commission = 0.01
+        commission_amount = max(percentage_commission, minimum_commission)
         
         # Record platform commission if applicable
         if commission_amount > 0:
