@@ -1,0 +1,129 @@
+Prompt for Replit Assistant
+
+I'm enhancing my Flask-based ERP system (FurrButler) to have WhatsApp Business as the primary vendor interface. For now, let's build the WhatsApp ERP integration using a simulated/static Twilio setup, clearly laying the groundwork. Later, we'll integrate the actual Twilio API.
+
+📌 Objective:
+
+Create a static simulation of a WhatsApp ERP integration within my existing Flask ERP. Vendors will:
+
+Manage Inventory via text commands or barcode images (simulated).
+
+Handle Bookings/Appointments via simple text interactions.
+
+Display products in a simulated WhatsApp Business Catalog.
+
+✅ Key Features & Simulations Needed:
+
+1. Vendor Onboarding Simulation:
+
+Simulate vendor registration via WhatsApp (no web dashboard).
+
+Auto-create ERP profiles using WhatsApp phone numbers as unique IDs.
+
+Static data: simulate onboarding confirmation messages.
+
+2. Inventory Management via WhatsApp Simulation:
+
+Parse simulated text messages to update inventory, e.g.:
+
+“Add 10 units Dog Shampoo ₹450 each.”
+
+“Restock Cat Food by 20 units.”
+
+Simulate barcode scanning by static placeholder image handling (assume barcode detection works).
+
+Simulated responses to queries like:
+
+“Current inventory?”
+
+“What’s running low?”
+
+3. Marketplace (WhatsApp Catalog Simulation):
+
+Maintain a JSON/static representation of vendor products.
+
+Simulate the WhatsApp Business catalog: update catalog JSON when inventory changes.
+
+Provide static deep links for simulated products.
+
+4. Booking & Appointments Simulation:
+
+Parse booking requests from simulated messages, e.g.:
+
+“Book grooming for Luna, April 25, 10 AM.”
+
+Confirmations and rescheduling via simulated text commands.
+
+5. Basic NLP and Command Parsing:
+
+Implement robust text parsing to recognize and handle various vendor commands even with slight differences in wording.
+
+Friendly error handling and fallback for unclear commands.
+
+🚀 Implementation Details:
+
+Flask Backend:
+
+Define Flask routes simulating Twilio webhook endpoints (/whatsapp).
+
+Use POST requests to simulate receiving WhatsApp messages.
+
+Static response generation (no actual Twilio connectivity required).
+
+SQLite Database (existing ERP):
+
+Store vendor inventory, booking, and product catalog details.
+
+CRUD functions for inventory updates and bookings.
+
+JSON Catalog Simulation:
+
+Maintain static JSON file (whatsapp_catalog.json) to simulate WhatsApp catalog.
+
+Python Logic:
+
+Create clear functions like:
+
+parse_vendor_message(message) – interpret vendor commands.
+
+update_inventory(vendor_id, product, quantity, price) – update DB.
+
+handle_booking(vendor_id, customer_name, pet_name, date, time) – manage bookings.
+
+Simulated Twilio Interaction:
+
+Clearly mark simulated sections that can easily be swapped out when Twilio is added.
+
+Include placeholder logic for barcode image handling.
+
+🔍 Testing & Simulation:
+
+Include test functions to simulate vendor messages:
+
+simulate_whatsapp_message("Add 10 units Dog Shampoo ₹450")
+simulate_whatsapp_message("Restock Cat Food by 20 units")
+simulate_whatsapp_message("Book grooming for Luna, April 25, 10 AM")
+simulate_whatsapp_message("What's running low?")
+
+📋 Output & Logs:
+
+Clearly structured simulated responses printed to the console.
+
+Detailed logs for each simulated vendor interaction.
+
+Ensure the code is:
+
+Cleanly modular (easy Twilio integration later).
+
+Thoroughly commented for future integration.
+
+Simple to extend (e.g., adding NLP improvements later).
+
+🛠 Next Steps:
+
+Ensure it’s clearly marked where real Twilio integration and API keys will be required.
+
+Provide a simple guide/documentation within the code to replace static simulation with actual Twilio webhooks later.
+
+Let’s build this in phases clearly and methodically.
+
