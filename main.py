@@ -8,6 +8,7 @@ from math import radians, cos, sin, asin, sqrt
 import sqlite3
 from datetime import datetime
 import hashlib
+from typing import Optional
 
 # Initialize ERP database if not exists
 def init_erp_db():
@@ -2968,8 +2969,6 @@ def sales_analytics():
     top_products = c.fetchall()
 
     conn.close()
-
-    conn.close()
     return render_template("sales_analytics.html", 
                          sales=sales,
                          monthly_summary=monthly_summary, 
@@ -3947,7 +3946,7 @@ def handler_profile_dashboard():
             'escrow_status': booking[10],
             'booking_status': booking[11],
             'created_at': booking[12],
-            'notes': booking[16],
+            'notes': booking[16] if len(booking) > 16 else '',
             'documents': documents
         })
 
@@ -3975,6 +3974,10 @@ def handler_update_booking_status():
     new_status = request.form.get("status")
     handler_id = session["handler_profile_id"]
 
+    if not booking_id or not new_status:
+        flash("Missing required information")
+        return redirect(url_for("handler_profile_dashboard"))
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
@@ -3999,6 +4002,8 @@ def handler_update_booking_status():
     flash(f"Booking status updated to {new_status.replace('_', ' ').title()}")
     return redirect(url_for("handler_profile_dashboard"))
 
+
+
 @app.route('/handler/upload-document', methods=["POST"])
 def handler_upload_document():
     if "handler_profile" not in session:
@@ -4013,6 +4018,12 @@ def handler_upload_document():
     file = request.files.get("file")
     if not file or not file.filename:
         flash("No file selected")
+        return redirect(url_for("handler_profile_dashboard"))
+
+    # Validate file type
+    allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png'}
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        flash("Invalid file type. Please upload PDF, JPG, or PNG files only.")
         return redirect(url_for("handler_profile_dashboard"))
 
     # Create unique filename
