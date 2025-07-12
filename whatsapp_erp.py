@@ -742,6 +742,27 @@ def run_whatsapp_simulation():
         ("+91-9876543210", "What's running low?"),
         ("+91-9876543210", "Book grooming for Buddy, April 25, 10 AM"),
         ("+91-9876543210", "Help"),
+        ("+91-9876543210", "My bookings today")
+    ]
+    
+    print("2️⃣ **MESSAGE PROCESSING SIMULATION:**")
+    for phone, message in test_messages:
+        print(f"\n📱 Vendor: {phone}")
+        print(f"💬 Message: '{message}'")
+        print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("-" * 50)
+        
+        response = erp.parse_vendor_message(phone, message)
+        
+        print(f"🤖 **FurrButler Response:**")
+        print(response)
+        print("=" * 50)
+    
+    print("\n🎯 **SIMULATION COMPLETE!**")
+    print("WhatsApp ERP system is ready for production integration.")
+
+if __name__ == "__main__":
+    run_whatsapp_simulation()6543210", "Help"),
         ("+91-9876543210", "Invalid command test"),
     ]
     

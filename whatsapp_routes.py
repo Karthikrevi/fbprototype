@@ -208,3 +208,13 @@ def get_vendor_messages(phone_number):
             } for msg in messages
         ]
     })
+
+@whatsapp_bp.route('/whatsapp/catalog')
+def whatsapp_catalog():
+    """View WhatsApp Business catalog"""
+    return render_template("whatsapp_catalog.html")
+
+@whatsapp_bp.route('/whatsapp/analytics')
+def whatsapp_analytics():
+    """View WhatsApp analytics"""
+    return render_template("whatsapp_analytics.html")
