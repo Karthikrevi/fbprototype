@@ -93,8 +93,34 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Platform Statistics -->
-    <div class="row mb-4">
+    <!-- Quick Actions Panel -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>📱 Admin Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-3 flex-wrap">
+                            <a href="/whatsapp/dashboard" class="btn btn-success">
+                                📱 WhatsApp Business Dashboard
+                            </a>
+                            <a href="/whatsapp/simulate" class="btn btn-info">
+                                🧪 WhatsApp Simulator
+                            </a>
+                            <a href="/master/admin/vendors" class="btn btn-warning">
+                                👥 Manage Vendors
+                            </a>
+                            <a href="/admin/escrow" class="btn btn-primary">
+                                💰 Escrow Management
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
       <div class="col-md-2">
         <div class="stat-card vendors">
           <h4>{{ stats.total_vendors }}</h4>
