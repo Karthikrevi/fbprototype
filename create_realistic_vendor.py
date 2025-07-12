@@ -4,41 +4,6 @@ import random
 from datetime import datetime, timedelta
 
 def create_realistic_vendor():
-    """Create a realistic vendor with sample data"""
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    
-    # Create realistic vendor
-    c.execute("""
-        INSERT OR IGNORE INTO vendors (name, email, password, category, city, phone, bio, image_url, is_online)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("Pawsome Pets", "pawsome@erp.com", "demo123", "Pet Store", "Mumbai", "+91-9876543210", 
-          "Complete pet care solutions", "https://images.unsplash.com/photo-1522075469751-3847ae47cab9", 1))
-    
-    vendor_id = c.lastrowid
-    
-    # Add sample products
-    products = [
-        ("Premium Dog Food", "High-quality nutritious dog food", "Food", 800, 1200, 50, "DOG_FOOD_001"),
-        ("Cat Litter", "Odor-control cat litter", "Accessories", 300, 450, 30, "CAT_LITTER_001"),
-        ("Pet Toy Ball", "Interactive toy for dogs", "Toys", 150, 250, 25, "TOY_BALL_001")
-    ]
-    
-    for product in products:
-        c.execute("""
-            INSERT OR IGNORE INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, barcode)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (vendor_id,) + product)
-    
-    conn.commit()
-    conn.close()
-    
-    print("Realistic vendor created successfully!")
-
-if __name__ == "__main__":
-    create_realistic_vendor()
-
-def create_realistic_vendor():
     """Create a comprehensive vendor with realistic performance data"""
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()

@@ -1,3 +1,4 @@
+
 from flask import Blueprint, request, jsonify, render_template
 from whatsapp_erp import WhatsAppERPSimulator, simulate_whatsapp_message
 import json
@@ -5,7 +6,7 @@ import json
 whatsapp_bp = Blueprint('whatsapp', __name__)
 erp_simulator = WhatsAppERPSimulator()
 
-@whatsapp_bp.route('/whatsapp/webhook', methods=['POST', 'GET'])
+@whatsapp_bp.route('/whatsapp/webhook', methods=['POST'])
 def whatsapp_webhook():
     """
     Simulated Twilio WhatsApp webhook endpoint
@@ -14,23 +15,23 @@ def whatsapp_webhook():
     try:
         # For now, simulate Twilio webhook format
         data = request.get_json()
-
+        
         # Extract message details (simulated Twilio format)
         from_number = data.get('From', '').replace('whatsapp:', '')
         message_body = data.get('Body', '')
         message_sid = data.get('MessageSid', 'SIM_' + str(hash(message_body))[:8])
-
+        
         print(f"📱 WhatsApp Webhook Received:")
         print(f"From: {from_number}")
         print(f"Message: {message_body}")
         print(f"SID: {message_sid}")
-
+        
         # Process the message
         response_text = erp_simulator.parse_vendor_message(from_number, message_body)
-
+        
         # Log response
         erp_simulator.log_message(from_number, response_text, "outgoing")
-
+        
         # Simulate Twilio response format
         twilio_response = {
             "To": f"whatsapp:{from_number}",
@@ -38,15 +39,15 @@ def whatsapp_webhook():
             "MessageSid": f"RESP_{message_sid}",
             "Status": "sent"
         }
-
+        
         print(f"🤖 Response sent: {response_text[:50]}...")
-
+        
         return jsonify({
             "success": True,
             "response": twilio_response,
             "message": "Message processed successfully"
         })
-
+        
     except Exception as e:
         print(f"❌ Webhook error: {str(e)}")
         return jsonify({
@@ -59,29 +60,27 @@ def simulate_message():
     """Simulate sending a WhatsApp message for testing"""
     if request.method == 'GET':
         return render_template('whatsapp_simulator.html')
-
+    
     try:
         data = request.get_json() or request.form
         phone_number = data.get('phone_number', '+91-9876543210')
         message = data.get('message', '')
-
+        
         if not message:
             return jsonify({"error": "Message is required"}), 400
-
+        
         # Simulate the message
         response = simulate_whatsapp_message(phone_number, message)
-
+        
         return jsonify({
             "success": True,
             "phone_number": phone_number,
             "message": message,
             "response": response
         })
-
+        
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 @whatsapp_bp.route('/whatsapp/register-vendor', methods=['POST'])
 def register_vendor():
@@ -90,18 +89,16 @@ def register_vendor():
         data = request.get_json() or request.form
         phone_number = data.get('phone_number')
         business_name = data.get('business_name')
-
+        
         if not phone_number or not business_name:
             return jsonify({"error": "Phone number and business name are required"}), 400
-
+        
         result = erp_simulator.register_vendor_via_whatsapp(phone_number, business_name)
-
+        
         return jsonify(result)
-
+        
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 @whatsapp_bp.route('/whatsapp/catalog')
 def get_catalog():
@@ -109,9 +106,9 @@ def get_catalog():
     try:
         with open('whatsapp_catalog.json', 'r') as f:
             catalog = json.load(f)
-
+        
         return jsonify(catalog)
-
+        
     except FileNotFoundError:
         return jsonify({
             "catalog_id": "furrbutler_catalog",
@@ -119,9 +116,7 @@ def get_catalog():
             "products": []
         })
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 @whatsapp_bp.route('/whatsapp/dashboard')
 def whatsapp_dashboard():
@@ -132,10 +127,10 @@ def whatsapp_dashboard():
 def whatsapp_analytics():
     """WhatsApp Business analytics"""
     import sqlite3
-
+    
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-
+    
     # Get message statistics
     c.execute('''
         SELECT 
@@ -147,7 +142,7 @@ def whatsapp_analytics():
         ORDER BY date DESC
     ''')
     message_stats = c.fetchall()
-
+    
     # Get top vendors by message volume
     c.execute('''
         SELECT 
@@ -161,7 +156,7 @@ def whatsapp_analytics():
         LIMIT 10
     ''')
     top_vendors = c.fetchall()
-
+    
     # Get recent bookings
     c.execute('''
         SELECT * FROM whatsapp_bookings 
@@ -169,9 +164,9 @@ def whatsapp_analytics():
         LIMIT 10
     ''')
     recent_bookings = c.fetchall()
-
+    
     conn.close()
-
+    
     return jsonify({
         "message_stats": message_stats,
         "top_vendors": top_vendors,
@@ -182,10 +177,10 @@ def whatsapp_analytics():
 def get_vendor_messages(phone_number):
     """Get message history for a vendor"""
     import sqlite3
-
+    
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-
+    
     c.execute('''
         SELECT message_text, message_type, timestamp, response_text
         FROM whatsapp_messages 
@@ -193,10 +188,10 @@ def get_vendor_messages(phone_number):
         ORDER BY timestamp DESC
         LIMIT 50
     ''', (phone_number,))
-
+    
     messages = c.fetchall()
     conn.close()
-
+    
     return jsonify({
         "phone_number": phone_number,
         "messages": [
@@ -208,13 +203,3 @@ def get_vendor_messages(phone_number):
             } for msg in messages
         ]
     })
-
-@whatsapp_bp.route('/whatsapp/catalog')
-def whatsapp_catalog():
-    """View WhatsApp Business catalog"""
-    return render_template("whatsapp_catalog.html")
-
-@whatsapp_bp.route('/whatsapp/analytics')
-def whatsapp_analytics():
-    """View WhatsApp analytics"""
-    return render_template("whatsapp_analytics.html")

@@ -54,7 +54,7 @@ try:
     print("✅ Smart bot loaded successfully!")
 except ImportError as e:
     print(f"⚠️ Smart bot import failed: {e}")
-    print("🔄 Falling back to basic inventory bot...")alling back to basic bot with enhanced functionality...")
+    print("🔄 Falling back to basic bot with enhanced functionality...")
 
 class InventoryBot:
     """Enhanced inventory bot with personality and smart functionality"""
@@ -62,15 +62,6 @@ class InventoryBot:
     def __init__(self):
         self.db_path = 'erp.db'
         self.has_smart_bot = smart_bot_available
-        # Set smart_bot attribute for compatibility
-        if smart_bot_available:
-            try:
-                from chatbot.main import smart_bot
-                self.smart_bot = smart_bot
-            except ImportError:
-                self.smart_bot = None
-        else:
-            self.smart_bot = None
 
     def handle_casual_conversation(self, user_input):
         """Handle casual conversation and greetings"""

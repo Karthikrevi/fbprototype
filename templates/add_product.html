@@ -87,27 +87,10 @@
               <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" class="form-control" name="barcode" id="barcodeInput" placeholder="Optional">
                 <button type="button" id="scanBtn" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📷 Scan</button>
-                <button type="button" id="bulkScanBtn" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📦 Bulk Scan</button>
               </div>
               <div id="scanner" style="display: none; margin-top: 10px;">
                 <video id="video" width="300" height="200" style="border: 1px solid #ccc;"></video>
-                <div style="margin-top: 10px;">
-                  <button type="button" id="stopScan" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-right: 10px;">Stop Scanner</button>
-                  <button type="button" id="switchCamera" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 5px;">🔄 Switch Camera</button>
-                </div>
-                <div id="scanResults" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; display: none;">
-                  <h6>Scanned Barcodes:</h6>
-                  <ul id="scannedList"></ul>
-                  <button type="button" id="processBulk" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px;">Process All Scanned Items</button>
-                </div>
-              </div>
-              
-              <!-- Photo Recognition for Loose Products -->
-              <div style="margin-top: 15px;">
-                <label class="form-label">Product Photo Recognition (For loose items)</label>
-                <input type="file" id="productPhoto" accept="image/*" capture="camera" class="form-control">
-                <button type="button" id="analyzePhoto" style="background: #6f42c1; color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-top: 5px;">🔍 Analyze Product</button>
-                <div id="photoAnalysis" style="margin-top: 10px; display: none; padding: 10px; background: #e7f3ff; border-radius: 5px;"></div>
+                <button type="button" id="stopScan" style="margin-top: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px;">Stop Scanner</button>
               </div>
             </div>
           </div>
@@ -129,25 +112,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <script>
-    let scannedBarcodes = [];
-    let isBulkScanning = false;
-    let currentCamera = 'environment';
-
-    // Single barcode scan
     document.getElementById('scanBtn').addEventListener('click', function() {
-      startScanning(false);
-    });
-
-    // Bulk barcode scan
-    document.getElementById('bulkScanBtn').addEventListener('click', function() {
-      scannedBarcodes = [];
-      document.getElementById('scannedList').innerHTML = '';
-      document.getElementById('scanResults').style.display = 'none';
-      startScanning(true);
-    });
-
-    function startScanning(bulkMode) {
-      isBulkScanning = bulkMode;
       const scannerDiv = document.getElementById('scanner');
       const video = document.getElementById('video');
 
@@ -162,7 +127,7 @@
           constraints: {
             width: 300,
             height: 200,
-            facingMode: currentCamera
+            facingMode: "environment"
           }
         },
         decoder: {
@@ -189,123 +154,17 @@
 
       // Listen for successful scan
       Quagga.onDetected(function(data) {
-        const barcode = data.codeResult.code;
-        
-        if (isBulkScanning) {
-          if (!scannedBarcodes.includes(barcode)) {
-            scannedBarcodes.push(barcode);
-            const listItem = document.createElement('li');
-            listItem.textContent = barcode;
-            document.getElementById('scannedList').appendChild(listItem);
-            document.getElementById('scanResults').style.display = 'block';
-            
-            // Visual feedback
-            video.style.border = '3px solid #28a745';
-            setTimeout(() => {
-              video.style.border = '1px solid #ccc';
-            }, 500);
-          }
-        } else {
-          document.getElementById('barcodeInput').value = barcode;
-          Quagga.stop();
-          scannerDiv.style.display = 'none';
-          alert('Barcode scanned: ' + barcode);
-        }
+        document.getElementById('barcodeInput').value = data.codeResult.code;
+        Quagga.stop();
+        scannerDiv.style.display = 'none';
+        alert('Barcode scanned: ' + data.codeResult.code);
       });
-    }
-
-    // Switch camera
-    document.getElementById('switchCamera').addEventListener('click', function() {
-      currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
-      Quagga.stop();
-      setTimeout(() => startScanning(isBulkScanning), 100);
     });
 
-    // Stop scanning
     document.getElementById('stopScan').addEventListener('click', function() {
       Quagga.stop();
       document.getElementById('scanner').style.display = 'none';
     });
-
-    // Process bulk scanned items
-    document.getElementById('processBulk').addEventListener('click', function() {
-      if (scannedBarcodes.length === 0) {
-        alert('No barcodes scanned yet!');
-        return;
-      }
-
-      // Send to backend for processing
-      fetch('/erp/process-bulk-barcodes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          barcodes: scannedBarcodes
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          alert(`Successfully processed ${data.processed_count} products!`);
-          window.location.href = '/erp/products';
-        } else {
-          alert('Error processing barcodes: ' + data.error);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error processing barcodes');
-      });
-    });
-
-    // Photo analysis for loose products
-    document.getElementById('analyzePhoto').addEventListener('click', function() {
-      const photoInput = document.getElementById('productPhoto');
-      const file = photoInput.files[0];
-      
-      if (!file) {
-        alert('Please select a photo first!');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('photo', file);
-
-      fetch('/erp/analyze-product-photo', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        const analysisDiv = document.getElementById('photoAnalysis');
-        if (data.success) {
-          analysisDiv.innerHTML = `
-            <h6>Product Recognition Results:</h6>
-            <p><strong>Detected Product:</strong> ${data.product_name}</p>
-            <p><strong>Category:</strong> ${data.category}</p>
-            <p><strong>Confidence:</strong> ${data.confidence}%</p>
-            <button onclick="autoFillFromPhoto('${data.product_name}', '${data.category}')" 
-                    style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 5px;">
-              Auto-fill Product Details
-            </button>
-          `;
-          analysisDiv.style.display = 'block';
-        } else {
-          analysisDiv.innerHTML = `<p style="color: #dc3545;">Could not identify product. Please enter details manually.</p>`;
-          analysisDiv.style.display = 'block';
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error analyzing photo');
-      });
-    });
-
-    function autoFillFromPhoto(productName, category) {
-      document.querySelector('input[name="name"]').value = productName;
-      document.querySelector('select[name="category"]').value = category;
-    }
   </script>
 </body>
 </html>

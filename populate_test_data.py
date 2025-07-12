@@ -2,33 +2,6 @@ import sqlite3
 import random
 from datetime import datetime, timedelta
 
-def populate_test_data():
-    print("Starting test data population...")
-    
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    
-    # Create test vendors
-    vendors = [
-        ("Fluffy Grooming", "fluffy@erp.com", "test123", "Grooming", "Mumbai", "+91-9876543210"),
-        ("Waggy Tails", "waggy@erp.com", "test123", "Grooming", "Delhi", "+91-9876543211"),
-        ("Royal Pets", "royal@erp.com", "test123", "Boarding", "Bangalore", "+91-9876543212")
-    ]
-    
-    for vendor in vendors:
-        c.execute("""
-            INSERT OR IGNORE INTO vendors (name, email, password, category, city, phone)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, vendor)
-    
-    conn.commit()
-    conn.close()
-    
-    print("Test data populated successfully!")
-
-if __name__ == "__main__":
-    populate_test_data()
-
 def create_test_vendors():
     """Create 3 test vendor accounts"""
     conn = sqlite3.connect('erp.db')
@@ -460,5 +433,4 @@ def main():
     print("\nYou can now test all reporting and analytics modules!")
 
 if __name__ == "__main__":
-    populate_test_data()e__ == "__main__":
     main()
