@@ -277,7 +277,8 @@ def init_erp_db():
         ('marketplace_commission_rate', 10.0, 'Commission percentage for marketplace sales'),
         ('grooming_commission_rate', 15.0, 'Commission percentage for grooming services'),
         ('payment_processing_fee', 2.9, 'Payment processing fee percentage'),
-        ('marketplace_listing_fee', 0.0, 'Fee for listing products on marketplace')
+        ('marketplace_listing_fee', 0.0, 'Fee for listing products on marketplace'),
+        ('offline_transaction_fee', 0.01, 'Commission percentage for offline POS transactions')
     ''')
 
     # Create platform earnings table
@@ -3504,18 +3505,19 @@ def update_commission():
     if not session.get("master_admin"):
         return redirect(url_for("master_admin_login"))
 
-    marketplace_platform_fee = float(request.form.get("marketplace_platform_fee", 2.99))
+    marketplace_commission = float(request.form.get("marketplace_commission_rate", 10.0))
     grooming_commission = float(request.form.get("grooming_commission_rate", 15.0))
+    offline_transaction_fee = float(request.form.get("offline_transaction_fee", 0.01))
 
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Update master settings - marketplace uses fixed platform fee, grooming uses commission
+    # Update master settings
     c.execute("""
         UPDATE master_settings 
         SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
-        WHERE setting_name = 'marketplace_listing_fee'
-    """, (marketplace_platform_fee,))
+        WHERE setting_name = 'marketplace_commission_rate'
+    """, (marketplace_commission,))
 
     c.execute("""
         UPDATE master_settings 
@@ -3523,10 +3525,16 @@ def update_commission():
         WHERE setting_name = 'grooming_commission_rate'
     """, (grooming_commission,))
 
+    c.execute("""
+        UPDATE master_settings 
+        SET previous_value = setting_value, setting_value = ?, last_updated = CURRENT_TIMESTAMP 
+        WHERE setting_name = 'offline_transaction_fee'
+    """, (offline_transaction_fee,))
+
     conn.commit()
     conn.close()
 
-    flash(f"Settings updated: Marketplace Platform Fee ${marketplace_platform_fee}, Grooming Commission {grooming_commission}%")
+    flash(f"Settings updated: Marketplace Commission {marketplace_commission}%, Grooming Commission {grooming_commission}%, Offline Transaction Fee {offline_transaction_fee}%")
     return redirect(url_for("master_admin_dashboard"))
 
 @app.route('/master/admin/update-settings', methods=["POST"])
@@ -4258,6 +4266,11 @@ def process_pos_sale():
         total_sale_amount = 0
         receipt_items = []
 
+        # Get offline transaction fee from master settings
+        c.execute("SELECT setting_value FROM master_settings WHERE setting_name = 'offline_transaction_fee'")
+        offline_fee_result = c.fetchone()
+        offline_transaction_fee = offline_fee_result[0] if offline_fee_result else 0.01
+
         # Process each item in the sale
         for item in data['items']:
             product_id = item['id']
@@ -4336,6 +4349,22 @@ def process_pos_sale():
                 'unit_price': sale_price,
                 'total': item_total
             })
+
+        # Calculate offline transaction commission
+        commission_amount = total_sale_amount * (offline_transaction_fee / 100)
+        
+        # Record platform commission if applicable
+        if commission_amount > 0:
+            c.execute("""
+                INSERT INTO platform_earnings (vendor_id, transaction_type, service_type, base_amount, commission_rate, commission_amount)
+                VALUES (?, 'offline_sale', 'pos_transaction', ?, ?, ?)
+            """, (vendor_id, total_sale_amount, offline_transaction_fee, commission_amount))
+            
+            # Add commission to ledger - Platform Fee (Debit)
+            c.execute("""
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+                VALUES (?, 'debit', 'Platform Fees', ?, ?, 'Offline Transaction Fee')
+            """, (vendor_id, commission_amount, f"Offline transaction fee ({offline_transaction_fee}% of ₹{total_sale_amount})"))
 
         # Create receipt record
         c.execute("""
