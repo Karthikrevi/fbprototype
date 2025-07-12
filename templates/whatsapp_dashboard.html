@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Business ERP Dashboard - FurrButler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #25D366;
+        }
+        .stats-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .dashboard-header {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .feature-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .vendor-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .vendor-item {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .vendor-item:last-child {
+            border-bottom: none;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-active { background: #25D366; }
+        .status-inactive { background: #ccc; }
+        .message-log {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #25D366;
+        }
+        .btn-whatsapp {
+            background: #25D366;
+            border: none;
+            color: white;
+            border-radius: 25px;
+        }
+        .btn-whatsapp:hover {
+            background: #128C7E;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>📱 WhatsApp Business ERP Dashboard</h1>
+            <p class="lead">Manage your pet business through WhatsApp integration</p>
+            <div class="d-flex justify-content-center gap-3 mt-3">
+                <a href="/whatsapp/simulate" class="btn btn-whatsapp">🧪 Test Simulator</a>
+                <a href="/whatsapp/catalog" class="btn btn-outline-success">📋 View Catalog</a>
+                <a href="/dashboard" class="btn btn-outline-secondary">← Back to Main</a>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalVendors">0</div>
+                    <div class="stats-label">Active Vendors</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalMessages">0</div>
+                    <div class="stats-label">Messages Today</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalBookings">0</div>
+                    <div class="stats-label">Bookings Made</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="catalogProducts">0</div>
+                    <div class="stats-label">Catalog Products</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Row -->
+        <div class="row">
+            <!-- Vendor Management -->
+            <div class="col-lg-6">
+                <div class="feature-panel">
+                    <h4>👥 Active Vendors</h4>
+                    <p class="text-muted">Vendors registered via WhatsApp</p>
+                    
+                    <div class="vendor-list" id="vendorList">
+                        <div class="text-center text-muted py-4">
+                            Loading vendor data...
+                        </div>
+                    </div>
+
+                    <button class="btn btn-whatsapp btn-sm w-100 mt-3" onclick="loadVendors()">
+                        🔄 Refresh Vendors
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="col-lg-6">
+                <div class="feature-panel">
+                    <h4>📱 Recent Messages</h4>
+                    <p class="text-muted">Latest WhatsApp interactions</p>
+                    
+                    <div id="recentMessages">
+                        <div class="text-center text-muted py-4">
+                            Loading message history...
+                        </div>
+                    </div>
+
+                    <button class="btn btn-whatsapp btn-sm w-100 mt-3" onclick="loadRecentMessages()">
+                        🔄 Refresh Messages
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Overview -->
+        <div class="row">
+            <div class="col-12">
+                <div class="feature-panel">
+                    <h4>🚀 WhatsApp ERP Features</h4>
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h1 class="text-success">📦</h1>
+                                <h6>Inventory Management</h6>
+                                <small class="text-muted">Add, update stock via messages</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h1 class="text-primary">📅</h1>
+                                <h6>Booking System</h6>
+                                <small class="text-muted">Schedule appointments via chat</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h1 class="text-warning">🛍️</h1>
+                                <h6>Business Catalog</h6>
+                                <small class="text-muted">Auto-sync product catalogs</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h1 class="text-info">📊</h1>
+                                <h6>Analytics</h6>
+                                <small class="text-muted">Business insights & reports</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Guide -->
+        <div class="row">
+            <div class="col-12">
+                <div class="feature-panel">
+                    <h4>🔧 Twilio Integration Guide</h4>
+                    <div class="alert alert-info">
+                        <h6>📋 Ready for Production Integration:</h6>
+                        <ol>
+                            <li><strong>Twilio Account:</strong> Sign up at <a href="https://twilio.com" target="_blank">twilio.com</a></li>
+                            <li><strong>WhatsApp Business API:</strong> Apply for WhatsApp Business API access</li>
+                            <li><strong>Webhook URL:</strong> Point Twilio to <code>/whatsapp/webhook</code></li>
+                            <li><strong>Environment Variables:</strong> Set <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code></li>
+                            <li><strong>Phone Number:</strong> Get a Twilio WhatsApp-enabled phone number</li>
+                        </ol>
+                        <p class="mb-0"><strong>Current Status:</strong> 🧪 Simulation Mode (Ready for production switch)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load analytics
+                const analyticsResponse = await fetch('/whatsapp/analytics');
+                const analytics = await analyticsResponse.json();
+                
+                // Update stats
+                document.getElementById('totalVendors').textContent = analytics.top_vendors?.length || 0;
+                document.getElementById('totalMessages').textContent = 
+                    analytics.message_stats?.reduce((sum, day) => sum + day[1], 0) || 0;
+                document.getElementById('totalBookings').textContent = analytics.recent_bookings?.length || 0;
+                
+                // Load catalog
+                const catalogResponse = await fetch('/whatsapp/catalog');
+                const catalog = await catalogResponse.json();
+                document.getElementById('catalogProducts').textContent = catalog.products?.length || 0;
+                
+                // Load vendors
+                loadVendors(analytics.top_vendors);
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function loadVendors(vendors = []) {
+            const vendorList = document.getElementById('vendorList');
+            
+            if (!vendors || vendors.length === 0) {
+                vendorList.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <p>No vendors registered yet</p>
+                        <a href="/whatsapp/simulate" class="btn btn-sm btn-whatsapp">
+                            🧪 Test Registration
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            vendorList.innerHTML = vendors.map(vendor => `
+                <div class="vendor-item">
+                    <div class="d-flex align-items-center">
+                        <div class="status-dot status-active"></div>
+                        <div>
+                            <h6 class="mb-1">${vendor[0] || 'Unknown Business'}</h6>
+                            <small class="text-muted">${vendor[1] || 'No phone'}</small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success">${vendor[2] || 0} messages</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadRecentMessages() {
+            try {
+                // For demo, load messages from a sample vendor
+                const response = await fetch('/whatsapp/messages/+91-9876543210');
+                const data = await response.json();
+                
+                const messagesContainer = document.getElementById('recentMessages');
+                
+                if (!data.messages || data.messages.length === 0) {
+                    messagesContainer.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <p>No recent messages</p>
+                            <a href="/whatsapp/simulate" class="btn btn-sm btn-whatsapp">
+                                🧪 Send Test Message
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                messagesContainer.innerHTML = data.messages.slice(0, 5).map(msg => `
+                    <div class="message-log">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">${msg.type === 'incoming' ? '📤' : '📥'} ${msg.type}</h6>
+                                <p class="mb-1">${msg.text}</p>
+                                ${msg.response ? `<small class="text-success">Response: ${msg.response.substring(0, 50)}...</small>` : ''}
+                            </div>
+                            <small class="text-muted">${new Date(msg.timestamp).toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('recentMessages').innerHTML = `
+                    <div class="alert alert-warning">
+                        Error loading messages. Try the simulator to generate sample data.
+                    </div>
+                `;
+            }
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            loadRecentMessages();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                loadDashboardData();
+                loadRecentMessages();
+            }, 30000);
+        });
+
+        // Simulate some sample data for demo
+        setTimeout(() => {
+            if (document.getElementById('totalVendors').textContent === '0') {
+                document.getElementById('totalVendors').textContent = '3';
+                document.getElementById('totalMessages').textContent = '12';
+                document.getElementById('totalBookings').textContent = '5';
+                document.getElementById('catalogProducts').textContent = '24';
+                
+                // Add sample vendor
+                document.getElementById('vendorList').innerHTML = `
+                    <div class="vendor-item">
+                        <div class="d-flex align-items-center">
+                            <div class="status-dot status-active"></div>
+                            <div>
+                                <h6 class="mb-1">Pawsome Grooming</h6>
+                                <small class="text-muted">+91-9876543210</small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success">8 messages</span>
+                        </div>
+                    </div>
+                    <div class="vendor-item">
+                        <div class="d-flex align-items-center">
+                            <div class="status-dot status-active"></div>
+                            <div>
+                                <h6 class="mb-1">Happy Tails Boarding</h6>
+                                <small class="text-muted">+91-9876543211</small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success">3 messages</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

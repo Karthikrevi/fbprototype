@@ -1,0 +1,385 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Business ERP Simulator - FurrButler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .simulator-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .whatsapp-header {
+            background: #075E54;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .chat-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 600px;
+        }
+        .input-panel {
+            padding: 30px;
+            border-right: 1px solid #eee;
+        }
+        .chat-panel {
+            background: #ECE5DD;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .message.outgoing {
+            background: #DCF8C6;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .message.incoming {
+            background: white;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .timestamp {
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 5px;
+        }
+        .btn-whatsapp {
+            background: #25D366;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+        .btn-whatsapp:hover {
+            background: #128C7E;
+            color: white;
+        }
+        .quick-commands {
+            margin-top: 20px;
+        }
+        .quick-commands button {
+            margin: 5px;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+        }
+        .vendor-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            background: #25D366;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .typing-indicator {
+            display: none;
+            padding: 10px;
+            font-style: italic;
+            color: #666;
+        }
+        .features-panel {
+            background: #f1f3f4;
+            padding: 20px;
+            grid-column: 1 / -1;
+            border-top: 1px solid #ddd;
+        }
+        .feature-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <!-- Header -->
+        <div class="whatsapp-header">
+            <h2>📱 FurrButler WhatsApp Business ERP Simulator</h2>
+            <p>Test vendor interactions without actual WhatsApp integration</p>
+        </div>
+
+        <!-- Main Chat Interface -->
+        <div class="chat-container">
+            <!-- Input Panel -->
+            <div class="input-panel">
+                <div class="vendor-info">
+                    <h5><span class="status-indicator"></span>Vendor Simulation</h5>
+                    <p><strong>Business:</strong> <span id="businessName">Pawsome Grooming</span></p>
+                    <p><strong>Phone:</strong> <span id="phoneNumber">+91-9876543210</span></p>
+                </div>
+
+                <form id="messageForm">
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number:</label>
+                        <input type="text" class="form-control" id="phone" value="+91-9876543210">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message:</label>
+                        <textarea class="form-control" id="message" rows="4" 
+                                placeholder="Type your WhatsApp message here..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-whatsapp w-100">
+                        📤 Send WhatsApp Message
+                    </button>
+                </form>
+
+                <!-- Quick Commands -->
+                <div class="quick-commands">
+                    <h6>Quick Test Commands:</h6>
+                    <button class="btn btn-outline-secondary btn-sm quick-cmd" 
+                            data-cmd="Add 10 units Dog Shampoo ₹450 each">Add Inventory</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-cmd" 
+                            data-cmd="Restock Cat Food by 20 units">Restock</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-cmd" 
+                            data-cmd="Current inventory?">Check Stock</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-cmd" 
+                            data-cmd="What's running low?">Low Stock</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-cmd" 
+                            data-cmd="Book grooming for Luna, April 25, 10 AM">Book Service</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-cmd" 
+                            data-cmd="Help">Help</button>
+                </div>
+
+                <!-- Vendor Registration -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6>Register New Vendor:</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <input type="text" class="form-control form-control-sm" 
+                                   id="newPhone" placeholder="Phone number">
+                        </div>
+                        <div class="col-6">
+                            <input type="text" class="form-control form-control-sm" 
+                                   id="newBusiness" placeholder="Business name">
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-sm mt-2 w-100" id="registerBtn">
+                        📋 Register Vendor
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="chat-panel">
+                <div id="chatMessages">
+                    <div class="message incoming">
+                        <div>🤖 Welcome to FurrButler WhatsApp Business!</div>
+                        <div class="timestamp">System • Just now</div>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typingIndicator">
+                    FurrButler is typing...
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Panel -->
+        <div class="features-panel">
+            <h4 class="text-center mb-4">📊 WhatsApp ERP Features (Simulated)</h4>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h6>📦 Inventory Management</h6>
+                    <p>Add, update, and track inventory via WhatsApp messages</p>
+                    <small class="text-muted">Natural language processing</small>
+                </div>
+                <div class="feature-card">
+                    <h6>📅 Booking System</h6>
+                    <p>Handle customer bookings through chat commands</p>
+                    <small class="text-muted">Automated confirmations</small>
+                </div>
+                <div class="feature-card">
+                    <h6>🛍️ Business Catalog</h6>
+                    <p>Auto-sync products to WhatsApp Business catalog</p>
+                    <small class="text-muted">Real-time updates</small>
+                </div>
+                <div class="feature-card">
+                    <h6>📊 Analytics & Reports</h6>
+                    <p>Track business metrics and customer interactions</p>
+                    <small class="text-muted">Business intelligence</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let messageCount = 0;
+
+        // Handle message form submission
+        document.getElementById('messageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('phone').value;
+            const message = document.getElementById('message').value;
+            
+            if (!message.trim()) return;
+            
+            // Add user message to chat
+            addMessage(message, 'outgoing', phone);
+            
+            // Clear input
+            document.getElementById('message').value = '';
+            
+            // Show typing indicator
+            showTyping();
+            
+            try {
+                // Send to simulator
+                const response = await fetch('/whatsapp/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone_number: phone,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Hide typing indicator
+                hideTyping();
+                
+                if (data.success) {
+                    // Add bot response
+                    addMessage(data.response, 'incoming', 'FurrButler Bot');
+                } else {
+                    addMessage('❌ Error: ' + (data.error || 'Unknown error'), 'incoming', 'System');
+                }
+                
+            } catch (error) {
+                hideTyping();
+                addMessage('❌ Connection error: ' + error.message, 'incoming', 'System');
+            }
+        });
+
+        // Handle quick commands
+        document.querySelectorAll('.quick-cmd').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('message').value = this.dataset.cmd;
+            });
+        });
+
+        // Handle vendor registration
+        document.getElementById('registerBtn').addEventListener('click', async function() {
+            const phone = document.getElementById('newPhone').value;
+            const business = document.getElementById('newBusiness').value;
+            
+            if (!phone || !business) {
+                alert('Please enter both phone number and business name');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/whatsapp/register-vendor', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone_number: phone,
+                        business_name: business
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage(data.message, 'incoming', 'Registration System');
+                    document.getElementById('phone').value = phone;
+                    document.getElementById('phoneNumber').textContent = phone;
+                    document.getElementById('businessName').textContent = business;
+                    document.getElementById('newPhone').value = '';
+                    document.getElementById('newBusiness').value = '';
+                } else {
+                    addMessage('❌ Registration failed: ' + data.message, 'incoming', 'System');
+                }
+                
+            } catch (error) {
+                addMessage('❌ Registration error: ' + error.message, 'incoming', 'System');
+            }
+        });
+
+        function addMessage(text, type, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString();
+            
+            messageDiv.innerHTML = `
+                <div>${text}</div>
+                <div class="timestamp">${sender} • ${timestamp}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            messageCount++;
+        }
+
+        function showTyping() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            const chatPanel = document.querySelector('.chat-panel');
+            chatPanel.scrollTop = chatPanel.scrollHeight;
+        }
+
+        function hideTyping() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        // Auto-focus message input
+        document.getElementById('message').focus();
+
+        // Enable Enter to send (Shift+Enter for new line)
+        document.getElementById('message').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Welcome simulation
+        setTimeout(() => {
+            addMessage('You can now test WhatsApp Business ERP commands! Try the quick commands or type your own.', 'incoming', 'FurrButler');
+        }, 1000);
+    </script>
+</body>
+</html>
