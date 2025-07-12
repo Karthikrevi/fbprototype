@@ -477,6 +477,42 @@ Customers can now:
 
 📊 Integration Status: ACTIVE
         """
+    
+    def update_catalog(self, vendor_id):
+        """Update WhatsApp Business catalog for vendor"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        c.execute('''
+            SELECT id, name, description, sale_price, quantity, image_url
+            FROM products WHERE vendor_id = ? AND quantity > 0
+        ''', (vendor_id,))
+        
+        products = c.fetchall()
+        conn.close()
+        
+        # Update catalog JSON
+        vendor_products = []
+        for product in products:
+            product_id, name, desc, price, stock, image = product
+            vendor_products.append({
+                "id": f"prod_{product_id}",
+                "name": name,
+                "description": desc or f"Available: {stock} units",
+                "price": price,
+                "currency": "INR",
+                "stock": stock,
+                "image_url": image or "https://via.placeholder.com/300x300?text=Pet+Product",
+                "deep_link": f"https://furrbutler.com/product/{product_id}",
+                "vendor_id": vendor_id
+            })
+        
+        # Find and update vendor's products in catalog
+        self.catalog["products"] = [p for p in self.catalog["products"] if p.get("vendor_id") != vendor_id]
+        self.catalog["products"].extend(vendor_products)
+        
+        self.save_catalog()
+        print(f"📱 Catalog updated for vendor {vendor_id}: {len(vendor_products)} products")
 
 
 📱 Catalog updated!
