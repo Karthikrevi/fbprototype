@@ -1997,6 +1997,326 @@ def handler_login():
 
         if handler:
             session["handler"] = email
+
+
+# Bulk Barcode Processing
+@app.route('/erp/process-bulk-barcodes', methods=['POST'])
+def process_bulk_barcodes():
+    if "vendor" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    barcodes = data.get('barcodes', [])
+    
+    if not barcodes:
+        return jsonify({"error": "No barcodes provided"}), 400
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+
+    if not vendor_result:
+        conn.close()
+        return jsonify({"error": "Vendor not found"}), 404
+
+    vendor_id = vendor_result[0]
+    processed_count = 0
+
+    try:
+        for barcode in barcodes:
+            # Check if product already exists
+            c.execute("SELECT id, quantity FROM products WHERE barcode = ? AND vendor_id = ?", (barcode, vendor_id))
+            existing = c.fetchone()
+            
+            if existing:
+                # Update quantity for existing product
+                product_id, current_qty = existing
+                c.execute("UPDATE products SET quantity = quantity + 1 WHERE id = ?", (product_id,))
+            else:
+                # Try to get product info from barcode API (simulated for now)
+                product_info = get_product_info_from_barcode(barcode)
+                
+                # Insert new product
+                c.execute("""
+                    INSERT INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, barcode)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (vendor_id, product_info['name'], product_info['description'], 
+                      product_info['category'], product_info['buy_price'], 
+                      product_info['sale_price'], 1, barcode))
+                
+                product_id = c.lastrowid
+                
+                # Add batch entry
+                c.execute("""
+                    INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (product_id, f"BULK-{barcode}", 1, product_info['buy_price'], datetime.now().strftime("%Y-%m-%d")))
+            
+            processed_count += 1
+            
+            # Update WhatsApp catalog for each product
+            update_whatsapp_catalog_for_vendor(vendor_id)
+
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "processed_count": processed_count,
+            "message": f"Successfully processed {processed_count} products"
+        })
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+def get_product_info_from_barcode(barcode):
+    """
+    Get product information from barcode using external API
+    For now, return simulated data. In production, integrate with:
+    - Open Food Facts API
+    - UPC Database
+    - Google Vision Product Search
+    """
+    # Simulated product database
+    simulated_products = {
+        "123456789": {
+            "name": "Premium Dog Food (5kg)",
+            "description": "High-quality dog food with chicken and rice",
+            "category": "Food",
+            "buy_price": 800,
+            "sale_price": 1200
+        },
+        "987654321": {
+            "name": "Cat Litter (10L)",
+            "description": "Clumping cat litter with odor control",
+            "category": "Accessories",
+            "buy_price": 300,
+            "sale_price": 450
+        }
+    }
+    
+    return simulated_products.get(barcode, {
+        "name": f"Product-{barcode}",
+        "description": "Product scanned via barcode",
+        "category": "General",
+        "buy_price": 100,
+        "sale_price": 150
+    })
+
+# Photo Analysis for Loose Products
+@app.route('/erp/analyze-product-photo', methods=['POST'])
+def analyze_product_photo():
+    if "vendor" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    file = request.files.get('photo')
+    if not file:
+        return jsonify({"error": "No photo provided"}), 400
+
+    try:
+        # Save temporary file
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_{filename}")
+        file.save(filepath)
+        
+        # Analyze photo using AI (simulated for now)
+        analysis_result = analyze_product_image(filepath)
+        
+        # Clean up temporary file
+        os.remove(filepath)
+        
+        return jsonify({
+            "success": True,
+            "product_name": analysis_result['product_name'],
+            "category": analysis_result['category'],
+            "confidence": analysis_result['confidence']
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def analyze_product_image(image_path):
+    """
+    Analyze product image using AI/ML
+    In production, integrate with:
+    - Google Vision API
+    - AWS Rekognition
+    - Custom trained model
+    """
+    # Simulated analysis results
+    import random
+    
+    pet_products = [
+        {"name": "Dog Food Bowl", "category": "Accessories", "confidence": 92},
+        {"name": "Cat Toy Ball", "category": "Toys", "confidence": 87},
+        {"name": "Pet Shampoo", "category": "Grooming", "confidence": 89},
+        {"name": "Dog Leash", "category": "Accessories", "confidence": 94},
+        {"name": "Cat Treats", "category": "Food", "confidence": 85}
+    ]
+    
+    return random.choice(pet_products)
+
+# WhatsApp Business Catalog Update
+def update_whatsapp_catalog_for_vendor(vendor_id):
+    """Update WhatsApp Business catalog when inventory changes"""
+    try:
+        # Import WhatsApp ERP functions
+        from whatsapp_erp import WhatsAppERPSimulator
+        
+        erp_simulator = WhatsAppERPSimulator()
+        erp_simulator.update_catalog(vendor_id)
+        
+        # In production, also sync with Meta WhatsApp Business API
+        sync_with_meta_catalog(vendor_id)
+        
+    except Exception as e:
+        print(f"Error updating WhatsApp catalog: {e}")
+
+def sync_with_meta_catalog(vendor_id):
+    """
+    Sync inventory with Meta WhatsApp Business API
+    This will make products available for customers to order via WhatsApp
+    """
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor's WhatsApp business info
+    c.execute("""
+        SELECT wv.phone_number, v.name 
+        FROM whatsapp_vendors wv
+        JOIN vendors v ON wv.vendor_id = v.id
+        WHERE wv.vendor_id = ?
+    """, (vendor_id,))
+    
+    vendor_info = c.fetchone()
+    if not vendor_info:
+        conn.close()
+
+
+# Integrated Accounting System
+@app.route('/erp/accounting/whatsapp-integration')
+def whatsapp_accounting_integration():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return render_template("whatsapp_accounting.html", data={})
+    
+    vendor_id = vendor_result[0]
+    
+    # Get WhatsApp sales data
+    c.execute("""
+        SELECT 
+            sl.sale_date,
+            p.name as product_name,
+            sl.quantity,
+            sl.unit_price,
+            sl.total_amount,
+            sl.customer_phone
+        FROM sales_log sl
+        JOIN products p ON sl.product_id = p.id
+        WHERE sl.vendor_id = ?
+        ORDER BY sl.sale_date DESC
+        LIMIT 50
+    """, (vendor_id,))
+    
+    whatsapp_sales = c.fetchall()
+    
+    # Get WhatsApp business metrics
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_orders,
+            SUM(total_amount) as total_revenue,
+            AVG(total_amount) as avg_order_value,
+            COUNT(DISTINCT customer_phone) as unique_customers
+        FROM sales_log 
+        WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    metrics = c.fetchone()
+    
+    conn.close()
+    
+    integration_data = {
+        'whatsapp_sales': whatsapp_sales,
+        'metrics': {
+            'total_orders': metrics[0] if metrics else 0,
+            'total_revenue': metrics[1] if metrics else 0,
+            'avg_order_value': metrics[2] if metrics else 0,
+            'unique_customers': metrics[3] if metrics else 0
+        }
+    }
+    
+    return render_template("whatsapp_accounting.html", data=integration_data)
+
+# Auto-sync inventory changes to WhatsApp
+def auto_sync_whatsapp_on_inventory_change(vendor_id):
+    """Automatically sync WhatsApp catalog when inventory changes"""
+    try:
+        update_whatsapp_catalog_for_vendor(vendor_id)
+        print(f"✅ Auto-synced WhatsApp catalog for vendor {vendor_id}")
+    except Exception as e:
+        print(f"❌ Failed to auto-sync WhatsApp catalog: {e}")
+
+
+        return
+    
+    phone_number, business_name = vendor_info
+    
+    # Get products for catalog
+    c.execute("""
+        SELECT id, name, description, sale_price, quantity, image_url
+        FROM products 
+        WHERE vendor_id = ? AND quantity > 0
+    """, (vendor_id,))
+    
+    products = c.fetchall()
+    conn.close()
+    
+    # Format for Meta WhatsApp Business API
+    catalog_items = []
+    for product in products:
+        product_id, name, description, price, stock, image_url = product
+        
+        catalog_items.append({
+            "retailer_id": f"fb_prod_{product_id}",
+            "name": name,
+            "description": description or "Available now",
+            "price": int(price * 100),  # Price in cents
+            "currency": "INR",
+            "availability": "in stock" if stock > 0 else "out of stock",
+            "image_url": image_url or "https://via.placeholder.com/300x300?text=Pet+Product",
+            "url": f"https://your-domain.com/product/{product_id}"
+        })
+    
+    # In production, send to Meta API
+    meta_api_payload = {
+        "catalog_id": f"catalog_{vendor_id}",
+        "phone_number": phone_number,
+        "business_name": business_name,
+        "items": catalog_items
+    }
+    
+    print(f"📱 Meta WhatsApp Catalog sync prepared for {business_name}: {len(catalog_items)} items")
+    # TODO: Implement actual Meta API call
+    # meta_api_response = send_to_meta_api(meta_api_payload)
+
+
             session["handler_id"] = handler[0]
             session["handler_name"] = handler[1]
             session["handler_license"] = handler[5]

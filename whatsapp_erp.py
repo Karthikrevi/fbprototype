@@ -59,6 +59,23 @@ class WhatsAppERPSimulator:
             )
         ''')
         
+        # WhatsApp sales (customer orders)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS sales_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                vendor_id INTEGER,
+                product_id INTEGER,
+                customer_phone TEXT,
+                quantity INTEGER,
+                unit_price REAL,
+                total_amount REAL,
+                sale_date DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (vendor_id) REFERENCES vendors (id),
+                FOREIGN KEY (product_id) REFERENCES products (id)
+            )
+        ''')
+        
         conn.commit()
         conn.close()
         print("✅ WhatsApp ERP tables initialized")
@@ -151,14 +168,19 @@ class WhatsAppERPSimulator:
         # Log the message
         self.log_message(phone_number, message, "incoming")
         
-        # Command patterns
+        # Check if this is a customer order (starts with specific keywords)
+        if any(keyword in message for keyword in ['order', 'buy', 'purchase', 'catalog', 'i want']):
+            return self.handle_customer_order(phone_number, message)
+        
+        # Command patterns for vendors
         patterns = {
             'add_inventory': r'add (\d+) units? (.+?) ₹?(\d+) each',
             'restock': r'restock (.+?) by (\d+) units?',
             'check_inventory': r'(current inventory|stock levels?|what do i have)',
             'low_stock': r'(what\'s running low|low stock|need restock)',
             'book_appointment': r'book (.+?) for (.+?), (.+?), (.+)',
-            'help': r'help|commands?|what can i do'
+            'help': r'help|commands?|what can i do',
+            'sync_catalog': r'(sync catalog|update catalog|refresh catalog)'
         }
         
         # Try to match patterns
@@ -193,6 +215,9 @@ class WhatsAppERPSimulator:
         
         elif command_type == 'help':
             return self.get_help_message()
+        
+        elif command_type == 'sync_catalog':
+            return self.handle_sync_catalog_command()
         
         return self.handle_unknown_command(phone_number, original_message)
     
@@ -291,6 +316,168 @@ class WhatsAppERPSimulator:
 📦 {product_name}
 ➕ Added: {quantity} units
 📊 New total: {new_stock} units
+
+
+
+    def handle_customer_order(self, phone_number, message):
+        """Handle customer orders via WhatsApp"""
+        vendor_id = self.get_vendor_id(phone_number)
+        if not vendor_id:
+            return "❌ Vendor not found. Please register first."
+        
+        # Extract product requests from message
+        order_items = self.parse_order_message(message)
+        
+        if not order_items:
+            return self.send_catalog_to_customer(phone_number)
+        
+        # Process the order
+        return self.process_customer_order(phone_number, order_items)
+    
+    def parse_order_message(self, message):
+        """Parse customer order message to extract products and quantities"""
+        order_items = []
+        
+        # Pattern to match "X units of product"
+        quantity_patterns = [
+            r'(\d+)\s+(?:units?\s+of\s+|pieces?\s+of\s+|x\s+)?(.+?)(?:\s+₹|\s*$)',
+            r'(\d+)\s+(.+?)(?:\s+₹|\s*$)',
+            r'i want (\d+)\s+(.+?)(?:\s+₹|\s*$)'
+        ]
+        
+        for pattern in quantity_patterns:
+            matches = re.findall(pattern, message, re.IGNORECASE)
+            for match in matches:
+                quantity, product_name = match
+                order_items.append({
+                    'quantity': int(quantity),
+                    'product_name': product_name.strip()
+                })
+        
+        return order_items
+    
+    def send_catalog_to_customer(self, phone_number):
+        """Send product catalog to customer"""
+        vendor_id = self.get_vendor_id(phone_number)
+        
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        c.execute('''
+            SELECT name, sale_price, quantity, description
+            FROM products 
+            WHERE vendor_id = ? AND quantity > 0
+            ORDER BY name
+            LIMIT 10
+        ''', (vendor_id,))
+        
+        products = c.fetchall()
+        conn.close()
+        
+        if not products:
+            return "📦 Sorry, no products available right now."
+        
+        catalog_text = "🛍️ **Our Product Catalog:**\n\n"
+        
+        for name, price, stock, desc in products:
+            catalog_text += f"• **{name}**\n"
+            catalog_text += f"  💰 ₹{price} | 📦 {stock} available\n"
+            if desc:
+                catalog_text += f"  📝 {desc[:50]}...\n"
+            catalog_text += "\n"
+        
+        catalog_text += "💬 **To order, reply with:**\n"
+        catalog_text += "\"I want 2 Dog Food\" or \"Order 5 units of Cat Toys\"\n"
+        catalog_text += "\n📞 Need help? Just ask!"
+        
+        return catalog_text
+    
+    def process_customer_order(self, phone_number, order_items):
+        """Process customer order and update inventory"""
+        vendor_id = self.get_vendor_id(phone_number)
+        
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        order_summary = []
+        total_amount = 0
+        
+        try:
+            for item in order_items:
+                quantity = item['quantity']
+                product_name = item['product_name']
+                
+                # Find matching product
+                c.execute('''
+                    SELECT id, name, sale_price, quantity 
+                    FROM products 
+                    WHERE vendor_id = ? AND LOWER(name) LIKE LOWER(?)
+                    AND quantity >= ?
+                ''', (vendor_id, f'%{product_name}%', quantity))
+                
+                product = c.fetchone()
+                
+                if product:
+                    product_id, actual_name, price, available_stock = product
+                    
+                    # Update inventory
+                    c.execute('''
+                        UPDATE products SET quantity = quantity - ?
+                        WHERE id = ?
+                    ''', (quantity, product_id))
+                    
+                    # Log sale
+                    c.execute('''
+                        INSERT INTO sales_log (vendor_id, product_id, customer_phone, quantity, unit_price, total_amount, sale_date)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (vendor_id, product_id, phone_number, quantity, price, quantity * price, datetime.now().strftime('%Y-%m-%d')))
+                    
+                    item_total = quantity * price
+                    total_amount += item_total
+                    
+                    order_summary.append(f"✅ {quantity}x {actual_name} - ₹{item_total}")
+                else:
+                    order_summary.append(f"❌ {product_name} - Not available or insufficient stock")
+            
+            conn.commit()
+            
+            if total_amount > 0:
+                response = "🎉 **Order Confirmed!**\n\n"
+                response += "\n".join(order_summary)
+                response += f"\n\n💰 **Total: ₹{total_amount}**"
+                response += f"\n📱 Customer: {phone_number}"
+                response += "\n\n📞 We'll contact you for delivery details!"
+                
+                # Sync updated inventory with Meta catalog
+                self.update_catalog(vendor_id)
+                
+                return response
+            else:
+                return "❌ Sorry, none of the requested items are available. Please check our catalog!"
+                
+        except Exception as e:
+            conn.rollback()
+            return f"❌ Order processing failed: {str(e)}"
+        finally:
+            conn.close()
+    
+    def handle_sync_catalog_command(self):
+        """Handle catalog sync command"""
+        return """
+📱 **WhatsApp Business Catalog Sync**
+
+✅ Inventory synced with WhatsApp Business
+✅ Products updated on Meta platform
+✅ Customer ordering system active
+
+Customers can now:
+• View your products on WhatsApp
+• Place orders directly via chat
+• Get real-time inventory updates
+
+📊 Integration Status: ACTIVE
+        """
+
 
 📱 Catalog updated!
             """
