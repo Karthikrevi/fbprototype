@@ -1071,7 +1071,7 @@ def vendor_profile(vendor_id):
     except Exception as e:
         print("Error loading vendor:", e)
         return "Error loading vendor profile"
-
+# Marketplace
 @app.route('/marketplace/vendor/fluffy-paws')
 def fluffy_paws_marketplace():
     if "user" not in session:
@@ -2347,7 +2347,7 @@ def auto_sync_whatsapp_on_inventory_change(vendor_id):
     # meta_api_response = send_to_meta_api(meta_api_payload)
 
 
-            session["handler_id"] = handler[0]
+session["handler_id"] = handler[0]
             session["handler_name"] = handler[1]
             session["handler_license"] = handler[5]
             return redirect(url_for("handler_dashboard"))
