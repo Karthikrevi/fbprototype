@@ -1071,7 +1071,7 @@ def vendor_profile(vendor_id):
     except Exception as e:
         print("Error loading vendor:", e)
         return "Error loading vendor profile"
-
+# Marketplace
 @app.route('/marketplace/vendor/fluffy-paws')
 def fluffy_paws_marketplace():
     if "user" not in session:
