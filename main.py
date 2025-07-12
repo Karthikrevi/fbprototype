@@ -9,6 +9,7 @@ import sqlite3
 from datetime import datetime
 import hashlib
 from typing import Optional
+from i18n import i18n, t, get_supported_languages, get_current_language
 
 # Initialize ERP database if not exists
 def init_erp_db():
@@ -710,6 +711,13 @@ init_erp_db()
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Register i18n functions with Jinja2
+app.jinja_env.globals.update(
+    t=t,
+    get_supported_languages=get_supported_languages,
+    get_current_language=get_current_language
+)
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
@@ -4958,6 +4966,45 @@ def on_leave(data):
     room = data['room']
     leave_room(room)
     emit('status', {'msg': f'Left room {room}'})
+
+# ---- LANGUAGE SETTINGS ROUTES ----
+
+@app.route('/settings')
+def app_settings():
+    if "user" not in session and "vendor" not in session:
+        return redirect(url_for("login"))
+    
+    return render_template("app_settings.html")
+
+@app.route('/set-language', methods=["POST"])
+def set_language():
+    lang_code = request.form.get("language")
+    if i18n.set_language(lang_code):
+        flash(t("language_updated_successfully"))
+    else:
+        flash(t("invalid_language_selection"))
+    
+    # Redirect back to the referrer or dashboard
+    return redirect(request.referrer or url_for("dashboard"))
+
+@app.route('/api/set-language', methods=["POST"])
+def api_set_language():
+    """API endpoint for setting language"""
+    data = request.get_json()
+    lang_code = data.get("language")
+    
+    if i18n.set_language(lang_code):
+        return {"success": True, "message": t("language_updated_successfully")}
+    else:
+        return {"success": False, "message": t("invalid_language_selection")}, 400
+
+@app.route('/api/translations/<lang_code>')
+def get_translations(lang_code):
+    """API endpoint to get translations for a specific language"""
+    if lang_code in i18n.supported_languages:
+        return jsonify(i18n.translations.get(lang_code, {}))
+    else:
+        return {"error": "Language not supported"}, 404
 
 # Run app
 if __name__ == '__main__':
