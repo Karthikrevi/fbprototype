@@ -11,6 +11,9 @@ import hashlib
 from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
 
+# Import WhatsApp routes
+from whatsapp_routes import whatsapp_bp
+
 # Initialize ERP database if not exists
 def init_erp_db():
     conn = sqlite3.connect('erp.db')
@@ -718,6 +721,9 @@ app.jinja_env.globals.update(
     get_supported_languages=get_supported_languages,
     get_current_language=get_current_language
 )
+
+# Register WhatsApp blueprint
+app.register_blueprint(whatsapp_bp)
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
