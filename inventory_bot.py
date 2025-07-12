@@ -54,7 +54,7 @@ try:
     print("✅ Smart bot loaded successfully!")
 except ImportError as e:
     print(f"⚠️ Smart bot import failed: {e}")
-    print("🔄 Falling back to basic inventory bot...")
+    print("🔄 Falling back to basic inventory bot...")alling back to basic bot with enhanced functionality...")
 
 class InventoryBot:
     """Enhanced inventory bot with personality and smart functionality"""
