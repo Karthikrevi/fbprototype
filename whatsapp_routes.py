@@ -5,7 +5,7 @@ import json
 whatsapp_bp = Blueprint('whatsapp', __name__)
 erp_simulator = WhatsAppERPSimulator()
 
-@whatsapp_bp.route('/whatsapp/webhook', methods=['POST'])
+@whatsapp_bp.route('/whatsapp/webhook', methods=['POST', 'GET'])
 def whatsapp_webhook():
     """
     Simulated Twilio WhatsApp webhook endpoint

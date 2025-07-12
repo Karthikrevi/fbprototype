@@ -62,6 +62,15 @@ class InventoryBot:
     def __init__(self):
         self.db_path = 'erp.db'
         self.has_smart_bot = smart_bot_available
+        # Set smart_bot attribute for compatibility
+        if smart_bot_available:
+            try:
+                from chatbot.main import smart_bot
+                self.smart_bot = smart_bot
+            except ImportError:
+                self.smart_bot = None
+        else:
+            self.smart_bot = None
 
     def handle_casual_conversation(self, user_input):
         """Handle casual conversation and greetings"""

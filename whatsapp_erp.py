@@ -647,8 +647,8 @@ You sent: "{message}"
         c = conn.cursor()
         
         c.execute('''
-            SELECT id, name, description, sale_price, stock_quantity, image_url
-            FROM products WHERE vendor_id = ? AND stock_quantity > 0
+            SELECT id, name, description, sale_price, quantity, image_url
+            FROM products WHERE vendor_id = ? AND quantity > 0
         ''', (vendor_id,))
         
         products = c.fetchall()
