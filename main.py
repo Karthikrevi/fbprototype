@@ -5004,6 +5004,433 @@ def on_leave(data):
     leave_room(room)
     emit('status', {'msg': f'Left room {room}'})
 
+# ---- ENHANCED FINANCIAL MANAGEMENT ROUTES ----
+
+@app.route('/erp/finance/accounts-receivable')
+def accounts_receivable():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("accounts_receivable.html", receivables=[])
+
+    vendor_id = result[0]
+
+    # Get outstanding customer payments (from marketplace orders)
+    c.execute("""
+        SELECT o.id, o.user_email, o.total_amount, o.order_date, o.status,
+               CASE 
+                 WHEN o.status = 'confirmed' THEN 'Pending Payment'
+                 WHEN o.status = 'paid' THEN 'Paid'
+                 WHEN o.status = 'shipped' THEN 'Invoice Sent'
+                 ELSE 'Under Review'
+               END as ar_status,
+               julianday('now') - julianday(o.order_date) as days_outstanding
+        FROM orders o
+        WHERE o.vendor_id = ? AND o.status != 'cancelled'
+        ORDER BY o.order_date DESC
+    """, (vendor_id,))
+    
+    receivables = c.fetchall()
+    
+    # Calculate AR summary
+    c.execute("""
+        SELECT 
+            SUM(CASE WHEN status != 'paid' THEN total_amount ELSE 0 END) as total_outstanding,
+            SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END) as total_collected,
+            COUNT(CASE WHEN status != 'paid' THEN 1 END) as pending_count
+        FROM orders WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    ar_summary = c.fetchone()
+    
+    conn.close()
+    return render_template("accounts_receivable.html", 
+                         receivables=receivables, 
+                         ar_summary=ar_summary)
+
+@app.route('/erp/finance/accounts-payable')
+def accounts_payable():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("accounts_payable.html", payables=[])
+
+    vendor_id = result[0]
+
+    # Get unpaid expenses (representing vendor bills)
+    c.execute("""
+        SELECT e.id, e.category, e.amount, e.description, e.date,
+               'Unpaid' as status,
+               julianday('now') - julianday(e.date) as days_outstanding,
+               e.date as due_date
+        FROM expenses e
+        WHERE e.vendor_id = ?
+        ORDER BY e.date DESC
+    """, (vendor_id,))
+    
+    payables = c.fetchall()
+    
+    # Calculate AP summary
+    c.execute("""
+        SELECT 
+            SUM(amount) as total_outstanding,
+            COUNT(*) as bill_count,
+            AVG(amount) as avg_bill_amount
+        FROM expenses WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    ap_summary = c.fetchone()
+    
+    conn.close()
+    return render_template("accounts_payable.html", 
+                         payables=payables, 
+                         ap_summary=ap_summary)
+
+@app.route('/erp/finance/balance-sheet')
+def balance_sheet():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("balance_sheet.html", balance_sheet={})
+
+    vendor_id = result[0]
+
+    # Calculate Assets
+    # Current Assets - Cash
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    cash_from_sales = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    cash_expenses = c.fetchone()[0] or 0
+    
+    cash = cash_from_sales - cash_expenses
+
+    # Inventory
+    c.execute("SELECT COALESCE(SUM(quantity * buy_price), 0) FROM products WHERE vendor_id=?", (vendor_id,))
+    inventory = c.fetchone()[0] or 0
+
+    # Accounts Receivable
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE vendor_id=? AND status != 'paid'", (vendor_id,))
+    accounts_receivable = c.fetchone()[0] or 0
+
+    # Total Current Assets
+    current_assets = cash + inventory + accounts_receivable
+
+    # Fixed Assets (simplified)
+    fixed_assets = 50000  # Placeholder for equipment, furniture, etc.
+
+    total_assets = current_assets + fixed_assets
+
+    # Calculate Liabilities
+    # Accounts Payable (unpaid expenses)
+    accounts_payable = cash_expenses * 0.3  # Estimate 30% still unpaid
+
+    # Current Liabilities
+    current_liabilities = accounts_payable
+
+    # Long-term Debt
+    long_term_debt = 25000  # Placeholder
+
+    total_liabilities = current_liabilities + long_term_debt
+
+    # Calculate Equity
+    retained_earnings = total_assets - total_liabilities
+    owner_equity = 100000  # Initial investment
+    total_equity = owner_equity + retained_earnings
+
+    balance_sheet = {
+        'assets': {
+            'current': {
+                'cash': cash,
+                'accounts_receivable': accounts_receivable,
+                'inventory': inventory,
+                'total': current_assets
+            },
+            'fixed': {
+                'equipment': fixed_assets,
+                'total': fixed_assets
+            },
+            'total': total_assets
+        },
+        'liabilities': {
+            'current': {
+                'accounts_payable': accounts_payable,
+                'total': current_liabilities
+            },
+            'long_term': {
+                'debt': long_term_debt,
+                'total': long_term_debt
+            },
+            'total': total_liabilities
+        },
+        'equity': {
+            'owner_equity': owner_equity,
+            'retained_earnings': retained_earnings,
+            'total': total_equity
+        }
+    }
+
+    conn.close()
+    return render_template("balance_sheet.html", balance_sheet=balance_sheet)
+
+@app.route('/erp/finance/cash-flow')
+def cash_flow_statement():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("cash_flow.html", cash_flow={})
+
+    vendor_id = result[0]
+
+    # Operating Activities
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=? AND sale_date >= date('now', '-30 days')", (vendor_id,))
+    cash_from_sales = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE vendor_id=? AND date >= date('now', '-30 days')", (vendor_id,))
+    cash_for_expenses = c.fetchone()[0] or 0
+
+    operating_cash_flow = cash_from_sales - cash_for_expenses
+
+    # Investing Activities (simplified)
+    investing_cash_flow = -5000  # Equipment purchases
+
+    # Financing Activities (simplified)
+    financing_cash_flow = 0  # No financing activities
+
+    net_cash_flow = operating_cash_flow + investing_cash_flow + financing_cash_flow
+
+    cash_flow = {
+        'operating': {
+            'cash_from_sales': cash_from_sales,
+            'cash_for_expenses': -cash_for_expenses,
+            'net_operating': operating_cash_flow
+        },
+        'investing': {
+            'equipment_purchases': investing_cash_flow,
+            'net_investing': investing_cash_flow
+        },
+        'financing': {
+            'net_financing': financing_cash_flow
+        },
+        'net_change': net_cash_flow,
+        'beginning_cash': 25000,  # Assumed starting balance
+        'ending_cash': 25000 + net_cash_flow
+    }
+
+    conn.close()
+    return render_template("cash_flow.html", cash_flow=cash_flow)
+
+@app.route('/erp/finance/tax-management')
+def tax_management():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID and tax settings
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("tax_management.html", tax_data={})
+
+    vendor_id = result[0]
+
+    # Get GST rate from settings
+    c.execute("SELECT gst_rate FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    gst_result = c.fetchone()
+    gst_rate = gst_result[0] if gst_result else 18.0
+
+    # Calculate tax liabilities
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    total_sales = c.fetchone()[0] or 0
+
+    gst_on_sales = total_sales * (gst_rate / 100)
+    
+    # Input tax credit (simplified)
+    input_tax_credit = gst_on_sales * 0.6  # Assuming 60% input credit
+    
+    net_gst_payable = gst_on_sales - input_tax_credit
+
+    tax_data = {
+        'gst_rate': gst_rate,
+        'total_sales': total_sales,
+        'gst_on_sales': gst_on_sales,
+        'input_tax_credit': input_tax_credit,
+        'net_gst_payable': net_gst_payable,
+        'last_filing_date': '2024-01-20',
+        'next_due_date': '2024-02-20'
+    }
+
+    conn.close()
+    return render_template("tax_management.html", tax_data=tax_data)
+
+@app.route('/erp/finance/planning-analysis')
+def financial_planning():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("financial_planning.html", planning_data={})
+
+    vendor_id = result[0]
+
+    # Get current financial data for analysis
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    current_revenue = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    current_expenses = c.fetchone()[0] or 0
+
+    # Budget vs Actual analysis
+    budget_revenue = current_revenue * 1.2  # 20% growth target
+    budget_expenses = current_expenses * 1.1  # 10% expense increase
+    
+    revenue_variance = current_revenue - budget_revenue
+    expense_variance = current_expenses - budget_expenses
+
+    # Scenario planning
+    best_case_revenue = current_revenue * 1.5
+    worst_case_revenue = current_revenue * 0.8
+    
+    planning_data = {
+        'current': {
+            'revenue': current_revenue,
+            'expenses': current_expenses,
+            'profit': current_revenue - current_expenses
+        },
+        'budget': {
+            'revenue': budget_revenue,
+            'expenses': budget_expenses,
+            'profit': budget_revenue - budget_expenses
+        },
+        'variance': {
+            'revenue': revenue_variance,
+            'expense': expense_variance,
+            'revenue_percent': (revenue_variance / budget_revenue * 100) if budget_revenue > 0 else 0
+        },
+        'scenarios': {
+            'best_case': {
+                'revenue': best_case_revenue,
+                'profit': best_case_revenue - (current_expenses * 1.2)
+            },
+            'worst_case': {
+                'revenue': worst_case_revenue,
+                'profit': worst_case_revenue - current_expenses
+            }
+        }
+    }
+
+    conn.close()
+    return render_template("financial_planning.html", planning_data=planning_data)
+
+@app.route('/erp/finance/revenue-recognition')
+def revenue_recognition():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("revenue_recognition.html", revenue_data={})
+
+    vendor_id = result[0]
+
+    # Get revenue recognition data
+    c.execute("""
+        SELECT 
+            DATE(sale_date) as recognition_date,
+            SUM(total_amount) as daily_revenue,
+            COUNT(*) as transaction_count
+        FROM sales_log 
+        WHERE vendor_id=? 
+        GROUP BY DATE(sale_date)
+        ORDER BY sale_date DESC
+        LIMIT 30
+    """, (vendor_id,))
+    
+    daily_revenue = c.fetchall()
+
+    # Deferred revenue (for future services like grooming bookings)
+    c.execute("""
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN date > date('now') THEN 100.0
+                ELSE 0 
+            END
+        ), 0) as deferred_revenue
+        FROM bookings WHERE vendor_id=?
+    """, (vendor_id,))
+    
+    deferred_revenue = c.fetchone()[0] or 0
+
+    # Revenue recognition summary
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    total_recognized = c.fetchone()[0] or 0
+
+    revenue_data = {
+        'total_recognized': total_recognized,
+        'deferred_revenue': deferred_revenue,
+        'recognition_method': 'Point of Sale / Service Completion',
+        'compliance_standard': 'Indian GAAP / Ind AS 115',
+        'daily_revenue': daily_revenue
+    }
+
+    conn.close()
+    return render_template("revenue_recognition.html", revenue_data=revenue_data)
+
 # ---- LANGUAGE SETTINGS ROUTES ----
 
 @app.route('/settings')

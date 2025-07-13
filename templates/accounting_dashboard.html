@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Accounting & Reports - FurrButler ERP</title>
+  <title>Financial Management & Accounting - FurrButler ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
@@ -23,9 +23,22 @@
       margin-bottom: 10px;
     }
     
+    .overview-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .overview-section h3 {
+      margin-bottom: 15px;
+    }
+    
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 20px;
       margin-bottom: 40px;
     }
@@ -36,10 +49,11 @@
       border-radius: 15px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       text-align: center;
+      border-left: 4px solid #667eea;
     }
     
     .stat-value {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: bold;
       margin-bottom: 5px;
     }
@@ -52,12 +66,13 @@
     .positive { color: #28a745; }
     .negative { color: #dc3545; }
     .neutral { color: #667eea; }
+    .warning { color: #ffc107; }
     
     .modules-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 25px;
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
     }
     
@@ -69,6 +84,18 @@
       transition: all 0.3s ease;
       text-decoration: none;
       color: black;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .module-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(45deg, #667eea, #764ba2);
     }
     
     .module-card:hover {
@@ -79,12 +106,13 @@
     }
     
     .module-icon {
-      font-size: 3rem;
+      font-size: 2.5rem;
       margin-bottom: 15px;
+      color: #667eea;
     }
     
     .module-title {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: bold;
       margin-bottom: 10px;
       color: #333;
@@ -93,6 +121,24 @@
     .module-desc {
       color: #666;
       font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    
+    .module-features {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+    
+    .feature-tag {
+      display: inline-block;
+      background: #f8f9fa;
+      color: #667eea;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      margin: 2px;
+      border: 1px solid #e9ecef;
     }
     
     .back-btn {
@@ -105,6 +151,7 @@
       border-radius: 25px;
       text-decoration: none;
       font-weight: bold;
+      z-index: 1000;
     }
     
     .back-btn:hover {
@@ -112,21 +159,78 @@
       color: white;
       text-decoration: none;
     }
+    
+    .financial-health {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .health-indicator {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .health-indicator:last-child {
+      border-bottom: none;
+    }
+    
+    .status-indicator {
+      padding: 4px 12px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    
+    .status-healthy { background: #d4edda; color: #155724; }
+    .status-warning { background: #fff3cd; color: #856404; }
+    .status-critical { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
   <a href="/erp/dashboard" class="back-btn">← Back to ERP</a>
   
   <div class="header">
-    <h1>📊 Accounting & Reports</h1>
-    <p>Complete financial management for your pet care business</p>
+    <h1>💼 Financial Management & Accounting</h1>
+    <p>Comprehensive ERP financial module for complete business financial control</p>
   </div>
 
-  <!-- Quick Stats -->
+  <div class="overview-section">
+    <h3>🏦 Financial Management Module</h3>
+    <p>The finance and accounting module is the most important ERP module because it allows businesses to understand their current financial state and future outlook. Track accounts payable (AP) and accounts receivable (AR), manage the general ledger, and create crucial financial documents like balance sheets, payment receipts and tax statements.</p>
+  </div>
+
+  <!-- Financial Health Dashboard -->
+  <div class="financial-health">
+    <h4 style="color: #667eea; margin-bottom: 20px;">📊 Financial Health Indicators</h4>
+    <div class="health-indicator">
+      <span><strong>Cash Flow Status</strong></span>
+      <span class="status-indicator status-healthy">Healthy</span>
+    </div>
+    <div class="health-indicator">
+      <span><strong>Accounts Receivable</strong></span>
+      <span class="status-indicator status-warning">Review Needed</span>
+    </div>
+    <div class="health-indicator">
+      <span><strong>Tax Compliance</strong></span>
+      <span class="status-indicator status-healthy">Up to Date</span>
+    </div>
+    <div class="health-indicator">
+      <span><strong>Revenue Recognition</strong></span>
+      <span class="status-indicator status-healthy">Compliant</span>
+    </div>
+  </div>
+
+  <!-- Enhanced Stats Grid -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-value neutral">₹{{ "%.2f"|format(stats.total_sales) }}</div>
-      <div class="stat-label">Total Sales</div>
+      <div class="stat-value positive">₹{{ "%.2f"|format(stats.total_sales) }}</div>
+      <div class="stat-label">Total Revenue</div>
     </div>
     <div class="stat-card">
       <div class="stat-value negative">₹{{ "%.2f"|format(stats.total_expenses) }}</div>
@@ -137,62 +241,218 @@
       <div class="stat-label">Net Profit</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value neutral">{{ stats.total_products }}</div>
-      <div class="stat-label">Products</div>
+      <div class="stat-value warning">₹0.00</div>
+      <div class="stat-label">Accounts Receivable</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value warning">₹0.00</div>
+      <div class="stat-label">Accounts Payable</div>
     </div>
     <div class="stat-card">
       <div class="stat-value neutral">{{ stats.total_inventory }}</div>
-      <div class="stat-label">Total Stock</div>
+      <div class="stat-label">Inventory Units</div>
     </div>
   </div>
 
-  <!-- Module Cards -->
+  <!-- Core Financial Modules -->
   <div class="modules-grid">
+    <!-- Accounts Receivable -->
+    <a href="/erp/finance/accounts-receivable" class="module-card">
+      <div class="module-icon">💰</div>
+      <div class="module-title">Accounts Receivable (AR)</div>
+      <div class="module-desc">Manage customer invoices, track payments, and monitor outstanding receivables</div>
+      <div class="module-features">
+        <span class="feature-tag">Invoice Management</span>
+        <span class="feature-tag">Payment Tracking</span>
+        <span class="feature-tag">Credit Control</span>
+        <span class="feature-tag">Aging Reports</span>
+      </div>
+    </a>
+
+    <!-- Accounts Payable -->
+    <a href="/erp/finance/accounts-payable" class="module-card">
+      <div class="module-icon">📋</div>
+      <div class="module-title">Accounts Payable (AP)</div>
+      <div class="module-desc">Track vendor bills, manage payments, and automate payment processing</div>
+      <div class="module-features">
+        <span class="feature-tag">Vendor Bills</span>
+        <span class="feature-tag">Payment Scheduling</span>
+        <span class="feature-tag">Cash Management</span>
+        <span class="feature-tag">Reconciliation</span>
+      </div>
+    </a>
+
+    <!-- General Ledger -->
     <a href="/erp/reports/ledger" class="module-card">
       <div class="module-icon">📒</div>
       <div class="module-title">General Ledger</div>
-      <div class="module-desc">View all financial transactions with double-entry bookkeeping</div>
+      <div class="module-desc">Complete record of all financial transactions with double-entry bookkeeping</div>
+      <div class="module-features">
+        <span class="feature-tag">Transaction History</span>
+        <span class="feature-tag">Account Balances</span>
+        <span class="feature-tag">Sub-Ledgers</span>
+        <span class="feature-tag">Audit Trail</span>
+      </div>
     </a>
 
+    <!-- Balance Sheet -->
+    <a href="/erp/finance/balance-sheet" class="module-card">
+      <div class="module-icon">⚖️</div>
+      <div class="module-title">Balance Sheet</div>
+      <div class="module-desc">Assets, liabilities, and equity reporting with real-time calculations</div>
+      <div class="module-features">
+        <span class="feature-tag">Assets Management</span>
+        <span class="feature-tag">Liabilities Tracking</span>
+        <span class="feature-tag">Equity Analysis</span>
+        <span class="feature-tag">Financial Position</span>
+      </div>
+    </a>
+
+    <!-- Profit & Loss -->
     <a href="/erp/reports/pnl" class="module-card">
       <div class="module-icon">📜</div>
-      <div class="module-title">Profit & Loss</div>
-      <div class="module-desc">Revenue, expenses, and profitability analysis</div>
+      <div class="module-title">Profit & Loss Statement</div>
+      <div class="module-desc">Revenue, expenses, and profitability analysis with period comparisons</div>
+      <div class="module-features">
+        <span class="feature-tag">Revenue Analysis</span>
+        <span class="feature-tag">Expense Tracking</span>
+        <span class="feature-tag">Margin Analysis</span>
+        <span class="feature-tag">Period Comparison</span>
+      </div>
     </a>
 
+    <!-- Cash Flow Management -->
+    <a href="/erp/finance/cash-flow" class="module-card">
+      <div class="module-icon">💵</div>
+      <div class="module-title">Cash Flow Management</div>
+      <div class="module-desc">Monitor cash inflows and outflows, forecast liquidity needs</div>
+      <div class="module-features">
+        <span class="feature-tag">Cash Forecasting</span>
+        <span class="feature-tag">Liquidity Analysis</span>
+        <span class="feature-tag">Payment Scheduling</span>
+        <span class="feature-tag">Bank Reconciliation</span>
+      </div>
+    </a>
+
+    <!-- Tax Management -->
+    <a href="/erp/finance/tax-management" class="module-card">
+      <div class="module-icon">🏛️</div>
+      <div class="module-title">Tax Management</div>
+      <div class="module-desc">GST compliance, tax calculations, and statutory reporting</div>
+      <div class="module-features">
+        <span class="feature-tag">GST Compliance</span>
+        <span class="feature-tag">Tax Calculations</span>
+        <span class="feature-tag">Returns Filing</span>
+        <span class="feature-tag">Audit Support</span>
+      </div>
+    </a>
+
+    <!-- Financial Planning & Analysis -->
+    <a href="/erp/finance/planning-analysis" class="module-card">
+      <div class="module-icon">📊</div>
+      <div class="module-title">Financial Planning & Analysis</div>
+      <div class="module-desc">Budget planning, variance analysis, and scenario modeling</div>
+      <div class="module-features">
+        <span class="feature-tag">Budget Planning</span>
+        <span class="feature-tag">Variance Analysis</span>
+        <span class="feature-tag">Scenario Planning</span>
+        <span class="feature-tag">Board Reports</span>
+      </div>
+    </a>
+
+    <!-- Revenue Recognition -->
+    <a href="/erp/finance/revenue-recognition" class="module-card">
+      <div class="module-icon">📈</div>
+      <div class="module-title">Revenue Recognition</div>
+      <div class="module-desc">Automated revenue recognition per accounting standards and compliance</div>
+      <div class="module-features">
+        <span class="feature-tag">Standards Compliance</span>
+        <span class="feature-tag">Automated Recognition</span>
+        <span class="feature-tag">Deferred Revenue</span>
+        <span class="feature-tag">Contract Management</span>
+      </div>
+    </a>
+
+    <!-- Expense Management -->
+    <a href="/erp/reports/expenses" class="module-card">
+      <div class="module-icon">💳</div>
+      <div class="module-title">Expense Management</div>
+      <div class="module-desc">Track and categorize business expenses with approval workflows</div>
+      <div class="module-features">
+        <span class="feature-tag">Expense Categories</span>
+        <span class="feature-tag">Approval Workflow</span>
+        <span class="feature-tag">Receipt Management</span>
+        <span class="feature-tag">Cost Centers</span>
+      </div>
+    </a>
+
+    <!-- Inventory Valuation -->
     <a href="/erp/reports/inventory" class="module-card">
       <div class="module-icon">📦</div>
-      <div class="module-title">Inventory Reports</div>
-      <div class="module-desc">Stock levels, valuation, and FIFO batch tracking</div>
+      <div class="module-title">Inventory Valuation</div>
+      <div class="module-desc">FIFO/LIFO costing, stock valuation, and inventory accounting</div>
+      <div class="module-features">
+        <span class="feature-tag">FIFO Costing</span>
+        <span class="feature-tag">Stock Valuation</span>
+        <span class="feature-tag">Cost Analysis</span>
+        <span class="feature-tag">Write-offs</span>
+      </div>
     </a>
 
-    <a href="/erp/reports/expenses" class="module-card">
-      <div class="module-icon">💵</div>
-      <div class="module-title">Expense Management</div>
-      <div class="module-desc">Track and categorize business expenses</div>
-    </a>
-
-    <a href="/erp/reports/sales" class="module-card">
-      <div class="module-icon">📈</div>
-      <div class="module-title">Sales Analytics</div>
-      <div class="module-desc">Top products, trends, and performance metrics</div>
-    </a>
-
+    <!-- Financial Settings -->
     <a href="/erp/reports/settings" class="module-card">
       <div class="module-icon">⚙️</div>
-      <div class="module-title">Accounting Settings</div>
-      <div class="module-desc">Configure tax rates, platform fees, and preferences</div>
+      <div class="module-title">Financial Settings</div>
+      <div class="module-desc">Configure accounting preferences, chart of accounts, and financial parameters</div>
+      <div class="module-features">
+        <span class="feature-tag">Chart of Accounts</span>
+        <span class="feature-tag">Tax Rates</span>
+        <span class="feature-tag">Payment Terms</span>
+        <span class="feature-tag">Fiscal Calendar</span>
+      </div>
     </a>
   </div>
 
   <div style="margin-top: 50px; text-align: center; padding: 30px; background: rgba(102, 126, 234, 0.1); border-radius: 15px;">
-    <h4 style="color: #667eea; margin-bottom: 15px;">💡 Pro Tips</h4>
-    <ul style="text-align: left; max-width: 600px; margin: 0 auto; color: #666;">
-      <li>Review your P&L monthly to track business performance</li>
-      <li>Use expense categories to understand where money is going</li>
-      <li>Monitor inventory turnover to optimize stock levels</li>
-      <li>Set up automatic reports for regular financial insights</li>
-    </ul>
+    <h4 style="color: #667eea; margin-bottom: 15px;">🎯 Financial Management Best Practices</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; text-align: left; max-width: 1000px; margin: 0 auto;">
+      <div>
+        <h6 style="color: #333; margin-bottom: 10px;">📋 Monthly Close Process</h6>
+        <ul style="color: #666; font-size: 0.9rem;">
+          <li>Review all transactions and reconcile accounts</li>
+          <li>Generate and review financial statements</li>
+          <li>Analyze variances and key performance indicators</li>
+          <li>Prepare management reports and board presentations</li>
+        </ul>
+      </div>
+      <div>
+        <h6 style="color: #333; margin-bottom: 10px;">💰 Cash Management</h6>
+        <ul style="color: #666; font-size: 0.9rem;">
+          <li>Monitor cash flow and liquidity positions daily</li>
+          <li>Optimize payment timing and collection processes</li>
+          <li>Maintain appropriate cash reserves</li>
+          <li>Use forecasting to anticipate funding needs</li>
+        </ul>
+      </div>
+      <div>
+        <h6 style="color: #333; margin-bottom: 10px;">📊 Financial Analysis</h6>
+        <ul style="color: #666; font-size: 0.9rem;">
+          <li>Track key financial ratios and metrics</li>
+          <li>Perform trend analysis and benchmarking</li>
+          <li>Conduct scenario planning and sensitivity analysis</li>
+          <li>Monitor budget vs. actual performance</li>
+        </ul>
+      </div>
+      <div>
+        <h6 style="color: #333; margin-bottom: 10px;">🔒 Compliance & Controls</h6>
+        <ul style="color: #666; font-size: 0.9rem;">
+          <li>Maintain proper internal controls and segregation</li>
+          <li>Ensure compliance with accounting standards</li>
+          <li>Keep detailed audit trails for all transactions</li>
+          <li>Regular review and update of financial policies</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </body>
 </html>

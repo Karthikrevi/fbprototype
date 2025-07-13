@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Accounts Receivable - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .ar-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .ar-header {
+      background: #28a745;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    
+    .summary-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .summary-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #28a745;
+    }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .aging-analysis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin: 20px;
+    }
+    
+    .aging-bucket {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border-left: 4px solid #28a745;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    th {
+      background: #f8f9fa;
+      font-weight: bold;
+    }
+    
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-paid { background: #d4edda; color: #155724; }
+    .status-overdue { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Financial Management</a>
+  
+  <div class="header">
+    <h1>💰 Accounts Receivable</h1>
+    <p>Track customer payments and outstanding invoices</p>
+  </div>
+
+  <div class="ar-container">
+    <div class="ar-header">
+      <h3 style="margin: 0;">Accounts Receivable Summary</h3>
+    </div>
+    
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="summary-value">₹{{ "%.2f"|format(ar_summary[0] or 0) }}</div>
+        <div>Total Outstanding</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">₹{{ "%.2f"|format(ar_summary[1] or 0) }}</div>
+        <div>Total Collected</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ ar_summary[2] or 0 }}</div>
+        <div>Pending Invoices</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">{{ "%.1f"|format((ar_summary[1] / (ar_summary[0] + ar_summary[1]) * 100) if (ar_summary[0] + ar_summary[1]) > 0 else 0) }}%</div>
+        <div>Collection Rate</div>
+      </div>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 20px;">
+      <h5 style="color: #333; margin-bottom: 15px;">📊 Aging Analysis</h5>
+      <div class="aging-analysis">
+        <div class="aging-bucket">
+          <div style="font-weight: bold; color: #28a745;">Current</div>
+          <div style="font-size: 0.9rem; color: #666;">0-30 days</div>
+          <div style="font-weight: bold; margin-top: 5px;">₹0.00</div>
+        </div>
+        <div class="aging-bucket" style="border-left-color: #ffc107;">
+          <div style="font-weight: bold; color: #ffc107;">31-60 Days</div>
+          <div style="font-size: 0.9rem; color: #666;">Overdue</div>
+          <div style="font-weight: bold; margin-top: 5px;">₹0.00</div>
+        </div>
+        <div class="aging-bucket" style="border-left-color: #dc3545;">
+          <div style="font-weight: bold; color: #dc3545;">60+ Days</div>
+          <div style="font-size: 0.9rem; color: #666;">Critical</div>
+          <div style="font-weight: bold; margin-top: 5px;">₹0.00</div>
+        </div>
+      </div>
+    </div>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Days Outstanding</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for receivable in receivables %}
+        <tr>
+          <td>INV-{{ receivable[0] }}</td>
+          <td>{{ receivable[1] }}</td>
+          <td>₹{{ "%.2f"|format(receivable[2]) }}</td>
+          <td>{{ receivable[3][:10] }}</td>
+          <td>{{ receivable[6]|int }} days</td>
+          <td>
+            <span class="status-badge {% if receivable[5] == 'Paid' %}status-paid{% elif receivable[6] > 30 %}status-overdue{% else %}status-pending{% endif %}">
+              {{ receivable[5] }}
+            </span>
+          </td>
+          <td>
+            <button style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+              Send Reminder
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+        
+        {% if not receivables %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: #666; padding: 40px;">
+            No receivables found. All payments are up to date!
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top: 30px; text-align: center;">
+    <button style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📧 Send Payment Reminders
+    </button>
+    <button style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📊 Generate AR Report
+    </button>
+  </div>
+</body>
+</html>
