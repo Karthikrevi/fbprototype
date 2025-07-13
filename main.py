@@ -5143,6 +5143,56 @@ def business_analysis_api():
         "vendor_email": email
     }
 
+# ---- CUSTOMER INTEGRATION API ----
+
+@app.route('/api/customer/<customer_email>/bookings')
+def get_customer_bookings(customer_email):
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    vendor_email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (vendor_email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}
+    
+    vendor_id = vendor_result[0]
+    
+    # Get customer's bookings with this vendor
+    c.execute("""
+        SELECT service, date, time, status, pet_name
+        FROM bookings 
+        WHERE vendor_id = ? AND user_email = ?
+        ORDER BY date DESC
+        LIMIT 10
+    """, (vendor_id, customer_email))
+    
+    bookings_data = c.fetchall()
+    bookings = []
+    
+    for booking in bookings_data:
+        bookings.append({
+            'service': booking[0],
+            'date': booking[1],
+            'time': booking[2],
+            'status': booking[3],
+            'pet_name': booking[4]
+        })
+    
+    conn.close()
+    
+    return {
+        "success": True,
+        "bookings": bookings,
+        "customer_email": customer_email
+    }
+
 # ---- CHAT SYSTEM ROUTES ----
 
 @app.route('/chat')
@@ -5397,6 +5447,74 @@ def start_conversation():
     conn.close()
     
     return {"conversation_id": conversation_id}
+
+# ---- DASHBOARD METRICS API ----
+
+@app.route('/api/dashboard/metrics')
+def dashboard_metrics():
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}
+    
+    vendor_id = vendor_result[0]
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Get pending orders count
+    c.execute("""
+        SELECT COUNT(*) FROM orders 
+        WHERE vendor_id = ? AND status IN ('pending', 'confirmed', 'packed')
+    """, (vendor_id,))
+    pending_orders = c.fetchone()[0] or 0
+    
+    # Get today's bookings count
+    c.execute("""
+        SELECT COUNT(*) FROM bookings 
+        WHERE vendor_id = ? AND date = ?
+    """, (vendor_id, today))
+    todays_bookings = c.fetchone()[0] or 0
+    
+    # Get today's revenue (from sales and completed bookings)
+    c.execute("""
+        SELECT COALESCE(SUM(total_amount), 0) FROM sales_log 
+        WHERE vendor_id = ? AND DATE(sale_date) = ?
+    """, (vendor_id, today))
+    daily_revenue = c.fetchone()[0] or 0
+    
+    # Add completed booking revenue (estimated)
+    c.execute("""
+        SELECT COUNT(*) FROM bookings 
+        WHERE vendor_id = ? AND date = ? AND status = 'completed'
+    """, (vendor_id, today))
+    completed_bookings = c.fetchone()[0] or 0
+    daily_revenue += completed_bookings * 50  # Estimate $50 per completed booking
+    
+    # Get low stock items count
+    c.execute("""
+        SELECT COUNT(*) FROM products 
+        WHERE vendor_id = ? AND quantity <= 5
+    """, (vendor_id,))
+    low_stock_items = c.fetchone()[0] or 0
+    
+    conn.close()
+    
+    return {
+        "success": True,
+        "pending_orders": pending_orders,
+        "todays_bookings": todays_bookings,
+        "daily_revenue": daily_revenue,
+        "low_stock_items": low_stock_items
+    }
 
 # ---- WEBSOCKET HANDLERS ----
 

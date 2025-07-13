@@ -351,6 +351,11 @@
             <div class="info-label">Customer</div>
             <div class="info-value">
               <i class="fas fa-user"></i> {{ order[1] }}
+              <div class="mt-1">
+                <a href="#" onclick="checkCustomerBookings('{{ order[1] }}')" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-calendar"></i> View Bookings
+                </a>
+              </div>
             </div>
           </div>
           <div class="info-item">
@@ -699,6 +704,28 @@
     function showNotificationModal(orderId) {
       const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
       modal.show();
+    }
+
+    async function checkCustomerBookings(customerEmail) {
+      try {
+        const response = await fetch(`/api/customer/${encodeURIComponent(customerEmail)}/bookings`);
+        const data = await response.json();
+        
+        if (data.success && data.bookings.length > 0) {
+          let bookingsList = data.bookings.map(booking => 
+            `• ${booking.service} on ${booking.date} (${booking.status})`
+          ).join('\n');
+          
+          alert(`Customer Bookings:\n\n${bookingsList}\n\nConsider offering complementary services!`);
+        } else {
+          if (confirm('No bookings found for this customer. Would you like to suggest booking a service?')) {
+            window.open(`/vendor/booking-suggest?customer=${encodeURIComponent(customerEmail)}`, '_blank');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking bookings:', error);
+        alert('Could not load customer booking history');
+      }
     }
 
     // Fulfillment option selection
