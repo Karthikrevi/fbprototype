@@ -1,0 +1,200 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tax Management - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .tax-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .tax-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .tax-card {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 10px;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .tax-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .tax-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ffc107;
+      margin-bottom: 5px;
+    }
+    
+    .tax-label {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .compliance-section {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .filing-calendar {
+      background: white;
+      border: 2px solid #ffc107;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    
+    .calendar-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .calendar-item:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Financial Management</a>
+  
+  <div class="header">
+    <h1>🏛️ Tax Management</h1>
+    <p>GST compliance and tax calculations</p>
+  </div>
+
+  <div class="tax-container">
+    <h3 style="text-align: center; margin-bottom: 30px; color: #333;">Tax Liability Summary</h3>
+    
+    <div class="tax-grid">
+      <div class="tax-card">
+        <div class="tax-title">Current GST Rate</div>
+        <div class="tax-value">{{ "%.1f"|format(tax_data.gst_rate) }}%</div>
+        <div class="tax-label">Applied to all taxable sales</div>
+      </div>
+      
+      <div class="tax-card">
+        <div class="tax-title">Total Sales (Taxable)</div>
+        <div class="tax-value">₹{{ "%.2f"|format(tax_data.total_sales) }}</div>
+        <div class="tax-label">Current period sales</div>
+      </div>
+      
+      <div class="tax-card">
+        <div class="tax-title">GST on Sales</div>
+        <div class="tax-value">₹{{ "%.2f"|format(tax_data.gst_on_sales) }}</div>
+        <div class="tax-label">Output tax collected</div>
+      </div>
+      
+      <div class="tax-card">
+        <div class="tax-title">Input Tax Credit</div>
+        <div class="tax-value">₹{{ "%.2f"|format(tax_data.input_tax_credit) }}</div>
+        <div class="tax-label">Available for set-off</div>
+      </div>
+      
+      <div class="tax-card" style="border-left-color: #dc3545;">
+        <div class="tax-title">Net GST Payable</div>
+        <div class="tax-value" style="color: #dc3545;">₹{{ "%.2f"|format(tax_data.net_gst_payable) }}</div>
+        <div class="tax-label">Amount due to government</div>
+      </div>
+    </div>
+
+    <div class="compliance-section">
+      <h4 style="margin-top: 0;">✅ Compliance Status</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <strong>Last Filing Date:</strong> {{ tax_data.last_filing_date }}
+        </div>
+        <div>
+          <strong>Next Due Date:</strong> {{ tax_data.next_due_date }}
+        </div>
+      </div>
+    </div>
+
+    <div class="filing-calendar">
+      <h4 style="color: #ffc107; margin-bottom: 20px;">📅 Filing Calendar</h4>
+      <div class="calendar-item">
+        <span><strong>GSTR-1 (Outward supplies)</strong></span>
+        <span>11th of next month</span>
+      </div>
+      <div class="calendar-item">
+        <span><strong>GSTR-3B (Summary return)</strong></span>
+        <span>20th of next month</span>
+      </div>
+      <div class="calendar-item">
+        <span><strong>GSTR-2A (Auto-populated)</strong></span>
+        <span>Auto-updated</span>
+      </div>
+      <div class="calendar-item">
+        <span><strong>Annual Return (GSTR-9)</strong></span>
+        <span>31st December (Annual)</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 30px; text-align: center;">
+    <button style="background: #ffc107; color: black; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📄 Generate GSTR-1
+    </button>
+    <button style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📊 File GSTR-3B
+    </button>
+    <button style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      💳 Pay Tax Online
+    </button>
+  </div>
+
+  <div style="margin-top: 30px; padding: 20px; background: rgba(255, 193, 7, 0.1); border-radius: 10px;">
+    <h5 style="color: #ffc107; margin-bottom: 15px;">⚠️ Important Tax Notes</h5>
+    <ul style="color: #666; margin: 0;">
+      <li>GST returns must be filed monthly by the 20th of the following month</li>
+      <li>Input tax credit can only be claimed on business purchases with valid GST invoices</li>
+      <li>Maintain proper records of all GST transactions for audit purposes</li>
+      <li>Late filing attracts penalties - ensure timely compliance</li>
+    </ul>
+  </div>
+</body>
+</html>

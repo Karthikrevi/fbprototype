@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Revenue Recognition - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .revenue-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .summary-card {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 10px;
+      text-align: center;
+      border-left: 4px solid #28a745;
+    }
+    
+    .card-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #28a745;
+      margin-bottom: 5px;
+    }
+    
+    .card-label {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .recognition-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .recognition-table th,
+    .recognition-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .recognition-table th {
+      background: #f8f9fa;
+      font-weight: bold;
+    }
+    
+    .compliance-section {
+      background: #e7f3ff;
+      border: 1px solid #b8daff;
+      color: #004085;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Financial Management</a>
+  
+  <div class="header">
+    <h1>📈 Revenue Recognition</h1>
+    <p>Automated revenue recognition per accounting standards</p>
+  </div>
+
+  <div class="revenue-container">
+    <h3 style="text-align: center; margin-bottom: 30px; color: #333;">Revenue Recognition Summary</h3>
+    
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="card-value">₹{{ "%.2f"|format(revenue_data.total_recognized) }}</div>
+        <div class="card-label">Total Recognized Revenue</div>
+      </div>
+      
+      <div class="summary-card" style="border-left-color: #ffc107;">
+        <div class="card-value" style="color: #ffc107;">₹{{ "%.2f"|format(revenue_data.deferred_revenue) }}</div>
+        <div class="card-label">Deferred Revenue</div>
+      </div>
+      
+      <div class="summary-card" style="border-left-color: #17a2b8;">
+        <div class="card-value" style="color: #17a2b8;">{{ revenue_data.recognition_method }}</div>
+        <div class="card-label">Recognition Method</div>
+      </div>
+      
+      <div class="summary-card" style="border-left-color: #6f42c1;">
+        <div class="card-value" style="color: #6f42c1;">{{ revenue_data.compliance_standard }}</div>
+        <div class="card-label">Compliance Standard</div>
+      </div>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+      <h4 style="color: #333; margin-bottom: 20px;">📊 Daily Revenue Recognition</h4>
+      <table class="recognition-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Recognized Amount</th>
+            <th>Transaction Count</th>
+            <th>Recognition Basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for daily in revenue_data.daily_revenue %}
+          <tr>
+            <td>{{ daily[0] }}</td>
+            <td>₹{{ "%.2f"|format(daily[1]) }}</td>
+            <td>{{ daily[2] }}</td>
+            <td>Point of Sale</td>
+          </tr>
+          {% endfor %}
+          
+          {% if not revenue_data.daily_revenue %}
+          <tr>
+            <td colspan="4" style="text-align: center; color: #666; padding: 40px;">
+              No revenue recognition data available for the current period.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="compliance-section">
+      <h4 style="margin-top: 0;">✅ Revenue Recognition Compliance</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <strong>Recognition Principle:</strong><br>
+          Revenue is recognized when goods are delivered or services are performed
+        </div>
+        <div>
+          <strong>Accounting Standard:</strong><br>
+          {{ revenue_data.compliance_standard }}
+        </div>
+        <div>
+          <strong>Recognition Timing:</strong><br>
+          • Product sales: Point of delivery<br>
+          • Services: Upon completion
+        </div>
+        <div>
+          <strong>Contract Liability:</strong><br>
+          Advance payments recorded as deferred revenue
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 30px; text-align: center;">
+    <button style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📄 Generate Revenue Report
+    </button>
+    <button style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📊 Deferred Revenue Analysis
+    </button>
+    <button style="background: #6f42c1; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📈 Recognition Schedule
+    </button>
+  </div>
+</body>
+</html>

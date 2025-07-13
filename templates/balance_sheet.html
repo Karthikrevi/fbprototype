@@ -116,7 +116,7 @@
   
   <div class="header">
     <h1>⚖️ Balance Sheet</h1>
-    <p>Financial position statement as of {{ "now"|strftime("%B %d, %Y") }}</p>
+    <p>Financial position statement as of {{ moment().strftime("%B %d, %Y") if moment else "December 31, 2024" }}</p>
   </div>
 
   <div class="balance-sheet-container">

@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cash Flow Statement - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .cash-flow-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .section {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+    
+    .line-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .line-item.total {
+      font-weight: bold;
+      font-size: 1.1rem;
+      border-bottom: 2px solid #333;
+      margin-top: 10px;
+    }
+    
+    .line-item.grand-total {
+      font-weight: bold;
+      font-size: 1.2rem;
+      background: #667eea;
+      color: white;
+      padding: 12px;
+      border-radius: 5px;
+      margin-top: 15px;
+      border-bottom: none;
+    }
+    
+    .amount {
+      font-family: monospace;
+      font-weight: bold;
+    }
+    
+    .positive { color: #28a745; }
+    .negative { color: #dc3545; }
+    
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Financial Management</a>
+  
+  <div class="header">
+    <h1>💵 Cash Flow Statement</h1>
+    <p>Statement of cash flows for the current period</p>
+  </div>
+
+  <div class="cash-flow-container">
+    <h3 style="text-align: center; margin-bottom: 30px; color: #333;">Cash Flow Statement</h3>
+    
+    <!-- Operating Activities -->
+    <div class="section">
+      <div class="section-title">Operating Activities</div>
+      <div class="line-item">
+        <span>Cash received from customers</span>
+        <span class="amount positive">₹{{ "%.2f"|format(cash_flow.operating.cash_from_sales) }}</span>
+      </div>
+      <div class="line-item">
+        <span>Cash paid for expenses</span>
+        <span class="amount negative">₹{{ "%.2f"|format(cash_flow.operating.cash_for_expenses) }}</span>
+      </div>
+      <div class="line-item total">
+        <span>Net Cash from Operating Activities</span>
+        <span class="amount {{ 'positive' if cash_flow.operating.net_operating >= 0 else 'negative' }}">₹{{ "%.2f"|format(cash_flow.operating.net_operating) }}</span>
+      </div>
+    </div>
+
+    <!-- Investing Activities -->
+    <div class="section">
+      <div class="section-title">Investing Activities</div>
+      <div class="line-item">
+        <span>Equipment purchases</span>
+        <span class="amount negative">₹{{ "%.2f"|format(cash_flow.investing.equipment_purchases) }}</span>
+      </div>
+      <div class="line-item total">
+        <span>Net Cash from Investing Activities</span>
+        <span class="amount {{ 'positive' if cash_flow.investing.net_investing >= 0 else 'negative' }}">₹{{ "%.2f"|format(cash_flow.investing.net_investing) }}</span>
+      </div>
+    </div>
+
+    <!-- Financing Activities -->
+    <div class="section">
+      <div class="section-title">Financing Activities</div>
+      <div class="line-item">
+        <span>Loans and borrowings</span>
+        <span class="amount">₹0.00</span>
+      </div>
+      <div class="line-item total">
+        <span>Net Cash from Financing Activities</span>
+        <span class="amount">₹{{ "%.2f"|format(cash_flow.financing.net_financing) }}</span>
+      </div>
+    </div>
+
+    <!-- Net Change in Cash -->
+    <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #667eea;">
+      <div class="line-item">
+        <span>Net increase (decrease) in cash</span>
+        <span class="amount {{ 'positive' if cash_flow.net_change >= 0 else 'negative' }}">₹{{ "%.2f"|format(cash_flow.net_change) }}</span>
+      </div>
+      <div class="line-item">
+        <span>Cash at beginning of period</span>
+        <span class="amount">₹{{ "%.2f"|format(cash_flow.beginning_cash) }}</span>
+      </div>
+      <div class="line-item grand-total">
+        <span>Cash at end of period</span>
+        <span class="amount">₹{{ "%.2f"|format(cash_flow.ending_cash) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 30px; text-align: center;">
+    <button style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📄 Export PDF
+    </button>
+    <button style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
+      📊 Export Excel
+    </button>
+  </div>
+</body>
+</html>

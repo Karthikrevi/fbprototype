@@ -137,7 +137,7 @@
         <div>Pending Invoices</div>
       </div>
       <div class="summary-card">
-        <div class="summary-value">{{ "%.1f"|format((ar_summary[1] / (ar_summary[0] + ar_summary[1]) * 100) if (ar_summary[0] + ar_summary[1]) > 0 else 0) }}%</div>
+        <div class="summary-value">{{ "%.1f"|format(((ar_summary[1] or 0) / ((ar_summary[0] or 0) + (ar_summary[1] or 0)) * 100) if ((ar_summary[0] or 0) + (ar_summary[1] or 0)) > 0 else 0) }}%</div>
         <div>Collection Rate</div>
       </div>
     </div>
