@@ -3462,7 +3462,7 @@ def erp_orders():
     c.execute("""
         SELECT o.id, o.user_email, o.total_amount, o.status, o.delivery_type, 
                o.delivery_address, o.estimated_delivery, o.order_date, o.tracking_notes,
-               o.delivery_fee, o.created_at,
+               o.delivery_fee, o.order_date,
                COUNT(oi.id) as item_count,
                CASE 
                  WHEN o.delivery_type = 'same_day' THEN 'urgent'
