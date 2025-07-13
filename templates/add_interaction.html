@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Interaction - FurrButler CRM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+      color: white;
+    }
+    .section-header {
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+      padding: 12px 30px;
+      border-radius: 10px;
+    }
+    .form-label {
+      font-weight: 500;
+      color: #555;
+    }
+    .required {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/crm/interactions" class="back-btn">← Back to Interactions</a>
+
+    <div class="form-container">
+      <h3 class="mb-4"><i class="fas fa-comments"></i> Log Customer Interaction</h3>
+
+      <form method="POST">
+        <!-- Customer Selection -->
+        <div class="section-header">
+          <i class="fas fa-user"></i> Customer & Interaction Type
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Customer <span class="required">*</span></label>
+            <select class="form-select" name="customer_id" required>
+              <option value="">Select Customer</option>
+              {% for customer in customers %}
+                <option value="{{ customer[0] }}" {% if request.args.get('customer_id') == customer[0]|string %}selected{% endif %}>
+                  {{ customer[1] }} {{ customer[2] or '' }} ({{ customer[3] or 'No email' }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Interaction Type <span class="required">*</span></label>
+            <select class="form-select" name="interaction_type" required>
+              <option value="">Select Type</option>
+              <option value="call">Phone Call</option>
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="in_person">In-Person Meeting</option>
+              <option value="website">Website Chat</option>
+              <option value="social_media">Social Media</option>
+              <option value="chat">Live Chat</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Direction <span class="required">*</span></label>
+            <select class="form-select" name="direction" required>
+              <option value="">Select Direction</option>
+              <option value="inbound">Inbound (Customer contacted us)</option>
+              <option value="outbound">Outbound (We contacted customer)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Duration (minutes)</label>
+            <input type="number" class="form-control" name="duration_minutes" min="0" max="300">
+          </div>
+        </div>
+
+        <!-- Interaction Details -->
+        <div class="section-header">
+          <i class="fas fa-clipboard"></i> Interaction Details
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-control" name="subject" placeholder="Brief subject of the interaction">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Description <span class="required">*</span></label>
+          <textarea class="form-control" name="description" rows="4" required placeholder="Detailed description of what was discussed..."></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Outcome</label>
+          <select class="form-select" name="outcome">
+            <option value="">Select Outcome</option>
+            <option value="successful">Successful - Achieved objective</option>
+            <option value="partial">Partial success</option>
+            <option value="no_answer">No answer / Not reachable</option>
+            <option value="need_follow_up">Needs follow-up</option>
+            <option value="not_interested">Not interested</option>
+            <option value="information_provided">Information provided</option>
+            <option value="appointment_scheduled">Appointment scheduled</option>
+            <option value="complaint_resolved">Complaint resolved</option>
+            <option value="order_placed">Order placed</option>
+          </select>
+        </div>
+
+        <!-- Follow-up -->
+        <div class="section-header">
+          <i class="fas fa-calendar"></i> Follow-up
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="follow_up_required" id="followUpCheck" onchange="toggleFollowUpDate()">
+              <label class="form-check-label" for="followUpCheck">
+                Follow-up required
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Follow-up Date</label>
+            <input type="date" class="form-control" name="follow_up_date" id="followUpDate" disabled>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Log Interaction
+          </button>
+          <a href="/erp/crm/interactions" class="btn btn-secondary ms-3">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleFollowUpDate() {
+      const checkbox = document.getElementById('followUpCheck');
+      const dateField = document.getElementById('followUpDate');
+      
+      if (checkbox.checked) {
+        dateField.disabled = false;
+        dateField.required = true;
+      } else {
+        dateField.disabled = true;
+        dateField.required = false;
+        dateField.value = '';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Details - FurrButler CRM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .profile-header {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    .content-section {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+      color: white;
+    }
+    .customer-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .status-active { background-color: #d4edda; color: #155724; }
+    .status-prospect { background-color: #fff3cd; color: #856404; }
+    .status-inactive { background-color: #f8d7da; color: #721c24; }
+    .lifecycle-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .lifecycle-new { background-color: #cff4fc; color: #055160; }
+    .lifecycle-lead { background-color: #fff3cd; color: #856404; }
+    .lifecycle-customer { background-color: #d4edda; color: #155724; }
+    .lifecycle-vip { background-color: #f3e5f5; color: #6a1b9a; }
+    .stats-row {
+      display: flex;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .interaction-item {
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #f8f9fa;
+      border-radius: 0 10px 10px 0;
+    }
+    .pet-card {
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .order-item {
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      background: #f8f9fa;
+    }
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/crm/customers" class="back-btn">← Back to Customers</a>
+
+    <!-- Customer Profile Header -->
+    <div class="profile-header">
+      <div class="row">
+        <div class="col-md-2">
+          <div class="customer-avatar">
+            {{ customer[4][0].upper() }}{{ customer[5][0].upper() if customer[5] else '' }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h3>{{ customer[4] }} {{ customer[5] or '' }}</h3>
+          <p class="mb-2">
+            {% if customer[3] %}
+              <i class="fas fa-envelope"></i> {{ customer[3] }} | 
+            {% endif %}
+            {% if customer[6] %}
+              <i class="fas fa-phone"></i> {{ customer[6] }}
+            {% endif %}
+          </p>
+          <p class="mb-2">
+            {% if customer[8] or customer[9] %}
+              <i class="fas fa-map-marker-alt"></i> {{ customer[8] or '' }}{% if customer[8] and customer[9] %}, {% endif %}{{ customer[9] or '' }}
+            {% endif %}
+          </p>
+          <div class="mt-3">
+            <span class="status-badge status-{{ customer[12] }}">{{ customer[12] }}</span>
+            <span class="lifecycle-badge lifecycle-{{ customer[13] }} ms-2">{{ customer[13].replace('_', ' ').title() }}</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-value">₹{{ "%.0f"|format(customer[18] or 0) }}</div>
+              <div class="stat-label">Total Spent</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ customer[19] or 0 }}</div>
+              <div class="stat-label">Orders</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ pets|length }}</div>
+              <div class="stat-label">Pets</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {% if customer[17] %}
+        <div class="mt-3">
+          <strong>Notes:</strong> {{ customer[17] }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="row">
+      <!-- Left Column -->
+      <div class="col-md-6">
+        <!-- Pet Information -->
+        <div class="content-section">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="fas fa-paw"></i> Pet Information</h5>
+          </div>
+          
+          {% if pets %}
+            {% for pet in pets %}
+              <div class="pet-card">
+                <div class="row">
+                  <div class="col-md-8">
+                    <h6>{{ pet[2] }}</h6>
+                    {% if pet[3] %}
+                      <p class="mb-1"><strong>Type:</strong> {{ pet[3].title() }}</p>
+                    {% endif %}
+                    {% if pet[4] %}
+                      <p class="mb-1"><strong>Breed:</strong> {{ pet[4] }}</p>
+                    {% endif %}
+                    {% if pet[5] %}
+                      <p class="mb-1"><strong>Age:</strong> {{ pet[5] }} years</p>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-4">
+                    {% if pet[6] %}
+                      <p class="mb-1"><strong>Weight:</strong> {{ pet[6] }} kg</p>
+                    {% endif %}
+                    {% if pet[8] %}
+                      <p class="mb-1"><strong>Gender:</strong> {{ pet[8].title() }}</p>
+                    {% endif %}
+                  </div>
+                </div>
+                {% if pet[10] %}
+                  <div class="mt-2">
+                    <small><strong>Special Needs:</strong> {{ pet[10] }}</small>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> No pet information available.
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Purchase History -->
+        <div class="content-section">
+          <h5><i class="fas fa-shopping-cart"></i> Purchase History</h5>
+          
+          {% if purchase_history %}
+            {% for order in purchase_history %}
+              <div class="order-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6>Order #{{ order[0] }}</h6>
+                    <p class="mb-1">{{ order[4] }} items | Status: <span class="badge bg-{{ 'success' if order[2] == 'delivered' else 'primary' }}">{{ order[2].title() }}</span></p>
+                    <small class="text-muted">{{ order[3][:10] }}</small>
+                  </div>
+                  <div class="text-end">
+                    <strong>₹{{ "%.2f"|format(order[1]) }}</strong>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> No purchase history available.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="col-md-6">
+        <!-- Interaction History -->
+        <div class="content-section">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="fas fa-comments"></i> Interaction History</h5>
+            <a href="/erp/crm/interaction/add?customer_id={{ customer[0] }}" class="btn btn-primary btn-sm">
+              <i class="fas fa-plus"></i> Add Interaction
+            </a>
+          </div>
+          
+          {% if interactions %}
+            {% for interaction in interactions %}
+              <div class="interaction-item">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <span class="badge bg-primary">{{ interaction[3].replace('_', ' ').title() }}</span>
+                    <span class="badge bg-secondary ms-1">{{ interaction[4].title() }}</span>
+                  </div>
+                  <small class="text-muted">{{ interaction[11][:16] }}</small>
+                </div>
+                
+                {% if interaction[5] %}
+                  <h6>{{ interaction[5] }}</h6>
+                {% endif %}
+                
+                {% if interaction[6] %}
+                  <p class="mb-2">{{ interaction[6] }}</p>
+                {% endif %}
+                
+                {% if interaction[7] %}
+                  <div class="mt-2">
+                    <small><strong>Outcome:</strong> {{ interaction[7] }}</small>
+                  </div>
+                {% endif %}
+                
+                {% if interaction[8] and interaction[9] %}
+                  <div class="mt-2">
+                    <small><strong>Follow-up required:</strong> {{ interaction[9] }}</small>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> No interactions recorded yet.
+              <a href="/erp/crm/interaction/add?customer_id={{ customer[0] }}" class="btn btn-primary btn-sm ms-2">Add First Interaction</a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Opportunities -->
+        <div class="content-section">
+          <h5><i class="fas fa-bullseye"></i> Opportunities</h5>
+          
+          {% if opportunities %}
+            {% for opp in opportunities %}
+              <div class="order-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6>{{ opp[3] }}</h6>
+                    <p class="mb-1">Stage: <span class="badge bg-warning">{{ opp[5].replace('_', ' ').title() }}</span></p>
+                    <small class="text-muted">{{ opp[8] or 'No close date set' }}</small>
+                  </div>
+                  <div class="text-end">
+                    {% if opp[7] %}
+                      <strong>₹{{ "%.0f"|format(opp[7]) }}</strong><br>
+                    {% endif %}
+                    <small>{{ opp[6] or 0 }}% probability</small>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> No opportunities tracked.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

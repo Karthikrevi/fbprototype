@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Customer - FurrButler CRM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+      color: white;
+    }
+    .section-header {
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+      padding: 12px 30px;
+      border-radius: 10px;
+    }
+    .form-label {
+      font-weight: 500;
+      color: #555;
+    }
+    .required {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/crm/customers" class="back-btn">← Back to Customers</a>
+
+    <div class="form-container">
+      <h3 class="mb-4"><i class="fas fa-user-plus"></i> Add New Customer</h3>
+
+      <form method="POST">
+        <!-- Customer Type -->
+        <div class="section-header">
+          <i class="fas fa-tag"></i> Customer Type & Basic Info
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Customer Type <span class="required">*</span></label>
+            <select class="form-select" name="customer_type" required>
+              <option value="online">Online Customer</option>
+              <option value="offline">Offline Customer</option>
+              <option value="lead">Lead/Prospect</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="user_email" placeholder="customer@example.com">
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">First Name <span class="required">*</span></label>
+            <input type="text" class="form-control" name="first_name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Last Name</label>
+            <input type="text" class="form-control" name="last_name">
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="section-header">
+          <i class="fas fa-phone"></i> Contact Information
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Primary Phone</label>
+            <input type="tel" class="form-control" name="phone" placeholder="+91-9876543210">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Secondary Phone</label>
+            <input type="tel" class="form-control" name="secondary_phone">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Preferred Contact Method</label>
+          <select class="form-select" name="preferred_contact_method">
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="sms">SMS</option>
+          </select>
+        </div>
+
+        <!-- Address Information -->
+        <div class="section-header">
+          <i class="fas fa-map-marker-alt"></i> Address Information
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Address</label>
+          <textarea class="form-control" name="address" rows="2"></textarea>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label class="form-label">City</label>
+            <input type="text" class="form-control" name="city">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">State</label>
+            <input type="text" class="form-control" name="state">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">PIN Code</label>
+            <input type="text" class="form-control" name="pincode">
+          </div>
+        </div>
+
+        <!-- Customer Details -->
+        <div class="section-header">
+          <i class="fas fa-user-cog"></i> Customer Details
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Customer Source</label>
+            <select class="form-select" name="customer_source">
+              <option value="">Select Source</option>
+              <option value="website">Website</option>
+              <option value="referral">Referral</option>
+              <option value="social_media">Social Media</option>
+              <option value="advertisement">Advertisement</option>
+              <option value="walk_in">Walk-in</option>
+              <option value="phone_inquiry">Phone Inquiry</option>
+              <option value="event">Event/Exhibition</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Customer Status</label>
+            <select class="form-select" name="customer_status">
+              <option value="active">Active</option>
+              <option value="prospect">Prospect</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Lifecycle Stage</label>
+          <select class="form-select" name="lifecycle_stage">
+            <option value="new">New</option>
+            <option value="lead">Lead</option>
+            <option value="opportunity">Opportunity</option>
+            <option value="customer">Customer</option>
+            <option value="repeat_customer">Repeat Customer</option>
+            <option value="vip">VIP</option>
+          </select>
+        </div>
+
+        <!-- Pet Information (Optional) -->
+        <div class="section-header">
+          <i class="fas fa-paw"></i> Pet Information (Optional)
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Pet Name</label>
+            <input type="text" class="form-control" name="pet_name">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Pet Type</label>
+            <select class="form-select" name="pet_type">
+              <option value="">Select Pet Type</option>
+              <option value="dog">Dog</option>
+              <option value="cat">Cat</option>
+              <option value="bird">Bird</option>
+              <option value="fish">Fish</option>
+              <option value="rabbit">Rabbit</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Breed</label>
+            <input type="text" class="form-control" name="breed">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Age (years)</label>
+            <input type="number" class="form-control" name="age" min="0" max="30">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" class="form-control" name="weight" min="0" step="0.1">
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Gender</label>
+            <select class="form-select" name="gender">
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Special Needs</label>
+            <input type="text" class="form-control" name="special_needs" placeholder="Any special care requirements">
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="section-header">
+          <i class="fas fa-sticky-note"></i> Additional Notes
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" rows="3" placeholder="Any additional information about the customer..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Add Customer
+          </button>
+          <a href="/erp/crm/customers" class="btn btn-secondary ms-3">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

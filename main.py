@@ -578,6 +578,183 @@ def init_erp_db():
         )
     ''')
 
+    # CRM Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            customer_type TEXT DEFAULT 'online' CHECK(customer_type IN ('online', 'offline', 'lead')),
+            user_email TEXT,
+            first_name TEXT NOT NULL,
+            last_name TEXT,
+            phone TEXT,
+            secondary_phone TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            pincode TEXT,
+            date_of_birth TEXT,
+            customer_source TEXT,
+            acquisition_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            customer_status TEXT DEFAULT 'active' CHECK(customer_status IN ('active', 'inactive', 'prospect', 'churned')),
+            lifecycle_stage TEXT DEFAULT 'new' CHECK(lifecycle_stage IN ('new', 'lead', 'opportunity', 'customer', 'repeat_customer', 'vip')),
+            assigned_to TEXT,
+            notes TEXT,
+            preferred_contact_method TEXT DEFAULT 'email' CHECK(preferred_contact_method IN ('email', 'phone', 'whatsapp', 'sms')),
+            last_contact_date TEXT,
+            next_follow_up_date TEXT,
+            total_spent REAL DEFAULT 0.0,
+            total_orders INTEGER DEFAULT 0,
+            avg_order_value REAL DEFAULT 0.0,
+            customer_ltv REAL DEFAULT 0.0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_pets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            pet_name TEXT NOT NULL,
+            pet_type TEXT,
+            breed TEXT,
+            age INTEGER,
+            weight REAL,
+            color TEXT,
+            gender TEXT,
+            microchip_number TEXT,
+            special_needs TEXT,
+            allergies TEXT,
+            medical_conditions TEXT,
+            vaccination_status TEXT,
+            last_visit_date TEXT,
+            next_appointment_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES crm_customers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_interactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            interaction_type TEXT NOT NULL CHECK(interaction_type IN ('call', 'email', 'sms', 'whatsapp', 'in_person', 'website', 'social_media', 'chat')),
+            direction TEXT NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+            subject TEXT,
+            description TEXT,
+            outcome TEXT,
+            follow_up_required BOOLEAN DEFAULT 0,
+            follow_up_date TEXT,
+            duration_minutes INTEGER,
+            created_by TEXT NOT NULL,
+            interaction_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            attachments TEXT,
+            tags TEXT,
+            FOREIGN KEY (customer_id) REFERENCES crm_customers(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_opportunities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            opportunity_name TEXT NOT NULL,
+            opportunity_type TEXT,
+            stage TEXT DEFAULT 'prospecting' CHECK(stage IN ('prospecting', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost')),
+            probability INTEGER DEFAULT 10,
+            expected_value REAL,
+            expected_close_date TEXT,
+            actual_close_date TEXT,
+            source TEXT,
+            description TEXT,
+            next_action TEXT,
+            assigned_to TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES crm_customers(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_campaigns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            campaign_name TEXT NOT NULL,
+            campaign_type TEXT CHECK(campaign_type IN ('email', 'sms', 'whatsapp', 'promotional', 'retention', 'acquisition')),
+            description TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            budget REAL,
+            target_audience TEXT,
+            status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'active', 'paused', 'completed')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_campaign_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            campaign_id INTEGER NOT NULL,
+            customer_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'sent' CHECK(status IN ('sent', 'delivered', 'opened', 'clicked', 'responded', 'unsubscribed')),
+            sent_date TEXT,
+            response_date TEXT,
+            FOREIGN KEY (campaign_id) REFERENCES crm_campaigns(id),
+            FOREIGN KEY (customer_id) REFERENCES crm_customers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            customer_id INTEGER,
+            task_type TEXT CHECK(task_type IN ('call', 'email', 'meeting', 'follow_up', 'demo', 'quote')),
+            title TEXT NOT NULL,
+            description TEXT,
+            priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'cancelled')),
+            due_date TEXT,
+            assigned_to TEXT,
+            completed_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id),
+            FOREIGN KEY (customer_id) REFERENCES crm_customers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_offline_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            collected_by TEXT NOT NULL,
+            first_name TEXT NOT NULL,
+            last_name TEXT,
+            phone TEXT,
+            email TEXT,
+            address TEXT,
+            city TEXT,
+            pet_name TEXT,
+            pet_type TEXT,
+            service_interest TEXT,
+            notes TEXT,
+            collection_method TEXT CHECK(collection_method IN ('business_card', 'form', 'phone_call', 'referral', 'event')),
+            follow_up_priority TEXT DEFAULT 'medium' CHECK(follow_up_priority IN ('low', 'medium', 'high')),
+            invited_status TEXT DEFAULT 'pending' CHECK(invited_status IN ('pending', 'invited', 'joined', 'declined')),
+            invitation_sent_date TEXT,
+            joined_date TEXT,
+            collection_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
     # Enhanced Order Management Tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS order_status_log (
@@ -5995,6 +6172,541 @@ def get_translations(lang_code):
         return jsonify(i18n.translations.get(lang_code, {}))
     else:
         return {"error": "Language not supported"}, 404
+
+# ---- CRM ROUTES ----
+
+@app.route('/erp/crm')
+def crm_dashboard():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("crm_dashboard.html", stats={}, recent_interactions=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get CRM statistics
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id = ?", (vendor_id,))
+    total_customers = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id = ? AND customer_status = 'prospect'", (vendor_id,))
+    total_prospects = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_opportunities WHERE vendor_id = ? AND stage NOT IN ('closed_won', 'closed_lost')", (vendor_id,))
+    active_opportunities = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(expected_value), 0) FROM crm_opportunities WHERE vendor_id = ? AND stage NOT IN ('closed_won', 'closed_lost')", (vendor_id,))
+    pipeline_value = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status = 'pending' AND due_date <= date('now', '+7 days')", (vendor_id,))
+    upcoming_tasks = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_offline_data WHERE vendor_id = ? AND invited_status = 'pending'", (vendor_id,))
+    offline_leads = c.fetchone()[0] or 0
+
+    stats = {
+        'total_customers': total_customers,
+        'total_prospects': total_prospects,
+        'active_opportunities': active_opportunities,
+        'pipeline_value': pipeline_value,
+        'upcoming_tasks': upcoming_tasks,
+        'offline_leads': offline_leads
+    }
+
+    # Get recent interactions
+    c.execute("""
+        SELECT ci.interaction_type, ci.description, ci.interaction_date, 
+               cc.first_name, cc.last_name, ci.outcome
+        FROM crm_interactions ci
+        JOIN crm_customers cc ON ci.customer_id = cc.id
+        WHERE ci.vendor_id = ?
+        ORDER BY ci.interaction_date DESC
+        LIMIT 10
+    """, (vendor_id,))
+    recent_interactions = c.fetchall()
+
+    conn.close()
+    return render_template("crm_dashboard.html", stats=stats, recent_interactions=recent_interactions)
+
+@app.route('/erp/crm/customers')
+def crm_customers():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("crm_customers.html", customers=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all customers for this vendor
+    c.execute("""
+        SELECT cc.*, 
+               COUNT(DISTINCT cp.id) as pet_count,
+               COUNT(DISTINCT ci.id) as interaction_count,
+               MAX(ci.interaction_date) as last_interaction
+        FROM crm_customers cc
+        LEFT JOIN crm_pets cp ON cc.id = cp.customer_id
+        LEFT JOIN crm_interactions ci ON cc.id = ci.customer_id
+        WHERE cc.vendor_id = ?
+        GROUP BY cc.id
+        ORDER BY cc.created_at DESC
+    """, (vendor_id,))
+    customers = c.fetchall()
+
+    conn.close()
+    return render_template("crm_customers.html", customers=customers)
+
+@app.route('/erp/crm/customer/<int:customer_id>')
+def crm_customer_detail(customer_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID and verify access
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return "Vendor not found", 404
+
+    vendor_id = vendor_result[0]
+
+    # Get customer details
+    c.execute("SELECT * FROM crm_customers WHERE id = ? AND vendor_id = ?", (customer_id, vendor_id))
+    customer = c.fetchone()
+    if not customer:
+        conn.close()
+        return "Customer not found", 404
+
+    # Get customer's pets
+    c.execute("SELECT * FROM crm_pets WHERE customer_id = ?", (customer_id,))
+    pets = c.fetchall()
+
+    # Get interaction history
+    c.execute("""
+        SELECT * FROM crm_interactions 
+        WHERE customer_id = ? 
+        ORDER BY interaction_date DESC
+    """, (customer_id,))
+    interactions = c.fetchall()
+
+    # Get opportunities
+    c.execute("SELECT * FROM crm_opportunities WHERE customer_id = ?", (customer_id,))
+    opportunities = c.fetchall()
+
+    # Get purchase history from existing orders
+    c.execute("""
+        SELECT o.id, o.total_amount, o.status, o.order_date,
+               COUNT(oi.id) as item_count
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        WHERE o.user_email = ? AND o.vendor_id = ?
+        GROUP BY o.id
+        ORDER BY o.order_date DESC
+    """, (customer[3], vendor_id))  # customer[3] is user_email
+    purchase_history = c.fetchall()
+
+    conn.close()
+    return render_template("crm_customer_detail.html", 
+                         customer=customer, 
+                         pets=pets, 
+                         interactions=interactions, 
+                         opportunities=opportunities,
+                         purchase_history=purchase_history)
+
+@app.route('/erp/crm/customer/add', methods=["GET", "POST"])
+def add_crm_customer():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    
+    if request.method == "POST":
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            conn.close()
+            flash("Vendor not found")
+            return redirect(url_for("crm_customers"))
+
+        vendor_id = vendor_result[0]
+
+        # Get form data
+        customer_data = {
+            'customer_type': request.form.get("customer_type", "online"),
+            'user_email': request.form.get("user_email"),
+            'first_name': request.form.get("first_name"),
+            'last_name': request.form.get("last_name"),
+            'phone': request.form.get("phone"),
+            'secondary_phone': request.form.get("secondary_phone"),
+            'address': request.form.get("address"),
+            'city': request.form.get("city"),
+            'state': request.form.get("state"),
+            'pincode': request.form.get("pincode"),
+            'customer_source': request.form.get("customer_source"),
+            'customer_status': request.form.get("customer_status", "active"),
+            'lifecycle_stage': request.form.get("lifecycle_stage", "new"),
+            'notes': request.form.get("notes"),
+            'preferred_contact_method': request.form.get("preferred_contact_method", "email")
+        }
+
+        # Insert customer
+        c.execute("""
+            INSERT INTO crm_customers 
+            (vendor_id, customer_type, user_email, first_name, last_name, phone, secondary_phone, 
+             address, city, state, pincode, customer_source, customer_status, lifecycle_stage, 
+             notes, preferred_contact_method, assigned_to)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, customer_data['customer_type'], customer_data['user_email'], 
+              customer_data['first_name'], customer_data['last_name'], customer_data['phone'],
+              customer_data['secondary_phone'], customer_data['address'], customer_data['city'],
+              customer_data['state'], customer_data['pincode'], customer_data['customer_source'],
+              customer_data['customer_status'], customer_data['lifecycle_stage'], 
+              customer_data['notes'], customer_data['preferred_contact_method'], email))
+
+        customer_id = c.lastrowid
+
+        # Add pet information if provided
+        pet_name = request.form.get("pet_name")
+        if pet_name:
+            c.execute("""
+                INSERT INTO crm_pets 
+                (customer_id, pet_name, pet_type, breed, age, weight, gender, special_needs)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (customer_id, pet_name, request.form.get("pet_type"), 
+                  request.form.get("breed"), request.form.get("age"),
+                  request.form.get("weight"), request.form.get("gender"),
+                  request.form.get("special_needs")))
+
+        conn.commit()
+        conn.close()
+
+        flash("Customer added successfully!")
+        return redirect(url_for("crm_customer_detail", customer_id=customer_id))
+
+    return render_template("add_crm_customer.html")
+
+@app.route('/erp/crm/offline-data')
+def crm_offline_data():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("crm_offline_data.html", offline_data=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all offline data for this vendor
+    c.execute("""
+        SELECT * FROM crm_offline_data 
+        WHERE vendor_id = ? 
+        ORDER BY collection_date DESC
+    """, (vendor_id,))
+    offline_data = c.fetchall()
+
+    conn.close()
+    return render_template("crm_offline_data.html", offline_data=offline_data)
+
+@app.route('/erp/crm/offline-data/add', methods=["GET", "POST"])
+def add_offline_data():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    
+    if request.method == "POST":
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            conn.close()
+            flash("Vendor not found")
+            return redirect(url_for("crm_offline_data"))
+
+        vendor_id = vendor_result[0]
+
+        # Insert offline data
+        c.execute("""
+            INSERT INTO crm_offline_data 
+            (vendor_id, collected_by, first_name, last_name, phone, email, address, city,
+             pet_name, pet_type, service_interest, notes, collection_method, follow_up_priority)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, email, request.form.get("first_name"), request.form.get("last_name"),
+              request.form.get("phone"), request.form.get("email"), request.form.get("address"),
+              request.form.get("city"), request.form.get("pet_name"), request.form.get("pet_type"),
+              request.form.get("service_interest"), request.form.get("notes"),
+              request.form.get("collection_method"), request.form.get("follow_up_priority")))
+
+        conn.commit()
+        conn.close()
+
+        flash("Offline customer data added successfully!")
+        return redirect(url_for("crm_offline_data"))
+
+    return render_template("add_offline_data.html")
+
+@app.route('/erp/crm/offline-data/invite/<int:data_id>', methods=["POST"])
+def invite_offline_customer(data_id):
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"error": "Vendor not found"}, 404
+
+    vendor_id = vendor_result[0]
+
+    # Get offline data
+    c.execute("SELECT * FROM crm_offline_data WHERE id = ? AND vendor_id = ?", (data_id, vendor_id))
+    offline_data = c.fetchone()
+    if not offline_data:
+        conn.close()
+        return {"error": "Data not found"}, 404
+
+    # Update invitation status
+    c.execute("""
+        UPDATE crm_offline_data 
+        SET invited_status = 'invited', invitation_sent_date = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (data_id,))
+
+    # Add to CRM customers if they have an email
+    if offline_data[5]:  # email field
+        # Check if customer already exists
+        c.execute("SELECT id FROM crm_customers WHERE user_email = ? AND vendor_id = ?", 
+                 (offline_data[5], vendor_id))
+        existing = c.fetchone()
+        
+        if not existing:
+            c.execute("""
+                INSERT INTO crm_customers 
+                (vendor_id, customer_type, user_email, first_name, last_name, phone, address, city,
+                 customer_source, customer_status, lifecycle_stage, notes, assigned_to)
+                VALUES (?, 'offline', ?, ?, ?, ?, ?, ?, 'offline_collection', 'prospect', 'lead', ?, ?)
+            """, (vendor_id, offline_data[5], offline_data[3], offline_data[4], offline_data[6],
+                  offline_data[7], offline_data[8], f"Offline collection: {offline_data[12]}", email))
+
+    conn.commit()
+    conn.close()
+
+    # In a real application, you would send an email/SMS invitation here
+    flash(f"Invitation sent to {offline_data[3]} {offline_data[4] or ''}")
+    return {"success": True}
+
+@app.route('/erp/crm/interactions')
+def crm_interactions():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("crm_interactions.html", interactions=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all interactions for this vendor
+    c.execute("""
+        SELECT ci.*, cc.first_name, cc.last_name, cc.customer_type
+        FROM crm_interactions ci
+        JOIN crm_customers cc ON ci.customer_id = cc.id
+        WHERE ci.vendor_id = ?
+        ORDER BY ci.interaction_date DESC
+        LIMIT 100
+    """, (vendor_id,))
+    interactions = c.fetchall()
+
+    conn.close()
+    return render_template("crm_interactions.html", interactions=interactions)
+
+@app.route('/erp/crm/interaction/add', methods=["GET", "POST"])
+def add_interaction():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    
+    if request.method == "POST":
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            conn.close()
+            flash("Vendor not found")
+            return redirect(url_for("crm_interactions"))
+
+        vendor_id = vendor_result[0]
+
+        # Insert interaction
+        c.execute("""
+            INSERT INTO crm_interactions 
+            (customer_id, vendor_id, interaction_type, direction, subject, description, 
+             outcome, follow_up_required, follow_up_date, duration_minutes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (request.form.get("customer_id"), vendor_id, request.form.get("interaction_type"),
+              request.form.get("direction"), request.form.get("subject"), 
+              request.form.get("description"), request.form.get("outcome"),
+              1 if request.form.get("follow_up_required") else 0,
+              request.form.get("follow_up_date"), request.form.get("duration_minutes"), email))
+
+        # Update customer's last contact date
+        c.execute("""
+            UPDATE crm_customers 
+            SET last_contact_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (request.form.get("customer_id"),))
+
+        conn.commit()
+        conn.close()
+
+        flash("Interaction logged successfully!")
+        return redirect(url_for("crm_interactions"))
+
+    # Get customers for dropdown
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if vendor_result:
+        vendor_id = vendor_result[0]
+        c.execute("""
+            SELECT id, first_name, last_name, user_email 
+            FROM crm_customers 
+            WHERE vendor_id = ? 
+            ORDER BY first_name
+        """, (vendor_id,))
+        customers = c.fetchall()
+    else:
+        customers = []
+    
+    conn.close()
+    return render_template("add_interaction.html", customers=customers)
+
+# Sync existing users to CRM
+@app.route('/erp/crm/sync-existing-customers', methods=["POST"])
+def sync_existing_customers():
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"error": "Vendor not found"}, 404
+
+    vendor_id = vendor_result[0]
+
+    # Get existing orders and bookings to sync customers
+    c.execute("""
+        SELECT DISTINCT user_email, SUM(total_amount) as total_spent, COUNT(*) as order_count
+        FROM orders 
+        WHERE vendor_id = ? AND user_email IS NOT NULL AND user_email != ''
+        GROUP BY user_email
+    """, (vendor_id,))
+    order_customers = c.fetchall()
+
+    c.execute("""
+        SELECT DISTINCT user_email, COUNT(*) as booking_count
+        FROM bookings 
+        WHERE vendor_id = ? AND user_email IS NOT NULL AND user_email != ''
+        GROUP BY user_email
+    """, (vendor_id,))
+    booking_customers = c.fetchall()
+
+    synced_count = 0
+
+    # Sync order customers
+    for customer in order_customers:
+        user_email = customer[0]
+        total_spent = customer[1]
+        order_count = customer[2]
+
+        # Check if already exists in CRM
+        c.execute("SELECT id FROM crm_customers WHERE user_email = ? AND vendor_id = ?", 
+                 (user_email, vendor_id))
+        existing = c.fetchone()
+
+        if not existing:
+            # Extract name from email (fallback)
+            name_part = user_email.split('@')[0]
+            first_name = name_part.replace('.', ' ').replace('_', ' ').title()
+
+            c.execute("""
+                INSERT INTO crm_customers 
+                (vendor_id, customer_type, user_email, first_name, customer_source, 
+                 customer_status, lifecycle_stage, total_spent, total_orders, 
+                 avg_order_value, assigned_to)
+                VALUES (?, 'online', ?, ?, 'marketplace', 'active', 'customer', ?, ?, ?, ?)
+            """, (vendor_id, user_email, first_name, total_spent, order_count, 
+                  total_spent / order_count if order_count > 0 else 0, email))
+            synced_count += 1
+        else:
+            # Update existing customer data
+            c.execute("""
+                UPDATE crm_customers 
+                SET total_spent = ?, total_orders = ?, avg_order_value = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (total_spent, order_count, total_spent / order_count if order_count > 0 else 0, existing[0]))
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "synced_count": synced_count}
 
 # Run app
 if __name__ == '__main__':

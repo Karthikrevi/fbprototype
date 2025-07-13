@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collect Offline Data - FurrButler CRM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    .back-btn {
+      background-color: #6c757d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+      color: white;
+    }
+    .section-header {
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+      padding: 12px 30px;
+      border-radius: 10px;
+    }
+    .form-label {
+      font-weight: 500;
+      color: #555;
+    }
+    .required {
+      color: #dc3545;
+    }
+    .info-box {
+      background: #e7f3ff;
+      border: 1px solid #b3d9ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/crm/offline-data" class="back-btn">← Back to Offline Data</a>
+
+    <div class="form-container">
+      <h3 class="mb-4"><i class="fas fa-clipboard-list"></i> Collect Offline Customer Data</h3>
+
+      <div class="info-box">
+        <h6><i class="fas fa-info-circle"></i> Quick Data Collection</h6>
+        <p class="mb-0">Use this form to quickly capture customer information from business cards, phone calls, events, or walk-ins. You can invite them to join your digital platform later.</p>
+      </div>
+
+      <form method="POST">
+        <!-- Basic Information -->
+        <div class="section-header">
+          <i class="fas fa-user"></i> Customer Information
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">First Name <span class="required">*</span></label>
+            <input type="text" class="form-control" name="first_name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Last Name</label>
+            <input type="text" class="form-control" name="last_name">
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" class="form-control" name="phone" placeholder="+91-9876543210">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" placeholder="customer@example.com">
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="section-header">
+          <i class="fas fa-map-marker-alt"></i> Location
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Address</label>
+          <textarea class="form-control" name="address" rows="2" placeholder="Customer's address"></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">City</label>
+          <input type="text" class="form-control" name="city">
+        </div>
+
+        <!-- Pet Information -->
+        <div class="section-header">
+          <i class="fas fa-paw"></i> Pet Information
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Pet Name</label>
+            <input type="text" class="form-control" name="pet_name">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Pet Type</label>
+            <select class="form-select" name="pet_type">
+              <option value="">Select Pet Type</option>
+              <option value="dog">Dog</option>
+              <option value="cat">Cat</option>
+              <option value="bird">Bird</option>
+              <option value="fish">Fish</option>
+              <option value="rabbit">Rabbit</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Service Interest -->
+        <div class="section-header">
+          <i class="fas fa-heart"></i> Service Interest
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Service Interest</label>
+          <select class="form-select" name="service_interest">
+            <option value="">What service are they interested in?</option>
+            <option value="grooming">Pet Grooming</option>
+            <option value="boarding">Pet Boarding</option>
+            <option value="veterinary">Veterinary Care</option>
+            <option value="training">Pet Training</option>
+            <option value="supplies">Pet Supplies</option>
+            <option value="multiple">Multiple Services</option>
+            <option value="not_specified">Not Specified</option>
+          </select>
+        </div>
+
+        <!-- Collection Details -->
+        <div class="section-header">
+          <i class="fas fa-clipboard"></i> Collection Details
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Collection Method</label>
+            <select class="form-select" name="collection_method">
+              <option value="business_card">Business Card</option>
+              <option value="form">Paper Form</option>
+              <option value="phone_call">Phone Call</option>
+              <option value="referral">Referral</option>
+              <option value="event">Event/Exhibition</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Follow-up Priority</label>
+            <select class="form-select" name="follow_up_priority">
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+              <option value="low">Low Priority</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" rows="3" placeholder="Any additional notes about the customer, conversation, or requirements..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Offline Data
+          </button>
+          <a href="/erp/crm/offline-data" class="btn btn-secondary ms-3">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
