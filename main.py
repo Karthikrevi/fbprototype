@@ -578,11 +578,104 @@ def init_erp_db():
         )
     ''')
 
+    # Enhanced Order Management Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS order_status_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            previous_status TEXT,
+            new_status TEXT NOT NULL,
+            changed_by TEXT NOT NULL,
+            change_reason TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS fulfillment_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            fulfillment_method TEXT DEFAULT 'warehouse',
+            delivery_time REAL,
+            on_time_delivery BOOLEAN DEFAULT 1,
+            customer_satisfaction INTEGER DEFAULT 5,
+            cost_efficiency REAL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS customer_notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            customer_email TEXT NOT NULL,
+            notification_type TEXT NOT NULL,
+            message TEXT NOT NULL,
+            delivery_method TEXT DEFAULT 'email',
+            sent_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            read_at TEXT,
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS shipping_tracking (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            tracking_number TEXT,
+            carrier TEXT,
+            shipping_method TEXT,
+            shipped_date TEXT,
+            estimated_delivery TEXT,
+            actual_delivery TEXT,
+            tracking_url TEXT,
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+    ''')
+
     # Add new columns if they don't exist
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN account_status TEXT DEFAULT 'active'")
     except sqlite3.OperationalError:
         pass  # Column already exists
+
+    # Add enhanced order management columns
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN last_updated TEXT DEFAULT CURRENT_TIMESTAMP")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN fulfillment_method TEXT DEFAULT 'warehouse'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN priority_level TEXT DEFAULT 'normal'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN shipped_date TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN tracking_number TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN carrier TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN delivery_instructions TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN break_start_date TEXT")
@@ -3345,7 +3438,7 @@ def my_orders():
     conn.close()
     return render_template("my_orders.html", order_details=order_details)
 
-# Vendor order management
+# Vendor order management with enhanced features
 @app.route('/erp/orders')
 def erp_orders():
     if "vendor" not in session:
@@ -3361,22 +3454,67 @@ def erp_orders():
 
     if not vendor_result:
         conn.close()
-        return render_template("erp_orders.html", orders=[])
+        return render_template("erp_orders.html", orders=[], order_stats={})
 
     vendor_id = vendor_result[0]
 
-    # Get all orders for this vendor
+    # Get all orders for this vendor with enhanced information
     c.execute("""
         SELECT o.id, o.user_email, o.total_amount, o.status, o.delivery_type, 
-               o.delivery_address, o.estimated_delivery, o.order_date
+               o.delivery_address, o.estimated_delivery, o.order_date, o.tracking_notes,
+               o.delivery_fee, o.created_at,
+               COUNT(oi.id) as item_count,
+               CASE 
+                 WHEN o.delivery_type = 'same_day' THEN 'urgent'
+                 WHEN o.delivery_type = 'express' THEN 'high'
+                 ELSE 'normal'
+               END as priority_level
         FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
         WHERE o.vendor_id = ?
-        ORDER BY o.order_date DESC
+        GROUP BY o.id
+        ORDER BY 
+          CASE o.status 
+            WHEN 'pending' THEN 1
+            WHEN 'confirmed' THEN 2
+            WHEN 'packed' THEN 3
+            WHEN 'shipped' THEN 4
+            WHEN 'out-for-delivery' THEN 5
+            WHEN 'delivered' THEN 6
+            ELSE 7
+          END,
+          o.order_date DESC
     """, (vendor_id,))
     orders = c.fetchall()
 
+    # Calculate order statistics
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_orders,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
+            COUNT(CASE WHEN status IN ('shipped', 'out-for-delivery') THEN 1 END) as in_transit_orders,
+            COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,
+            COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
+            AVG(total_amount) as avg_order_value,
+            SUM(CASE WHEN status = 'delivered' THEN total_amount ELSE 0 END) as delivered_revenue
+        FROM orders 
+        WHERE vendor_id = ? AND order_date >= date('now', '-30 days')
+    """, (vendor_id,))
+    
+    stats_data = c.fetchone()
+    order_stats = {
+        'total_orders': stats_data[0] or 0,
+        'pending_orders': stats_data[1] or 0,
+        'in_transit_orders': stats_data[2] or 0,
+        'delivered_orders': stats_data[3] or 0,
+        'cancelled_orders': stats_data[4] or 0,
+        'avg_order_value': stats_data[5] or 0,
+        'delivered_revenue': stats_data[6] or 0,
+        'fulfillment_rate': round((stats_data[3] / stats_data[0] * 100), 1) if stats_data[0] > 0 else 0
+    }
+
     conn.close()
-    return render_template("erp_orders.html", orders=orders)
+    return render_template("erp_orders.html", orders=orders, order_stats=order_stats)
 
 @app.route('/erp/orders/update/<int:order_id>', methods=["POST"])
 def update_order_status(order_id):
@@ -3390,17 +3528,88 @@ def update_order_status(order_id):
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Update order status
+    # Get vendor ID and verify order ownership
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        flash("Vendor not found")
+        return redirect(url_for("erp_orders"))
+
+    vendor_id = vendor_result[0]
+
+    # Get current order details
+    c.execute("""
+        SELECT o.status, o.user_email, o.delivery_type, o.total_amount 
+        FROM orders o 
+        WHERE o.id = ? AND o.vendor_id = ?
+    """, (order_id, vendor_id))
+    
+    order_data = c.fetchone()
+    if not order_data:
+        flash("Order not found")
+        return redirect(url_for("erp_orders"))
+
+    current_status, customer_email, delivery_type, order_amount = order_data
+
+    # Update order status with timestamp tracking
     c.execute("""
         UPDATE orders 
-        SET status = ?, tracking_notes = ?
-        WHERE id = ? AND vendor_id = (SELECT id FROM vendors WHERE email = ?)
-    """, (new_status, tracking_notes, order_id, email))
+        SET status = ?, tracking_notes = ?, last_updated = CURRENT_TIMESTAMP
+        WHERE id = ? AND vendor_id = ?
+    """, (new_status, tracking_notes, order_id, vendor_id))
+
+    # Log order status change for audit trail
+    c.execute("""
+        INSERT INTO order_status_log (order_id, previous_status, new_status, changed_by, change_reason, timestamp)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (order_id, current_status, new_status, email, tracking_notes))
+
+    # Update estimated delivery based on status
+    if new_status == "shipped":
+        if delivery_type == "same_day":
+            estimated_delivery = datetime.now().strftime("%Y-%m-%d")
+        elif delivery_type == "express":
+            estimated_delivery = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        else:
+            estimated_delivery = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
+        
+        c.execute("""
+            UPDATE orders 
+            SET estimated_delivery = ? 
+            WHERE id = ?
+        """, (estimated_delivery, order_id))
+
+    # Record fulfillment metrics for analytics
+    if new_status == "delivered":
+        c.execute("""
+            INSERT INTO fulfillment_metrics (order_id, delivery_time, on_time_delivery, customer_satisfaction)
+            VALUES (?, julianday('now') - julianday((SELECT order_date FROM orders WHERE id = ?)), 1, 5)
+        """, (order_id, order_id))
+
+    # Automated customer notifications (mock implementation)
+    notification_messages = {
+        "confirmed": f"Great news! Your order #{order_id} has been confirmed and is being prepared.",
+        "packed": f"Your order #{order_id} has been packed and will be shipped soon.",
+        "shipped": f"Your order #{order_id} is on its way! Track your package for updates.",
+        "out-for-delivery": f"Your order #{order_id} is out for delivery and will arrive soon!",
+        "delivered": f"Your order #{order_id} has been delivered. Thank you for your business!",
+        "cancelled": f"Your order #{order_id} has been cancelled. A refund will be processed if applicable."
+    }
+    
+    if new_status in notification_messages:
+        # In a real implementation, send email/SMS here
+        notification_message = notification_messages[new_status]
+        
+        # Log the notification
+        c.execute("""
+            INSERT INTO customer_notifications (order_id, customer_email, notification_type, message, sent_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (order_id, customer_email, "status_update", notification_message))
 
     conn.commit()
     conn.close()
 
-    flash(f"Order status updated to {new_status}")
+    flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title()}")
     return redirect(url_for("erp_orders"))
 
 @app.route('/marketplace/purchase-history')
@@ -4180,6 +4389,93 @@ def admin_refund_escrow():
         conn.rollback()
         conn.close()
         return {"error": str(e)}, 500
+
+# Fulfillment optimization API
+@app.route('/api/orders/<int:order_id>/fulfillment-options')
+def get_fulfillment_options(order_id):
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get order details
+    c.execute("""
+        SELECT o.delivery_address, o.delivery_type, o.total_amount,
+               oi.product_id, oi.quantity
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        WHERE o.id = ?
+    """, (order_id,))
+    
+    order_data = c.fetchall()
+    if not order_data:
+        conn.close()
+        return {"error": "Order not found"}, 404
+
+    # Calculate fulfillment costs and recommendations
+    delivery_address = order_data[0][0]
+    delivery_type = order_data[0][1]
+    order_value = order_data[0][2]
+
+    # Mock fulfillment options calculation
+    options = [
+        {
+            "method": "store_pickup",
+            "name": "Store Pickup",
+            "cost": 0.00,
+            "time": "Same day",
+            "availability": "Available",
+            "recommended": delivery_type == "standard" and order_value < 50
+        },
+        {
+            "method": "warehouse",
+            "name": "Warehouse Fulfillment",
+            "cost": 4.99 if delivery_type == "standard" else 8.99,
+            "time": "1-3 business days",
+            "availability": "Available",
+            "recommended": delivery_type in ["standard", "express"]
+        },
+        {
+            "method": "third_party",
+            "name": "3rd Party Fulfillment",
+            "cost": 6.99 if delivery_type == "standard" else 15.99,
+            "time": "2-5 business days" if delivery_type == "standard" else "Same day",
+            "availability": "Available",
+            "recommended": delivery_type == "same_day"
+        }
+    ]
+
+    conn.close()
+    return {"options": options}
+
+@app.route('/api/orders/<int:order_id>/update-fulfillment', methods=["POST"])
+def update_fulfillment_method(order_id):
+    if "vendor" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    data = request.get_json()
+    fulfillment_method = data.get("method")
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE orders 
+        SET fulfillment_method = ? 
+        WHERE id = ?
+    """, (fulfillment_method, order_id))
+
+    # Log the fulfillment decision
+    c.execute("""
+        INSERT INTO fulfillment_metrics (order_id, fulfillment_method, cost_efficiency)
+        VALUES (?, ?, ?)
+    """, (order_id, fulfillment_method, 0.85))  # Mock efficiency score
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "method": fulfillment_method}
 
 # Add route to get vendor's delivery prices for checkout
 @app.route('/api/vendor/<int:vendor_id>/delivery-prices')
