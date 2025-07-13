@@ -4487,6 +4487,118 @@ def inventory_analytics_alias():
     """Alias route for inventory analytics to match requested URL structure"""
     return inventory_analytics()
 
+@app.route('/erp/inventory')
+def inventory_management():
+    """Main inventory management dashboard"""
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("inventory_management.html", 
+                             inventory_summary={}, 
+                             inventory_alerts=[], 
+                             procurement_summary={},
+                             inventory_items=[],
+                             chart_data={})
+
+    vendor_id = result[0]
+
+    # Get inventory summary
+    c.execute("""
+        SELECT COUNT(*) as total_products,
+               SUM(quantity) as total_units,
+               SUM(quantity * buy_price) as total_value
+        FROM products WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    summary_data = c.fetchone()
+    inventory_summary = {
+        'total_products': summary_data[0] or 0,
+        'total_units': summary_data[1] or 0,
+        'total_value': summary_data[2] or 0,
+        'turnover_rate': 2.5  # Calculate based on sales data
+    }
+
+    # Get inventory alerts (low stock items)
+    c.execute("""
+        SELECT name, quantity FROM products 
+        WHERE vendor_id = ? AND quantity <= 5
+        ORDER BY quantity ASC
+    """, (vendor_id,))
+    
+    low_stock_items = c.fetchall()
+    inventory_alerts = []
+    for item in low_stock_items:
+        inventory_alerts.append({
+            'product_name': item[0],
+            'message': f'Low stock: only {item[1]} units remaining'
+        })
+
+    # Procurement summary (mock data)
+    procurement_summary = {
+        'pending_orders': 3,
+        'incoming_units': 150,
+        'pending_value': 12500
+    }
+
+    # Get detailed inventory items
+    c.execute("""
+        SELECT id, name, category, quantity, 
+               CASE 
+                 WHEN quantity <= 5 THEN 'Reorder Now'
+                 WHEN quantity <= 15 THEN 'Low Stock'
+                 ELSE 'Good'
+               END as status,
+               CASE 
+                 WHEN quantity <= 5 THEN 'danger'
+                 WHEN quantity <= 15 THEN 'warning'
+                 ELSE 'good'
+               END as status_class
+        FROM products 
+        WHERE vendor_id = ?
+        ORDER BY quantity ASC
+    """, (vendor_id,))
+    
+    inventory_items = []
+    for item in c.fetchall():
+        inventory_items.append({
+            'id': item[0],
+            'name': item[1],
+            'sku': f'SKU-{item[0]:04d}',
+            'category': item[2] or 'General',
+            'current_stock': item[3],
+            'location': 'Main Warehouse',
+            'reorder_point': 10,
+            'lead_time_days': 7,
+            'turnover_rate': 2.1,
+            'status': item[4],
+            'status_class': item[5],
+            'unit_type': 'units'
+        })
+
+    # Chart data (mock)
+    chart_data = {
+        'labels': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        'turnover_data': [2.1, 2.3, 2.5, 2.2, 2.4, 2.6],
+        'stock_data': [150, 145, 160, 155, 170, 165]
+    }
+
+    conn.close()
+    return render_template("inventory_management.html",
+                         inventory_summary=inventory_summary,
+                         inventory_alerts=inventory_alerts,
+                         procurement_summary=procurement_summary,
+                         inventory_items=inventory_items,
+                         chart_data=chart_data)
+
 # Import the smart inventory bot
 from inventory_bot import inventory_bot
 
