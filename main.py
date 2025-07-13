@@ -769,6 +769,37 @@ def init_erp_db():
         )
     ''')
 
+    # Discount Management Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS product_discounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            discount_type TEXT NOT NULL CHECK(discount_type IN ('percentage', 'fixed')),
+            discount_value REAL NOT NULL,
+            is_active BOOLEAN DEFAULT 1,
+            start_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            end_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vendor_blanket_discounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER UNIQUE NOT NULL,
+            discount_type TEXT NOT NULL CHECK(discount_type IN ('percentage', 'fixed')),
+            discount_value REAL NOT NULL,
+            is_active BOOLEAN DEFAULT 1,
+            start_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            end_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS fulfillment_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3514,12 +3545,27 @@ def marketplace_vendor_products(vendor_id):
         """, (vendor_id,))
         conn.commit()
 
-        # Get products with stock
+        # Get products with stock and discount information
         c.execute("""
-            SELECT id, name, description, sale_price, quantity, image_url 
-            FROM products 
-            WHERE vendor_id=? AND quantity > 0
-            ORDER BY name
+            SELECT p.id, p.name, p.description, p.sale_price, p.quantity, p.image_url,
+                   COALESCE(pd.discount_type, 'none') as discount_type,
+                   COALESCE(pd.discount_value, 0) as discount_value,
+                   COALESCE(pd.is_active, 0) as is_active,
+                   CASE 
+                     WHEN pd.discount_type = 'percentage' AND pd.is_active = 1 
+                     THEN p.sale_price * (1 - pd.discount_value / 100)
+                     WHEN pd.discount_type = 'fixed' AND pd.is_active = 1 
+                     THEN p.sale_price - pd.discount_value
+                     ELSE p.sale_price
+                   END as discounted_price,
+                   CASE 
+                     WHEN pd.discount_type IS NOT NULL AND pd.is_active = 1 
+                     THEN 1 ELSE 0 
+                   END as has_discount
+            FROM products p
+            LEFT JOIN product_discounts pd ON p.id = pd.product_id
+            WHERE p.vendor_id=? AND p.quantity > 0
+            ORDER BY p.name
         """, (vendor_id,))
         products = c.fetchall()
     else:
@@ -6172,6 +6218,230 @@ def get_translations(lang_code):
         return jsonify(i18n.translations.get(lang_code, {}))
     else:
         return {"error": "Language not supported"}, 404
+
+# ---- DISCOUNT MANAGEMENT ROUTES ----
+
+@app.route('/erp/discounts')
+def discount_management():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("discount_management.html", products=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all products with discount information
+    c.execute("""
+        SELECT p.id, p.name, p.buy_price, p.sale_price, p.quantity,
+               COALESCE(pd.discount_type, 'none') as discount_type,
+               COALESCE(pd.discount_value, 0) as discount_value,
+               COALESCE(pd.is_active, 0) as is_active,
+               CASE 
+                 WHEN pd.discount_type = 'percentage' THEN p.sale_price * (1 - pd.discount_value / 100)
+                 WHEN pd.discount_type = 'fixed' THEN p.sale_price - pd.discount_value
+                 ELSE p.sale_price
+               END as discounted_price
+        FROM products p
+        LEFT JOIN product_discounts pd ON p.id = pd.product_id
+        WHERE p.vendor_id = ?
+        ORDER BY p.name
+    """, (vendor_id,))
+    
+    products = c.fetchall()
+    
+    # Get blanket discount information
+    c.execute("""
+        SELECT discount_type, discount_value, is_active 
+        FROM vendor_blanket_discounts 
+        WHERE vendor_id = ?
+    """, (vendor_id,))
+    
+    blanket_discount = c.fetchone()
+    
+    conn.close()
+    return render_template("discount_management.html", 
+                         products=products, 
+                         blanket_discount=blanket_discount)
+
+@app.route('/erp/discounts/apply', methods=["POST"])
+def apply_discount():
+    if "vendor" not in session:
+        return {"success": False, "error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    data = request.get_json()
+    
+    product_id = data.get("product_id")
+    discount_type = data.get("discount_type")  # 'percentage' or 'fixed'
+    discount_value = float(data.get("discount_value", 0))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}, 404
+
+    vendor_id = vendor_result[0]
+
+    # Verify product belongs to vendor
+    c.execute("SELECT sale_price FROM products WHERE id = ? AND vendor_id = ?", (product_id, vendor_id))
+    product_data = c.fetchone()
+    if not product_data:
+        conn.close()
+        return {"success": False, "error": "Product not found"}, 404
+
+    sale_price = product_data[0]
+
+    # Validate discount
+    if discount_type == "percentage" and (discount_value < 0 or discount_value > 100):
+        conn.close()
+        return {"success": False, "error": "Percentage discount must be between 0 and 100"}, 400
+    
+    if discount_type == "fixed" and discount_value >= sale_price:
+        conn.close()
+        return {"success": False, "error": "Fixed discount cannot be greater than or equal to sale price"}, 400
+
+    # Insert or update discount
+    c.execute("""
+        INSERT OR REPLACE INTO product_discounts 
+        (product_id, discount_type, discount_value, is_active, vendor_id)
+        VALUES (?, ?, ?, 1, ?)
+    """, (product_id, discount_type, discount_value, vendor_id))
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "message": "Discount applied successfully"}
+
+@app.route('/erp/discounts/remove', methods=["POST"])
+def remove_discount():
+    if "vendor" not in session:
+        return {"success": False, "error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    data = request.get_json()
+    product_id = data.get("product_id")
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}, 404
+
+    vendor_id = vendor_result[0]
+
+    # Remove discount
+    c.execute("DELETE FROM product_discounts WHERE product_id = ? AND vendor_id = ?", (product_id, vendor_id))
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "message": "Discount removed successfully"}
+
+@app.route('/erp/discounts/blanket', methods=["POST"])
+def apply_blanket_discount():
+    if "vendor" not in session:
+        return {"success": False, "error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    data = request.get_json()
+    
+    discount_type = data.get("discount_type")
+    discount_value = float(data.get("discount_value", 0))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}, 404
+
+    vendor_id = vendor_result[0]
+
+    # Validate discount
+    if discount_type == "percentage" and (discount_value < 0 or discount_value > 100):
+        conn.close()
+        return {"success": False, "error": "Percentage discount must be between 0 and 100"}, 400
+
+    # Insert or update blanket discount
+    c.execute("""
+        INSERT OR REPLACE INTO vendor_blanket_discounts 
+        (vendor_id, discount_type, discount_value, is_active)
+        VALUES (?, ?, ?, 1)
+    """, (vendor_id, discount_type, discount_value))
+
+    # Apply blanket discount to all products without individual discounts
+    if discount_type == "percentage":
+        c.execute("""
+            INSERT OR REPLACE INTO product_discounts (product_id, discount_type, discount_value, is_active, vendor_id)
+            SELECT p.id, ?, ?, 1, ?
+            FROM products p
+            LEFT JOIN product_discounts pd ON p.id = pd.product_id
+            WHERE p.vendor_id = ? AND pd.product_id IS NULL
+        """, (discount_type, discount_value, vendor_id, vendor_id))
+    else:  # fixed discount
+        c.execute("""
+            INSERT OR REPLACE INTO product_discounts (product_id, discount_type, discount_value, is_active, vendor_id)
+            SELECT p.id, ?, ?, 1, ?
+            FROM products p
+            LEFT JOIN product_discounts pd ON p.id = pd.product_id
+            WHERE p.vendor_id = ? AND pd.product_id IS NULL AND p.sale_price > ?
+        """, (discount_type, discount_value, vendor_id, vendor_id, discount_value))
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "message": "Blanket discount applied successfully"}
+
+@app.route('/erp/discounts/blanket/remove', methods=["POST"])
+def remove_blanket_discount():
+    if "vendor" not in session:
+        return {"success": False, "error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}, 404
+
+    vendor_id = vendor_result[0]
+
+    # Remove blanket discount
+    c.execute("DELETE FROM vendor_blanket_discounts WHERE vendor_id = ?", (vendor_id,))
+    
+    # Remove all product discounts
+    c.execute("DELETE FROM product_discounts WHERE vendor_id = ?", (vendor_id,))
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "message": "All discounts removed successfully"}
 
 # ---- CRM ROUTES ----
 

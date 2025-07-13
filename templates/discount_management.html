@@ -1,0 +1,467 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Discount Management - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fffef2;
+      font-family: 'Poppins', sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+    }
+    h2 {
+      color: #ff7e5f;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .back-btn {
+      background-color: #74c69d;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .discount-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+    .table-responsive {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .table th {
+      background-color: #ff7e5f;
+      color: white;
+      border: none;
+      font-weight: 600;
+    }
+    .table td {
+      vertical-align: middle;
+      border-color: #f8f9fa;
+    }
+    .discount-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    .discount-percentage {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .discount-fixed {
+      background-color: #cce5ff;
+      color: #004085;
+    }
+    .no-discount {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .btn-discount {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 5px 15px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .btn-discount:hover {
+      background-color: #218838;
+      color: white;
+    }
+    .btn-remove {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 15px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .btn-remove:hover {
+      background-color: #c82333;
+      color: white;
+    }
+    .blanket-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+    }
+    .form-control, .form-select {
+      border-radius: 8px;
+    }
+    .price-cell {
+      font-weight: 600;
+    }
+    .original-price {
+      text-decoration: line-through;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    .discounted-price {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .savings-badge {
+      background-color: #ff6b6b;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/dashboard" class="back-btn">← Back to Dashboard</a>
+    
+    <h2>🏷️ Discount Management</h2>
+
+    <!-- Blanket Discount Section -->
+    <div class="blanket-section">
+      <h4>🌟 Blanket Discount (Apply to All Products)</h4>
+      <div class="row align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Discount Type</label>
+          <select class="form-select" id="blanketDiscountType">
+            <option value="percentage" {% if blanket_discount and blanket_discount[0] == 'percentage' %}selected{% endif %}>Percentage (%)</option>
+            <option value="fixed" {% if blanket_discount and blanket_discount[0] == 'fixed' %}selected{% endif %}>Fixed Amount (₹)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Discount Value</label>
+          <input type="number" class="form-control" id="blanketDiscountValue" 
+                 placeholder="Enter value" step="0.01" min="0"
+                 value="{% if blanket_discount %}{{ blanket_discount[1] }}{% endif %}">
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-success" onclick="applyBlanketDiscount()">
+            🎯 Apply Blanket Discount
+          </button>
+        </div>
+        <div class="col-md-3">
+          {% if blanket_discount and blanket_discount[2] %}
+          <button class="btn btn-danger" onclick="removeBlanketDiscount()">
+            🗑️ Remove All Discounts
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% if blanket_discount and blanket_discount[2] %}
+      <div class="mt-3">
+        <span class="badge bg-success">
+          ✅ Active Blanket Discount: {{ blanket_discount[1] }}{% if blanket_discount[0] == 'percentage' %}%{% else %}₹{% endif %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Products Table -->
+    <div class="table-responsive">
+      <h4 class="mb-3">📦 Product Discounts</h4>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Product #</th>
+            <th>Product Name</th>
+            <th>Cost Price</th>
+            <th>Sale Price</th>
+            <th>Discount</th>
+            <th>Price After Discount</th>
+            <th>Stock</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if products %}
+            {% for product in products %}
+            <tr id="product-row-{{ product[0] }}">
+              <td><strong>P{{ "%03d"|format(product[0]) }}</strong></td>
+              <td>{{ product[1] }}</td>
+              <td class="price-cell">₹{{ "%.2f"|format(product[2] or 0) }}</td>
+              <td class="price-cell">₹{{ "%.2f"|format(product[3] or 0) }}</td>
+              <td>
+                {% if product[5] != 'none' and product[7] == 1 %}
+                  <span class="discount-badge discount-{{ product[5] }}">
+                    {{ "%.1f"|format(product[6]) }}{% if product[5] == 'percentage' %}%{% else %}₹{% endif %}
+                  </span>
+                {% else %}
+                  <span class="discount-badge no-discount">No Discount</span>
+                {% endif %}
+              </td>
+              <td class="price-cell">
+                {% if product[5] != 'none' and product[7] == 1 and product[8] != product[3] %}
+                  <span class="original-price">₹{{ "%.2f"|format(product[3]) }}</span><br>
+                  <span class="discounted-price">₹{{ "%.2f"|format(product[8]) }}</span>
+                  {% set savings = product[3] - product[8] %}
+                  <span class="savings-badge">Save ₹{{ "%.2f"|format(savings) }}</span>
+                {% else %}
+                  ₹{{ "%.2f"|format(product[3] or 0) }}
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge {% if product[4] > 10 %}bg-success{% elif product[4] > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                  {{ product[4] }} units
+                </span>
+              </td>
+              <td>
+                <button class="btn-discount" onclick="showDiscountModal({{ product[0] }}, '{{ product[1] }}', {{ product[3] }})">
+                  🏷️ Launch Discount
+                </button>
+                {% if product[5] != 'none' and product[7] == 1 %}
+                <button class="btn-remove" onclick="removeDiscount({{ product[0] }})">
+                  ❌ Remove
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted">
+                No products found. <a href="/erp/products/add">Add your first product</a>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Discount Modal -->
+  <div class="modal fade" id="discountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🏷️ Set Discount</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Product</label>
+            <input type="text" class="form-control" id="modalProductName" readonly>
+            <input type="hidden" id="modalProductId">
+            <input type="hidden" id="modalSalePrice">
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Discount Type</label>
+              <select class="form-select" id="modalDiscountType" onchange="updateDiscountPreview()">
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (₹)</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Discount Value</label>
+              <input type="number" class="form-control" id="modalDiscountValue" 
+                     placeholder="Enter value" step="0.01" min="0" 
+                     onchange="updateDiscountPreview()" oninput="updateDiscountPreview()">
+            </div>
+          </div>
+          <div class="discount-preview p-3 bg-light rounded" id="discountPreview">
+            <strong>Preview:</strong><br>
+            <span id="previewText">Enter discount value to see preview</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" onclick="applyProductDiscount()">Apply Discount</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function showDiscountModal(productId, productName, salePrice) {
+      document.getElementById('modalProductId').value = productId;
+      document.getElementById('modalProductName').value = productName;
+      document.getElementById('modalSalePrice').value = salePrice;
+      document.getElementById('modalDiscountValue').value = '';
+      document.getElementById('previewText').textContent = 'Enter discount value to see preview';
+      
+      const modal = new bootstrap.Modal(document.getElementById('discountModal'));
+      modal.show();
+    }
+
+    function updateDiscountPreview() {
+      const salePrice = parseFloat(document.getElementById('modalSalePrice').value);
+      const discountType = document.getElementById('modalDiscountType').value;
+      const discountValue = parseFloat(document.getElementById('modalDiscountValue').value);
+      
+      if (!discountValue || discountValue <= 0) {
+        document.getElementById('previewText').textContent = 'Enter discount value to see preview';
+        return;
+      }
+
+      let newPrice, savings;
+      
+      if (discountType === 'percentage') {
+        if (discountValue > 100) {
+          document.getElementById('previewText').innerHTML = '<span class="text-danger">Percentage cannot exceed 100%</span>';
+          return;
+        }
+        savings = salePrice * (discountValue / 100);
+        newPrice = salePrice - savings;
+      } else {
+        if (discountValue >= salePrice) {
+          document.getElementById('previewText').innerHTML = '<span class="text-danger">Fixed discount cannot be greater than sale price</span>';
+          return;
+        }
+        savings = discountValue;
+        newPrice = salePrice - discountValue;
+      }
+      
+      document.getElementById('previewText').innerHTML = `
+        Original Price: ₹${salePrice.toFixed(2)}<br>
+        <strong>New Price: ₹${newPrice.toFixed(2)}</strong><br>
+        <span class="text-success">Customer Saves: ₹${savings.toFixed(2)}</span>
+      `;
+    }
+
+    function applyProductDiscount() {
+      const productId = document.getElementById('modalProductId').value;
+      const discountType = document.getElementById('modalDiscountType').value;
+      const discountValue = parseFloat(document.getElementById('modalDiscountValue').value);
+      
+      if (!discountValue || discountValue <= 0) {
+        alert('Please enter a valid discount value');
+        return;
+      }
+
+      fetch('/erp/discounts/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          discount_type: discountType,
+          discount_value: discountValue
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Discount applied successfully!');
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while applying the discount');
+      });
+
+      bootstrap.Modal.getInstance(document.getElementById('discountModal')).hide();
+    }
+
+    function removeDiscount(productId) {
+      if (!confirm('Are you sure you want to remove this discount?')) {
+        return;
+      }
+
+      fetch('/erp/discounts/remove', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: productId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Discount removed successfully!');
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while removing the discount');
+      });
+    }
+
+    function applyBlanketDiscount() {
+      const discountType = document.getElementById('blanketDiscountType').value;
+      const discountValue = parseFloat(document.getElementById('blanketDiscountValue').value);
+      
+      if (!discountValue || discountValue <= 0) {
+        alert('Please enter a valid discount value');
+        return;
+      }
+
+      if (!confirm(`Apply ${discountValue}${discountType === 'percentage' ? '%' : '₹'} discount to all products?`)) {
+        return;
+      }
+
+      fetch('/erp/discounts/blanket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          discount_type: discountType,
+          discount_value: discountValue
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Blanket discount applied successfully!');
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while applying the blanket discount');
+      });
+    }
+
+    function removeBlanketDiscount() {
+      if (!confirm('This will remove ALL discounts from ALL products. Are you sure?')) {
+        return;
+      }
+
+      fetch('/erp/discounts/blanket/remove', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('All discounts removed successfully!');
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while removing discounts');
+      });
+    }
+  </script>
+</body>
+</html>

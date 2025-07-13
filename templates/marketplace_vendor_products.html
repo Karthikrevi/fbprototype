@@ -150,13 +150,23 @@
             <p class="text-muted">{{ product[2][:80] }}{% if product[2] and product[2]|length > 80 %}...{% endif %}</p>
 
             <div class="d-flex justify-content-between align-items-center">
-              <span class="price-tag">${{ product[3] }}</span>
+              <div class="price-section">
+                {% if product[10] == 1 %}
+                  <span class="price-tag" style="text-decoration: line-through; color: #6c757d; font-size: 0.9rem;">₹{{ product[3] }}</span><br>
+                  <span class="price-tag">₹{{ "%.2f"|format(product[9]) }}</span>
+                  <span style="background-color: #ff6b6b; color: white; padding: 2px 6px; border-radius: 8px; font-size: 0.75rem; margin-left: 5px;">
+                    {% if product[6] == 'percentage' %}{{ "%.0f"|format(product[7]) }}% OFF{% else %}₹{{ "%.0f"|format(product[7]) }} OFF{% endif %}
+                  </span>
+                {% else %}
+                  <span class="price-tag">₹{{ product[3] }}</span>
+                {% endif %}
+              </div>
               <div class="d-flex flex-column align-items-end">
                 <small class="text-muted mb-1">{{ product[4] }} in stock</small>
                 <button class="btn btn-primary btn-sm add-to-cart" 
                         data-product-id="{{ product[0] }}" 
                         data-product-name="{{ product[1] }}" 
-                        data-product-price="{{ product[3] }}"
+                        data-product-price="{% if product[10] == 1 %}{{ product[9] }}{% else %}{{ product[3] }}{% endif %}"
                         data-max-quantity="{{ product[4] }}"
                         {% if product[4] == 0 %}disabled{% endif %}>
                   {% if product[4] > 0 %}Add to Cart{% else %}Out of Stock{% endif %}
@@ -164,7 +174,7 @@
               </div>
             </div>
 
-            <button class="buy-btn" onclick="addToCart({{ product[0] }}, '{{ product[1] }}', {{ product[3] }})">
+            <button class="buy-btn" onclick="addToCart({{ product[0] }}, '{{ product[1] }}', {% if product[10] == 1 %}{{ product[9] }}{% else %}{{ product[3] }}{% endif %})">
               🛒 Add to Cart
             </button>
           </div>
