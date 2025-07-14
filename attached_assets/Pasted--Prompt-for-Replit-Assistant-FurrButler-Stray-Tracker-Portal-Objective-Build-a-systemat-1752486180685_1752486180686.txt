@@ -1,0 +1,91 @@
+### 🐾 Prompt for Replit Assistant: FurrButler Stray Tracker Portal
+
+**Objective:**
+Build a systematic and tamper-proof verification layer within the FurrButler portal, enabling NGOs, NPOs, and CSR partners to independently register and track stray dog vaccinations, chipping, and associated expenses transparently.
+
+---
+
+### 🧩 **Workflow to Implement:**
+
+#### 🐕 **Step 1: Stray Registration (Initiated by NGO/NPO)**
+
+NGOs initiate registration by uploading:
+
+* **Photo:** Clear picture of the stray dog, clearly showing the collar and visible tag.
+* **Location Tagging:** GPS coordinates auto-captured or manually set.
+* **Stray Details:** Description including breed type, gender, age estimation, fur color, and distinctive marks.
+
+#### 💉 **Step 2: Vaccination Entry (Mandatory Verification)**
+
+Each vaccination entry must include:
+
+* **Vaccination Photo:** Image clearly showing vaccination being administered (auto-watermark "Captured via FurrButler" optional).
+* **Vaccination Certificate:** PDF or image upload.
+* **Vaccine Information:** Name of vaccine, batch number, and expiration date.
+* **Vaccinator Details:** Name and contact of the vet (registered FurrButler vet or external vet with credentials).
+* **Digital Signature:** Verified via a temporary digital token or permanent ID provided upon NGO registration, securely linked to the vaccinator's identity.
+
+#### 🧠 **Step 3: Internal Asynchronous Verification Layer**
+
+Implement an internal audit process:
+
+* **Random Audit Sampling:** AI-supported checks to detect reused or manipulated images.
+* **Pattern Analysis:** Identify suspicious vaccination entries (duplicate images, high-volume anomalies).
+* **Citizen Reporting:** Mechanism for pet parents or citizens to report anomalies directly through the app.
+
+#### 🔖 **Step 4: Unique Identification (UID) Generation**
+
+On successful verification:
+
+* Generate a unique Stray ID.
+* Assign collar tag with UID and QR Code.
+* Publish data immediately to user-facing tracker.
+
+#### 📈 **Step 5: Expense Tracking**
+
+Transparent financial breakdown for each stray:
+
+* Vaccination cost divided per stray.
+* Additional individual expenses tracked (travel, food, accommodation).
+* Real-time expense visibility linked to each stray’s profile.
+
+#### 🗺️ **Step 6: Community Interaction and Collar Tagging**
+
+Encourage NGOs to:
+
+* Upload video snippets of collar tagging.
+* Allow community comments or updates.
+* Color-code collars clearly indicating stray temperament (Green: Friendly, Yellow: Cautious, Red: Aggressive).
+
+---
+
+### 🔧 **Technical Implementation Guidelines:**
+
+* **Frontend:** Simple, mobile-friendly interface for NGOs.
+* **Backend:** Secure database (SQL preferred) storing all records, linked clearly to UIDs.
+* **Security:** Robust digital signature system, AI image-verification integrations.
+* **Transparency:** Real-time expense ledger displayed publicly per stray.
+
+---
+
+### 🧑‍💻 **Testing & Validation:**
+
+Implement initial test data sets and conduct:
+
+* End-to-end verification tests (Registration → Vaccination → UID generation).
+* Randomized AI-image-validation trials.
+* Expense tracking accuracy checks.
+
+---
+
+### 🚨 **Additional Features:**
+
+* Notification alerts for suspicious activity or audit flags.
+* Easy-to-use citizen reporting functionality.
+
+---
+
+Ensure that each component is modular, easily maintainable, and scalable for future integrations (e.g., smart feeders, community interaction zones).
+
+**End Goal:**
+A robust, transparent, and user-friendly stray tracking system that ensures autonomy for NGOs while maintaining accountability and public trust.
