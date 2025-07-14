@@ -189,6 +189,14 @@
           XP: {{ vendor.xp }} | 
           Success Rate: {{ vendor.success_rate }}%
         </div>
+        <div class="location-info" style="margin-top: 10px; color: #666; font-size: 0.9rem;">
+          {% if vendor.address %}
+            📍 {{ vendor.address }}, {{ vendor.city }}{% if vendor.state %}, {{ vendor.state }}{% endif %}{% if vendor.pincode %} - {{ vendor.pincode }}{% endif %}
+          {% else %}
+            📍 {{ vendor.city }}
+          {% endif %}
+          <span id="userDistance" style="margin-left: 15px; color: #28a745;"></span>
+        </div>
       </div>
     </div>
 

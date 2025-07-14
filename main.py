@@ -59,9 +59,28 @@ def init_erp_db():
             account_status TEXT DEFAULT 'active',
             break_start_date TEXT,
             break_end_date TEXT,
-            break_reason TEXT
+            break_reason TEXT,
+            address TEXT,
+            state TEXT,
+            pincode TEXT
         )
     ''')
+
+    # Add new address columns if they don't exist
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN address TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN state TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN pincode TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS products (
@@ -2376,18 +2395,33 @@ def erp_register():
         name = request.form["name"]
         password = request.form["password"]
         category = request.form.get("category", "")
+        address = request.form.get("address", "")
         city = request.form.get("city", "")
+        state = request.form.get("state", "")
+        pincode = request.form.get("pincode", "")
         phone = request.form.get("phone", "")
         bio = request.form.get("bio", "")
         image_url = request.form.get("image_url", "")
+        latitude = request.form.get("latitude")
+        longitude = request.form.get("longitude")
+
+        # Convert coordinates to float if provided
+        try:
+            lat = float(latitude) if latitude else None
+            lng = float(longitude) if longitude else None
+        except (ValueError, TypeError):
+            lat = lng = None
 
         try:
             conn = sqlite3.connect('erp.db')
             c = conn.cursor()
-            c.execute("INSERT INTO vendors (email, name, password, category, city, phone, bio, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                     (email, name, password, category, city, phone, bio, image_url))
+            c.execute("""INSERT INTO vendors 
+                         (email, name, password, category, address, city, state, pincode, phone, bio, image_url, latitude, longitude) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", 
+                     (email, name, password, category, address, city, state, pincode, phone, bio, image_url, lat, lng))
             conn.commit()
             conn.close()
+            flash("Vendor registration successful! You can now log in.")
             return redirect(url_for("erp_login"))
         except sqlite3.IntegrityError:
             return "Vendor already exists with that email."
@@ -2424,7 +2458,7 @@ def erp_profile():
     c = conn.cursor()
 
     # Get vendor details
-    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category, account_status, break_start_date, break_reason FROM vendors WHERE email=?", (email,))
+    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category, account_status, break_start_date, break_reason, address, state, pincode FROM vendors WHERE email=?", (email,))
     vendor_data = c.fetchone()
 
     if vendor_data:
@@ -2484,8 +2518,20 @@ def edit_vendor_profile():
         name = request.form.get("name", "")
         phone = request.form.get("phone", "")
         bio = request.form.get("bio", "")
+        address = request.form.get("address", "")
         city = request.form.get("city", "")
+        state = request.form.get("state", "")
+        pincode = request.form.get("pincode", "")
         category = request.form.get("category", "")
+        latitude = request.form.get("latitude")
+        longitude = request.form.get("longitude")
+
+        # Convert coordinates to float if provided
+        try:
+            lat = float(latitude) if latitude else None
+            lng = float(longitude) if longitude else None
+        except (ValueError, TypeError):
+            lat = lng = None
 
         image_url = ""
         file = request.files.get("image")
@@ -2501,9 +2547,9 @@ def edit_vendor_profile():
 
         c.execute('''
             UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, city=?, category=?
+            SET name=?, phone=?, bio=?, image_url=?, address=?, city=?, state=?, pincode=?, category=?, latitude=?, longitude=?
             WHERE email=?
-        ''', (name, phone, bio, image_url, city, category, email))
+        ''', (name, phone, bio, image_url, address, city, state, pincode, category, lat, lng, email))
 
         conn.commit()
         conn.close()

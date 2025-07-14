@@ -1,3 +1,7 @@
+Applying address management features and location detection to the vendor profile editing page.
+```
+
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -112,14 +116,25 @@
     </div>
 
     <div class="form-section">
+      <label>Business Address</label>
+      <input name="address" value="{{ vendor[11] or '' }}" placeholder="Complete business address">
+
       <label>City</label>
       <input name="city" value="{{ vendor[5] }}">
+
+      <label>State</label>
+      <input name="state" value="{{ vendor[12] or '' }}">
+
+      <label>PIN Code</label>
+      <input name="pincode" value="{{ vendor[13] or '' }}" pattern="[0-9]{6}" placeholder="6-digit PIN code">
 
       <label>Category <span class="tooltip">(Used to segment vendors on app)</span></label>
       <select name="category">
         <option value="Groomer" {% if vendor[8] == 'Groomer' %}selected{% endif %}>Groomer</option>
         <option value="Boarding" {% if vendor[8] == 'Boarding' %}selected{% endif %}>Boarding</option>
         <option value="Pharmacy" {% if vendor[8] == 'Pharmacy' %}selected{% endif %}>Pharmacy</option>
+        <option value="marketplace" {% if vendor[8] == 'marketplace' %}selected{% endif %}>Marketplace</option>
+        <option value="veterinary" {% if vendor[8] == 'veterinary' %}selected{% endif %}>Veterinary</option>
       </select>
     </div>
 
@@ -133,5 +148,307 @@
 
     <button type="submit">💾 Save Profile</button>
   </form>
+  <script>
+    // Location detection functionality
+    document.getElementById('detectLocation').addEventListener('click', function() {
+      if ("geolocation" in navigator) {
+        this.textContent = "🔄 Detecting...";
+        this.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            document.querySelector('input[name="latitude"]').value = position.coords.latitude.toFixed(6);
+            document.querySelector('input[name="longitude"]').value = position.coords.longitude.toFixed(6);
+            document.getElementById('detectLocation').textContent = "✅ Location Updated";
+            document.getElementById('detectLocation').disabled = false;
+
+            setTimeout(() => {
+              document.getElementById('detectLocation').textContent = "📡 Use My Current Location";
+            }, 2000);
+          },
+          function(error) {
+            console.error("Geolocation error:", error);
+            document.getElementById('detectLocation').textContent = "❌ Location Failed";
+            document.getElementById('detectLocation').disabled = false;
+
+            setTimeout(() => {
+              document.getElementById('detectLocation').textContent = "📡 Use My Current Location";
+            }, 2000);
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    });
+
+    // Geocoding function (simplified - in production, use a proper geocoding service)
+    async function geocodeAddress() {
+      const address = document.querySelector('input[name="address"]').value;
+      const city = document.querySelector('input[name="city"]').value;
+      const state = document.querySelector('input[name="state"]').value;
+      const pincode = document.querySelector('input[name="pincode"]').value;
+
+      if (address && city) {
+        // Placeholder: Replace with actual geocoding API call.
+        // This is just for demonstration purposes.
+        console.log("Geocoding:", address, city, state, pincode);
+      }
+    }
+
+    // Auto-geocode when address fields change
+    ['address', 'city', 'state', 'pincode'].forEach(field => {
+      const input = document.querySelector(`input[name="${field}"]`);
+      if (input) {
+        input.addEventListener('blur', geocodeAddress);
+      }
+    });
+  </script>
+</body>
+</html>
+```<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Vendor Profile - FurrButler ERP</title>
+  <style>
+    body {
+      background-color: #fffaf2;
+      font-family: 'Poppins', sans-serif;
+      padding: 30px;
+    }
+
+    h2 {
+      color: #ff7e5f;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .profile-form {
+      background: white;
+      padding: 30px;
+      max-width: 750px;
+      margin: auto;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .form-section {
+      margin-bottom: 25px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-top: 5px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      background-color: #74c69d;
+      color: white;
+      padding: 14px;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-top: 25px;
+    }
+
+    button:hover {
+      background-color: #52b788;
+    }
+
+    .avatar-preview {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .avatar-preview img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+    }
+
+    .tooltip {
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+  </style>
+</head>
+<body>
+  <h2>🐾 Edit Your Vendor Profile</h2>
+  <form method="POST" enctype="multipart/form-data" class="profile-form">
+
+    <div class="form-section">
+      <label>Name</label>
+      <input name="name" value="{{ vendor[0] }}">
+
+      <label>Email (read-only)</label>
+      <input value="{{ vendor[1] }}" readonly>
+
+      <label>Phone</label>
+      <input name="phone" value="{{ vendor[2] }}">
+
+      <label>Bio</label>
+      <textarea name="bio" rows="3">{{ vendor[3] }}</textarea>
+    </div>
+
+    <div class="form-section">
+      <label>Upload Profile Picture</label>
+      <input type="file" name="image">
+      <div class="avatar-preview">
+        {% if vendor[4] %}
+          <img src="{{ vendor[4] }}" alt="Current Image">
+        {% else %}
+          <img src="/static/default-avatar.png" alt="Default">
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label>Business Address</label>
+      <input name="address" value="{{ vendor[11] or '' }}" placeholder="Complete business address">
+
+      <label>City</label>
+      <input name="city" value="{{ vendor[5] }}">
+
+      <label>State</label>
+      <input name="state" value="{{ vendor[12] or '' }}">
+
+      <label>PIN Code</label>
+      <input name="pincode" value="{{ vendor[13] or '' }}" pattern="[0-9]{6}" placeholder="6-digit PIN code">
+
+      <label>Category <span class="tooltip">(Used to segment vendors on app)</span></label>
+      <select name="category">
+        <option value="Groomer" {% if vendor[8] == 'Groomer' %}selected{% endif %}>Groomer</option>
+        <option value="Boarding" {% if vendor[8] == 'Boarding' %}selected{% endif %}>Boarding</option>
+        <option value="Pharmacy" {% if vendor[8] == 'Pharmacy' %}selected{% endif %}>Pharmacy</option>
+        <option value="marketplace" {% if vendor[8] == 'marketplace' %}selected{% endif %}>Marketplace</option>
+        <option value="veterinary" {% if vendor[8] == 'veterinary' %}selected{% endif %}>Veterinary</option>
+      </select>
+
+    <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+      <h4 style="margin-top: 0;">📍 Location Settings</h4>
+      <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <input type="checkbox" id="autoLocation" checked>
+        <span>Update coordinates automatically from address</span>
+      </label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+          <label>Latitude</label>
+          <input name="latitude" value="{{ vendor[6] or '' }}" type="number" step="any">
+        </div>
+        <div>
+          <label>Longitude</label>
+          <input name="longitude" value="{{ vendor[7] or '' }}" type="number" step="any">
+        </div>
+      </div>
+      <button type="button" id="detectLocation" style="margin-top: 10px; padding: 8px 16px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        📡 Use My Current Location
+      </button>
+    </div>
+    </div>
+
+    <div class="form-section">
+      <label>Latitude <span class="tooltip">(optional – used for location services)</span></label>
+      <input name="latitude" value="{{ vendor[6] }}">
+
+      <label>Longitude <span class="tooltip">(optional – used for location services)</span></label>
+      <input name="longitude" value="{{ vendor[7] }}">
+    </div>
+
+    <button type="submit">💾 Save Profile</button>
+  </form>
+  <script>
+    // Location detection functionality
+    document.getElementById('detectLocation').addEventListener('click', function() {
+      if ("geolocation" in navigator) {
+        this.textContent = "🔄 Detecting...";
+        this.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            document.querySelector('input[name="latitude"]').value = position.coords.latitude.toFixed(6);
+            document.querySelector('input[name="longitude"]').value = position.coords.longitude.toFixed(6);
+            document.getElementById('detectLocation').textContent = "✅ Location Updated";
+            document.getElementById('detectLocation').disabled = false;
+
+            setTimeout(() => {
+              document.getElementById('detectLocation').textContent = "📡 Use My Current Location";
+            }, 2000);
+          },
+          function(error) {
+            console.error("Geolocation error:", error);
+            document.getElementById('detectLocation').textContent = "❌ Location Failed";
+            document.getElementById('detectLocation').disabled = false;
+
+            setTimeout(() => {
+              document.getElementById('detectLocation').textContent = "📡 Use My Current Location";
+            }, 2000);
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    });
+
+    // Geocoding function (simplified - in production, use a proper geocoding service)
+    async function geocodeAddress() {
+      const address = document.querySelector('input[name="address"]').value;
+      const city = document.querySelector('input[name="city"]').value;
+      const state = document.querySelector('input[name="state"]').value;
+      const pincode = document.querySelector('input[name="pincode"]').value;
+
+      if (address && city && document.getElementById('autoLocation').checked) {
+        const fullAddress = `${address}, ${city}, ${state} ${pincode}`;
+
+        // For demo purposes, we'll use approximate coordinates for common Indian cities
+        const cityCoordinates = {
+          'trivandrum': [8.5241, 76.9366],
+          'thiruvananthapuram': [8.5241, 76.9366],
+          'kochi': [9.9312, 76.2673],
+          'kozhikode': [11.2588, 75.7804],
+          'bangalore': [12.9716, 77.5946],
+          'mumbai': [19.0760, 72.8777],
+          'delhi': [28.7041, 77.1025],
+          'chennai': [13.0827, 80.2707],
+          'hyderabad': [17.3850, 78.4867],
+          'pune': [18.5204, 73.8567]
+        };
+
+        const cityKey = city.toLowerCase().trim();
+        if (cityCoordinates[cityKey]) {
+          const [lat, lng] = cityCoordinates[cityKey];
+          // Add small random offset for different vendors in same city
+          const latOffset = (Math.random() - 0.5) * 0.01;
+          const lngOffset = (Math.random() - 0.5) * 0.01;
+
+          document.querySelector('input[name="latitude"]').value = (lat + latOffset).toFixed(6);
+          document.querySelector('input[name="longitude"]').value = (lng + lngOffset).toFixed(6);
+        }
+      }
+    }
+
+    // Auto-geocode when address fields change
+    ['address', 'city', 'state', 'pincode'].forEach(field => {
+      const input = document.querySelector(`input[name="${field}"]`);
+      if (input) {
+        input.addEventListener('blur', geocodeAddress);
+      }
+    });
+  </script>
 </body>
 </html>

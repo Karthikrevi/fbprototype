@@ -156,7 +156,8 @@
           <span class="vendor-category">{{ vendor.category }}</span>
           {% endif %}
 
-          <div class="vendor-location">📍 {{ vendor.city or 'Location not specified' }}</div>
+          <div class="vendor-location">📍 {{ vendor.address or vendor.city or 'Location not specified' }}</div>
+          <div class="vendor-distance" id="distance-{{ vendor.id }}">📏 Calculating distance...</div>
 
           {% if vendor.bio %}
           <p class="text-muted" style="font-size: 0.9rem;">{{ vendor.bio[:80] }}{% if vendor.bio|length > 80 %}...{% endif %}</p>
@@ -180,12 +181,110 @@
   </div>
 
   <script>
-    // Request location for better vendor filtering
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(position) {
-        fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+    // Search functionality
+    function searchVendors() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const vendorCards = document.querySelectorAll('.vendor-card');
+
+      vendorCards.forEach(card => {
+        const vendorName = card.querySelector('.vendor-name').textContent.toLowerCase();
+        const vendorCategory = card.querySelector('.vendor-category').textContent.toLowerCase();
+
+        if (vendorName.includes(searchTerm) || vendorCategory.includes(searchTerm)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
       });
     }
+
+    // Geolocation and distance calculation
+    let userLocation = null;
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Radius of the Earth in kilometers
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      return distance;
+    }
+
+    function updateVendorDistances() {
+      if (!userLocation) return;
+
+      const vendors = [
+        {% for vendor in vendors %}
+        {
+          id: {{ vendor.id }},
+          lat: {{ vendor.latitude or 0 }},
+          lng: {{ vendor.longitude or 0 }},
+          name: "{{ vendor.name }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ];
+
+      vendors.forEach(vendor => {
+        if (vendor.lat && vendor.lng) {
+          const distance = calculateDistance(
+            userLocation.lat, userLocation.lng,
+            vendor.lat, vendor.lng
+          );
+
+          const distanceElement = document.getElementById(`distance-${vendor.id}`);
+          if (distanceElement) {
+            if (distance < 1) {
+              distanceElement.textContent = `📏 ${Math.round(distance * 1000)}m away`;
+            } else {
+              distanceElement.textContent = `📏 ${distance.toFixed(1)}km away`;
+            }
+            distanceElement.style.color = distance < 5 ? '#28a745' : '#6c757d';
+          }
+        } else {
+          const distanceElement = document.getElementById(`distance-${vendor.id}`);
+          if (distanceElement) {
+            distanceElement.textContent = '📏 Location not available';
+            distanceElement.style.color = '#6c757d';
+          }
+        }
+      });
+    }
+
+    // Get user location
+    function getUserLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            updateVendorDistances();
+          },
+          function(error) {
+            console.error("Geolocation error:", error);
+            // Update all distance elements to show location not available
+            document.querySelectorAll('[id^="distance-"]').forEach(element => {
+              element.textContent = '📏 Enable location for distances';
+              element.style.color = '#6c757d';
+            });
+          }
+        );
+      } else {
+        document.querySelectorAll('[id^="distance-"]').forEach(element => {
+          element.textContent = '📏 Location not supported';
+          element.style.color = '#6c757d';
+        });
+      }
+    }
+
+    // Initialize on page load
+    window.addEventListener('load', function() {
+      getUserLocation();
+    });
   </script>
 </body>
 </html>
