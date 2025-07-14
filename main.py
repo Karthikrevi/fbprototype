@@ -788,6 +788,166 @@ def init_erp_db():
         )
     ''')
 
+    # Stray Tracker System Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ngo_partners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            organization_type TEXT CHECK(organization_type IN ('NGO', 'NPO', 'CSR')) NOT NULL,
+            registration_number TEXT,
+            license_number TEXT,
+            contact_person TEXT,
+            phone TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            pincode TEXT,
+            digital_signature_key TEXT UNIQUE,
+            verification_status TEXT DEFAULT 'pending' CHECK(verification_status IN ('pending', 'approved', 'rejected', 'suspended')),
+            is_active BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            verified_at TEXT,
+            total_strays_registered INTEGER DEFAULT 0,
+            total_vaccinations INTEGER DEFAULT 0
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stray_dogs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stray_uid TEXT UNIQUE NOT NULL,
+            qr_code TEXT UNIQUE NOT NULL,
+            ngo_id INTEGER NOT NULL,
+            registered_by_email TEXT NOT NULL,
+            photo_url TEXT NOT NULL,
+            location_latitude REAL NOT NULL,
+            location_longitude REAL NOT NULL,
+            location_address TEXT,
+            breed_type TEXT,
+            gender TEXT CHECK(gender IN ('Male', 'Female', 'Unknown')),
+            age_estimation TEXT,
+            fur_color TEXT,
+            distinctive_marks TEXT,
+            temperament TEXT DEFAULT 'Unknown' CHECK(temperament IN ('Friendly', 'Cautious', 'Aggressive', 'Unknown')),
+            collar_color TEXT,
+            current_status TEXT DEFAULT 'Active' CHECK(current_status IN ('Active', 'Relocated', 'Deceased', 'Adopted', 'Missing')),
+            verification_status TEXT DEFAULT 'pending' CHECK(verification_status IN ('pending', 'verified', 'flagged', 'rejected')),
+            audit_flags INTEGER DEFAULT 0,
+            total_vaccinations INTEGER DEFAULT 0,
+            last_vaccination_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (ngo_id) REFERENCES ngo_partners(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stray_vaccinations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stray_id INTEGER NOT NULL,
+            ngo_id INTEGER NOT NULL,
+            vaccination_photo_url TEXT NOT NULL,
+            certificate_url TEXT,
+            vaccine_name TEXT NOT NULL,
+            vaccine_batch_number TEXT NOT NULL,
+            vaccine_expiration_date TEXT NOT NULL,
+            vaccinator_name TEXT NOT NULL,
+            vaccinator_contact TEXT,
+            vaccinator_license TEXT,
+            is_furrbutler_vet BOOLEAN DEFAULT 0,
+            digital_signature TEXT NOT NULL,
+            signature_timestamp TEXT NOT NULL,
+            vaccination_date TEXT NOT NULL,
+            vaccination_cost REAL DEFAULT 0,
+            additional_notes TEXT,
+            verification_status TEXT DEFAULT 'pending' CHECK(verification_status IN ('pending', 'verified', 'flagged', 'rejected')),
+            audit_score REAL DEFAULT 0,
+            image_hash TEXT,
+            is_duplicate_flagged BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            verified_at TEXT,
+            FOREIGN KEY (stray_id) REFERENCES stray_dogs(id),
+            FOREIGN KEY (ngo_id) REFERENCES ngo_partners(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stray_expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stray_id INTEGER NOT NULL,
+            ngo_id INTEGER NOT NULL,
+            expense_type TEXT NOT NULL CHECK(expense_type IN ('Vaccination', 'Food', 'Travel', 'Accommodation', 'Medical', 'Collar', 'Other')),
+            amount REAL NOT NULL,
+            description TEXT,
+            receipt_url TEXT,
+            expense_date TEXT NOT NULL,
+            created_by TEXT NOT NULL,
+            verification_status TEXT DEFAULT 'approved' CHECK(verification_status IN ('pending', 'approved', 'rejected')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (stray_id) REFERENCES stray_dogs(id),
+            FOREIGN KEY (ngo_id) REFERENCES ngo_partners(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stray_audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stray_id INTEGER,
+            vaccination_id INTEGER,
+            audit_type TEXT NOT NULL CHECK(audit_type IN ('image_verification', 'pattern_analysis', 'citizen_report', 'random_audit', 'manual_review')),
+            audit_result TEXT CHECK(audit_result IN ('passed', 'flagged', 'failed')),
+            confidence_score REAL,
+            audit_details TEXT,
+            flagged_reason TEXT,
+            audited_by TEXT,
+            audit_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            action_taken TEXT,
+            FOREIGN KEY (stray_id) REFERENCES stray_dogs(id),
+            FOREIGN KEY (vaccination_id) REFERENCES stray_vaccinations(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS citizen_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stray_id INTEGER,
+            vaccination_id INTEGER,
+            reporter_email TEXT,
+            report_type TEXT CHECK(report_type IN ('suspicious_activity', 'duplicate_image', 'false_information', 'location_mismatch', 'other')),
+            description TEXT NOT NULL,
+            evidence_url TEXT,
+            report_status TEXT DEFAULT 'pending' CHECK(report_status IN ('pending', 'investigating', 'resolved', 'dismissed')),
+            priority_level TEXT DEFAULT 'medium' CHECK(priority_level IN ('low', 'medium', 'high', 'critical')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            investigated_at TEXT,
+            investigated_by TEXT,
+            resolution_notes TEXT,
+            FOREIGN KEY (stray_id) REFERENCES stray_dogs(id),
+            FOREIGN KEY (vaccination_id) REFERENCES stray_vaccinations(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stray_community_updates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stray_id INTEGER NOT NULL,
+            ngo_id INTEGER NOT NULL,
+            update_type TEXT CHECK(update_type IN ('collar_tagging', 'location_update', 'status_change', 'community_interaction', 'feeding', 'medical_care')),
+            description TEXT NOT NULL,
+            photo_url TEXT,
+            video_url TEXT,
+            location_latitude REAL,
+            location_longitude REAL,
+            created_by TEXT NOT NULL,
+            is_verified BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (stray_id) REFERENCES stray_dogs(id),
+            FOREIGN KEY (ngo_id) REFERENCES ngo_partners(id)
+        )
+    ''')
+
     # Discount Management Tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS product_discounts (
@@ -970,6 +1130,20 @@ def init_erp_db():
             (name, email, password, country, base_price, services_offered, experience_years, success_rate, total_bookings, profile_image, bio, languages, certifications, is_active)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', handler)
+
+    # Insert demo NGO partners
+    demo_ngos = [
+        ("Paws For Life Foundation", "contact@pawsforlife.org", "ngo123", "NGO", "REG/NGO/2023/001", "LIC-001-2023", "Dr. Meera Sharma", "+91-9876543210", "123 Charity Street", "Mumbai", "Maharashtra", "400001", "PFL-DSC-001", "approved"),
+        ("Street Dog Welfare Society", "info@streetdogwelfare.org", "ngo123", "NPO", "REG/NPO/2023/002", "LIC-002-2023", "Raj Kumar", "+91-9876543211", "456 Animal Avenue", "Delhi", "Delhi", "110001", "SDWS-DSC-002", "approved"),
+        ("Corporate Pet Care Initiative", "csr@corpetcare.com", "ngo123", "CSR", "REG/CSR/2023/003", "LIC-003-2023", "Priya Gupta", "+91-9876543212", "789 Business Park", "Bangalore", "Karnataka", "560001", "CPCI-DSC-003", "approved")
+    ]
+
+    for ngo in demo_ngos:
+        c.execute('''
+            INSERT OR IGNORE INTO ngo_partners 
+            (name, email, password, organization_type, registration_number, license_number, contact_person, phone, address, city, state, pincode, digital_signature_key, verification_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', ngo)
 
     # Get demo vendor ID
     c.execute("SELECT id FROM vendors WHERE email = 'demo@furrbutler.com'")
@@ -2278,6 +2452,227 @@ def my_bookings():
 def logout():
     session.clear()
     return redirect(url_for("home"))
+
+# ---- STRAY TRACKER ROUTES ----
+
+@app.route('/stray-tracker')
+def stray_tracker_home():
+    """Public stray tracker view for citizens"""
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get verified stray dogs with recent activity
+    c.execute("""
+        SELECT sd.stray_uid, sd.photo_url, sd.location_address, sd.breed_type, 
+               sd.temperament, sd.collar_color, sd.total_vaccinations, sd.last_vaccination_date,
+               np.name as ngo_name, sd.location_latitude, sd.location_longitude
+        FROM stray_dogs sd
+        JOIN ngo_partners np ON sd.ngo_id = np.id
+        WHERE sd.verification_status = 'verified' AND sd.current_status = 'Active'
+        ORDER BY sd.last_updated DESC
+        LIMIT 50
+    """)
+    
+    strays = c.fetchall()
+    
+    # Get tracker statistics
+    c.execute("SELECT COUNT(*) FROM stray_dogs WHERE verification_status = 'verified'")
+    total_verified_strays = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COUNT(*) FROM stray_vaccinations WHERE verification_status = 'verified'")
+    total_vaccinations = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COUNT(DISTINCT ngo_id) FROM stray_dogs")
+    active_ngos = c.fetchone()[0] or 0
+    
+    stats = {
+        'total_verified_strays': total_verified_strays,
+        'total_vaccinations': total_vaccinations,
+        'active_ngos': active_ngos
+    }
+    
+    conn.close()
+    return render_template("stray_tracker_public.html", strays=strays, stats=stats)
+
+@app.route('/stray/<stray_uid>')
+def stray_detail(stray_uid):
+    """Detailed view of a specific stray dog"""
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get stray details
+    c.execute("""
+        SELECT sd.*, np.name as ngo_name, np.contact_person, np.phone
+        FROM stray_dogs sd
+        JOIN ngo_partners np ON sd.ngo_id = np.id
+        WHERE sd.stray_uid = ? AND sd.verification_status = 'verified'
+    """, (stray_uid,))
+    
+    stray = c.fetchone()
+    if not stray:
+        return "Stray not found", 404
+    
+    # Get vaccination history
+    c.execute("""
+        SELECT * FROM stray_vaccinations
+        WHERE stray_id = ? AND verification_status = 'verified'
+        ORDER BY vaccination_date DESC
+    """, (stray[0],))
+    vaccinations = c.fetchall()
+    
+    # Get expense breakdown
+    c.execute("""
+        SELECT expense_type, SUM(amount) as total_amount, COUNT(*) as count
+        FROM stray_expenses
+        WHERE stray_id = ? AND verification_status = 'approved'
+        GROUP BY expense_type
+    """, (stray[0],))
+    expenses = c.fetchall()
+    
+    # Get community updates
+    c.execute("""
+        SELECT * FROM stray_community_updates
+        WHERE stray_id = ? AND is_verified = 1
+        ORDER BY created_at DESC
+        LIMIT 10
+    """, (stray[0],))
+    updates = c.fetchall()
+    
+    conn.close()
+    return render_template("stray_detail.html", 
+                         stray=stray, 
+                         vaccinations=vaccinations, 
+                         expenses=expenses, 
+                         updates=updates)
+
+@app.route('/ngo/login', methods=["GET", "POST"])
+def ngo_login():
+    """NGO partner login"""
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM ngo_partners WHERE email=? AND password=? AND is_active=1 AND verification_status='approved'", (email, password))
+        ngo = c.fetchone()
+        conn.close()
+
+        if ngo:
+            session["ngo"] = email
+            session["ngo_id"] = ngo[0]
+            session["ngo_name"] = ngo[1]
+            session["ngo_type"] = ngo[3]
+            session["ngo_signature_key"] = ngo[13]
+            return redirect(url_for("ngo_dashboard"))
+        else:
+            flash("Invalid NGO credentials or account not approved")
+
+    return render_template("ngo_login.html")
+
+@app.route('/ngo/register', methods=["GET", "POST"])
+def ngo_register():
+    """NGO partner registration"""
+    if request.method == "POST":
+        import secrets
+        
+        form_data = {
+            'name': request.form.get("name"),
+            'email': request.form.get("email"),
+            'password': request.form.get("password"),
+            'organization_type': request.form.get("organization_type"),
+            'registration_number': request.form.get("registration_number"),
+            'license_number': request.form.get("license_number"),
+            'contact_person': request.form.get("contact_person"),
+            'phone': request.form.get("phone"),
+            'address': request.form.get("address"),
+            'city': request.form.get("city"),
+            'state': request.form.get("state"),
+            'pincode': request.form.get("pincode")
+        }
+        
+        # Generate unique digital signature key
+        signature_key = f"{form_data['organization_type']}-DSC-{secrets.token_hex(8).upper()}"
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        try:
+            c.execute("""
+                INSERT INTO ngo_partners 
+                (name, email, password, organization_type, registration_number, license_number, 
+                 contact_person, phone, address, city, state, pincode, digital_signature_key)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (form_data['name'], form_data['email'], form_data['password'], 
+                  form_data['organization_type'], form_data['registration_number'], 
+                  form_data['license_number'], form_data['contact_person'], form_data['phone'],
+                  form_data['address'], form_data['city'], form_data['state'], 
+                  form_data['pincode'], signature_key))
+            
+            conn.commit()
+            conn.close()
+            
+            flash("Registration successful! Your account is pending verification. You'll receive an email once approved.")
+            return redirect(url_for("ngo_login"))
+            
+        except sqlite3.IntegrityError:
+            conn.close()
+            flash("Email already registered or registration number already exists")
+    
+    return render_template("ngo_register.html")
+
+@app.route('/ngo/dashboard')
+def ngo_dashboard():
+    """NGO dashboard showing strays and statistics"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    ngo_id = session["ngo_id"]
+    ngo_name = session["ngo_name"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get NGO statistics
+    c.execute("SELECT total_strays_registered, total_vaccinations FROM ngo_partners WHERE id = ?", (ngo_id,))
+    ngo_stats = c.fetchone()
+    
+    c.execute("SELECT COUNT(*) FROM stray_dogs WHERE ngo_id = ? AND current_status = 'Active'", (ngo_id,))
+    active_strays = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COUNT(*) FROM stray_dogs WHERE ngo_id = ? AND verification_status = 'pending'", (ngo_id,))
+    pending_verification = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COUNT(*) FROM citizen_reports WHERE stray_id IN (SELECT id FROM stray_dogs WHERE ngo_id = ?) AND report_status = 'pending'", (ngo_id,))
+    pending_reports = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM stray_expenses WHERE ngo_id = ? AND verification_status = 'approved'", (ngo_id,))
+    total_expenses = c.fetchone()[0] or 0
+    
+    stats = {
+        'total_registered': ngo_stats[0] if ngo_stats else 0,
+        'total_vaccinations': ngo_stats[1] if ngo_stats else 0,
+        'active_strays': active_strays,
+        'pending_verification': pending_verification,
+        'pending_reports': pending_reports,
+        'total_expenses': total_expenses
+    }
+
+    # Get recent strays
+    c.execute("""
+        SELECT id, stray_uid, photo_url, breed_type, temperament, verification_status, created_at
+        FROM stray_dogs 
+        WHERE ngo_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 10
+    """, (ngo_id,))
+    recent_strays = c.fetchall()
+
+    conn.close()
+    return render_template("ngo_dashboard.html", 
+                         stats=stats, 
+                         recent_strays=recent_strays, 
+                         ngo_name=ngo_name)
 
 # ---- FURRWINGS ROLE-BASED LOGIN ROUTES ----
 
@@ -7023,6 +7418,266 @@ def sync_existing_customers():
     conn.close()
 
     return {"success": True, "synced_count": synced_count}
+
+@app.route('/ngo/register-stray', methods=["GET", "POST"])
+def register_stray():
+    """Register a new stray dog"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    if request.method == "POST":
+        import secrets
+        import hashlib
+        
+        ngo_id = session["ngo_id"]
+        ngo_email = session["ngo"]
+        
+        # Generate unique stray UID and QR code
+        stray_uid = f"STR-{secrets.token_hex(3).upper()}-2024"
+        qr_code = f"QRSTR{secrets.token_hex(6).upper()}"
+        
+        # Get location data
+        latitude = float(request.form.get("latitude"))
+        longitude = float(request.form.get("longitude"))
+        location_address = request.form.get("location_address", "")
+        
+        # Handle photo upload
+        photo_url = ""
+        file = request.files.get("photo")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            timestamp = str(int(datetime.now().timestamp()))
+            filename = f"stray_{timestamp}_{filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            photo_url = "/" + filepath
+        else:
+            flash("Photo is required for stray registration")
+            return redirect(url_for("register_stray"))
+        
+        # Get form data
+        stray_data = {
+            'breed_type': request.form.get("breed_type"),
+            'gender': request.form.get("gender"),
+            'age_estimation': request.form.get("age_estimation"),
+            'fur_color': request.form.get("fur_color"),
+            'distinctive_marks': request.form.get("distinctive_marks"),
+            'temperament': request.form.get("temperament", "Unknown")
+        }
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        try:
+            # Insert stray dog
+            c.execute("""
+                INSERT INTO stray_dogs 
+                (stray_uid, qr_code, ngo_id, registered_by_email, photo_url, location_latitude, 
+                 location_longitude, location_address, breed_type, gender, age_estimation, 
+                 fur_color, distinctive_marks, temperament)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (stray_uid, qr_code, ngo_id, ngo_email, photo_url, latitude, longitude,
+                  location_address, stray_data['breed_type'], stray_data['gender'], 
+                  stray_data['age_estimation'], stray_data['fur_color'], 
+                  stray_data['distinctive_marks'], stray_data['temperament']))
+            
+            stray_id = c.lastrowid
+            
+            # Update NGO statistics
+            c.execute("UPDATE ngo_partners SET total_strays_registered = total_strays_registered + 1 WHERE id = ?", (ngo_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            flash(f"Stray dog registered successfully! UID: {stray_uid}")
+            return redirect(url_for("ngo_dashboard"))
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            flash(f"Error registering stray: {str(e)}")
+    
+    return render_template("register_stray.html")
+
+@app.route('/ngo/add-vaccination', methods=["GET", "POST"])
+def add_vaccination():
+    """Add vaccination record for a stray"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    if request.method == "POST":
+        ngo_id = session["ngo_id"]
+        signature_key = session["ngo_signature_key"]
+        
+        stray_uid = request.form.get("stray_uid")
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Get stray ID
+        c.execute("SELECT id FROM stray_dogs WHERE stray_uid = ? AND ngo_id = ?", (stray_uid, ngo_id))
+        stray_result = c.fetchone()
+        
+        if not stray_result:
+            flash("Stray not found or you don't have permission to update this stray")
+            return redirect(url_for("add_vaccination"))
+        
+        stray_id = stray_result[0]
+        
+        # Handle vaccination photo upload
+        vaccination_photo_url = ""
+        file = request.files.get("vaccination_photo")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            timestamp = str(int(datetime.now().timestamp()))
+            filename = f"vaccination_{timestamp}_{filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            vaccination_photo_url = "/" + filepath
+            
+            # Generate image hash for duplicate detection
+            with open(filepath, 'rb') as f:
+                image_hash = hashlib.md5(f.read()).hexdigest()
+        else:
+            flash("Vaccination photo is required")
+            return redirect(url_for("add_vaccination"))
+        
+        # Handle certificate upload
+        certificate_url = ""
+        cert_file = request.files.get("certificate")
+        if cert_file and cert_file.filename:
+            filename = secure_filename(cert_file.filename)
+            timestamp = str(int(datetime.now().timestamp()))
+            filename = f"certificate_{timestamp}_{filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            cert_file.save(filepath)
+            certificate_url = "/" + filepath
+        
+        # Get vaccination data
+        vaccination_data = {
+            'vaccine_name': request.form.get("vaccine_name"),
+            'vaccine_batch_number': request.form.get("vaccine_batch_number"),
+            'vaccine_expiration_date': request.form.get("vaccine_expiration_date"),
+            'vaccinator_name': request.form.get("vaccinator_name"),
+            'vaccinator_contact': request.form.get("vaccinator_contact"),
+            'vaccinator_license': request.form.get("vaccinator_license"),
+            'vaccination_date': request.form.get("vaccination_date"),
+            'vaccination_cost': float(request.form.get("vaccination_cost", 0)),
+            'additional_notes': request.form.get("additional_notes", "")
+        }
+        
+        # Generate digital signature
+        signature_data = f"{stray_uid}_{vaccination_data['vaccine_name']}_{vaccination_data['vaccination_date']}_{signature_key}"
+        digital_signature = hashlib.sha256(signature_data.encode()).hexdigest()
+        signature_timestamp = datetime.now().isoformat()
+        
+        try:
+            # Check for duplicate images
+            c.execute("SELECT id FROM stray_vaccinations WHERE image_hash = ?", (image_hash,))
+            if c.fetchone():
+                c.execute("""
+                    INSERT INTO stray_audit_logs (vaccination_id, audit_type, audit_result, audit_details, audited_by)
+                    VALUES (?, 'image_verification', 'flagged', 'Duplicate image detected', 'system')
+                """, (None,))
+                flash("Warning: This vaccination image appears to be a duplicate. Entry flagged for review.")
+            
+            # Insert vaccination record
+            c.execute("""
+                INSERT INTO stray_vaccinations 
+                (stray_id, ngo_id, vaccination_photo_url, certificate_url, vaccine_name, 
+                 vaccine_batch_number, vaccine_expiration_date, vaccinator_name, vaccinator_contact,
+                 vaccinator_license, digital_signature, signature_timestamp, vaccination_date,
+                 vaccination_cost, additional_notes, image_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (stray_id, ngo_id, vaccination_photo_url, certificate_url, 
+                  vaccination_data['vaccine_name'], vaccination_data['vaccine_batch_number'],
+                  vaccination_data['vaccine_expiration_date'], vaccination_data['vaccinator_name'],
+                  vaccination_data['vaccinator_contact'], vaccination_data['vaccinator_license'],
+                  digital_signature, signature_timestamp, vaccination_data['vaccination_date'],
+                  vaccination_data['vaccination_cost'], vaccination_data['additional_notes'], image_hash))
+            
+            # Update stray vaccination count
+            c.execute("""
+                UPDATE stray_dogs 
+                SET total_vaccinations = total_vaccinations + 1, last_vaccination_date = ?
+                WHERE id = ?
+            """, (vaccination_data['vaccination_date'], stray_id))
+            
+            # Update NGO statistics
+            c.execute("UPDATE ngo_partners SET total_vaccinations = total_vaccinations + 1 WHERE id = ?", (ngo_id,))
+            
+            # Add expense record
+            c.execute("""
+                INSERT INTO stray_expenses (stray_id, ngo_id, expense_type, amount, description, expense_date, created_by)
+                VALUES (?, ?, 'Vaccination', ?, ?, ?, ?)
+            """, (stray_id, ngo_id, vaccination_data['vaccination_cost'], 
+                  f"Vaccination: {vaccination_data['vaccine_name']}", 
+                  vaccination_data['vaccination_date'], session["ngo"]))
+            
+            conn.commit()
+            conn.close()
+            
+            flash(f"Vaccination recorded successfully with digital signature!")
+            return redirect(url_for("ngo_dashboard"))
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            flash(f"Error recording vaccination: {str(e)}")
+    
+    # Get strays for dropdown
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT stray_uid, breed_type FROM stray_dogs WHERE ngo_id = ? AND current_status = 'Active'", (session["ngo_id"],))
+    strays = c.fetchall()
+    conn.close()
+    
+    return render_template("add_vaccination.html", strays=strays)
+
+@app.route('/api/citizen-report', methods=["POST"])
+def citizen_report():
+    """API endpoint for citizen reports"""
+    data = request.get_json()
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    try:
+        # Get stray ID if provided
+        stray_id = None
+        if data.get('stray_uid'):
+            c.execute("SELECT id FROM stray_dogs WHERE stray_uid = ?", (data['stray_uid'],))
+            stray_result = c.fetchone()
+            if stray_result:
+                stray_id = stray_result[0]
+        
+        # Insert citizen report
+        c.execute("""
+            INSERT INTO citizen_reports 
+            (stray_id, reporter_email, report_type, description, priority_level)
+            VALUES (?, ?, ?, ?, ?)
+        """, (stray_id, data.get('reporter_email'), data['report_type'], 
+              data['description'], 'medium'))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Report submitted successfully"}
+        
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"success": False, "error": str(e)}, 500
+
+@app.route('/ngo/logout')
+def ngo_logout():
+    """NGO logout"""
+    session.pop("ngo", None)
+    session.pop("ngo_id", None)
+    session.pop("ngo_name", None)
+    session.pop("ngo_type", None)
+    session.pop("ngo_signature_key", None)
+    return redirect(url_for("stray_tracker_home"))
 
 # Run app
 if __name__ == '__main__':

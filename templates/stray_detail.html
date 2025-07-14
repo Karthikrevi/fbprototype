@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stray {{ stray[1] }} - Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        .detail-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .stray-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        .stray-photo {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .temperament-badge {
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+        }
+        .temperament-friendly { background-color: #28a745; }
+        .temperament-cautious { background-color: #ffc107; color: #000; }
+        .temperament-aggressive { background-color: #dc3545; }
+        .temperament-unknown { background-color: #6c757d; }
+        .qr-code {
+            width: 100px;
+            height: 100px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .vaccination-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #28a745;
+        }
+        .expense-chart {
+            max-width: 100%;
+            height: 300px;
+        }
+        .update-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/stray-tracker">🐕 Stray Tracker</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/stray-tracker">← Back to Tracker</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="detail-container">
+        <!-- Stray Header -->
+        <div class="stray-header">
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center">
+                    <img src="{{ stray[4] }}" alt="Stray Dog" class="stray-photo">
+                    <div class="mt-3">
+                        <div class="qr-code">
+                            QR: {{ stray[2] }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <h1>🐕 Stray ID: {{ stray[1] }}</h1>
+                    <p class="lead">Registered and maintained by {{ stray[19] }}</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <p><strong>📍 Location:</strong> {{ stray[7] or 'Location updating...' }}</p>
+                            <p><strong>🐕 Breed:</strong> {{ stray[8] or 'Mixed' }}</p>
+                            <p><strong>⚧ Gender:</strong> {{ stray[9] or 'Unknown' }}</p>
+                            <p><strong>📅 Age:</strong> {{ stray[10] or 'Unknown' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>🎨 Fur Color:</strong> {{ stray[11] or 'Not specified' }}</p>
+                            <p><strong>✨ Marks:</strong> {{ stray[12] or 'None noted' }}</p>
+                            <p><strong>💉 Vaccinations:</strong> {{ stray[17] }}</p>
+                            <p><strong>📅 Last Vaccination:</strong> {{ stray[18] or 'Not vaccinated yet' }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <span class="temperament-badge temperament-{{ stray[13].lower() if stray[13] else 'unknown' }}">
+                            {{ stray[13] or 'Unknown' }} Temperament
+                        </span>
+                        <span class="badge bg-success ms-2">{{ stray[15] or 'Active' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Vaccination History -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h4>💉 Vaccination History</h4>
+                    {% if vaccinations %}
+                        {% for vaccination in vaccinations %}
+                        <div class="vaccination-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6>{{ vaccination[5] }}</h6>
+                                    <p class="mb-1"><strong>Date:</strong> {{ vaccination[12] }}</p>
+                                    <p class="mb-1"><strong>Vaccinator:</strong> {{ vaccination[8] }}</p>
+                                    <p class="mb-1"><strong>Batch:</strong> {{ vaccination[6] }}</p>
+                                    {% if vaccination[13] > 0 %}
+                                    <p class="mb-0"><strong>Cost:</strong> ₹{{ "%.2f"|format(vaccination[13]) }}</p>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-success">Verified</span>
+                            </div>
+                            {% if vaccination[14] %}
+                            <p class="mt-2 mb-0 text-muted"><em>{{ vaccination[14] }}</em></p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No vaccination records yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Expense Breakdown -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h4>💰 Expense Breakdown</h4>
+                    {% if expenses %}
+                        {% set total_expenses = 0 %}
+                        {% for expense in expenses %}
+                            {% set total_expenses = total_expenses + expense[1] %}
+                        {% endfor %}
+                        
+                        <div class="mb-3">
+                            <h5 class="text-success">Total: ₹{{ "%.2f"|format(total_expenses) }}</h5>
+                        </div>
+                        
+                        {% for expense in expenses %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ expense[0] }} ({{ expense[2] }} entries)</span>
+                            <strong>₹{{ "%.2f"|format(expense[1]) }}</strong>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No expenses recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Community Updates -->
+        <div class="info-card">
+            <h4>📸 Community Updates</h4>
+            {% if updates %}
+                {% for update in updates %}
+                <div class="update-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6>{{ update[2].replace('_', ' ').title() }}</h6>
+                            <p class="mb-1">{{ update[3] }}</p>
+                            {% if update[4] %}
+                            <img src="{{ update[4] }}" alt="Update photo" style="max-width: 200px; border-radius: 5px;">
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ update[8][:16] }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No community updates yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- NGO Contact Information -->
+        <div class="info-card">
+            <h4>🏢 NGO Contact Information</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Organization:</strong> {{ stray[19] }}</p>
+                    <p><strong>Contact Person:</strong> {{ stray[20] }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Phone:</strong> {{ stray[21] }}</p>
+                    <p><strong>Registration Date:</strong> {{ stray[19][:10] }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Issue Button -->
+        <div class="text-center mt-4">
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reportModal">
+                🚨 Report Issue with this Stray
+            </button>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🚨 Report Issue</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="reportForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="stray_uid" value="{{ stray[1] }}">
+                        <div class="mb-3">
+                            <label for="reportType" class="form-label">Issue Type</label>
+                            <select id="reportType" name="report_type" class="form-select" required>
+                                <option value="">Select issue</option>
+                                <option value="location_mismatch">Location Mismatch</option>
+                                <option value="false_information">False Information</option>
+                                <option value="duplicate_image">Duplicate/Fake Image</option>
+                                <option value="suspicious_activity">Suspicious Activity</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reportDescription" class="form-label">Description</label>
+                            <textarea id="reportDescription" name="description" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reporterEmail" class="form-label">Your Email (optional)</label>
+                            <input type="email" id="reporterEmail" name="reporter_email" class="form-control">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">Submit Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('reportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            fetch('/api/citizen-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Report submitted successfully! Thank you for helping maintain data integrity.');
+                    document.getElementById('reportForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
+                } else {
+                    alert('Error submitting report: ' + result.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting report. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html>
