@@ -7845,16 +7845,6 @@ def citizen_report():
         conn.close()
         return {"success": False, "error": str(e)}, 500
 
-@app.route('/ngo/logout')
-def ngo_logout():
-    """NGO logout"""
-    session.pop("ngo", None)
-    session.pop("ngo_id", None)
-    session.pop("ngo_name", None)
-    session.pop("ngo_type", None)
-    session.pop("ngo_signature_key", None)
-    return redirect(url_for("stray_tracker_home"))
-
 # Run app
 if __name__ == '__main__':
     import os
