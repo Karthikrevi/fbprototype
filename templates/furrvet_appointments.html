@@ -1,0 +1,535 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointments - FurrVet</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-blue: #3b82f6;
+      --clinic-teal: #0891b2;
+      --soft-green: #059669;
+      --warm-orange: #f59e0b;
+      --gentle-yellow: #fbbf24;
+      --soft-grey: #f8fafc;
+      --text-dark: #1e293b;
+      --border-light: #e2e8f0;
+    }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--soft-grey);
+      color: var(--text-dark);
+    }
+
+    .header-section {
+      background: white;
+      padding: 1.5rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+      border-left: 4px solid var(--primary-blue);
+    }
+
+    .calendar-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .calendar-header {
+      background: linear-gradient(135deg, var(--primary-blue), var(--clinic-teal));
+      color: white;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: between;
+      align-items: center;
+    }
+
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .calendar-nav button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .calendar-nav button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .time-slot-grid {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 0;
+    }
+
+    .time-label {
+      padding: 1rem;
+      background: #f8fafc;
+      border-right: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+
+    .time-slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .appointment-slot {
+      padding: 0.75rem;
+      border-right: 1px solid var(--border-light);
+      min-height: 60px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .appointment-slot:hover {
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    .appointment-slot.available {
+      background-color: rgba(5, 150, 105, 0.05);
+    }
+
+    .appointment-slot.booked {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-left: 3px solid var(--primary-blue);
+    }
+
+    .appointment-slot.urgent {
+      background-color: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid var(--warm-orange);
+    }
+
+    .appointment-card {
+      background: white;
+      border-radius: 6px;
+      padding: 0.5rem;
+      border: 1px solid var(--border-light);
+      font-size: 0.75rem;
+    }
+
+    .appointment-patient {
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .appointment-type {
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+
+    .quick-actions {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+    }
+
+    .btn-primary-custom {
+      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      color: white;
+      text-decoration: none;
+    }
+
+    .btn-primary-custom:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      color: white;
+    }
+
+    .today-appointments {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .appointment-item {
+      padding: 1rem;
+      border-left: 4px solid var(--clinic-teal);
+      background: rgba(8, 145, 178, 0.05);
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 1rem;
+    }
+
+    .appointment-item.urgent {
+      border-left-color: var(--warm-orange);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .view-toggle {
+      background: white;
+      border-radius: 8px;
+      padding: 0.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .view-toggle button {
+      background: transparent;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .view-toggle button.active {
+      background: var(--primary-blue);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid py-4">
+    <div class="header-section">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-calendar-check text-primary"></i> Appointment Scheduling</h2>
+          <p class="text-muted mb-0">Manage appointments and clinic schedule</p>
+        </div>
+        <div class="d-flex gap-2">
+          <div class="view-toggle">
+            <button class="active" onclick="switchView('day')">Day</button>
+            <button onclick="switchView('week')">Week</button>
+            <button onclick="switchView('month')">Month</button>
+          </div>
+          <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+            <i class="fas fa-plus"></i> Schedule Appointment
+          </button>
+          <a href="/furrvet" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <div class="calendar-nav">
+              <button onclick="previousDay()"><i class="fas fa-chevron-left"></i></button>
+              <h4 class="mb-0" id="currentDate">Today, January 15, 2025</h4>
+              <button onclick="nextDay()"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div>
+              <button class="btn btn-light btn-sm" onclick="goToToday()">Today</button>
+            </div>
+          </div>
+
+          <div class="time-slot-grid" id="scheduleGrid">
+            <!-- 9:00 AM -->
+            <div class="time-label">9:00 AM</div>
+            <div class="time-slots">
+              <div class="appointment-slot booked">
+                <div class="appointment-card">
+                  <div class="appointment-patient">Buddy - Vaccination</div>
+                  <div class="appointment-type">Golden Retriever • Mr. Kumar</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 10:00 AM -->
+            <div class="time-label">10:00 AM</div>
+            <div class="time-slots">
+              <div class="appointment-slot available" onclick="scheduleAppointment('10:00')">
+                <div class="text-muted text-center">Available</div>
+              </div>
+            </div>
+
+            <!-- 11:00 AM -->
+            <div class="time-label">11:00 AM</div>
+            <div class="time-slots">
+              <div class="appointment-slot urgent">
+                <div class="appointment-card">
+                  <div class="appointment-patient">Max - Emergency</div>
+                  <div class="appointment-type">German Shepherd • Mrs. Singh</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 12:00 PM -->
+            <div class="time-label">12:00 PM</div>
+            <div class="time-slots">
+              <div class="appointment-slot available" onclick="scheduleAppointment('12:00')">
+                <div class="text-muted text-center">Available</div>
+              </div>
+            </div>
+
+            <!-- 1:00 PM -->
+            <div class="time-label">1:00 PM</div>
+            <div class="time-slots">
+              <div class="appointment-slot" style="background: #f1f5f9;">
+                <div class="text-muted text-center">Lunch Break</div>
+              </div>
+            </div>
+
+            <!-- 2:00 PM -->
+            <div class="time-label">2:00 PM</div>
+            <div class="time-slots">
+              <div class="appointment-slot booked">
+                <div class="appointment-card">
+                  <div class="appointment-patient">Luna - Check-up</div>
+                  <div class="appointment-type">Persian Cat • Mrs. Sharma</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3:00 PM -->
+            <div class="time-label">3:00 PM</div>
+            <div class="time-slots">
+              <div class="appointment-slot available" onclick="scheduleAppointment('15:00')">
+                <div class="text-muted text-center">Available</div>
+              </div>
+            </div>
+
+            <!-- 4:00 PM -->
+            <div class="time-label">4:00 PM</div>
+            <div class="time-slots">
+              <div class="appointment-slot booked">
+                <div class="appointment-card">
+                  <div class="appointment-patient">Chirpy - Wing Clipping</div>
+                  <div class="appointment-type">Cockatiel • Ms. Nair</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5:00 PM -->
+            <div class="time-label">5:00 PM</div>
+            <div class="time-slots">
+              <div class="appointment-slot available" onclick="scheduleAppointment('17:00')">
+                <div class="text-muted text-center">Available</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="today-appointments">
+          <h5 class="mb-3">
+            <i class="fas fa-list-ul text-info"></i> Today's Schedule
+          </h5>
+          
+          <div class="appointment-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>9:00 AM - Buddy</strong><br>
+                <small class="text-muted">Vaccination • Golden Retriever</small><br>
+                <small class="text-muted">Mr. Rajesh Kumar</small>
+              </div>
+              <span class="badge bg-primary">Confirmed</span>
+            </div>
+          </div>
+
+          <div class="appointment-item urgent">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>11:00 AM - Max</strong><br>
+                <small class="text-muted">Emergency • German Shepherd</small><br>
+                <small class="text-muted">Mrs. Sunita Singh</small>
+              </div>
+              <span class="badge bg-warning">Urgent</span>
+            </div>
+          </div>
+
+          <div class="appointment-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>2:00 PM - Luna</strong><br>
+                <small class="text-muted">Regular Check-up • Persian Cat</small><br>
+                <small class="text-muted">Mrs. Priya Sharma</small>
+              </div>
+              <span class="badge bg-primary">Confirmed</span>
+            </div>
+          </div>
+
+          <div class="appointment-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>4:00 PM - Chirpy</strong><br>
+                <small class="text-muted">Wing Clipping • Cockatiel</small><br>
+                <small class="text-muted">Ms. Anjali Nair</small>
+              </div>
+              <span class="badge bg-primary">Confirmed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-actions mt-3">
+          <h6 class="mb-3">Quick Actions</h6>
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="addWalkIn()">
+              <i class="fas fa-user-plus"></i> Add Walk-in
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="markCompleted()">
+              <i class="fas fa-check"></i> Mark Completed
+            </button>
+            <button class="btn btn-outline-warning btn-sm" onclick="reschedule()">
+              <i class="fas fa-calendar-alt"></i> Reschedule
+            </button>
+            <button class="btn btn-outline-danger btn-sm" onclick="cancelAppointment()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Appointment Modal -->
+  <div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Schedule New Appointment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Patient Name</label>
+                <select class="form-select">
+                  <option>Select patient...</option>
+                  <option>Buddy - Golden Retriever</option>
+                  <option>Luna - Persian Cat</option>
+                  <option>Max - German Shepherd</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Appointment Type</label>
+                <select class="form-select">
+                  <option>Regular Check-up</option>
+                  <option>Vaccination</option>
+                  <option>Emergency</option>
+                  <option>Surgery</option>
+                  <option>Grooming</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Time</label>
+                <select class="form-select">
+                  <option>9:00 AM</option>
+                  <option>10:00 AM</option>
+                  <option>11:00 AM</option>
+                  <option>12:00 PM</option>
+                  <option>2:00 PM</option>
+                  <option>3:00 PM</option>
+                  <option>4:00 PM</option>
+                  <option>5:00 PM</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" rows="3" placeholder="Additional notes for the appointment..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary-custom">Schedule Appointment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentDate = new Date();
+
+    function updateDateDisplay() {
+      const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('en-US', options);
+    }
+
+    function previousDay() {
+      currentDate.setDate(currentDate.getDate() - 1);
+      updateDateDisplay();
+      // In real implementation, load appointments for the new date
+    }
+
+    function nextDay() {
+      currentDate.setDate(currentDate.getDate() + 1);
+      updateDateDisplay();
+      // In real implementation, load appointments for the new date
+    }
+
+    function goToToday() {
+      currentDate = new Date();
+      updateDateDisplay();
+      // In real implementation, load today's appointments
+    }
+
+    function switchView(view) {
+      // Update active button
+      document.querySelectorAll('.view-toggle button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // In real implementation, switch calendar view
+      console.log('Switching to', view, 'view');
+    }
+
+    function scheduleAppointment(time) {
+      // In real implementation, open modal with pre-filled time
+      const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+      modal.show();
+    }
+
+    function addWalkIn() {
+      alert('Add walk-in functionality - opens quick registration form');
+    }
+
+    function markCompleted() {
+      alert('Mark appointment completed - updates status and generates invoice');
+    }
+
+    function reschedule() {
+      alert('Reschedule appointment - opens calendar picker');
+    }
+
+    function cancelAppointment() {
+      alert('Cancel appointment - confirms cancellation and sends notification');
+    }
+
+    // Initialize
+    updateDateDisplay();
+  </script>
+</body>
+</html>

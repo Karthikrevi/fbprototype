@@ -483,6 +483,128 @@ def init_erp_db():
         )
     ''')
 
+    # FurrVet Veterinary ERP Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_owners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            address TEXT,
+            city TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            species TEXT NOT NULL,
+            breed TEXT,
+            gender TEXT,
+            age INTEGER,
+            weight REAL,
+            microchip_id TEXT,
+            owner_id INTEGER,
+            allergies TEXT,
+            medical_conditions TEXT,
+            vaccination_history TEXT,
+            photo_url TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (owner_id) REFERENCES vet_owners (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            appointment_date DATE,
+            appointment_time TIME,
+            appointment_type TEXT,
+            duration INTEGER DEFAULT 30,
+            status TEXT DEFAULT 'scheduled',
+            notes TEXT,
+            vet_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (patient_id) REFERENCES vet_patients (id),
+            FOREIGN KEY (vet_id) REFERENCES vets (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_medical_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            appointment_id INTEGER,
+            visit_date DATE,
+            visit_type TEXT,
+            subjective TEXT,
+            objective TEXT,
+            assessment TEXT,
+            plan TEXT,
+            prescription TEXT,
+            images TEXT,
+            vet_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (patient_id) REFERENCES vet_patients (id),
+            FOREIGN KEY (appointment_id) REFERENCES vet_appointments (id),
+            FOREIGN KEY (vet_id) REFERENCES vets (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_invoices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invoice_number TEXT UNIQUE,
+            patient_id INTEGER,
+            appointment_id INTEGER,
+            invoice_date DATE,
+            due_date DATE,
+            subtotal REAL,
+            tax_rate REAL DEFAULT 18.0,
+            tax_amount REAL,
+            discount_rate REAL DEFAULT 0.0,
+            discount_amount REAL,
+            total_amount REAL,
+            payment_method TEXT,
+            status TEXT DEFAULT 'pending',
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (patient_id) REFERENCES vet_patients (id),
+            FOREIGN KEY (appointment_id) REFERENCES vet_appointments (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_invoice_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invoice_id INTEGER,
+            service_name TEXT,
+            description TEXT,
+            quantity INTEGER DEFAULT 1,
+            unit_price REAL,
+            total_price REAL,
+            FOREIGN KEY (invoice_id) REFERENCES vet_invoices (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_name TEXT NOT NULL,
+            category TEXT,
+            current_stock INTEGER DEFAULT 0,
+            minimum_stock INTEGER DEFAULT 10,
+            unit_price REAL,
+            supplier TEXT,
+            expiry_date DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS pet_media (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1116,6 +1238,52 @@ def init_erp_db():
         INSERT OR IGNORE INTO isolation_centers (name, email, password, center_name, license_number, phone, address, city)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', ("Bark & Board Manager", "isolation@furrwings.com", "isolation123", "Bark & Board Isolation Center", "ISO-2024-001", "+91-9876543212", "123 Pet Street", "Trivandrum"))
+
+    # Insert sample FurrVet data
+    c.execute('''
+        INSERT OR IGNORE INTO vet_owners (name, email, phone, address, city)
+        VALUES (?, ?, ?, ?, ?)
+    ''', ("Mr. Rajesh Kumar", "rajesh@example.com", "+91-9876543210", "123 Pet Street", "Trivandrum"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_owners (name, email, phone, address, city)
+        VALUES (?, ?, ?, ?, ?)
+    ''', ("Mrs. Priya Sharma", "priya@example.com", "+91-9876543211", "456 Animal Avenue", "Trivandrum"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_patients (name, species, breed, gender, age, weight, microchip_id, owner_id, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ("Buddy", "Dog", "Golden Retriever", "Male", 3, 32.0, "MC001234567", 1, "active"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_patients (name, species, breed, gender, age, weight, microchip_id, owner_id, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ("Luna", "Cat", "Persian", "Female", 2, 4.2, "MC001234568", 2, "active"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_appointments (patient_id, appointment_date, appointment_time, appointment_type, status, vet_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (1, "2025-01-15", "09:00", "Vaccination", "completed", 1))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_appointments (patient_id, appointment_date, appointment_time, appointment_type, status, vet_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (2, "2025-01-15", "14:00", "Check-up", "scheduled", 1))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_invoices (invoice_number, patient_id, appointment_id, invoice_date, subtotal, tax_amount, total_amount, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ("INV-2025-001", 1, 1, "2025-01-15", 2000.0, 360.0, 2260.0, "paid"))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_inventory (item_name, category, current_stock, minimum_stock, unit_price)
+        VALUES (?, ?, ?, ?, ?)
+    ''', ("Rabies Vaccine", "Vaccines", 25, 10, 1200.0))
+
+    c.execute('''
+        INSERT OR IGNORE INTO vet_inventory (item_name, category, current_stock, minimum_stock, unit_price)
+        VALUES (?, ?, ?, ?, ?)
+    ''', ("Antibiotics", "Medicines", 50, 20, 150.0))
 
     # Insert demo handler profiles
     demo_handlers = [
@@ -3069,6 +3237,92 @@ def ngo_add_vaccination():
             flash(f"Error recording vaccination: {str(e)}")
 
     return render_template("add_vaccination.html")
+
+# ---- FURRVET VETERINARY ERP ROUTES ----
+
+@app.route('/furrvet')
+@app.route('/furrvet/dashboard')
+def furrvet_dashboard():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    # Get dashboard statistics
+    c = get_db_connection().cursor()
+    
+    # Today's appointments
+    c.execute("SELECT COUNT(*) FROM vet_appointments WHERE DATE(appointment_date) = DATE('now')")
+    today_appointments = c.fetchone()[0]
+    
+    # Total patients
+    c.execute("SELECT COUNT(*) FROM vet_patients")
+    total_patients = c.fetchone()[0]
+    
+    # Today's revenue
+    c.execute("SELECT SUM(total_amount) FROM vet_invoices WHERE DATE(invoice_date) = DATE('now') AND status = 'paid'")
+    today_revenue = c.fetchone()[0] or 0
+    
+    # Pending actions
+    c.execute("SELECT COUNT(*) FROM vet_appointments WHERE status = 'scheduled'")
+    pending_actions = c.fetchone()[0]
+    
+    return render_template("furrvet_dashboard.html", 
+                         vet_name=session.get("vet_name"),
+                         today_appointments=today_appointments,
+                         total_patients=total_patients,
+                         today_revenue=f"{today_revenue:,.0f}",
+                         pending_actions=pending_actions)
+
+@app.route('/furrvet/patients')
+def furrvet_patients():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    c = get_db_connection().cursor()
+    c.execute("""
+        SELECT p.*, o.name as owner_name, o.phone as owner_phone 
+        FROM vet_patients p 
+        LEFT JOIN vet_owners o ON p.owner_id = o.id 
+        ORDER BY p.created_at DESC
+    """)
+    patients = c.fetchall()
+    
+    return render_template("furrvet_patients.html", patients=patients)
+
+@app.route('/furrvet/appointments')
+def furrvet_appointments():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    c = get_db_connection().cursor()
+    c.execute("""
+        SELECT a.*, p.name as patient_name, p.species, o.name as owner_name
+        FROM vet_appointments a
+        LEFT JOIN vet_patients p ON a.patient_id = p.id
+        LEFT JOIN vet_owners o ON p.owner_id = o.id
+        WHERE DATE(a.appointment_date) = DATE('now')
+        ORDER BY a.appointment_time
+    """)
+    appointments = c.fetchall()
+    
+    return render_template("furrvet_appointments.html", appointments=appointments)
+
+@app.route('/furrvet/billing')
+def furrvet_billing():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    c = get_db_connection().cursor()
+    c.execute("""
+        SELECT i.*, p.name as patient_name, o.name as owner_name
+        FROM vet_invoices i
+        LEFT JOIN vet_patients p ON i.patient_id = p.id
+        LEFT JOIN vet_owners o ON p.owner_id = o.id
+        ORDER BY i.invoice_date DESC
+        LIMIT 20
+    """)
+    invoices = c.fetchall()
+    
+    return render_template("furrvet_billing.html", invoices=invoices)
 
 # ---- FURRWINGS ROLE-BASED LOGIN ROUTES ----
 
