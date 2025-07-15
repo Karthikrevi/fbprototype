@@ -2603,27 +2603,27 @@ def search_pets_api():
             filtered_pets.append(pet)
     
     return {"pets": filtered_pets}
+    
+    FROM passport_documents pd
+    UNION
+    SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
+    ")
 
-        FROM passport_documents pd
-        UNION
-        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
-    """)
-    
     pets_data = c.fetchall()
-    
+
     # Get handler documents status for each pet
     pets = []
     for pet_data in pets_data:
         pet_id = pet_data[0]
-        
+
         # Get DGFT, AQCS, and quarantine docs status
         c.execute("""
-            SELECT doc_type, filename, status, upload_time, dgft_reference
-            FROM passport_documents 
-            WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
-            ORDER BY upload_time DESC
-        """, (pet_id,))
-        
+    SELECT doc_type, filename, status, upload_time, dgft_reference
+        FROM passport_documents 
+        WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
+        ORDER BY upload_time DESC
+    """, (pet_id,))
+
         docs = c.fetchall()
         doc_status = {}
         for doc in docs:
@@ -2633,7 +2633,7 @@ def search_pets_api():
                 'upload_time': doc[3],
                 'dgft_reference': doc[4]
             }
-        
+
         pets.append({
             'id': pet_id,
             'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
@@ -2650,7 +2650,7 @@ def vet_pet_history(pet_id):
 
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     # Get all documents for this pet
     c.execute("""
         SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, 
@@ -2659,9 +2659,9 @@ def vet_pet_history(pet_id):
         WHERE pet_id = ?
         ORDER BY upload_time DESC
     """, (pet_id,))
-    
+
     documents = c.fetchall()
-    
+
     # Get pet information (in a real system, this would come from the pet registration database)
     pet_info = {
         'id': pet_id,
@@ -2670,7 +2670,7 @@ def vet_pet_history(pet_id):
         'age': '2 years',
         'microchip_id': f'MC00123456{pet_id}'
     }
-    
+
     conn.close()
     return render_template("vet_pet_history.html", pet=pet_info, documents=documents)
 
@@ -2682,7 +2682,7 @@ def handler_upload_document():
     pet_id = request.form.get("pet_id")
     doc_type = request.form.get("doc_type")
     dgft_reference = request.form.get("dgft_reference", "")
-    
+
     if doc_type not in ['dgft', 'aqcs', 'quarantine']:
         flash("Handlers can only upload DGFT, AQCS, and quarantine documents")
         return redirect(url_for("handler_dashboard"))
@@ -2704,7 +2704,7 @@ def handler_upload_document():
     timestamp = str(int(time.time()))
     original_extension = file.filename.rsplit('.', 1)[1].lower()
     filename = f"handler_{pet_id}_{doc_type}_{timestamp}.{original_extension}"
-    
+
     # Save file
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
@@ -2717,13 +2717,12 @@ def handler_upload_document():
     # Save to database
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
+
     c.execute("""
         INSERT INTO passport_documents 
         (pet_id, doc_type, uploaded_by_role, uploaded_by_user_id, filename, dgft_reference)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (pet_id, doc_type, "handler", session["handler"], filename, dgft_reference))
-    
     conn.commit()
     conn.close()
 
