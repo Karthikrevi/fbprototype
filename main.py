@@ -2773,6 +2773,468 @@ def isolation_update_booking():
 
 # ---- PHASE 2: VETERINARY ERP ADVANCED FEATURES ----
 
+# ---- PHASE 3: ADVANCED TELEHEALTH & AI FEATURES ----
+
+# Telehealth Integration Routes
+@app.route('/furrvet/telehealth')
+def furrvet_telehealth():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get today's telehealth appointments
+    c.execute("""
+        SELECT va.id, va.appointment_date, va.appointment_time, va.appointment_type, va.status,
+               vp.name as patient_name, vo.name as owner_name, vo.phone as owner_phone
+        FROM vet_appointments va
+        JOIN vet_patients vp ON va.patient_id = vp.id
+        JOIN vet_owners vo ON vp.owner_id = vo.id
+        WHERE va.appointment_type = 'telehealth' AND DATE(va.appointment_date) = DATE('now')
+        ORDER BY va.appointment_time
+    """)
+    
+    telehealth_appointments = c.fetchall()
+    
+    # Get telehealth statistics
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_telehealth,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_sessions,
+            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as upcoming_sessions
+        FROM vet_appointments 
+        WHERE appointment_type = 'telehealth' AND DATE(appointment_date) >= DATE('now', '-30 days')
+    """)
+    
+    stats = c.fetchone()
+    
+    telehealth_stats = {
+        'total_telehealth': stats[0] or 0,
+        'completed_sessions': stats[1] or 0,
+        'upcoming_sessions': stats[2] or 0,
+        'success_rate': round((stats[1] / stats[0] * 100), 1) if stats[0] > 0 else 0
+    }
+    
+    conn.close()
+    return render_template("furrvet_telehealth.html", 
+                         appointments=telehealth_appointments,
+                         stats=telehealth_stats)
+
+@app.route('/furrvet/telehealth/start-session/<int:appointment_id>')
+def start_telehealth_session(appointment_id):
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get appointment details
+    c.execute("""
+        SELECT va.*, vp.name as patient_name, vo.name as owner_name, vo.email as owner_email
+        FROM vet_appointments va
+        JOIN vet_patients vp ON va.patient_id = vp.id
+        JOIN vet_owners vo ON vp.owner_id = vo.id
+        WHERE va.id = ?
+    """, (appointment_id,))
+    
+    appointment = c.fetchone()
+    
+    if not appointment:
+        flash("Appointment not found")
+        return redirect(url_for("furrvet_telehealth"))
+    
+    # Generate secure meeting room ID
+    import secrets
+    meeting_id = f"telehealth_{appointment_id}_{secrets.token_hex(8)}"
+    
+    # Update appointment status
+    c.execute("""
+        UPDATE vet_appointments 
+        SET status = 'in_progress', notes = ?
+        WHERE id = ?
+    """, (f"Telehealth session started - Room ID: {meeting_id}", appointment_id))
+    
+    conn.commit()
+    conn.close()
+    
+    session_data = {
+        'appointment_id': appointment_id,
+        'patient_name': appointment[1],
+        'owner_name': appointment[2],
+        'owner_email': appointment[3],
+        'meeting_id': meeting_id,
+        'appointment_type': appointment[4]
+    }
+    
+    return render_template("telehealth_session.html", session=session_data)
+
+@app.route('/api/telehealth/end-session', methods=["POST"])
+def end_telehealth_session():
+    if "vet" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    appointment_id = data.get('appointment_id')
+    session_notes = data.get('session_notes', '')
+    prescription_items = data.get('prescription_items', [])
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    try:
+        # Update appointment status
+        c.execute("""
+            UPDATE vet_appointments 
+            SET status = 'completed', notes = ?
+            WHERE id = ?
+        """, (f"Telehealth session completed. Notes: {session_notes}", appointment_id))
+        
+        # Create digital prescription if items provided
+        if prescription_items:
+            # Generate prescription number
+            prescription_number = f"RX-TH-{appointment_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            c.execute("""
+                INSERT INTO vet_prescriptions (prescription_number, patient_id, vet_id, appointment_id, notes)
+                VALUES (?, 
+                        (SELECT patient_id FROM vet_appointments WHERE id = ?), 
+                        ?, ?, ?)
+            """, (prescription_number, appointment_id, session.get('vet_id'), appointment_id, session_notes))
+            
+            prescription_id = c.lastrowid
+            
+            # Add prescription items
+            for item in prescription_items:
+                c.execute("""
+                    INSERT INTO vet_prescription_items 
+                    (prescription_id, medication_id, dosage, frequency, duration, quantity_prescribed, instructions)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (prescription_id, item['medication_id'], item['dosage'], 
+                      item['frequency'], item['duration'], item['quantity'], item['instructions']))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Session ended successfully"}
+        
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"error": str(e)}, 500
+
+# Enhanced Pet Parent Portal Routes
+@app.route('/pet-parent-portal')
+def pet_parent_portal():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    user_email = session["user"]
+    pets = db.get(f"pets:{user_email}", [])
+    
+    # Get upcoming appointments and health reminders
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Mock upcoming appointments (in real system, would link to actual pet IDs)
+    upcoming_appointments = [
+        {
+            'pet_name': 'Luna',
+            'appointment_type': 'Annual Checkup',
+            'appointment_date': '2024-01-25',
+            'appointment_time': '10:30 AM',
+            'vet_name': 'Dr. Sarah Johnson',
+            'clinic_name': 'PetCare Clinic'
+        },
+        {
+            'pet_name': 'Max',
+            'appointment_type': 'Vaccination',
+            'appointment_date': '2024-01-28',
+            'appointment_time': '2:00 PM',
+            'vet_name': 'Dr. Michael Chen',
+            'clinic_name': 'Animal Hospital'
+        }
+    ]
+    
+    # Health reminders
+    health_reminders = [
+        {
+            'pet_name': 'Luna',
+            'reminder_type': 'Vaccination Due',
+            'due_date': '2024-02-01',
+            'priority': 'high',
+            'description': 'Annual rabies vaccination due'
+        },
+        {
+            'pet_name': 'Max',
+            'reminder_type': 'Medication',
+            'due_date': '2024-01-26',
+            'priority': 'medium',
+            'description': 'Heart worm prevention medication'
+        }
+    ]
+    
+    # Educational content
+    educational_content = [
+        {
+            'title': 'Winter Pet Care Tips',
+            'category': 'Seasonal Care',
+            'content_type': 'article',
+            'read_time': '5 min',
+            'featured_image': 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400'
+        },
+        {
+            'title': 'Understanding Pet Nutrition',
+            'category': 'Nutrition',
+            'content_type': 'video',
+            'read_time': '12 min',
+            'featured_image': 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400'
+        },
+        {
+            'title': 'Signs of Common Pet Illnesses',
+            'category': 'Health',
+            'content_type': 'article',
+            'read_time': '8 min',
+            'featured_image': 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400'
+        }
+    ]
+    
+    conn.close()
+    
+    return render_template("pet_parent_portal.html",
+                         pets=pets,
+                         upcoming_appointments=upcoming_appointments,
+                         health_reminders=health_reminders,
+                         educational_content=educational_content)
+
+# IoT Dashboard Routes
+@app.route('/iot-dashboard')
+def iot_dashboard():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    user_email = session["user"]
+    pets = db.get(f"pets:{user_email}", [])
+    
+    # Mock IoT device data
+    iot_devices = [
+        {
+            'device_id': 'FIT001',
+            'device_type': 'fitness_tracker',
+            'pet_name': 'Luna',
+            'battery_level': 85,
+            'last_sync': '2024-01-20 14:30:00',
+            'status': 'active',
+            'current_activity': 'resting'
+        },
+        {
+            'device_id': 'GPS002',
+            'device_type': 'gps_collar',
+            'pet_name': 'Max',
+            'battery_level': 62,
+            'last_sync': '2024-01-20 14:25:00',
+            'status': 'active',
+            'current_location': 'Home - Safe Zone'
+        }
+    ]
+    
+    # Mock health metrics
+    health_metrics = {
+        'Luna': {
+            'heart_rate': 120,
+            'temperature': 101.5,
+            'activity_level': 'moderate',
+            'sleep_quality': 'good',
+            'daily_steps': 8500,
+            'calories_burned': 340
+        },
+        'Max': {
+            'heart_rate': 110,
+            'temperature': 101.8,
+            'activity_level': 'high',
+            'sleep_quality': 'excellent',
+            'daily_steps': 12000,
+            'calories_burned': 480
+        }
+    }
+    
+    # Mock alerts
+    iot_alerts = [
+        {
+            'pet_name': 'Luna',
+            'alert_type': 'activity_low',
+            'message': 'Luna has been less active than usual today',
+            'severity': 'low',
+            'timestamp': '2024-01-20 13:45:00'
+        },
+        {
+            'pet_name': 'Max',
+            'alert_type': 'location_alert',
+            'message': 'Max has left the safe zone',
+            'severity': 'medium',
+            'timestamp': '2024-01-20 11:20:00'
+        }
+    ]
+    
+    return render_template("iot_dashboard.html",
+                         pets=pets,
+                         iot_devices=iot_devices,
+                         health_metrics=health_metrics,
+                         iot_alerts=iot_alerts)
+
+# AI Analytics Routes
+@app.route('/ai-analytics')
+def ai_analytics():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    # Mock AI-driven insights
+    predictive_insights = [
+        {
+            'patient_name': 'Luna',
+            'owner_name': 'Mrs. Sharma',
+            'prediction_type': 'Disease Risk',
+            'risk_factor': 'Diabetes',
+            'probability': 0.75,
+            'recommendation': 'Schedule glucose tolerance test within 30 days',
+            'confidence': 0.88
+        },
+        {
+            'patient_name': 'Buddy',
+            'owner_name': 'Mr. Kumar',
+            'prediction_type': 'Behavioral Issue',
+            'risk_factor': 'Separation Anxiety',
+            'probability': 0.65,
+            'recommendation': 'Consider behavior modification training',
+            'confidence': 0.72
+        }
+    ]
+    
+    # Operational efficiency insights
+    operational_insights = {
+        'appointment_optimization': {
+            'recommended_slots': 8,
+            'current_utilization': 85,
+            'efficiency_score': 92
+        },
+        'inventory_forecast': {
+            'critical_items': ['Rabies Vaccine', 'Heartworm Prevention'],
+            'reorder_suggestions': 3,
+            'cost_savings': 1250
+        },
+        'staff_scheduling': {
+            'optimal_staff_hours': 45,
+            'predicted_workload': 'High',
+            'efficiency_improvement': 15
+        }
+    }
+    
+    # Revenue analytics
+    revenue_analytics = {
+        'monthly_revenue': 25000,
+        'growth_rate': 12.5,
+        'top_services': ['Vaccinations', 'Dental Care', 'Surgery'],
+        'client_retention': 94.2
+    }
+    
+    return render_template("ai_analytics.html",
+                         predictive_insights=predictive_insights,
+                         operational_insights=operational_insights,
+                         revenue_analytics=revenue_analytics)
+
+# Enhanced Passport Management Routes
+@app.route('/passport-management')
+def passport_management():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    user_email = session["user"]
+    pets = db.get(f"pets:{user_email}", [])
+    
+    # Mock passport data for demo
+    passport_data = []
+    for i, pet in enumerate(pets):
+        pet_id = i + 1
+        
+        # Mock document status
+        documents = {
+            'microchip': {'status': 'approved', 'expiry': '2029-01-15'},
+            'vaccinations': {'status': 'approved', 'expiry': '2024-12-01'},
+            'health_certificate': {'status': 'pending', 'expiry': '2024-06-01'},
+            'export_permit': {'status': 'not_submitted', 'expiry': None},
+            'import_permit': {'status': 'not_submitted', 'expiry': None}
+        }
+        
+        # Calculate completion percentage
+        total_docs = len(documents)
+        completed_docs = sum(1 for doc in documents.values() if doc['status'] == 'approved')
+        completion_percentage = int((completed_docs / total_docs) * 100)
+        
+        passport_data.append({
+            'pet_id': pet_id,
+            'pet_name': pet['name'],
+            'pet_breed': pet['breed'],
+            'documents': documents,
+            'completion_percentage': completion_percentage,
+            'travel_ready': completion_percentage >= 80,
+            'qr_code': f"QR_{pet_id}_{pet['name'].upper()}"
+        })
+    
+    # Mock travel destinations and requirements
+    travel_destinations = [
+        {
+            'country': 'United States',
+            'quarantine_required': True,
+            'quarantine_duration': '10 days',
+            'required_documents': ['Health Certificate', 'Rabies Vaccination', 'USDA Endorsement'],
+            'processing_time': '14-21 days'
+        },
+        {
+            'country': 'United Kingdom',
+            'quarantine_required': False,
+            'quarantine_duration': None,
+            'required_documents': ['EU Pet Passport', 'Microchip', 'Rabies Vaccination'],
+            'processing_time': '21-28 days'
+        },
+        {
+            'country': 'Australia',
+            'quarantine_required': True,
+            'quarantine_duration': '10 days',
+            'required_documents': ['Import Permit', 'Health Certificate', 'Rabies Vaccination', 'Rabies Antibody Test'],
+            'processing_time': '30-45 days'
+        }
+    ]
+    
+    return render_template("passport_management.html",
+                         pets=pets,
+                         passport_data=passport_data,
+                         travel_destinations=travel_destinations)
+
+@app.route('/api/passport/generate-qr/<int:pet_id>')
+def generate_passport_qr(pet_id):
+    if "user" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    user_email = session["user"]
+    pets = db.get(f"pets:{user_email}", [])
+    
+    if pet_id >= len(pets):
+        return {"error": "Pet not found"}, 404
+    
+    pet = pets[pet_id]
+    
+    # Generate QR code data
+    qr_data = {
+        'pet_id': pet_id,
+        'pet_name': pet['name'],
+        'owner_email': user_email,
+        'passport_id': f"PASSPORT_{pet_id}_{datetime.now().strftime('%Y%m%d')}",
+        'generated_at': datetime.now().isoformat(),
+        'verification_url': f"https://furrbutler.com/verify-passport/{pet_id}"
+    }
+    
+    return {"success": True, "qr_data": qr_data}
+
 # Advanced Inventory Management Routes
 @app.route('/furrvet/inventory')
 def furrvet_inventory():
