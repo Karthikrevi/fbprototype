@@ -2453,6 +2453,185 @@ def logout():
     session.clear()
     return redirect(url_for("home"))
 
+# ---- MISSING NGO DASHBOARD ROUTES ----
+
+@app.route('/ngo/manage-strays')
+def ngo_manage_strays():
+    """Manage all strays for NGO"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    ngo_id = session["ngo_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all strays for this NGO
+    c.execute("""
+        SELECT id, stray_uid, photo_url, breed_type, gender, temperament, 
+               current_status, verification_status, total_vaccinations, created_at,
+               location_address
+        FROM stray_dogs 
+        WHERE ngo_id = ? 
+        ORDER BY created_at DESC
+    """, (ngo_id,))
+    
+    strays = c.fetchall()
+    conn.close()
+    
+    return render_template("ngo_manage_strays.html", strays=strays)
+
+@app.route('/ngo/expenses')
+def ngo_expenses():
+    """Track NGO expenses"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    ngo_id = session["ngo_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all expenses for this NGO
+    c.execute("""
+        SELECT se.*, sd.stray_uid
+        FROM stray_expenses se
+        JOIN stray_dogs sd ON se.stray_id = sd.id
+        WHERE se.ngo_id = ?
+        ORDER BY se.expense_date DESC
+    """, (ngo_id,))
+    
+    expenses = c.fetchall()
+    
+    # Get expense summary
+    c.execute("""
+        SELECT expense_type, SUM(amount) as total_amount, COUNT(*) as count
+        FROM stray_expenses
+        WHERE ngo_id = ? AND verification_status = 'approved'
+        GROUP BY expense_type
+    """, (ngo_id,))
+    
+    expense_summary = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("ngo_expenses.html", expenses=expenses, expense_summary=expense_summary)
+
+@app.route('/ngo/community-updates')
+def ngo_community_updates():
+    """Community updates for NGO"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    ngo_id = session["ngo_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get community updates for this NGO
+    c.execute("""
+        SELECT scu.*, sd.stray_uid
+        FROM stray_community_updates scu
+        JOIN stray_dogs sd ON scu.stray_id = sd.id
+        WHERE scu.ngo_id = ?
+        ORDER BY scu.created_at DESC
+    """, (ngo_id,))
+    
+    updates = c.fetchall()
+    conn.close()
+    
+    return render_template("ngo_community_updates.html", updates=updates)
+
+@app.route('/ngo/reports')
+def ngo_reports():
+    """NGO reports and analytics"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    ngo_id = session["ngo_id"]
+    ngo_name = session["ngo_name"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get citizen reports for this NGO's strays
+    c.execute("""
+        SELECT cr.*, sd.stray_uid
+        FROM citizen_reports cr
+        JOIN stray_dogs sd ON cr.stray_id = sd.id
+        WHERE sd.ngo_id = ?
+        ORDER BY cr.created_at DESC
+    """, (ngo_id,))
+    
+    citizen_reports = c.fetchall()
+    
+    # Get analytics data
+    c.execute("""
+        SELECT 
+            COUNT(DISTINCT sd.id) as total_strays,
+            COUNT(DISTINCT CASE WHEN sd.verification_status = 'verified' THEN sd.id END) as verified_strays,
+            COUNT(DISTINCT sv.id) as total_vaccinations,
+            COALESCE(SUM(se.amount), 0) as total_expenses
+        FROM stray_dogs sd
+        LEFT JOIN stray_vaccinations sv ON sd.id = sv.stray_id
+        LEFT JOIN stray_expenses se ON sd.id = se.stray_id
+        WHERE sd.ngo_id = ?
+    """, (ngo_id,))
+    
+    analytics = c.fetchone()
+    
+    conn.close()
+    
+    return render_template("ngo_reports.html", 
+                         citizen_reports=citizen_reports, 
+                         analytics=analytics,
+                         ngo_name=ngo_name)
+
+@app.route('/ngo/stray/<int:stray_id>')
+def ngo_stray_detail(stray_id):
+    """View individual stray details for NGO"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    ngo_id = session["ngo_id"]
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get stray details (verify NGO owns this stray)
+    c.execute("""
+        SELECT * FROM stray_dogs 
+        WHERE id = ? AND ngo_id = ?
+    """, (stray_id, ngo_id))
+    
+    stray = c.fetchone()
+    if not stray:
+        flash("Stray not found")
+        return redirect(url_for("ngo_dashboard"))
+    
+    # Get vaccinations for this stray
+    c.execute("""
+        SELECT * FROM stray_vaccinations
+        WHERE stray_id = ?
+        ORDER BY vaccination_date DESC
+    """, (stray_id,))
+    vaccinations = c.fetchall()
+    
+    # Get expenses for this stray
+    c.execute("""
+        SELECT * FROM stray_expenses
+        WHERE stray_id = ?
+        ORDER BY expense_date DESC
+    """, (stray_id,))
+    expenses = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("ngo_stray_detail.html", 
+                         stray=stray, 
+                         vaccinations=vaccinations, 
+                         expenses=expenses)
+
 # ---- STRAY TRACKER ROUTES ----
 
 @app.route('/stray-tracker')
@@ -2544,6 +2723,47 @@ def stray_detail(stray_uid):
                          vaccinations=vaccinations, 
                          expenses=expenses, 
                          updates=updates)
+
+@app.route('/api/citizen-report', methods=["POST"])
+def submit_citizen_report():
+    """API endpoint for citizens to report issues"""
+    try:
+        data = request.get_json()
+        
+        report_type = data.get("report_type")
+        stray_uid = data.get("stray_uid")
+        description = data.get("description")
+        reporter_email = data.get("reporter_email")
+        
+        if not report_type or not description:
+            return {"success": False, "error": "Missing required fields"}, 400
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Get stray ID from UID if provided
+        stray_id = None
+        if stray_uid:
+            c.execute("SELECT id FROM stray_dogs WHERE stray_uid = ?", (stray_uid,))
+            stray_result = c.fetchone()
+            if stray_result:
+                stray_id = stray_result[0]
+        
+        # Insert citizen report
+        c.execute("""
+            INSERT INTO citizen_reports 
+            (stray_id, reporter_email, report_type, description, priority_level)
+            VALUES (?, ?, ?, ?, ?)
+        """, (stray_id, reporter_email, report_type, description, 
+              'high' if report_type in ['suspicious_activity', 'false_information'] else 'medium'))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Report submitted successfully"}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
 
 @app.route('/ngo/login', methods=["GET", "POST"])
 def ngo_login():
