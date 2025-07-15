@@ -1,0 +1,583 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pet Parent Portal - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-purple: #8b5cf6;
+      --pet-orange: #f97316;
+      --soft-pink: #f472b6;
+      --nature-green: #10b981;
+      --warm-yellow: #fbbf24;
+      --light-bg: #fef7ff;
+      --card-bg: #ffffff;
+      --text-dark: #1f2937;
+      --text-muted: #6b7280;
+    }
+    
+    body {
+      background: var(--light-bg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-dark);
+    }
+    
+    .portal-header {
+      background: linear-gradient(135deg, var(--primary-purple), var(--soft-pink));
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .portal-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .welcome-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+      border: 1px solid rgba(139, 92, 246, 0.1);
+    }
+    
+    .pet-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .pet-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-purple), var(--soft-pink));
+    }
+    
+    .pet-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      border-color: var(--primary-purple);
+    }
+    
+    .pet-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary-purple);
+      margin-bottom: 1rem;
+    }
+    
+    .pet-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+    
+    .status-healthy { background: rgba(16, 185, 129, 0.1); color: var(--nature-green); }
+    .status-needs-attention { background: rgba(251, 191, 36, 0.1); color: var(--warm-yellow); }
+    .status-urgent { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    
+    .health-metric {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .metric-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: white;
+    }
+    
+    .metric-heart { background: #ef4444; }
+    .metric-temp { background: var(--pet-orange); }
+    .metric-activity { background: var(--nature-green); }
+    .metric-weight { background: var(--primary-purple); }
+    
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    .action-btn {
+      background: linear-gradient(135deg, var(--primary-purple), var(--soft-pink));
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      text-decoration: none;
+      text-align: center;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+      color: white;
+    }
+    
+    .action-btn.secondary {
+      background: var(--card-bg);
+      color: var(--text-dark);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .action-btn.secondary:hover {
+      background: #f9fafb;
+      color: var(--text-dark);
+    }
+    
+    .appointment-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid var(--primary-purple);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .appointment-time {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary-purple);
+      margin-bottom: 0.5rem;
+    }
+    
+    .vet-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .reminder-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(251, 191, 36, 0.1);
+      color: var(--warm-yellow);
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+    
+    .health-alert {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(251, 191, 36, 0.1));
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .alert-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+    }
+    
+    .educational-content {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .content-thumbnail {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .feature-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s ease;
+      text-decoration: none;
+      color: var(--text-dark);
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-4px);
+      color: var(--text-dark);
+    }
+    
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+    }
+    
+    .icon-telehealth { background: linear-gradient(135deg, var(--primary-purple), var(--soft-pink)); }
+    .icon-records { background: linear-gradient(135deg, var(--nature-green), #059669); }
+    .icon-reminders { background: linear-gradient(135deg, var(--warm-yellow), var(--pet-orange)); }
+    .icon-community { background: linear-gradient(135deg, var(--soft-pink), var(--primary-purple)); }
+    
+    .notification-dot {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 20px;
+      height: 20px;
+      background: #ef4444;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-box {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-purple);
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="portal-header">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="mb-2">
+            <i class="fas fa-heart"></i> Pet Parent Portal
+          </h1>
+          <p class="mb-0 opacity-75">Comprehensive care for your furry family members</p>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="d-flex justify-content-end gap-2">
+            <a href="/furrvet/telehealth/book" class="btn btn-light">
+              <i class="fas fa-video"></i> Book Telehealth
+            </a>
+            <a href="/pet-parent/emergency" class="btn btn-warning">
+              <i class="fas fa-exclamation-triangle"></i> Emergency
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Welcome Card -->
+    <div class="welcome-card">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h2>Welcome back! 🐾</h2>
+          <p class="text-muted mb-0">Here's what's happening with your pets today</p>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="reminder-badge">
+            <i class="fas fa-bell"></i>
+            2 reminders pending
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-number">{{ pets|length }}</div>
+        <div class="stat-label">Registered Pets</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">{{ upcoming_appointments|length }}</div>
+        <div class="stat-label">Upcoming Appointments</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Health Alerts</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">12</div>
+        <div class="stat-label">Completed Sessions</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Pet Cards -->
+      <div class="col-lg-8">
+        <h3 class="mb-3">
+          <i class="fas fa-paw"></i> Your Pets
+        </h3>
+        
+        {% for pet in pets %}
+          <div class="pet-card">
+            <div class="row align-items-center">
+              <div class="col-md-3 text-center">
+                <img src="{{ pet.photo or 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop' }}" 
+                     alt="{{ pet.name }}" class="pet-avatar">
+                <h5 class="mb-1">{{ pet.name }}</h5>
+                <p class="text-muted mb-0">{{ pet.breed }}</p>
+              </div>
+              <div class="col-md-5">
+                <div class="pet-status status-healthy">
+                  <i class="fas fa-heart"></i>
+                  Healthy
+                </div>
+                
+                <!-- Mock health metrics -->
+                <div class="health-metric">
+                  <div class="metric-icon metric-heart">
+                    <i class="fas fa-heartbeat"></i>
+                  </div>
+                  <span>Heart Rate: 85 bpm</span>
+                </div>
+                <div class="health-metric">
+                  <div class="metric-icon metric-temp">
+                    <i class="fas fa-thermometer-half"></i>
+                  </div>
+                  <span>Temperature: 101.5°F</span>
+                </div>
+                <div class="health-metric">
+                  <div class="metric-icon metric-activity">
+                    <i class="fas fa-running"></i>
+                  </div>
+                  <span>Activity: 78% today</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="quick-actions">
+                  <a href="/pet-parent/health-dashboard/{{ loop.index0 }}" class="action-btn">
+                    <i class="fas fa-chart-line"></i> Health Dashboard
+                  </a>
+                  <a href="/pet-parent/records/{{ loop.index0 }}" class="action-btn secondary">
+                    <i class="fas fa-file-medical"></i> Records
+                  </a>
+                  <a href="/pet-parent/telehealth/{{ loop.index0 }}" class="action-btn">
+                    <i class="fas fa-video"></i> Telehealth
+                  </a>
+                  <a href="/pet-parent/reminders/{{ loop.index0 }}" class="action-btn secondary">
+                    <i class="fas fa-bell"></i> Reminders
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        
+        <!-- Health Alerts -->
+        <div class="health-alert">
+          <div class="d-flex align-items-center">
+            <div class="alert-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div>
+              <h6 class="mb-1">Vaccination Reminder</h6>
+              <p class="mb-0">Luna's annual DHPP booster is due next week. Schedule an appointment now.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Upcoming Appointments -->
+        <h4 class="mb-3">
+          <i class="fas fa-calendar-alt"></i> Upcoming Appointments
+        </h4>
+        
+        {% if upcoming_appointments %}
+          {% for appointment in upcoming_appointments %}
+            <div class="appointment-card">
+              <div class="appointment-time">
+                {{ appointment[0] }}
+              </div>
+              <div class="vet-info">
+                <i class="fas fa-user-md text-muted"></i>
+                <span>{{ appointment[3] }}</span>
+              </div>
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="badge bg-primary">{{ appointment[1] }}</span>
+                <a href="/pet-parent/appointment/{{ appointment[0] }}" class="btn btn-sm btn-outline-primary">
+                  View Details
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-calendar-times text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mt-2">No upcoming appointments</p>
+            <a href="/pet-parent/book-appointment" class="btn btn-primary btn-sm">
+              Book Appointment
+            </a>
+          </div>
+        {% endif %}
+
+        <!-- Educational Content -->
+        <div class="educational-content">
+          <h5>
+            <i class="fas fa-graduation-cap"></i> Pet Care Tips
+          </h5>
+          <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=200&fit=crop" 
+               alt="Pet care" class="content-thumbnail">
+          <h6>Winter Care for Your Pets</h6>
+          <p class="text-muted">Essential tips to keep your furry friends healthy during cold weather...</p>
+          <a href="/pet-parent/education" class="btn btn-sm btn-outline-primary">
+            Read More
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="feature-grid">
+      <a href="/pet-parent/telehealth" class="feature-card">
+        <div class="feature-icon icon-telehealth position-relative">
+          <i class="fas fa-video"></i>
+          <div class="notification-dot">2</div>
+        </div>
+        <h5>Telehealth</h5>
+        <p class="text-muted">Virtual consultations with veterinarians</p>
+      </a>
+
+      <a href="/pet-parent/records" class="feature-card">
+        <div class="feature-icon icon-records">
+          <i class="fas fa-file-medical"></i>
+        </div>
+        <h5>Medical Records</h5>
+        <p class="text-muted">Complete health history and documents</p>
+      </a>
+
+      <a href="/pet-parent/reminders" class="feature-card">
+        <div class="feature-icon icon-reminders position-relative">
+          <i class="fas fa-bell"></i>
+          <div class="notification-dot">5</div>
+        </div>
+        <h5>Smart Reminders</h5>
+        <p class="text-muted">Never miss vaccinations or checkups</p>
+      </a>
+
+      <a href="/pet-parent/community" class="feature-card">
+        <div class="feature-icon icon-community">
+          <i class="fas fa-users"></i>
+        </div>
+        <h5>Pet Community</h5>
+        <p class="text-muted">Connect with other pet parents</p>
+      </a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Mock real-time updates
+    setInterval(() => {
+      const activityElements = document.querySelectorAll('.health-metric:last-child span');
+      activityElements.forEach(element => {
+        if (element.textContent.includes('Activity:')) {
+          const newActivity = Math.floor(Math.random() * 20) + 70;
+          element.textContent = `Activity: ${newActivity}% today`;
+        }
+      });
+    }, 10000);
+
+    // Notification animation
+    const notificationDots = document.querySelectorAll('.notification-dot');
+    notificationDots.forEach(dot => {
+      setInterval(() => {
+        dot.style.animation = 'pulse 1s infinite';
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
