@@ -222,3 +222,116 @@
   </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet History - FurrVet</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: none;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-paw"></i> Pet Medical History</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Pet Information</h5>
+                                <p><strong>Name:</strong> {{ pet.name }}</p>
+                                <p><strong>Breed:</strong> {{ pet.breed }}</p>
+                                <p><strong>Age:</strong> {{ pet.age }}</p>
+                                <p><strong>Microchip ID:</strong> {{ pet.microchip_id }}</p>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h5>Document History</h5>
+                        {% if documents %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Document Type</th>
+                                            <th>Uploaded By</th>
+                                            <th>Filename</th>
+                                            <th>Upload Time</th>
+                                            <th>Status</th>
+                                            <th>Digital Signature</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for doc in documents %}
+                                        <tr>
+                                            <td>{{ doc[0].replace('_', ' ').title() }}</td>
+                                            <td>{{ doc[1].title() }}</td>
+                                            <td>{{ doc[3] }}</td>
+                                            <td>{{ doc[4] }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if doc[5] == 'approved' else 'warning' }}">
+                                                    {{ doc[5] or 'Pending' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if doc[7] %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-certificate"></i> Signed
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Not Signed</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No documents found for this pet.
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mt-4">
+                            <a href="/vet/dashboard" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
+</body>
+</html>
