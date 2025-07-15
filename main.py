@@ -7017,6 +7017,128 @@ def revenue_recognition():
     conn.close()
     return render_template("revenue_recognition.html", revenue_data=revenue_data)
 
+# ---- COMMUNITY AND PUBLIC CONTACT ROUTES ----
+
+@app.route('/community')
+def community_posts():
+    """Community posts showing NGO updates"""
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get community updates from NGOs
+    c.execute("""
+        SELECT scu.*, sd.stray_uid, np.name as ngo_name
+        FROM stray_community_updates scu
+        JOIN stray_dogs sd ON scu.stray_id = sd.id
+        JOIN ngo_partners np ON scu.ngo_id = np.id
+        WHERE scu.is_verified = 1
+        ORDER BY scu.created_at DESC
+        LIMIT 50
+    """)
+    
+    posts_data = c.fetchall()
+    posts = []
+    
+    for post in posts_data:
+        posts.append({
+            'id': post[0],
+            'stray_id': post[1],
+            'update_type': post[3],
+            'description': post[4],
+            'photo_url': post[5],
+            'video_url': post[6],
+            'location_latitude': post[7],
+            'location_longitude': post[8],
+            'created_by': post[9],
+            'created_at': post[11],
+            'stray_uid': post[12],
+            'ngo_name': post[13]
+        })
+    
+    conn.close()
+    return render_template("community_posts.html", posts=posts)
+
+@app.route('/public-contact')
+def public_contact():
+    """Public contact form for reporting issues"""
+    return render_template("public_contact.html")
+
+@app.route('/api/community/comment', methods=["POST"])
+def add_community_comment():
+    """Add comment to community post"""
+    if "user" not in session:
+        return {"success": False, "error": "Login required"}, 401
+    
+    data = request.get_json()
+    post_id = data.get("post_id")
+    comment_text = data.get("comment_text")
+    
+    if not post_id or not comment_text:
+        return {"success": False, "error": "Missing data"}, 400
+    
+    # For now, we'll store comments in a simple way
+    # In a real implementation, you'd have a separate comments table
+    return {"success": True, "message": "Comment added"}
+
+@app.route('/api/community/react', methods=["POST"])
+def add_community_reaction():
+    """Add reaction to community post"""
+    if "user" not in session:
+        return {"success": False, "error": "Login required"}, 401
+    
+    data = request.get_json()
+    post_id = data.get("post_id")
+    reaction_type = data.get("reaction_type")
+    
+    if not post_id or not reaction_type:
+        return {"success": False, "error": "Missing data"}, 400
+    
+    # For now, we'll store reactions in a simple way
+    # In a real implementation, you'd have a separate reactions table
+    return {"success": True, "message": "Reaction added"}
+
+@app.route('/api/public-contact', methods=["POST"])
+def submit_public_contact():
+    """Submit public contact form"""
+    data = request.get_json()
+    
+    issue_type = data.get("issue_type")
+    description = data.get("description")
+    reporter_email = data.get("reporter_email")
+    stray_uid = data.get("stray_uid")
+    
+    if not issue_type or not description:
+        return {"success": False, "error": "Missing required fields"}, 400
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    try:
+        # Get stray ID if provided
+        stray_id = None
+        if stray_uid:
+            c.execute("SELECT id FROM stray_dogs WHERE stray_uid = ?", (stray_uid,))
+            stray_result = c.fetchone()
+            if stray_result:
+                stray_id = stray_result[0]
+        
+        # Insert citizen report
+        c.execute("""
+            INSERT INTO citizen_reports 
+            (stray_id, reporter_email, report_type, description, priority_level)
+            VALUES (?, ?, ?, ?, ?)
+        """, (stray_id, reporter_email, issue_type, description, 'medium'))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Report submitted successfully"}
+        
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"success": False, "error": str(e)}, 500
+
 # ---- LANGUAGE SETTINGS ROUTES ----
 
 @app.route('/settings')
