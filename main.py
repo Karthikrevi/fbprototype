@@ -1993,23 +1993,62 @@ def vet_dashboard():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Get all pets that need vet documents (simplified - showing all pets for demo)
+    # Get all pets from the main pets database with owner information
+    pets = []
+    
+    # First, get pets that have passport documents
     c.execute("""
-        SELECT DISTINCT pd.pet_id, 
-               (SELECT COUNT(*) FROM passport_documents WHERE pet_id = pd.pet_id AND doc_type IN ('vaccine', 'health_cert')) as vet_docs_count
+        SELECT DISTINCT pd.pet_id
         FROM passport_documents pd
-        UNION
-        SELECT 1 as pet_id, 0 as vet_docs_count  -- Demo pet Luna
     """)
     
-    pets_data = c.fetchall()
+    documented_pets = [row[0] for row in c.fetchall()]
     
-    # Get vet documents status for each pet
-    pets = []
-    for pet_data in pets_data:
-        pet_id = pet_data[0]
+    # Add some demo pets for testing (these would come from the actual pet registration system)
+    demo_pets = [
+        {
+            'id': 1,
+            'name': 'Luna',
+            'breed': 'Persian Cat',
+            'age': '2 years',
+            'microchip_id': 'MC001234568',
+            'owner_name': 'Mrs. Priya Sharma',
+            'owner_email': 'priya@example.com',
+            'owner_phone': '+91-9876543211',
+            'owner_address': '456 Animal Avenue, Trivandrum',
+            'photo_url': 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop'
+        },
+        {
+            'id': 2,
+            'name': 'Buddy',
+            'breed': 'Golden Retriever',
+            'age': '3 years',
+            'microchip_id': 'MC001234567',
+            'owner_name': 'Mr. Rajesh Kumar',
+            'owner_email': 'rajesh@example.com',
+            'owner_phone': '+91-9876543210',
+            'owner_address': '123 Pet Street, Trivandrum',
+            'photo_url': 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop'
+        },
+        {
+            'id': 3,
+            'name': 'Max',
+            'breed': 'German Shepherd',
+            'age': '4 years',
+            'microchip_id': 'MC001234569',
+            'owner_name': 'Dr. Anjali Nair',
+            'owner_email': 'anjali@example.com',
+            'owner_phone': '+91-9876543212',
+            'owner_address': '789 Garden Street, Trivandrum',
+            'photo_url': 'https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=200&h=200&fit=crop'
+        }
+    ]
+    
+    # Process each pet and get their document status
+    for pet_data in demo_pets:
+        pet_id = pet_data['id']
         
-        # Get vaccine and health cert status
+        # Get vaccine and health cert status for this specific pet
         c.execute("""
             SELECT doc_type, filename, status, upload_time, is_signed, doc_hash, signature_timestamp
             FROM passport_documents 
@@ -2019,21 +2058,22 @@ def vet_dashboard():
         
         docs = c.fetchall()
         doc_status = {}
-        for doc in docs:
-            doc_status[doc[0]] = {
-                'filename': doc[1],
-                'status': doc[2],
-                'upload_time': doc[3],
-                'is_signed': doc[4],
-                'doc_hash': doc[5],
-                'signature_timestamp': doc[6]
-            }
         
-        pets.append({
-            'id': pet_id,
-            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
-            'doc_status': doc_status
-        })
+        # Process documents for this pet
+        for doc in docs:
+            if doc[0] not in doc_status:  # Keep only the latest document of each type
+                doc_status[doc[0]] = {
+                    'filename': doc[1],
+                    'status': doc[2],
+                    'upload_time': doc[3],
+                    'is_signed': doc[4],
+                    'doc_hash': doc[5],
+                    'signature_timestamp': doc[6]
+                }
+        
+        # Add document status to pet data
+        pet_data['doc_status'] = doc_status
+        pets.append(pet_data)
 
     conn.close()
     return render_template("vet_dashboard.html", pets=pets, vet_name=session["vet_name"])
@@ -2137,6 +2177,82 @@ def handler_dashboard():
     c.execute("""
         SELECT DISTINCT pd.pet_id, 
                (SELECT COUNT(*) FROM passport_documents WHERE pet_id = pd.pet_id AND doc_type IN ('dgft', 'aqcs', 'quarantine')) as handler_docs_count
+
+
+@app.route('/vet/pet/<int:pet_id>/history')
+def vet_pet_history(pet_id):
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all documents for this pet
+    c.execute("""
+        SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, 
+               status, comments, is_signed, doc_hash, signature_timestamp
+        FROM passport_documents 
+        WHERE pet_id = ?
+        ORDER BY upload_time DESC
+    """, (pet_id,))
+    
+    documents = c.fetchall()
+    
+    # Get pet information (in a real system, this would come from the pet registration database)
+    pet_info = {
+        'id': pet_id,
+        'name': f'Pet {pet_id}' if pet_id > 3 else ['', 'Luna', 'Buddy', 'Max'][pet_id],
+        'breed': 'Mixed Breed',
+        'age': '2 years',
+        'microchip_id': f'MC00123456{pet_id}'
+    }
+    
+    conn.close()
+    return render_template("vet_pet_history.html", pet=pet_info, documents=documents)
+
+@app.route('/api/pets/search')
+def search_pets_api():
+    """API endpoint for searching pets by name, owner, or microchip"""
+    if "vet" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    search_term = request.args.get('q', '').lower()
+    
+    # In a real system, this would search the actual pet database
+    demo_pets = [
+        {
+            'id': 1,
+            'name': 'Luna',
+            'breed': 'Persian Cat',
+            'owner_name': 'Mrs. Priya Sharma',
+            'microchip_id': 'MC001234568'
+        },
+        {
+            'id': 2,
+            'name': 'Buddy',
+            'breed': 'Golden Retriever',
+            'owner_name': 'Mr. Rajesh Kumar',
+            'microchip_id': 'MC001234567'
+        },
+        {
+            'id': 3,
+            'name': 'Max',
+            'breed': 'German Shepherd',
+            'owner_name': 'Dr. Anjali Nair',
+            'microchip_id': 'MC001234569'
+        }
+    ]
+    
+    # Filter pets based on search term
+    filtered_pets = []
+    for pet in demo_pets:
+        if (search_term in pet['name'].lower() or 
+            search_term in pet['owner_name'].lower() or 
+            search_term in pet['microchip_id'].lower()):
+            filtered_pets.append(pet)
+    
+    return {"pets": filtered_pets}
+
         FROM passport_documents pd
         UNION
         SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna

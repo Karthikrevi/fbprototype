@@ -1,59 +1,162 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vet Dashboard - FurrWings</title>
+  <title>Vet Dashboard - FurrVet</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #f8f9fa;
-      font-family: 'Poppins', sans-serif;
-    }
-    .header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      min-height: 100vh;
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
       padding: 20px 0;
       margin-bottom: 30px;
     }
-    .pet-card {
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-bottom: 30px;
-      overflow: hidden;
-    }
-    .upload-section {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
-    .signature-checkbox {
-      background: #e3f2fd;
-      padding: 15px;
-      border-radius: 8px;
-      border-left: 4px solid #2196f3;
-    }
-    .document-status {
+    
+    .vet-info {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 15px;
     }
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
+    
+    .vet-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
     }
+    
     .disclaimer {
       background: #fff3cd;
       border: 1px solid #ffeaa7;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .pet-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    
+    .pet-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .pet-header {
+      background: linear-gradient(135deg, #74c69d 0%, #52b788 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .pet-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.3);
+    }
+    
+    .pet-info h4 {
+      margin: 0 0 5px 0;
+      font-size: 1.5rem;
+    }
+    
+    .pet-info p {
+      margin: 0;
+      opacity: 0.9;
+    }
+    
+    .pet-body {
+      padding: 25px;
+    }
+    
+    .owner-info {
+      background: #f8f9fa;
       border-radius: 8px;
       padding: 15px;
-      margin: 20px 0;
-      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    
+    .doc-section {
+      margin-bottom: 25px;
+    }
+    
+    .doc-type {
+      background: #e9ecef;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    
+    .doc-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-approved { background: #d1edff; color: #0c5460; }
+    .status-signed { background: #d4edda; color: #155724; }
+    
+    .upload-form {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px dashed #dee2e6;
+    }
+    
+    .signature-option {
+      background: #e3f2fd;
+      border: 1px solid #bbdefb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+    }
+    
+    .search-section {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
   </style>
 </head>
@@ -61,12 +164,19 @@
   <div class="header">
     <div class="container">
       <div class="row align-items-center">
-        <div class="col-md-6">
-          <h1><i class="fas fa-user-md"></i> Vet Dashboard</h1>
-          <p class="mb-0">Welcome back, Dr. {{ vet_name }}</p>
+        <div class="col-md-8">
+          <div class="vet-info">
+            <div class="vet-avatar">
+              <i class="fas fa-user-md"></i>
+            </div>
+            <div>
+              <h2 class="mb-1">Dr. {{ vet_name }}</h2>
+              <p class="text-muted mb-0">FurrVet Veterinary Portal</p>
+            </div>
+          </div>
         </div>
-        <div class="col-md-6 text-end">
-          <a href="/vet/login" class="btn btn-outline-light">
+        <div class="col-md-4 text-end">
+          <a href="/vet/login" class="btn btn-outline-danger">
             <i class="fas fa-sign-out-alt"></i> Logout
           </a>
         </div>
@@ -80,48 +190,109 @@
       <p class="mb-0">This digital signature is valid within the FurrButler ecosystem. It is not certified under the Indian IT Act, 2000. For export validation, documents are submitted via certified authorities or partner handlers. This system ensures document traceability, tamper protection, and vet identity verification within the FurrWings network.</p>
     </div>
 
+    <div class="search-section">
+      <h4><i class="fas fa-search"></i> Find Pet Records</h4>
+      <div class="row">
+        <div class="col-md-6">
+          <input type="text" class="form-control" id="petSearch" placeholder="Search by pet name, owner name, or microchip ID...">
+        </div>
+        <div class="col-md-3">
+          <select class="form-control" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="pending">Pending Documents</option>
+            <option value="complete">Complete Records</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary w-100" onclick="searchPets()">
+            <i class="fas fa-search"></i> Search
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="row">
       <div class="col-12">
-        <h3><i class="fas fa-clipboard-list"></i> Pet Passport Documents</h3>
-        <p class="text-muted">Upload and digitally sign vaccination records and health certificates for international pet travel.</p>
+        <h3><i class="fas fa-clipboard-list"></i> Pet Medical Records</h3>
+        <p class="text-muted mb-4">Manage vaccination records and health certificates for registered pets.</p>
       </div>
     </div>
 
     {% if pets %}
       {% for pet in pets %}
-        <div class="pet-card">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-paw"></i> {{ pet.name }}</h5>
-            <small>Pet ID: {{ pet.id }}</small>
+        <div class="pet-card" data-pet-name="{{ pet.name|lower }}" data-owner="{{ pet.get('owner_name', '')|lower }}">
+          <div class="pet-header">
+            <img src="{{ pet.get('photo_url', 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop') }}" 
+                 alt="{{ pet.name }}" class="pet-avatar">
+            <div class="pet-info">
+              <h4>{{ pet.name }}</h4>
+              <p><i class="fas fa-paw"></i> {{ pet.get('breed', 'Mixed Breed') }} • {{ pet.get('age', 'Unknown age') }}</p>
+              <p><i class="fas fa-microchip"></i> Microchip: {{ pet.get('microchip_id', 'Not registered') }}</p>
+            </div>
+            <div class="ms-auto">
+              <span class="doc-status {% if pet.doc_status.get('vaccine') and pet.doc_status.get('health_cert') %}status-approved{% else %}status-pending{% endif %}">
+                {% if pet.doc_status.get('vaccine') and pet.doc_status.get('health_cert') %}
+                  <i class="fas fa-check-circle"></i> Complete
+                {% else %}
+                  <i class="fas fa-clock"></i> Pending
+                {% endif %}
+              </span>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <!-- Vaccination Records Section -->
-                <h6><i class="fas fa-syringe"></i> Vaccination Records</h6>
-                {% if 'vaccine' in pet.doc_status %}
-                  <div class="document-status">
-                    <span class="status-badge 
-                      {% if pet.doc_status.vaccine.status == 'approved' %}bg-success text-white
-                      {% elif pet.doc_status.vaccine.status == 'rejected' %}bg-danger text-white
-                      {% else %}bg-warning text-dark{% endif %}">
-                      {{ pet.doc_status.vaccine.status.title() }}
+
+          <div class="pet-body">
+            <!-- Owner Information -->
+            <div class="owner-info">
+              <h6><i class="fas fa-user"></i> Owner Information</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Name:</strong> {{ pet.get('owner_name', 'Not specified') }}</p>
+                  <p><strong>Email:</strong> {{ pet.get('owner_email', 'Not specified') }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Phone:</strong> {{ pet.get('owner_phone', 'Not specified') }}</p>
+                  <p><strong>Address:</strong> {{ pet.get('owner_address', 'Not specified') }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Medical Documentation -->
+            <div class="doc-section">
+              <h6><i class="fas fa-file-medical"></i> Medical Documentation</h6>
+              
+              <!-- Vaccination Records -->
+              <div class="doc-type">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0"><i class="fas fa-syringe"></i> Vaccination Records</h6>
+                  {% if pet.doc_status.get('vaccine') %}
+                    <span class="doc-status {% if pet.doc_status['vaccine'].get('is_signed') %}status-signed{% else %}status-approved{% endif %}">
+                      {% if pet.doc_status['vaccine'].get('is_signed') %}
+                        <i class="fas fa-certificate"></i> Digitally Signed
+                      {% else %}
+                        <i class="fas fa-check"></i> Uploaded
+                      {% endif %}
                     </span>
-                    <span class="text-muted">{{ pet.doc_status.vaccine.filename }}</span>
-                    {% if pet.doc_status.vaccine.is_signed %}
-                      <span class="badge bg-info"><i class="fas fa-certificate"></i> F-DSC Signed</span>
+                  {% else %}
+                    <span class="doc-status status-pending">
+                      <i class="fas fa-clock"></i> Not Uploaded
+                    </span>
+                  {% endif %}
+                </div>
+
+                {% if pet.doc_status.get('vaccine') %}
+                  <div class="alert alert-success">
+                    <strong>Document:</strong> {{ pet.doc_status['vaccine']['filename'] }}<br>
+                    <strong>Uploaded:</strong> {{ pet.doc_status['vaccine']['upload_time'] }}<br>
+                    {% if pet.doc_status['vaccine'].get('is_signed') %}
+                      <strong>Digital Signature:</strong> {{ pet.doc_status['vaccine']['doc_hash'][:16] }}...<br>
+                      <strong>Signed On:</strong> {{ pet.doc_status['vaccine']['signature_timestamp'] }}
                     {% endif %}
                   </div>
-                  <small class="text-muted">Uploaded: {{ pet.doc_status.vaccine.upload_time }}</small>
                 {% else %}
-                  <p class="text-muted">No vaccination record uploaded yet.</p>
-                {% endif %}
-
-                <div class="upload-section">
-                  <form method="POST" action="/vet/upload" enctype="multipart/form-data">
+                  <form action="/vet/upload" method="POST" enctype="multipart/form-data" class="upload-form">
                     <input type="hidden" name="pet_id" value="{{ pet.id }}">
                     <input type="hidden" name="doc_type" value="vaccine">
-
+                    
                     <div class="row">
                       <div class="col-md-8">
                         <label class="form-label">Upload Vaccination Record</label>
@@ -134,45 +305,52 @@
                       </div>
                     </div>
 
-                    <div class="signature-checkbox mt-3">
+                    <div class="signature-option">
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="sign_document" id="sign_vaccine_{{ pet.id }}">
                         <label class="form-check-label" for="sign_vaccine_{{ pet.id }}">
                           <i class="fas fa-certificate"></i> <strong>Apply F-DSC Digital Signature</strong>
-                          <br><small>Digitally sign this document with your veterinary credentials</small>
+                          <br><small class="text-muted">Digitally sign this document with your veterinary credentials</small>
                         </label>
                       </div>
                     </div>
                   </form>
-                </div>
+                {% endif %}
               </div>
 
-              <div class="col-md-6">
-                <!-- Health Certificate Section -->
-                <h6><i class="fas fa-file-medical"></i> Health Certificate</h6>
-                {% if 'health_cert' in pet.doc_status %}
-                  <div class="document-status">
-                    <span class="status-badge 
-                      {% if pet.doc_status.health_cert.status == 'approved' %}bg-success text-white
-                      {% elif pet.doc_status.health_cert.status == 'rejected' %}bg-danger text-white
-                      {% else %}bg-warning text-dark{% endif %}">
-                      {{ pet.doc_status.health_cert.status.title() }}
+              <!-- Health Certificate -->
+              <div class="doc-type">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0"><i class="fas fa-heart"></i> Health Certificate</h6>
+                  {% if pet.doc_status.get('health_cert') %}
+                    <span class="doc-status {% if pet.doc_status['health_cert'].get('is_signed') %}status-signed{% else %}status-approved{% endif %}">
+                      {% if pet.doc_status['health_cert'].get('is_signed') %}
+                        <i class="fas fa-certificate"></i> Digitally Signed
+                      {% else %}
+                        <i class="fas fa-check"></i> Uploaded
+                      {% endif %}
                     </span>
-                    <span class="text-muted">{{ pet.doc_status.health_cert.filename }}</span>
-                    {% if pet.doc_status.health_cert.is_signed %}
-                      <span class="badge bg-info"><i class="fas fa-certificate"></i> F-DSC Signed</span>
+                  {% else %}
+                    <span class="doc-status status-pending">
+                      <i class="fas fa-clock"></i> Not Uploaded
+                    </span>
+                  {% endif %}
+                </div>
+
+                {% if pet.doc_status.get('health_cert') %}
+                  <div class="alert alert-success">
+                    <strong>Document:</strong> {{ pet.doc_status['health_cert']['filename'] }}<br>
+                    <strong>Uploaded:</strong> {{ pet.doc_status['health_cert']['upload_time'] }}<br>
+                    {% if pet.doc_status['health_cert'].get('is_signed') %}
+                      <strong>Digital Signature:</strong> {{ pet.doc_status['health_cert']['doc_hash'][:16] }}...<br>
+                      <strong>Signed On:</strong> {{ pet.doc_status['health_cert']['signature_timestamp'] }}
                     {% endif %}
                   </div>
-                  <small class="text-muted">Uploaded: {{ pet.doc_status.health_cert.upload_time }}</small>
                 {% else %}
-                  <p class="text-muted">No health certificate uploaded yet.</p>
-                {% endif %}
-
-                <div class="upload-section">
-                  <form method="POST" action="/vet/upload" enctype="multipart/form-data">
+                  <form action="/vet/upload" method="POST" enctype="multipart/form-data" class="upload-form">
                     <input type="hidden" name="pet_id" value="{{ pet.id }}">
                     <input type="hidden" name="doc_type" value="health_cert">
-
+                    
                     <div class="row">
                       <div class="col-md-8">
                         <label class="form-label">Upload Health Certificate</label>
@@ -185,174 +363,79 @@
                       </div>
                     </div>
 
-                    <div class="signature-checkbox mt-3">
+                    <div class="signature-option">
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="sign_document" id="sign_health_{{ pet.id }}">
                         <label class="form-check-label" for="sign_health_{{ pet.id }}">
                           <i class="fas fa-certificate"></i> <strong>Apply F-DSC Digital Signature</strong>
-                          <br><small>Digitally sign this document with your veterinary credentials</small>
+                          <br><small class="text-muted">Digitally sign this document with your veterinary credentials</small>
                         </label>
                       </div>
                     </div>
                   </form>
-                </div>
+                {% endif %}
               </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-success btn-sm" onclick="viewPetHistory({{ pet.id }})">
+                <i class="fas fa-history"></i> View Medical History
+              </button>
+              <button class="btn btn-info btn-sm" onclick="addMedicalNote({{ pet.id }})">
+                <i class="fas fa-notes-medical"></i> Add Note
+              </button>
+              <a href="/pet/{{ pet.id }}/passport?role=vet" class="btn btn-warning btn-sm">
+                <i class="fas fa-passport"></i> Passport View
+              </a>
             </div>
           </div>
         </div>
       {% endfor %}
     {% else %}
-      <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> No pets assigned for document verification yet.
+      <div class="text-center py-5">
+        <div class="card">
+          <div class="card-body">
+            <i class="fas fa-paw fa-3x text-muted mb-3"></i>
+            <h4>No Pet Records Found</h4>
+            <p class="text-muted">Pet records will appear here when owners register their pets and request veterinary services.</p>
+          </div>
+        </div>
       </div>
     {% endif %}
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-<body>
-  <div class="header">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h2><i class="fas fa-user-md"></i> Welcome, {{ vet_name }}</h2>
-          <p class="mb-0">FurrWings Veterinarian Portal</p>
-        </div>
-        <a href="/vet/login" class="btn btn-outline-light">Logout</a>
-      </div>
-    </div>
-  </div>
+  <script>
+    function searchPets() {
+      const searchTerm = document.getElementById('petSearch').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const petCards = document.querySelectorAll('.pet-card');
+      
+      petCards.forEach(card => {
+        const petName = card.getAttribute('data-pet-name');
+        const ownerName = card.getAttribute('data-owner');
+        const matchesSearch = petName.includes(searchTerm) || ownerName.includes(searchTerm);
+        
+        if (matchesSearch) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
 
-  <div class="container-fluid mt-4">
-      <div class="row justify-content-center">
-        <div class="col-12 col-xl-10">
-          <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-            <h2 class="mb-2">🏥 Veterinary Dashboard</h2>
-            <a href="/vet/logout" class="btn btn-outline-danger">Logout</a>
-          </div>
+    function viewPetHistory(petId) {
+      window.open(`/vet/pet/${petId}/history`, '_blank');
+    }
 
-    <div class="disclaimer">
-      <strong><i class="fas fa-info-circle"></i> F-DSC Digital Signature Disclaimer:</strong><br>
-      This digital signature is valid within the FurrButler ecosystem. It is not certified under the Indian IT Act, 2000. 
-      For export validation, documents are submitted via certified authorities or partner handlers. 
-      This system ensures document traceability, tamper protection, and vet identity verification within the FurrWings network.
-    </div>
+    function addMedicalNote(petId) {
+      // This would open a modal or navigate to a note-taking page
+      alert(`Add medical note functionality for pet ID: ${petId}`);
+    }
 
-    <div class="row">
-      {% for pet in pets %}
-        <div class="col-md-6">
-          <div class="pet-card">
-            <div class="card-header bg-primary text-white">
-              <h5><i class="fas fa-paw"></i> {{ pet.name }}</h5>
-              <small>Pet ID: {{ pet.id }}</small>
-            </div>
-            <div class="card-body">
-
-              <!-- Vaccine Document Section -->
-              <h6><i class="fas fa-syringe"></i> Vaccination Records</h6>
-              {% if 'vaccine' in pet.doc_status %}
-                <div class="document-status">
-                  <span class="status-badge bg-{{ 'success' if pet.doc_status.vaccine.status == 'approved' else 'warning' if pet.doc_status.vaccine.status == 'pending' else 'danger' }} text-white">
-                    {{ pet.doc_status.vaccine.status.title() }}
-                  </span>
-                  <span>{{ pet.doc_status.vaccine.filename }}</span>
-                  {% if pet.doc_status.vaccine.is_signed %}
-                    <i class="fas fa-certificate text-primary" title="Digitally Signed"></i>
-                  {% endif %}
-                </div>
-                <small class="text-muted">Uploaded: {{ pet.doc_status.vaccine.upload_time }}</small>
-                {% if pet.doc_status.vaccine.doc_hash %}
-                  <br><small class="text-muted">F-DSC Hash: {{ pet.doc_status.vaccine.doc_hash[:16] }}...</small>
-                {% endif %}
-              {% else %}
-                <p class="text-muted">No vaccination record uploaded</p>
-              {% endif %}
-
-              <div class="upload-section">
-                <form action="/vet/upload" method="POST" enctype="multipart/form-data">
-                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
-                  <input type="hidden" name="doc_type" value="vaccine">
-
-                  <div class="row">
-                    <div class="col-md-8">
-                      <label class="form-label">Upload Vaccination Record</label>
-                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                      <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-upload"></i> Upload
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="signature-checkbox mt-3">
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" name="sign_document" id="sign_vaccine_{{ pet.id }}">
-                      <label class="form-check-label" for="sign_vaccine_{{ pet.id }}">
-                        <i class="fas fa-certificate"></i> <strong>Apply F-DSC Digital Signature</strong>
-                        <br><small>Digitally sign this document with your veterinary credentials</small>
-                      </label>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-              <hr>
-
-              <!-- Health Certificate Section -->
-              <h6><i class="fas fa-file-medical"></i> Health Certificate</h6>
-              {% if 'health_cert' in pet.doc_status %}
-                <div class="document-status">
-                  <span class="status-badge bg-{{ 'success' if pet.doc_status.health_cert.status == 'approved' else 'warning' if pet.doc_status.health_cert.status == 'pending' else 'danger' }} text-white">
-                    {{ pet.doc_status.health_cert.status.title() }}
-                  </span>
-                  <span>{{ pet.doc_status.health_cert.filename }}</span>
-                  {% if pet.doc_status.health_cert.is_signed %}
-                    <i class="fas fa-certificate text-primary" title="Digitally Signed"></i>
-                  {% endif %}
-                </div>
-                <small class="text-muted">Uploaded: {{ pet.doc_status.health_cert.upload_time }}</small>
-                {% if pet.doc_status.health_cert.doc_hash %}
-                  <br><small class="text-muted">F-DSC Hash: {{ pet.doc_status.health_cert.doc_hash[:16] }}...</small>
-                {% endif %}
-              {% else %}
-                <p class="text-muted">No health certificate uploaded</p>
-              {% endif %}
-
-              <div class="upload-section">
-                <form action="/vet/upload" method="POST" enctype="multipart/form-data">
-                  <input type="hidden" name="pet_id" value="{{ pet.id }}">
-                  <input type="hidden" name="doc_type" value="health_cert">
-
-                  <div class="row">
-                    <div class="col-md-8">
-                      <label class="form-label">Upload Health Certificate</label>
-                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                      <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-upload"></i> Upload
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="signature-checkbox mt-3">
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" name="sign_document" id="sign_health_{{ pet.id }}">
-                      <label class="form-check-label" for="sign_health_{{ pet.id }}">
-                        <i class="fas fa-certificate"></i> <strong>Apply F-DSC Digital Signature</strong>
-                        <br><small>Digitally sign this document with your veterinary credentials</small>
-                      </label>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
+    // Real-time search
+    document.getElementById('petSearch').addEventListener('input', searchPets);
+    document.getElementById('statusFilter').addEventListener('change', searchPets);
+  </script>
 </body>
 </html>
