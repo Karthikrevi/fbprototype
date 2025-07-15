@@ -2292,6 +2292,37 @@ def search_pets_api():
     conn.close()
     return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
 
+@app.route('/vet/pet/<int:pet_id>/history')
+def vet_pet_history(pet_id):
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all documents for this pet
+    c.execute("""
+        SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, 
+               status, comments, is_signed, doc_hash, signature_timestamp
+        FROM passport_documents 
+        WHERE pet_id = ?
+        ORDER BY upload_time DESC
+    """, (pet_id,))
+    
+    documents = c.fetchall()
+    
+    # Get pet information (in a real system, this would come from the pet registration database)
+    pet_info = {
+        'id': pet_id,
+        'name': f'Pet {pet_id}' if pet_id > 3 else ['', 'Luna', 'Buddy', 'Max'][pet_id],
+        'breed': 'Mixed Breed',
+        'age': '2 years',
+        'microchip_id': f'MC00123456{pet_id}'
+    }
+    
+    conn.close()
+    return render_template("vet_pet_history.html", pet=pet_info, documents=documents)
+
 @app.route('/handler/upload', methods=["POST"])
 def handler_upload_document():
     if "handler" not in session:
