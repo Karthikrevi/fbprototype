@@ -1685,6 +1685,12 @@ def recalculate_inventory(conn, product_id=None):
         """)
     conn.commit()
 
+# Database connection helper
+def get_db_connection():
+    conn = sqlite3.connect('erp.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
 # Run the DB setup on startup
 init_erp_db()
 
@@ -2603,45 +2609,6 @@ def search_pets_api():
             filtered_pets.append(pet)
     
     return {"pets": filtered_pets}
-    
-    FROM passport_documents pd
-    UNION
-    SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
-    ")
-
-    pets_data = c.fetchall()
-
-    # Get handler documents status for each pet
-    pets = []
-    for pet_data in pets_data:
-        pet_id = pet_data[0]
-
-        # Get DGFT, AQCS, and quarantine docs status
-        c.execute("""
-    SELECT doc_type, filename, status, upload_time, dgft_reference
-        FROM passport_documents 
-        WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
-        ORDER BY upload_time DESC
-    """, (pet_id,))
-
-        docs = c.fetchall()
-        doc_status = {}
-        for doc in docs:
-            doc_status[doc[0]] = {
-                'filename': doc[1],
-                'status': doc[2],
-                'upload_time': doc[3],
-                'dgft_reference': doc[4]
-            }
-
-        pets.append({
-            'id': pet_id,
-            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
-            'doc_status': doc_status
-        })
-
-    conn.close()
-    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
 
 @app.route('/vet/pet/<int:pet_id>/history')
 def vet_pet_history(pet_id):
@@ -2796,7 +2763,13 @@ def isolation_update_booking():
         UPDATE pet_bookings 
         SET status = ?, notes = ?
         WHERE id = ? AND center_id = ?
-
+    """, (new_status, notes, booking_id, session["isolation_id"]))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(f"Booking status updated to {new_status}")
+    return redirect(url_for("isolation_dashboard"))
 
 # ---- PHASE 2: VETERINARY ERP ADVANCED FEATURES ----
 
