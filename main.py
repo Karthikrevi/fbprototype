@@ -1981,7 +1981,10 @@ def vendor_profile(vendor_id):
     if request.method == "POST":
         # Handle review submission for database vendors
         user_email = session["user"]
-        rating = int(request.form.get("rating"))
+        try:
+            rating = int(request.form.get("rating"))
+        except (ValueError, TypeError):
+            return "Invalid rating."
         review_text = request.form.get("review_text", "")
         service_type = request.form.get("service_type", "Other")
 
