@@ -1,417 +1,286 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FurrVet - Veterinary ERP Dashboard</title>
+  <title>FurrVet Dashboard - Veterinary ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     :root {
-      --primary-blue: #3b82f6;
-      --clinic-teal: #0891b2;
-      --soft-green: #059669;
-      --warm-orange: #f59e0b;
-      --gentle-yellow: #fbbf24;
-      --soft-grey: #f8fafc;
-      --text-dark: #1e293b;
-      --border-light: #e2e8f0;
+      --primary-color: #1e3a8a;
+      --secondary-color: #3b82f6;
+      --accent-color: #60a5fa;
+      --light-bg: #f0f7ff;
     }
 
     body {
-      font-family: 'Open Sans', sans-serif;
-      background-color: var(--soft-grey);
-      color: var(--text-dark);
-      line-height: 1.6;
+      background-color: var(--light-bg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    .sidebar {
-      width: 280px;
-      height: 100vh;
-      position: fixed;
-      left: 0;
-      top: 0;
-      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%);
-      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-      z-index: 1000;
-    }
-
-    .sidebar-header {
-      padding: 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .sidebar-brand {
-      font-family: 'Nunito', sans-serif;
-      font-size: 1.5rem;
-      font-weight: 700;
+    .dashboard-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
       color: white;
-      text-decoration: none;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
     }
 
-    .sidebar-nav {
-      padding: 1rem 0;
-    }
-
-    .nav-item {
-      margin: 0.25rem 0;
-    }
-
-    .nav-link {
-      color: rgba(255,255,255,0.9);
-      padding: 0.75rem 1.5rem;
-      display: flex;
-      align-items: center;
-      text-decoration: none;
-      transition: all 0.3s ease;
-      border-radius: 0;
-    }
-
-    .nav-link:hover, .nav-link.active {
-      background-color: rgba(255,255,255,0.1);
-      color: white;
-      transform: translateX(3px);
-    }
-
-    .nav-link i {
-      width: 20px;
-      margin-right: 0.75rem;
-    }
-
-    .main-content {
-      margin-left: 280px;
+    .module-card {
+      background: white;
+      border-radius: 15px;
       padding: 2rem;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      height: 100%;
+      text-decoration: none;
+      color: inherit;
     }
 
-    .header-section {
-      background: white;
-      padding: 1.5rem 2rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      margin-bottom: 2rem;
-      border-left: 4px solid var(--primary-blue);
+    .module-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      text-decoration: none;
+      color: inherit;
     }
 
-    .welcome-text {
-      font-family: 'Nunito', sans-serif;
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin-bottom: 0.5rem;
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .widget-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      border-left: 4px solid var(--clinic-teal);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .widget-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    .widget-header {
-      display: flex;
-      align-items: center;
+    .module-icon {
+      font-size: 3rem;
       margin-bottom: 1rem;
     }
 
-    .widget-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 1rem;
-      font-size: 1.25rem;
-      color: white;
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
     }
 
-    .widget-title {
-      font-family: 'Nunito', sans-serif;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin: 0;
-    }
-
-    .widget-value {
+    .stat-number {
       font-size: 2rem;
-      font-weight: 700;
+      font-weight: bold;
       margin-bottom: 0.5rem;
     }
 
-    .widget-subtitle {
-      color: #64748b;
-      font-size: 0.875rem;
-    }
-
-    .btn-primary-custom {
-      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%);
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-weight: 500;
-      transition: transform 0.2s ease;
-    }
-
-    .btn-primary-custom:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
-
-    .quick-actions {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    }
-
-    .recent-activity {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      margin-top: 1.5rem;
-    }
-
-    .activity-item {
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--border-light);
-      display: flex;
-      align-items: center;
-    }
-
-    .activity-item:last-child {
-      border-bottom: none;
-    }
-
-    .activity-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 0.75rem;
-      font-size: 0.875rem;
+    .phase-indicator {
+      background: linear-gradient(45deg, #10b981, #34d399);
       color: white;
-    }
-
-    .paw-accent {
-      position: relative;
-    }
-
-    .paw-accent::after {
-      content: '🐾';
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      font-size: 12px;
-      opacity: 0.3;
-    }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
-      }
-      .main-content {
-        margin-left: 0;
-        padding: 1rem;
-      }
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-      }
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-left: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <a href="/furrvet" class="sidebar-brand paw-accent">
-        <i class="fas fa-heart-pulse"></i> FurrVet
-      </a>
-      <small class="text-light d-block mt-1">Professional Veterinary ERP</small>
+  <div class="dashboard-header">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1><i class="bi bi-hospital"></i> FurrVet ERP Dashboard</h1>
+          <p class="mb-0">Welcome back, {{ vet_name or 'Doctor' }}</p>
+          <span class="phase-indicator">Phase 2 Active</span>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="text-white">
+            <div class="h4">{{ today_appointments }}</div>
+            <div>Today's Appointments</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <nav class="sidebar-nav">
-      <div class="nav-item">
-        <a href="/furrvet" class="nav-link active">
-          <i class="fas fa-tachometer-alt"></i>Dashboard
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="/furrvet/appointments" class="nav-link">
-          <i class="fas fa-calendar-check"></i>Appointments
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="/furrvet/patients" class="nav-link">
-          <i class="fas fa-paw"></i>Patient Records
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="/furrvet/billing" class="nav-link">
-          <i class="fas fa-file-invoice-dollar"></i>Billing & Invoices
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="/furrvet/inventory" class="nav-link">
-          <i class="fas fa-boxes"></i>Inventory
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="/furrvet/reports" class="nav-link">
-          <i class="fas fa-chart-line"></i>Reports
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="/furrvet/settings" class="nav-link">
-          <i class="fas fa-cog"></i>Settings
-        </a>
-      </div>
-    </nav>
   </div>
 
-  <div class="main-content">
-    <div class="header-section">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h1 class="welcome-text">Good morning, Dr. {{ vet_name or 'Veterinarian' }}</h1>
-          <p class="text-muted mb-0">Here's what's happening at your clinic today</p>
+  <div class="container">
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-primary">{{ today_appointments }}</div>
+          <div class="text-muted">Today's Appointments</div>
         </div>
-        <div>
-          <button class="btn btn-primary-custom">
-            <i class="fas fa-plus"></i> Quick Actions
-          </button>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-success">{{ total_patients }}</div>
+          <div class="text-muted">Total Patients</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-info">₹{{ today_revenue }}</div>
+          <div class="text-muted">Today's Revenue</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-warning">{{ pending_actions }}</div>
+          <div class="text-muted">Pending Actions</div>
         </div>
       </div>
     </div>
 
-    <div class="dashboard-grid">
-      <div class="widget-card">
-        <div class="widget-header">
-          <div class="widget-icon" style="background: var(--primary-blue);">
-            <i class="fas fa-calendar-day"></i>
-          </div>
-          <div>
-            <h6 class="widget-title">Today's Appointments</h6>
-          </div>
-        </div>
-        <div class="widget-value" style="color: var(--primary-blue);">{{ today_appointments or 8 }}</div>
-        <div class="widget-subtitle">2 urgent, 6 routine</div>
+    <!-- Core Modules (Phase 1) -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <h3 class="mb-3"><i class="bi bi-star-fill text-warning"></i> Core Clinical Modules</h3>
       </div>
-
-      <div class="widget-card">
-        <div class="widget-header">
-          <div class="widget-icon" style="background: var(--soft-green);">
-            <i class="fas fa-paw"></i>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/patients" class="module-card">
+          <div class="module-icon text-primary">
+            <i class="bi bi-heart-pulse"></i>
           </div>
-          <div>
-            <h6 class="widget-title">Active Patients</h6>
-          </div>
-        </div>
-        <div class="widget-value" style="color: var(--soft-green);">{{ total_patients or 142 }}</div>
-        <div class="widget-subtitle">3 new this week</div>
+          <h5>Patients</h5>
+          <p class="text-muted">Manage patient records and medical history</p>
+        </a>
       </div>
-
-      <div class="widget-card">
-        <div class="widget-header">
-          <div class="widget-icon" style="background: var(--warm-orange);">
-            <i class="fas fa-rupee-sign"></i>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/appointments" class="module-card">
+          <div class="module-icon text-success">
+            <i class="bi bi-calendar-check"></i>
           </div>
-          <div>
-            <h6 class="widget-title">Today's Revenue</h6>
-          </div>
-        </div>
-        <div class="widget-value" style="color: var(--warm-orange);">₹{{ today_revenue or '12,500' }}</div>
-        <div class="widget-subtitle">+15% from yesterday</div>
+          <h5>Appointments</h5>
+          <p class="text-muted">Schedule and manage appointments</p>
+        </a>
       </div>
-
-      <div class="widget-card">
-        <div class="widget-header">
-          <div class="widget-icon" style="background: var(--clinic-teal);">
-            <i class="fas fa-bell"></i>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/billing" class="module-card">
+          <div class="module-icon text-info">
+            <i class="bi bi-receipt"></i>
           </div>
-          <div>
-            <h6 class="widget-title">Pending Actions</h6>
+          <h5>Billing</h5>
+          <p class="text-muted">Generate invoices and manage payments</p>
+        </a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet" class="module-card">
+          <div class="module-icon text-secondary">
+            <i class="bi bi-file-medical"></i>
           </div>
-        </div>
-        <div class="widget-value" style="color: var(--clinic-teal);">{{ pending_actions or 5 }}</div>
-        <div class="widget-subtitle">Follow-ups & reminders</div>
+          <h5>Medical Records</h5>
+          <p class="text-muted">Electronic medical records system</p>
+        </a>
       </div>
     </div>
 
+    <!-- Phase 2 Advanced Modules -->
     <div class="row">
-      <div class="col-md-6">
-        <div class="quick-actions">
-          <h5 class="mb-3">
-            <i class="fas fa-bolt text-warning"></i> Quick Actions
-          </h5>
-          <div class="d-grid gap-2">
-            <a href="/furrvet/patients/new" class="btn btn-outline-primary">
-              <i class="fas fa-plus"></i> Add New Patient
-            </a>
-            <a href="/furrvet/appointments/schedule" class="btn btn-outline-success">
-              <i class="fas fa-calendar-plus"></i> Schedule Appointment
-            </a>
-            <a href="/furrvet/billing/invoice" class="btn btn-outline-warning">
-              <i class="fas fa-file-invoice"></i> Create Invoice
-            </a>
-            <a href="/furrvet/patients/search" class="btn btn-outline-info">
-              <i class="fas fa-search"></i> Search Patient Records
-            </a>
-          </div>
-        </div>
+      <div class="col-12">
+        <h3 class="mb-3">
+          <i class="bi bi-rocket-takeoff text-success"></i> 
+          Advanced Modules - Phase 2
+          <span class="badge bg-success ms-2">NEW</span>
+        </h3>
       </div>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/inventory" class="module-card border-success">
+          <div class="module-icon text-success">
+            <i class="bi bi-boxes"></i>
+          </div>
+          <h5>Advanced Inventory</h5>
+          <p class="text-muted">Real-time stock management with barcode scanning</p>
+          <span class="badge bg-success">Phase 2</span>
+        </a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/pharmacy" class="module-card border-success">
+          <div class="module-icon text-success">
+            <i class="bi bi-capsule"></i>
+          </div>
+          <h5>Pharmacy Management</h5>
+          <p class="text-muted">Digital prescriptions and dispensation tracking</p>
+          <span class="badge bg-success">Phase 2</span>
+        </a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/crm" class="module-card border-success">
+          <div class="module-icon text-success">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <h5>Client CRM</h5>
+          <p class="text-muted">Enhanced client relationships and automated follow-ups</p>
+          <span class="badge bg-success">Phase 2</span>
+        </a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <a href="/furrvet/vendors" class="module-card border-success">
+          <div class="module-icon text-success">
+            <i class="bi bi-truck"></i>
+          </div>
+          <h5>Vendor Management</h5>
+          <p class="text-muted">Automated procurement and supplier analytics</p>
+          <span class="badge bg-success">Phase 2</span>
+        </a>
+      </div>
+    </div>
 
-      <div class="col-md-6">
-        <div class="recent-activity">
-          <h5 class="mb-3">
-            <i class="fas fa-clock text-info"></i> Recent Activity
-          </h5>
-          <div class="activity-item">
-            <div class="activity-icon" style="background: var(--soft-green);">
-              <i class="fas fa-check"></i>
-            </div>
-            <div>
-              <strong>Vaccination completed</strong><br>
-              <small class="text-muted">Buddy - Golden Retriever, 10 mins ago</small>
-            </div>
+    <!-- Analytics & Reporting -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <h3 class="mb-3"><i class="bi bi-graph-up text-info"></i> Analytics & Reporting</h3>
+      </div>
+      <div class="col-md-4 mb-4">
+        <a href="/furrvet/analytics" class="module-card border-info">
+          <div class="module-icon text-info">
+            <i class="bi bi-bar-chart"></i>
           </div>
-          <div class="activity-item">
-            <div class="activity-icon" style="background: var(--primary-blue);">
-              <i class="fas fa-calendar"></i>
-            </div>
-            <div>
-              <strong>Appointment scheduled</strong><br>
-              <small class="text-muted">Luna - Persian Cat, 15 mins ago</small>
-            </div>
+          <h5>Business Analytics</h5>
+          <p class="text-muted">Comprehensive practice insights and KPIs</p>
+        </a>
+      </div>
+      <div class="col-md-4 mb-4">
+        <a href="/furrvet/reports" class="module-card border-info">
+          <div class="module-icon text-info">
+            <i class="bi bi-file-earmark-text"></i>
           </div>
-          <div class="activity-item">
-            <div class="activity-icon" style="background: var(--warm-orange);">
-              <i class="fas fa-rupee-sign"></i>
-            </div>
-            <div>
-              <strong>Payment received</strong><br>
-              <small class="text-muted">₹2,500 from Mr. Sharma, 25 mins ago</small>
+          <h5>Custom Reports</h5>
+          <p class="text-muted">Generate detailed practice reports</p>
+        </a>
+      </div>
+      <div class="col-md-4 mb-4">
+        <a href="/furrvet/compliance" class="module-card border-info">
+          <div class="module-icon text-info">
+            <i class="bi bi-shield-check"></i>
+          </div>
+          <h5>Compliance</h5>
+          <p class="text-muted">Regulatory compliance and audit trails</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card bg-light">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-8">
+                <h6 class="mb-1">FurrVet Veterinary ERP - Phase 2</h6>
+                <p class="text-muted mb-0">
+                  Advanced inventory management, pharmacy operations, client CRM, and vendor management now active.
+                  Experience enhanced efficiency with AI-powered insights and automated workflows.
+                </p>
+              </div>
+              <div class="col-md-4 text-end">
+                <span class="badge bg-success fs-6">Phase 2 Complete</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between">
+      <a href="/" class="btn btn-outline-secondary">
+        <i class="bi bi-house"></i> Home
+      </a>
+      <a href="/erp/logout" class="btn btn-outline-danger">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
     </div>
   </div>
 

@@ -283,6 +283,320 @@ def init_erp_db():
         )
     ''')
 
+    # Phase 2: Advanced Veterinary Inventory Management Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_inventory_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            parent_category_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (parent_category_id) REFERENCES vet_inventory_categories(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_inventory_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            category_id INTEGER,
+            unit_of_measure TEXT,
+            reorder_level INTEGER DEFAULT 10,
+            max_stock_level INTEGER DEFAULT 100,
+            current_stock INTEGER DEFAULT 0,
+            unit_cost REAL DEFAULT 0.0,
+            selling_price REAL DEFAULT 0.0,
+            is_medication BOOLEAN DEFAULT 0,
+            requires_prescription BOOLEAN DEFAULT 0,
+            expiry_tracking BOOLEAN DEFAULT 0,
+            batch_tracking BOOLEAN DEFAULT 0,
+            barcode TEXT,
+            qr_code TEXT,
+            storage_location TEXT,
+            manufacturer TEXT,
+            supplier_id INTEGER,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (category_id) REFERENCES vet_inventory_categories(id),
+            FOREIGN KEY (supplier_id) REFERENCES vet_suppliers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_inventory_batches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            batch_number TEXT NOT NULL,
+            expiry_date DATE,
+            quantity_received INTEGER NOT NULL,
+            quantity_remaining INTEGER NOT NULL,
+            unit_cost REAL NOT NULL,
+            supplier_id INTEGER,
+            received_date DATE DEFAULT CURRENT_DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item_id) REFERENCES vet_inventory_items(id),
+            FOREIGN KEY (supplier_id) REFERENCES vet_suppliers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_inventory_movements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            batch_id INTEGER,
+            movement_type TEXT NOT NULL CHECK(movement_type IN ('IN', 'OUT', 'ADJUSTMENT', 'TRANSFER')),
+            quantity INTEGER NOT NULL,
+            reference_type TEXT,
+            reference_id INTEGER,
+            notes TEXT,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item_id) REFERENCES vet_inventory_items(id),
+            FOREIGN KEY (batch_id) REFERENCES vet_inventory_batches(id)
+        )
+    ''')
+
+    # Phase 2: Pharmacy Management Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescription_number TEXT UNIQUE NOT NULL,
+            patient_id INTEGER NOT NULL,
+            vet_id INTEGER NOT NULL,
+            appointment_id INTEGER,
+            prescription_date DATE DEFAULT CURRENT_DATE,
+            status TEXT DEFAULT 'active' CHECK(status IN ('active', 'dispensed', 'cancelled', 'expired')),
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (patient_id) REFERENCES vet_patients(id),
+            FOREIGN KEY (vet_id) REFERENCES vets(id),
+            FOREIGN KEY (appointment_id) REFERENCES vet_appointments(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_prescription_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescription_id INTEGER NOT NULL,
+            medication_id INTEGER NOT NULL,
+            dosage TEXT NOT NULL,
+            frequency TEXT NOT NULL,
+            duration TEXT NOT NULL,
+            quantity_prescribed INTEGER NOT NULL,
+            quantity_dispensed INTEGER DEFAULT 0,
+            instructions TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (prescription_id) REFERENCES vet_prescriptions(id),
+            FOREIGN KEY (medication_id) REFERENCES vet_inventory_items(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_dispensations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescription_item_id INTEGER NOT NULL,
+            batch_id INTEGER NOT NULL,
+            quantity_dispensed INTEGER NOT NULL,
+            dispensed_by INTEGER NOT NULL,
+            dispensed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            patient_counseling TEXT,
+            FOREIGN KEY (prescription_item_id) REFERENCES vet_prescription_items(id),
+            FOREIGN KEY (batch_id) REFERENCES vet_inventory_batches(id)
+        )
+    ''')
+
+    # Phase 2: Enhanced CRM Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_client_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_code TEXT UNIQUE NOT NULL,
+            title TEXT,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            email TEXT,
+            phone_primary TEXT,
+            phone_secondary TEXT,
+            address_line1 TEXT,
+            address_line2 TEXT,
+            city TEXT,
+            state TEXT,
+            postal_code TEXT,
+            country TEXT DEFAULT 'India',
+            date_of_birth DATE,
+            occupation TEXT,
+            emergency_contact_name TEXT,
+            emergency_contact_phone TEXT,
+            communication_preferences TEXT,
+            marketing_consent BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_client_communications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            communication_type TEXT NOT NULL CHECK(communication_type IN ('email', 'sms', 'call', 'whatsapp', 'in_person')),
+            direction TEXT NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+            subject TEXT,
+            content TEXT,
+            status TEXT DEFAULT 'sent' CHECK(status IN ('draft', 'sent', 'delivered', 'read', 'failed')),
+            scheduled_at TIMESTAMP,
+            sent_at TIMESTAMP,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (client_id) REFERENCES vet_client_profiles(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_client_reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            pet_id INTEGER,
+            reminder_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            due_date DATE NOT NULL,
+            reminder_date DATE NOT NULL,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'sent', 'completed', 'cancelled')),
+            auto_generated BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (client_id) REFERENCES vet_client_profiles(id),
+            FOREIGN KEY (pet_id) REFERENCES vet_patients(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_client_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            appointment_id INTEGER,
+            rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+            service_quality_rating INTEGER CHECK(service_quality_rating >= 1 AND service_quality_rating <= 5),
+            facility_rating INTEGER CHECK(facility_rating >= 1 AND facility_rating <= 5),
+            staff_rating INTEGER CHECK(staff_rating >= 1 AND staff_rating <= 5),
+            feedback_text TEXT,
+            would_recommend BOOLEAN,
+            suggestions TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (client_id) REFERENCES vet_client_profiles(id),
+            FOREIGN KEY (appointment_id) REFERENCES vet_appointments(id)
+        )
+    ''')
+
+    # Phase 2: Vendor & Supplier Management Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_suppliers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_code TEXT UNIQUE NOT NULL,
+            company_name TEXT NOT NULL,
+            contact_person TEXT,
+            email TEXT,
+            phone TEXT,
+            address_line1 TEXT,
+            address_line2 TEXT,
+            city TEXT,
+            state TEXT,
+            postal_code TEXT,
+            country TEXT DEFAULT 'India',
+            website TEXT,
+            tax_id TEXT,
+            payment_terms TEXT,
+            credit_limit REAL DEFAULT 0.0,
+            supplier_category TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_supplier_catalog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_id INTEGER NOT NULL,
+            item_code TEXT NOT NULL,
+            supplier_item_code TEXT,
+            item_name TEXT NOT NULL,
+            description TEXT,
+            unit_price REAL NOT NULL,
+            minimum_order_quantity INTEGER DEFAULT 1,
+            lead_time_days INTEGER DEFAULT 7,
+            is_available BOOLEAN DEFAULT 1,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (supplier_id) REFERENCES vet_suppliers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_purchase_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            po_number TEXT UNIQUE NOT NULL,
+            supplier_id INTEGER NOT NULL,
+            order_date DATE DEFAULT CURRENT_DATE,
+            expected_delivery_date DATE,
+            status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'sent', 'confirmed', 'partially_received', 'received', 'cancelled')),
+            total_amount REAL DEFAULT 0.0,
+            tax_amount REAL DEFAULT 0.0,
+            grand_total REAL DEFAULT 0.0,
+            notes TEXT,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (supplier_id) REFERENCES vet_suppliers(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_purchase_order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            po_id INTEGER NOT NULL,
+            item_id INTEGER NOT NULL,
+            quantity_ordered INTEGER NOT NULL,
+            quantity_received INTEGER DEFAULT 0,
+            unit_price REAL NOT NULL,
+            total_price REAL NOT NULL,
+            FOREIGN KEY (po_id) REFERENCES vet_purchase_orders(id),
+            FOREIGN KEY (item_id) REFERENCES vet_inventory_items(id)
+        )
+    ''')
+
+    # Phase 2: Analytics and Reporting Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_inventory_alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            alert_type TEXT NOT NULL CHECK(alert_type IN ('low_stock', 'expiry_warning', 'out_of_stock', 'overstock')),
+            alert_level TEXT NOT NULL CHECK(alert_level IN ('info', 'warning', 'critical')),
+            message TEXT NOT NULL,
+            is_acknowledged BOOLEAN DEFAULT 0,
+            acknowledged_by INTEGER,
+            acknowledged_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item_id) REFERENCES vet_inventory_items(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vet_supplier_performance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_id INTEGER NOT NULL,
+            evaluation_period_start DATE NOT NULL,
+            evaluation_period_end DATE NOT NULL,
+            on_time_delivery_rate REAL DEFAULT 0.0,
+            quality_rating REAL DEFAULT 0.0,
+            price_competitiveness REAL DEFAULT 0.0,
+            overall_rating REAL DEFAULT 0.0,
+            total_orders INTEGER DEFAULT 0,
+            total_value REAL DEFAULT 0.0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (supplier_id) REFERENCES vet_suppliers(id)
+        )
+    ''')
+
     # Check if previous_value column exists, if not add it
     c.execute("PRAGMA table_info(master_settings)")
     columns = [column[1] for column in c.fetchall()]
@@ -2177,7 +2491,44 @@ def handler_dashboard():
     c.execute("""
         SELECT DISTINCT pd.pet_id, 
                (SELECT COUNT(*) FROM passport_documents WHERE pet_id = pd.pet_id AND doc_type IN ('dgft', 'aqcs', 'quarantine')) as handler_docs_count
+        FROM passport_documents pd
+        UNION
+        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
+    """)
+    
+    pets_data = c.fetchall()
+    
+    # Get handler documents status for each pet
+    pets = []
+    for pet_data in pets_data:
+        pet_id = pet_data[0]
+        
+        # Get DGFT, AQCS, and quarantine docs status
+        c.execute("""
+            SELECT doc_type, filename, status, upload_time, dgft_reference
+            FROM passport_documents 
+            WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
+            ORDER BY upload_time DESC
+        """, (pet_id,))
+        
+        docs = c.fetchall()
+        doc_status = {}
+        for doc in docs:
+            doc_status[doc[0]] = {
+                'filename': doc[1],
+                'status': doc[2],
+                'upload_time': doc[3],
+                'dgft_reference': doc[4]
+            }
+        
+        pets.append({
+            'id': pet_id,
+            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
+            'doc_status': doc_status
+        })
 
+    conn.close()
+    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
 
 @app.route('/vet/pet/<int:pet_id>/history')
 def vet_pet_history(pet_id):
@@ -2446,6 +2797,504 @@ def isolation_update_booking():
         UPDATE pet_bookings 
         SET status = ?, notes = ?
         WHERE id = ? AND center_id = ?
+
+
+# ---- PHASE 2: VETERINARY ERP ADVANCED FEATURES ----
+
+# Advanced Inventory Management Routes
+@app.route('/furrvet/inventory')
+def furrvet_inventory():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get inventory summary
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_items,
+            SUM(current_stock) as total_stock,
+            SUM(current_stock * unit_cost) as total_value,
+            COUNT(CASE WHEN current_stock <= reorder_level THEN 1 END) as low_stock_items
+        FROM vet_inventory_items 
+        WHERE is_active = 1
+    """)
+    
+    summary = c.fetchone()
+    
+    # Get low stock alerts
+    c.execute("""
+        SELECT vii.name, vii.current_stock, vii.reorder_level, vii.unit_of_measure
+        FROM vet_inventory_items vii
+        WHERE vii.is_active = 1 AND vii.current_stock <= vii.reorder_level
+        ORDER BY (vii.current_stock::REAL / vii.reorder_level) ASC
+        LIMIT 10
+    """)
+    
+    low_stock_items = c.fetchall()
+    
+    # Get expiring items (for medications)
+    c.execute("""
+        SELECT vii.name, vib.batch_number, vib.expiry_date, vib.quantity_remaining
+        FROM vet_inventory_batches vib
+        JOIN vet_inventory_items vii ON vib.item_id = vii.id
+        WHERE vib.expiry_date <= date('now', '+30 days') 
+        AND vib.quantity_remaining > 0
+        ORDER BY vib.expiry_date ASC
+        LIMIT 10
+    """)
+    
+    expiring_items = c.fetchall()
+    
+    # Get recent movements
+    c.execute("""
+        SELECT vim.movement_type, vii.name, vim.quantity, vim.created_at
+        FROM vet_inventory_movements vim
+        JOIN vet_inventory_items vii ON vim.item_id = vii.id
+        ORDER BY vim.created_at DESC
+        LIMIT 20
+    """)
+    
+    recent_movements = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("furrvet_inventory.html", 
+                         summary=summary,
+                         low_stock_items=low_stock_items,
+                         expiring_items=expiring_items,
+                         recent_movements=recent_movements)
+
+@app.route('/furrvet/inventory/items')
+def furrvet_inventory_items():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all inventory items with categories
+    c.execute("""
+        SELECT vii.id, vii.item_code, vii.name, vii.description, 
+               vic.name as category_name, vii.unit_of_measure,
+               vii.current_stock, vii.reorder_level, vii.unit_cost,
+               vii.selling_price, vii.is_medication,
+               CASE 
+                 WHEN vii.current_stock <= 0 THEN 'Out of Stock'
+                 WHEN vii.current_stock <= vii.reorder_level THEN 'Low Stock'
+                 ELSE 'In Stock'
+               END as stock_status
+        FROM vet_inventory_items vii
+        LEFT JOIN vet_inventory_categories vic ON vii.category_id = vic.id
+        WHERE vii.is_active = 1
+        ORDER BY vii.name
+    """)
+    
+    items = c.fetchall()
+    
+    # Get categories for filter
+    c.execute("SELECT id, name FROM vet_inventory_categories ORDER BY name")
+    categories = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("furrvet_inventory_items.html", items=items, categories=categories)
+
+@app.route('/furrvet/inventory/add-item', methods=["GET", "POST"])
+def furrvet_add_inventory_item():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    if request.method == "POST":
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Generate item code
+        c.execute("SELECT COUNT(*) FROM vet_inventory_items")
+        count = c.fetchone()[0]
+        item_code = f"INV{count + 1:06d}"
+        
+        item_data = {
+            'item_code': item_code,
+            'name': request.form.get('name'),
+            'description': request.form.get('description'),
+            'category_id': request.form.get('category_id') or None,
+            'unit_of_measure': request.form.get('unit_of_measure'),
+            'reorder_level': int(request.form.get('reorder_level', 10)),
+            'max_stock_level': int(request.form.get('max_stock_level', 100)),
+            'unit_cost': float(request.form.get('unit_cost', 0)),
+            'selling_price': float(request.form.get('selling_price', 0)),
+            'is_medication': 1 if request.form.get('is_medication') else 0,
+            'requires_prescription': 1 if request.form.get('requires_prescription') else 0,
+            'expiry_tracking': 1 if request.form.get('expiry_tracking') else 0,
+            'batch_tracking': 1 if request.form.get('batch_tracking') else 0,
+            'storage_location': request.form.get('storage_location'),
+            'manufacturer': request.form.get('manufacturer')
+        }
+        
+        c.execute("""
+            INSERT INTO vet_inventory_items 
+            (item_code, name, description, category_id, unit_of_measure, reorder_level, 
+             max_stock_level, unit_cost, selling_price, is_medication, requires_prescription,
+             expiry_tracking, batch_tracking, storage_location, manufacturer)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (item_data['item_code'], item_data['name'], item_data['description'],
+              item_data['category_id'], item_data['unit_of_measure'], item_data['reorder_level'],
+              item_data['max_stock_level'], item_data['unit_cost'], item_data['selling_price'],
+              item_data['is_medication'], item_data['requires_prescription'],
+              item_data['expiry_tracking'], item_data['batch_tracking'],
+              item_data['storage_location'], item_data['manufacturer']))
+        
+        conn.commit()
+        conn.close()
+        
+        flash("Inventory item added successfully!")
+        return redirect(url_for("furrvet_inventory_items"))
+    
+    # GET request - show form
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM vet_inventory_categories ORDER BY name")
+    categories = c.fetchall()
+    conn.close()
+    
+    return render_template("furrvet_add_inventory_item.html", categories=categories)
+
+# Pharmacy Management Routes
+@app.route('/furrvet/pharmacy')
+def furrvet_pharmacy():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get pharmacy overview
+    c.execute("""
+        SELECT 
+            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_prescriptions,
+            COUNT(CASE WHEN status = 'dispensed' THEN 1 END) as dispensed_today,
+            COUNT(DISTINCT patient_id) as unique_patients
+        FROM vet_prescriptions 
+        WHERE DATE(prescription_date) = DATE('now')
+    """)
+    
+    daily_stats = c.fetchone()
+    
+    # Get pending prescriptions
+    c.execute("""
+        SELECT vp.id, vp.prescription_number, vp.prescription_date,
+               vpt.name as patient_name, vo.name as owner_name,
+               COUNT(vpi.id) as item_count
+        FROM vet_prescriptions vp
+        JOIN vet_patients vpt ON vp.patient_id = vpt.id
+        JOIN vet_owners vo ON vpt.owner_id = vo.id
+        LEFT JOIN vet_prescription_items vpi ON vp.id = vpi.prescription_id
+        WHERE vp.status = 'active'
+        GROUP BY vp.id
+        ORDER BY vp.prescription_date DESC
+        LIMIT 20
+    """)
+    
+    pending_prescriptions = c.fetchall()
+    
+    # Get medications requiring attention (low stock)
+    c.execute("""
+        SELECT vii.name, vii.current_stock, vii.reorder_level
+        FROM vet_inventory_items vii
+        WHERE vii.is_medication = 1 
+        AND vii.current_stock <= vii.reorder_level
+        ORDER BY vii.current_stock ASC
+        LIMIT 10
+    """)
+    
+    low_stock_medications = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("furrvet_pharmacy.html",
+                         daily_stats=daily_stats,
+                         pending_prescriptions=pending_prescriptions,
+                         low_stock_medications=low_stock_medications)
+
+@app.route('/furrvet/pharmacy/prescriptions')
+def furrvet_prescriptions():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all prescriptions with patient details
+    c.execute("""
+        SELECT vp.id, vp.prescription_number, vp.prescription_date, vp.status,
+               vpt.name as patient_name, vo.name as owner_name, vo.phone,
+               COUNT(vpi.id) as item_count,
+               SUM(CASE WHEN vpi.quantity_dispensed >= vpi.quantity_prescribed THEN 1 ELSE 0 END) as dispensed_items
+        FROM vet_prescriptions vp
+        JOIN vet_patients vpt ON vp.patient_id = vpt.id
+        JOIN vet_owners vo ON vpt.owner_id = vo.id
+        LEFT JOIN vet_prescription_items vpi ON vp.id = vpi.prescription_id
+        GROUP BY vp.id
+        ORDER BY vp.prescription_date DESC
+        LIMIT 50
+    """)
+    
+    prescriptions = c.fetchall()
+    conn.close()
+    
+    return render_template("furrvet_prescriptions.html", prescriptions=prescriptions)
+
+@app.route('/furrvet/pharmacy/create-prescription/<int:patient_id>')
+def furrvet_create_prescription(patient_id):
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get patient details
+    c.execute("""
+        SELECT vpt.id, vpt.name, vpt.species, vpt.breed, vpt.weight,
+               vo.name as owner_name, vo.phone
+        FROM vet_patients vpt
+        JOIN vet_owners vo ON vpt.owner_id = vo.id
+        WHERE vpt.id = ?
+    """, (patient_id,))
+    
+    patient = c.fetchone()
+    
+    if not patient:
+        flash("Patient not found")
+        return redirect(url_for("furrvet_patients"))
+    
+    # Get available medications
+    c.execute("""
+        SELECT id, name, description, unit_of_measure, current_stock
+        FROM vet_inventory_items
+        WHERE is_medication = 1 AND is_active = 1 AND current_stock > 0
+        ORDER BY name
+    """)
+    
+    medications = c.fetchall()
+    conn.close()
+    
+    return render_template("furrvet_create_prescription.html", patient=patient, medications=medications)
+
+# CRM Routes
+@app.route('/furrvet/crm')
+def furrvet_crm():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get CRM overview
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_clients,
+            COUNT(CASE WHEN DATE(created_at) = DATE('now') THEN 1 END) as new_clients_today,
+            COUNT(CASE WHEN marketing_consent = 1 THEN 1 END) as marketing_subscribers
+        FROM vet_client_profiles
+    """)
+    
+    client_stats = c.fetchone()
+    
+    # Get pending reminders
+    c.execute("""
+        SELECT vcr.id, vcr.title, vcr.due_date, vcr.reminder_type,
+               vcp.first_name, vcp.last_name, vcp.phone_primary
+        FROM vet_client_reminders vcr
+        JOIN vet_client_profiles vcp ON vcr.client_id = vcp.id
+        WHERE vcr.status = 'pending' AND vcr.due_date <= DATE('now', '+7 days')
+        ORDER BY vcr.due_date ASC
+        LIMIT 20
+    """)
+    
+    pending_reminders = c.fetchall()
+    
+    # Get recent feedback
+    c.execute("""
+        SELECT vcf.rating, vcf.feedback_text, vcf.created_at,
+               vcp.first_name, vcp.last_name
+        FROM vet_client_feedback vcf
+        JOIN vet_client_profiles vcp ON vcf.client_id = vcp.id
+        ORDER BY vcf.created_at DESC
+        LIMIT 10
+    """)
+    
+    recent_feedback = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("furrvet_crm.html",
+                         client_stats=client_stats,
+                         pending_reminders=pending_reminders,
+                         recent_feedback=recent_feedback)
+
+# Vendor Management Routes
+@app.route('/furrvet/vendors')
+def furrvet_vendors():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get all suppliers with performance metrics
+    c.execute("""
+        SELECT vs.id, vs.supplier_code, vs.company_name, vs.contact_person,
+               vs.email, vs.phone, vs.supplier_category, vs.is_active,
+               COALESCE(vsp.overall_rating, 0) as performance_rating,
+               COALESCE(vsp.on_time_delivery_rate, 0) as on_time_delivery
+        FROM vet_suppliers vs
+        LEFT JOIN vet_supplier_performance vsp ON vs.id = vsp.supplier_id
+        ORDER BY vs.company_name
+    """)
+    
+    suppliers = c.fetchall()
+    
+    # Get recent purchase orders
+    c.execute("""
+        SELECT vpo.po_number, vpo.order_date, vpo.status, vpo.grand_total,
+               vs.company_name
+        FROM vet_purchase_orders vpo
+        JOIN vet_suppliers vs ON vpo.supplier_id = vs.id
+        ORDER BY vpo.order_date DESC
+        LIMIT 20
+    """)
+    
+    recent_orders = c.fetchall()
+    
+    conn.close()
+    
+    return render_template("furrvet_vendors.html", suppliers=suppliers, recent_orders=recent_orders)
+
+# Analytics and Reporting Routes
+@app.route('/furrvet/analytics')
+def furrvet_analytics():
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get comprehensive analytics data
+    # Inventory Analytics
+    c.execute("""
+        SELECT 
+            SUM(current_stock * unit_cost) as total_inventory_value,
+            COUNT(*) as total_items,
+            COUNT(CASE WHEN current_stock <= reorder_level THEN 1 END) as items_needing_reorder,
+            AVG(current_stock::REAL / NULLIF(reorder_level, 0)) as avg_stock_ratio
+        FROM vet_inventory_items 
+        WHERE is_active = 1
+    """)
+    
+    inventory_analytics = c.fetchone()
+    
+    # Pharmacy Analytics
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_prescriptions,
+            COUNT(CASE WHEN status = 'dispensed' THEN 1 END) as dispensed_prescriptions,
+            COUNT(DISTINCT patient_id) as unique_patients
+        FROM vet_prescriptions
+        WHERE DATE(prescription_date) >= DATE('now', '-30 days')
+    """)
+    
+    pharmacy_analytics = c.fetchone()
+    
+    # Client Analytics
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_clients,
+            AVG(rating) as avg_satisfaction,
+            COUNT(CASE WHEN would_recommend = 1 THEN 1 END) as recommending_clients
+        FROM vet_client_profiles vcp
+        LEFT JOIN vet_client_feedback vcf ON vcp.id = vcf.client_id
+    """)
+    
+    client_analytics = c.fetchone()
+    
+    conn.close()
+    
+    return render_template("furrvet_analytics.html",
+                         inventory_analytics=inventory_analytics,
+                         pharmacy_analytics=pharmacy_analytics,
+                         client_analytics=client_analytics)
+
+# API Endpoints for AJAX functionality
+@app.route('/api/furrvet/inventory/search')
+def api_inventory_search():
+    if "vet" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    query = request.args.get('q', '').lower()
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, item_code, name, current_stock, unit_of_measure
+        FROM vet_inventory_items
+        WHERE is_active = 1 AND (LOWER(name) LIKE ? OR LOWER(item_code) LIKE ?)
+        LIMIT 20
+    """, (f'%{query}%', f'%{query}%'))
+    
+    items = []
+    for row in c.fetchall():
+        items.append({
+            'id': row[0],
+            'item_code': row[1],
+            'name': row[2],
+            'current_stock': row[3],
+            'unit_of_measure': row[4]
+        })
+    
+    conn.close()
+    return {"items": items}
+
+@app.route('/api/furrvet/stock-movement', methods=["POST"])
+def api_stock_movement():
+    if "vet" not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    try:
+        # Record stock movement
+        c.execute("""
+            INSERT INTO vet_inventory_movements 
+            (item_id, movement_type, quantity, reference_type, notes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (data['item_id'], data['movement_type'], data['quantity'], 
+              data.get('reference_type'), data.get('notes'), session.get('vet_id')))
+        
+        # Update current stock
+        if data['movement_type'] == 'IN':
+            c.execute("UPDATE vet_inventory_items SET current_stock = current_stock + ? WHERE id = ?",
+                     (data['quantity'], data['item_id']))
+        elif data['movement_type'] == 'OUT':
+            c.execute("UPDATE vet_inventory_items SET current_stock = current_stock - ? WHERE id = ?",
+                     (data['quantity'], data['item_id']))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True}
+        
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return {"error": str(e)}, 500
+
+
     """, (new_status, notes, booking_id, session["isolation_id"]))
     
     conn.commit()

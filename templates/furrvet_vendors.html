@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vendor Management - FurrVet ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #dc2626;
+      --secondary-color: #ef4444;
+      --accent-color: #f87171;
+      --light-bg: #fef2f2;
+    }
+    
+    body {
+      background-color: var(--light-bg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .vendor-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+    }
+    
+    .vendor-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+      transition: transform 0.2s ease;
+    }
+    
+    .vendor-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .performance-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .performance-excellent {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .performance-good {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .performance-average {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .order-item {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid var(--primary-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .action-btn {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    
+    .action-btn:hover {
+      background: var(--secondary-color);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="vendor-header">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1><i class="bi bi-truck"></i> Vendor & Supplier Management</h1>
+          <p class="mb-0">Streamlined procurement and vendor relationship management</p>
+        </div>
+        <div class="col-md-4 text-end">
+          <a href="/furrvet/vendors/add" class="btn btn-light">
+            <i class="bi bi-plus-circle"></i> Add Vendor
+          </a>
+          <a href="/furrvet/vendors/orders" class="btn btn-outline-light">
+            <i class="bi bi-cart-plus"></i> Create Order
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Vendor Directory -->
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-building"></i> Vendor Directory</h5>
+          </div>
+          <div class="card-body">
+            {% if suppliers %}
+              {% for supplier in suppliers %}
+                <div class="vendor-card">
+                  <div class="row align-items-center">
+                    <div class="col-md-8">
+                      <h6 class="mb-1">{{ supplier[2] }}</h6>
+                      <p class="mb-1">
+                        <strong>Contact:</strong> {{ supplier[3] or 'N/A' }}<br>
+                        <strong>Email:</strong> {{ supplier[4] or 'N/A' }}<br>
+                        <strong>Phone:</strong> {{ supplier[5] or 'N/A' }}
+                      </p>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary">{{ supplier[6] or 'General' }}</span>
+                        {% if supplier[7] == 1 %}
+                          <span class="badge bg-success">Active</span>
+                        {% else %}
+                          <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                        {% if supplier[8] >= 4.0 %}
+                          <span class="performance-badge performance-excellent">Excellent</span>
+                        {% elif supplier[8] >= 3.0 %}
+                          <span class="performance-badge performance-good">Good</span>
+                        {% else %}
+                          <span class="performance-badge performance-average">Average</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                      <div class="mb-2">
+                        <small class="text-muted">Performance Rating</small><br>
+                        <strong>{{ "%.1f"|format(supplier[8] or 0) }}/5.0</strong>
+                      </div>
+                      <div class="mb-2">
+                        <small class="text-muted">On-time Delivery</small><br>
+                        <strong>{{ "%.1f"|format(supplier[9] or 0) }}%</strong>
+                      </div>
+                      <a href="/furrvet/vendors/{{ supplier[0] }}" class="action-btn">
+                        <i class="bi bi-eye"></i> View Details
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted">No vendors found</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-cart-check"></i> Recent Purchase Orders</h5>
+          </div>
+          <div class="card-body">
+            {% if recent_orders %}
+              {% for order in recent_orders %}
+                <div class="order-item">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <strong>{{ order[0] }}</strong><br>
+                      <small>{{ order[4] }}</small><br>
+                      <small class="text-muted">{{ order[1] }}</small>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge {% if order[2] == 'received' %}bg-success{% elif order[2] == 'sent' %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ order[2].title() }}
+                      </span><br>
+                      <strong>₹{{ "%.2f"|format(order[3]) }}</strong>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted">No recent orders</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vendor Performance Analytics -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-graph-up"></i> Vendor Performance Overview</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 text-center">
+                <div class="mb-3">
+                  <i class="bi bi-speedometer2 fs-1 text-primary"></i>
+                  <h6 class="mt-2">Average Performance</h6>
+                  <h4 class="text-primary">4.2/5.0</h4>
+                </div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="mb-3">
+                  <i class="bi bi-clock-history fs-1 text-success"></i>
+                  <h6 class="mt-2">On-time Delivery</h6>
+                  <h4 class="text-success">87.5%</h4>
+                </div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="mb-3">
+                  <i class="bi bi-currency-rupee fs-1 text-info"></i>
+                  <h6 class="mt-2">Cost Savings</h6>
+                  <h4 class="text-info">₹15,240</h4>
+                </div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="mb-3">
+                  <i class="bi bi-award fs-1 text-warning"></i>
+                  <h6 class="mt-2">Quality Score</h6>
+                  <h4 class="text-warning">92%</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Procurement Tools -->
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-tools"></i> Procurement Tools</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <a href="/furrvet/vendors/catalog" class="btn btn-primary">
+                <i class="bi bi-book"></i> Browse Vendor Catalogs
+              </a>
+              <a href="/furrvet/vendors/rfq" class="btn btn-outline-primary">
+                <i class="bi bi-file-text"></i> Request for Quotation
+              </a>
+              <a href="/furrvet/vendors/compare" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left-right"></i> Compare Prices
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-clipboard-data"></i> Reports & Analytics</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <a href="/furrvet/vendors/performance-report" class="btn btn-info">
+                <i class="bi bi-graph-up"></i> Performance Report
+              </a>
+              <a href="/furrvet/vendors/spend-analysis" class="btn btn-outline-info">
+                <i class="bi bi-pie-chart"></i> Spend Analysis
+              </a>
+              <a href="/furrvet/vendors/compliance" class="btn btn-outline-warning">
+                <i class="bi bi-shield-check"></i> Compliance Review
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Automated Features -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card border-success">
+          <div class="card-header bg-success text-white">
+            <h5><i class="bi bi-robot"></i> Automated Procurement Features</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="text-center">
+                  <i class="bi bi-bell-fill fs-1 text-warning"></i>
+                  <h6 class="mt-2">Auto Reorder Alerts</h6>
+                  <p class="small text-muted">Automatic notifications when stock reaches reorder levels</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-center">
+                  <i class="bi bi-cart-plus fs-1 text-primary"></i>
+                  <h6 class="mt-2">Smart Ordering</h6>
+                  <p class="small text-muted">AI-powered ordering based on usage patterns</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-center">
+                  <i class="bi bi-graph-up-arrow fs-1 text-info"></i>
+                  <h6 class="mt-2">Price Monitoring</h6>
+                  <p class="small text-muted">Track price changes and market trends</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-center">
+                  <i class="bi bi-check-circle fs-1 text-success"></i>
+                  <h6 class="mt-2">Auto Verification</h6>
+                  <p class="small text-muted">Automatic receipt verification and invoice matching</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back Navigation -->
+  <div class="container mt-4">
+    <a href="/furrvet/dashboard" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
