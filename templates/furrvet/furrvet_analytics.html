@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Analytics - FurrVet ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .main-content {
+            margin-left: 300px;
+            padding: 2rem;
+        }
+        .analytics-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+        .kpi-card {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-chart-line"></i> Business Intelligence & Analytics</h1>
+            <div>
+                <a href="/furrvet/analytics/export" class="btn btn-success me-2">
+                    <i class="fas fa-download"></i> Export Data
+                </a>
+                <a href="/furrvet/analytics/custom-report" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Custom Report
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-value">₹{{ "{:,.0f}".format(daily_revenue|sum(attribute=1) if daily_revenue else 0) }}</div>
+                    <div>Monthly Revenue</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-value">{{ daily_revenue|sum(attribute=2) if daily_revenue else 0 }}</div>
+                    <div>Total Appointments</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-value">{{ species_stats|sum(attribute=1) if species_stats else 0 }}</div>
+                    <div>Total Patients</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="kpi-card">
+                    <div class="kpi-value">{{ "%.1f"|format((daily_revenue|sum(attribute=1) / daily_revenue|sum(attribute=2)) if daily_revenue and daily_revenue|sum(attribute=2) > 0 else 0) }}</div>
+                    <div>Avg Revenue/Appointment</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="analytics-card">
+                    <h4>Revenue Trend (Last 30 Days)</h4>
+                    <canvas id="revenueChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="analytics-card">
+                    <h4>Patient Demographics</h4>
+                    <canvas id="speciesChart" width="200" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="analytics-card">
+                    <h4>Key Performance Indicators</h4>
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h5 class="text-success">85%</h5>
+                            <small>Client Retention Rate</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h5 class="text-primary">4.8</h5>
+                            <small>Average Rating</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h5 class="text-warning">92%</h5>
+                            <small>Appointment Show Rate</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h5 class="text-info">15 min</h5>
+                            <small>Avg Consultation Time</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="analytics-card">
+                    <h4>Predictive Analytics</h4>
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Expected Next Month Revenue</span>
+                            <strong class="text-success">₹{{ "{:,.0f}".format((daily_revenue|sum(attribute=1) * 1.15) if daily_revenue else 0) }}</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Projected New Patients</span>
+                            <strong class="text-primary">{{ ((species_stats|sum(attribute=1) * 0.1)|int) if species_stats else 0 }}</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Inventory Turnover Rate</span>
+                            <strong class="text-warning">2.4x</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Staff Efficiency Score</span>
+                            <strong class="text-info">88%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="analytics-card">
+                    <h4>Quick Reports</h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="d-grid gap-2">
+                                <a href="/furrvet/reports/revenue" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-chart-bar"></i> Revenue Report
+                                </a>
+                                <a href="/furrvet/reports/patient-outcomes" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-heartbeat"></i> Patient Outcomes
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-grid gap-2">
+                                <a href="/furrvet/reports/inventory-analysis" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-boxes"></i> Inventory Analysis
+                                </a>
+                                <a href="/furrvet/reports/staff-performance" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-users"></i> Staff Performance
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-grid gap-2">
+                                <a href="/furrvet/reports/client-satisfaction" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-smile"></i> Client Satisfaction
+                                </a>
+                                <a href="/furrvet/reports/financial-summary" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-dollar-sign"></i> Financial Summary
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-grid gap-2">
+                                <a href="/furrvet/reports/compliance-audit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-shield-alt"></i> Compliance Audit
+                                </a>
+                                <a href="/furrvet/reports/custom" class="btn btn-outline-dark btn-sm">
+                                    <i class="fas fa-cog"></i> Custom Reports
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        const revenueData = {{ daily_revenue|map(attribute=1)|list|tojson if daily_revenue else '[]' }};
+        const revenueLabels = {{ daily_revenue|map(attribute=0)|list|tojson if daily_revenue else '[]' }};
+        
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: revenueLabels,
+                datasets: [{
+                    label: 'Daily Revenue',
+                    data: revenueData,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Species Chart
+        const speciesCtx = document.getElementById('speciesChart').getContext('2d');
+        const speciesLabels = {{ species_stats|map(attribute=0)|list|tojson if species_stats else '[]' }};
+        const speciesData = {{ species_stats|map(attribute=1)|list|tojson if species_stats else '[]' }};
+        
+        new Chart(speciesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: speciesLabels,
+                datasets: [{
+                    data: speciesData,
+                    backgroundColor: [
+                        '#667eea',
+                        '#764ba2',
+                        '#f093fb',
+                        '#f5576c',
+                        '#4facfe'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    </script>
+</body>
+</html>

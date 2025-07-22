@@ -317,6 +317,194 @@ def init_furrvet_db():
         )
     ''')
     
+    # Document & Compliance Management
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_name TEXT NOT NULL,
+            document_type TEXT NOT NULL,
+            file_path TEXT,
+            upload_date DATE DEFAULT CURRENT_DATE,
+            expiry_date DATE,
+            uploaded_by INTEGER,
+            description TEXT,
+            compliance_category TEXT,
+            status TEXT DEFAULT 'active',
+            FOREIGN KEY (uploaded_by) REFERENCES vets (id)
+        )
+    ''')
+    
+    # Insurance Management
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_insurance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_id INTEGER NOT NULL,
+            insurance_provider TEXT NOT NULL,
+            policy_number TEXT NOT NULL,
+            policy_start_date DATE NOT NULL,
+            policy_end_date DATE,
+            coverage_amount REAL,
+            deductible REAL,
+            premium_amount REAL,
+            status TEXT DEFAULT 'active',
+            notes TEXT,
+            FOREIGN KEY (pet_id) REFERENCES pets (id)
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS insurance_claims (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_id INTEGER NOT NULL,
+            insurance_id INTEGER NOT NULL,
+            claim_number TEXT UNIQUE NOT NULL,
+            claim_date DATE NOT NULL,
+            treatment_date DATE,
+            claim_amount REAL NOT NULL,
+            approved_amount REAL,
+            status TEXT DEFAULT 'submitted',
+            description TEXT,
+            documents TEXT,
+            FOREIGN KEY (pet_id) REFERENCES pets (id),
+            FOREIGN KEY (insurance_id) REFERENCES pet_insurance (id)
+        )
+    ''')
+    
+    # Supplier Management
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS suppliers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            contact_person TEXT,
+            email TEXT,
+            phone TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            pincode TEXT,
+            payment_terms TEXT,
+            rating REAL DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS purchase_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            po_number TEXT UNIQUE NOT NULL,
+            supplier_id INTEGER NOT NULL,
+            order_date DATE NOT NULL,
+            expected_delivery DATE,
+            total_amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            notes TEXT,
+            created_by INTEGER,
+            FOREIGN KEY (supplier_id) REFERENCES suppliers (id),
+            FOREIGN KEY (created_by) REFERENCES vets (id)
+        )
+    ''')
+    
+    # CRM & Marketing
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS crm_campaigns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            campaign_name TEXT NOT NULL,
+            campaign_type TEXT NOT NULL,
+            target_segment TEXT,
+            start_date DATE,
+            end_date DATE,
+            message_template TEXT,
+            status TEXT DEFAULT 'draft',
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (created_by) REFERENCES vets (id)
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS client_reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_id INTEGER NOT NULL,
+            reminder_type TEXT NOT NULL,
+            reminder_date DATE NOT NULL,
+            message TEXT,
+            status TEXT DEFAULT 'pending',
+            sent_date DATE,
+            FOREIGN KEY (pet_id) REFERENCES pets (id)
+        )
+    ''')
+    
+    # Training & Certification
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS staff_certifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            staff_id INTEGER NOT NULL,
+            certification_name TEXT NOT NULL,
+            issuing_body TEXT,
+            issue_date DATE,
+            expiry_date DATE,
+            status TEXT DEFAULT 'valid',
+            document_path TEXT,
+            FOREIGN KEY (staff_id) REFERENCES staff (id)
+        )
+    ''')
+    
+    # Asset Management
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS clinic_assets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            asset_name TEXT NOT NULL,
+            asset_type TEXT NOT NULL,
+            purchase_date DATE,
+            purchase_cost REAL,
+            current_value REAL,
+            depreciation_rate REAL,
+            last_maintenance DATE,
+            next_maintenance DATE,
+            location TEXT,
+            status TEXT DEFAULT 'active',
+            notes TEXT
+        )
+    ''')
+    
+    # Audit Trail
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            action TEXT NOT NULL,
+            table_name TEXT,
+            record_id INTEGER,
+            old_values TEXT,
+            new_values TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ip_address TEXT,
+            FOREIGN KEY (user_id) REFERENCES vets (id)
+        )
+    ''')
+    
+    # Telehealth
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS telehealth_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            appointment_id INTEGER,
+            pet_id INTEGER NOT NULL,
+            vet_id INTEGER NOT NULL,
+            session_date DATE NOT NULL,
+            session_time TIME NOT NULL,
+            duration INTEGER,
+            session_url TEXT,
+            session_notes TEXT,
+            prescription TEXT,
+            follow_up_required BOOLEAN DEFAULT 0,
+            status TEXT DEFAULT 'scheduled',
+            FOREIGN KEY (appointment_id) REFERENCES appointments (id),
+            FOREIGN KEY (pet_id) REFERENCES pets (id),
+            FOREIGN KEY (vet_id) REFERENCES vets (id)
+        )
+    ''')
+    
     # Create demo data
     c.execute('''
         INSERT OR IGNORE INTO vets (name, email, password, license_number, specialization, phone, clinic_name, city)
@@ -634,6 +822,243 @@ def inventory():
     return render_template('furrvet_inventory.html', 
                          low_stock_items=low_stock_items, 
                          all_items=all_items)
+
+@furrvet_app.route('/furrvet/compliance')
+@login_required
+def compliance():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get expiring documents
+    c.execute("""
+        SELECT d.*, v.name as uploaded_by_name 
+        FROM documents d
+        LEFT JOIN vets v ON d.uploaded_by = v.id
+        WHERE d.expiry_date <= DATE('now', '+30 days')
+        ORDER BY d.expiry_date
+    """)
+    expiring_docs = c.fetchall()
+    
+    # Get all documents
+    c.execute("""
+        SELECT d.*, v.name as uploaded_by_name 
+        FROM documents d
+        LEFT JOIN vets v ON d.uploaded_by = v.id
+        ORDER BY d.upload_date DESC
+    """)
+    all_docs = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_compliance.html', 
+                         expiring_docs=expiring_docs,
+                         all_docs=all_docs)
+
+@furrvet_app.route('/furrvet/insurance')
+@login_required
+def insurance():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get insurance policies with pet info
+    c.execute("""
+        SELECT pi.*, p.name as pet_name, po.name as owner_name
+        FROM pet_insurance pi
+        JOIN pets p ON pi.pet_id = p.id
+        JOIN pet_owners po ON p.owner_id = po.id
+        ORDER BY pi.policy_start_date DESC
+    """)
+    insurance_policies = c.fetchall()
+    
+    # Get recent claims
+    c.execute("""
+        SELECT ic.*, p.name as pet_name, pi.insurance_provider
+        FROM insurance_claims ic
+        JOIN pets p ON ic.pet_id = p.id
+        JOIN pet_insurance pi ON ic.insurance_id = pi.id
+        ORDER BY ic.claim_date DESC
+        LIMIT 20
+    """)
+    recent_claims = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_insurance.html',
+                         insurance_policies=insurance_policies,
+                         recent_claims=recent_claims)
+
+@furrvet_app.route('/furrvet/suppliers')
+@login_required
+def suppliers():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get all suppliers
+    c.execute("SELECT * FROM suppliers ORDER BY name")
+    suppliers_list = c.fetchall()
+    
+    # Get recent purchase orders
+    c.execute("""
+        SELECT po.*, s.name as supplier_name
+        FROM purchase_orders po
+        JOIN suppliers s ON po.supplier_id = s.id
+        ORDER BY po.order_date DESC
+        LIMIT 10
+    """)
+    recent_orders = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_suppliers.html',
+                         suppliers=suppliers_list,
+                         recent_orders=recent_orders)
+
+@furrvet_app.route('/furrvet/crm')
+@login_required
+def crm_dashboard():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get active campaigns
+    c.execute("""
+        SELECT * FROM crm_campaigns 
+        WHERE status = 'active' 
+        ORDER BY start_date DESC
+    """)
+    active_campaigns = c.fetchall()
+    
+    # Get pending reminders
+    c.execute("""
+        SELECT cr.*, p.name as pet_name, po.name as owner_name
+        FROM client_reminders cr
+        JOIN pets p ON cr.pet_id = p.id
+        JOIN pet_owners po ON p.owner_id = po.id
+        WHERE cr.status = 'pending' AND cr.reminder_date <= DATE('now', '+7 days')
+        ORDER BY cr.reminder_date
+    """)
+    pending_reminders = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_crm.html',
+                         active_campaigns=active_campaigns,
+                         pending_reminders=pending_reminders)
+
+@furrvet_app.route('/furrvet/staff-management')
+@login_required
+def staff_management():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get staff with certifications
+    c.execute("""
+        SELECT s.*, 
+               COUNT(sc.id) as total_certifications,
+               COUNT(CASE WHEN sc.expiry_date <= DATE('now', '+30 days') THEN 1 END) as expiring_certs
+        FROM staff s
+        LEFT JOIN staff_certifications sc ON s.id = sc.staff_id AND sc.status = 'valid'
+        GROUP BY s.id
+        ORDER BY s.name
+    """)
+    staff_list = c.fetchall()
+    
+    # Get expiring certifications
+    c.execute("""
+        SELECT sc.*, s.name as staff_name
+        FROM staff_certifications sc
+        JOIN staff s ON sc.staff_id = s.id
+        WHERE sc.expiry_date <= DATE('now', '+60 days') AND sc.status = 'valid'
+        ORDER BY sc.expiry_date
+    """)
+    expiring_certifications = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_staff.html',
+                         staff_list=staff_list,
+                         expiring_certifications=expiring_certifications)
+
+@furrvet_app.route('/furrvet/assets')
+@login_required
+def asset_management():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get all assets
+    c.execute("SELECT * FROM clinic_assets ORDER BY asset_name")
+    assets = c.fetchall()
+    
+    # Get assets needing maintenance
+    c.execute("""
+        SELECT * FROM clinic_assets 
+        WHERE next_maintenance <= DATE('now', '+30 days')
+        ORDER BY next_maintenance
+    """)
+    maintenance_due = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_assets.html',
+                         assets=assets,
+                         maintenance_due=maintenance_due)
+
+@furrvet_app.route('/furrvet/telehealth')
+@login_required
+def telehealth():
+    vet_id = session['vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Get telehealth sessions
+    c.execute("""
+        SELECT ts.*, p.name as pet_name, po.name as owner_name, po.phone
+        FROM telehealth_sessions ts
+        JOIN pets p ON ts.pet_id = p.id
+        JOIN pet_owners po ON p.owner_id = po.id
+        WHERE ts.vet_id = ?
+        ORDER BY ts.session_date DESC, ts.session_time DESC
+    """, (vet_id,))
+    telehealth_sessions = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_telehealth.html',
+                         telehealth_sessions=telehealth_sessions)
+
+@furrvet_app.route('/furrvet/analytics')
+@login_required
+def advanced_analytics():
+    vet_id = session['vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    # Revenue analytics
+    c.execute("""
+        SELECT 
+            DATE(invoice_date) as date,
+            SUM(total_amount) as daily_revenue,
+            COUNT(*) as invoice_count
+        FROM invoices 
+        WHERE vet_id = ? AND invoice_date >= DATE('now', '-30 days')
+        GROUP BY DATE(invoice_date)
+        ORDER BY date
+    """, (vet_id,))
+    daily_revenue = c.fetchall()
+    
+    # Patient demographics
+    c.execute("""
+        SELECT species, COUNT(*) as count
+        FROM pets
+        GROUP BY species
+        ORDER BY count DESC
+    """)
+    species_stats = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('furrvet_analytics.html',
+                         daily_revenue=daily_revenue,
+                         species_stats=species_stats)
 
 if __name__ == '__main__':
     furrvet_app.run(host='0.0.0.0', port=5000, debug=True)

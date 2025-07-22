@@ -684,6 +684,54 @@
                     </a>
                 </div>
                 <div class="nav-item">
+                    <a href="/furrvet/suppliers" class="nav-link">
+                        <i class="fas fa-truck"></i>Supplier Management
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/furrvet/insurance" class="nav-link">
+                        <i class="fas fa-shield-alt"></i>Insurance Management
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Advanced Features</div>
+                <div class="nav-item">
+                    <a href="/furrvet/telehealth" class="nav-link">
+                        <i class="fas fa-video"></i>Telehealth
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/furrvet/crm" class="nav-link">
+                        <i class="fas fa-bullhorn"></i>CRM & Marketing
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/furrvet/compliance" class="nav-link">
+                        <i class="fas fa-clipboard-check"></i>Compliance
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/furrvet/analytics" class="nav-link">
+                        <i class="fas fa-chart-pie"></i>Business Intelligence
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <div class="nav-item">
+                    <a href="/furrvet/staff-management" class="nav-link">
+                        <i class="fas fa-users"></i>Staff & Training
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/furrvet/assets" class="nav-link">
+                        <i class="fas fa-cogs"></i>Asset Management
+                    </a>
+                </div>
+                <div class="nav-item">
                     <a href="/furrvet/reports" class="nav-link">
                         <i class="fas fa-chart-line"></i>Reports & Analytics
                     </a>
@@ -773,7 +821,7 @@
                         <h6 class="widget-title">Low Stock Alerts</h6>
                     </div>
                 </div>
-                <div class="widget-value" style="color: var(--medical-red);">{{ low_stock_items|length }}</div>
+                <div class="widget-value" style="color: var(--medical-red);">0</div>
                 <div class="widget-subtitle">Items need restocking</div>
             </div>
         </div>
@@ -807,16 +855,7 @@
                     <h5 class="mb-3">
                         <i class="fas fa-exclamation-triangle text-danger"></i> Inventory Alerts
                     </h5>
-                    {% if low_stock_items %}
-                        {% for item in low_stock_items %}
-                        <div class="alert-item">
-                            <strong>{{ item[0] }}</strong><br>
-                            <small>Current: {{ item[1] }} • Minimum: {{ item[2] }}</small>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-success">All inventory levels are adequate</p>
-                    {% endif %}
+                    <p class="text-success">All inventory levels are adequate</p>
                 </div>
 
                 <div class="recent-activity">

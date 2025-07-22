@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM & Marketing - FurrVet ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .main-content {
+            margin-left: 300px;
+            padding: 2rem;
+        }
+        .crm-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-bullhorn"></i> CRM & Marketing Automation</h1>
+            <div>
+                <a href="/furrvet/crm/campaign/new" class="btn btn-success me-2">
+                    <i class="fas fa-plus"></i> New Campaign
+                </a>
+                <a href="/furrvet/crm/reminders/bulk" class="btn btn-primary">
+                    <i class="fas fa-bell"></i> Bulk Reminders
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <h3>Active Marketing Campaigns</h3>
+                {% if active_campaigns %}
+                    {% for campaign in active_campaigns %}
+                    <div class="crm-card">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5>{{ campaign[1] }}</h5>
+                                <p><strong>Type:</strong> {{ campaign[2] }}</p>
+                                <p><strong>Target:</strong> {{ campaign[3] or 'All clients' }}</p>
+                                <p><strong>Duration:</strong> {{ campaign[4] }} to {{ campaign[5] }}</p>
+                                <p><strong>Status:</strong> 
+                                    <span class="badge bg-success">{{ campaign[7].title() }}</span>
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="d-grid gap-2">
+                                    <a href="/furrvet/crm/campaign/{{ campaign[0] }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <a href="/furrvet/crm/campaign/{{ campaign[0] }}/analytics" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-chart-bar"></i> Analytics
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="crm-card">
+                        <div class="text-center py-4">
+                            <i class="fas fa-bullhorn text-muted" style="font-size: 3rem;"></i>
+                            <h4 class="text-muted mt-3">No Active Campaigns</h4>
+                            <p class="text-muted">Create your first marketing campaign to engage with clients.</p>
+                            <a href="/furrvet/crm/campaign/new" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create Campaign
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-4">
+                <h3>Pending Reminders</h3>
+                {% for reminder in pending_reminders %}
+                <div class="crm-card">
+                    <h6>{{ reminder[7] }} ({{ reminder[8] }})</h6>
+                    <p><strong>Type:</strong> {{ reminder[2] }}</p>
+                    <p><strong>Due:</strong> {{ reminder[3] }}</p>
+                    <p><strong>Pet:</strong> {{ reminder[6] }}</p>
+                    <div class="d-grid">
+                        <a href="/furrvet/crm/reminder/{{ reminder[0] }}/send" class="btn btn-success btn-sm">
+                            <i class="fas fa-paper-plane"></i> Send Now
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="crm-card mt-4">
+                    <h5>Quick Actions</h5>
+                    <div class="d-grid gap-2">
+                        <a href="/furrvet/crm/vaccination-reminders" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-syringe"></i> Vaccination Reminders
+                        </a>
+                        <a href="/furrvet/crm/birthday-campaign" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-birthday-cake"></i> Pet Birthday Campaign
+                        </a>
+                        <a href="/furrvet/crm/checkup-reminders" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-stethoscope"></i> Annual Checkup Reminders
+                        </a>
+                        <a href="/furrvet/crm/loyalty-rewards" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-gift"></i> Loyalty Rewards
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
