@@ -1,237 +1,306 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Manage Bookings - FurrButler ERP</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Management - Vendor ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #fffaf2;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       font-family: 'Poppins', sans-serif;
-      padding: 40px;
-      margin: 0;
     }
-
-    h2 {
-      color: #ff7e5f;
-      text-align: center;
-      margin-bottom: 20px;
+    .container-fluid {
+      padding: 30px;
     }
-
-    .summary {
-      background: white;
-      border-radius: 15px;
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
       padding: 25px;
       margin-bottom: 30px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-    
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 20px;
+    .booking-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
     }
-    
-    .summary-item {
-      text-align: center;
-      padding: 15px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .booking-card:hover {
+      transform: translateY(-3px);
+    }
+    .booking-header {
+      background: linear-gradient(45deg, #28a745, #20c997);
       color: white;
-      border-radius: 10px;
+      padding: 20px;
     }
-    
-    .summary-item strong {
-      display: block;
-      font-size: 1.8rem;
+    .booking-body {
+      padding: 25px;
+    }
+    .status-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    .status-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .status-btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn-waiting { background: #ffeaa7; color: #6c5ce7; }
+    .btn-grooming { background: #74b9ff; color: white; }
+    .btn-almost { background: #fd79a8; color: white; }
+    .btn-ready { background: #00b894; color: white; }
+    .btn-complete { background: #55a3ff; color: white; }
+    .back-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .info-item {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      border-left: 4px solid #667eea;
+    }
+    .info-label {
+      font-size: 0.8rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       margin-bottom: 5px;
     }
-    
-    .summary-item span {
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-    
-    .action-bar {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    
-    .action-bar .btn {
-      margin: 0 10px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      display: inline-block;
-    }
-    
-    .btn-primary {
-      background-color: #007bff;
-      color: white;
-    }
-    
-    .btn-success {
-      background-color: #28a745;
-      color: white;
-    }
-
-    .search-bar {
-      text-align: center;
-      margin-bottom: 25px;
-    }
-
-    .search-bar input[type="text"] {
-      padding: 8px 12px;
-      width: 300px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-    }
-
-    .search-bar button {
-      padding: 8px 16px;
-      margin-left: 8px;
-      background-color: #74c69d;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: auto;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
-    }
-
-    th {
-      background-color: #ff7e5f;
-      color: white;
-    }
-
-    td button {
-      padding: 6px 10px;
-      margin-right: 5px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-
-    .complete-btn {
-      background-color: #4caf50;
-      color: white;
-    }
-
-    .cancel-btn {
-      background-color: #e63946;
-      color: white;
-    }
-
-    .pagination {
-      margin-top: 30px;
-      text-align: center;
-    }
-
-    .pagination a {
-      margin: 0 6px;
-      padding: 6px 12px;
-      background-color: #eee;
-      border-radius: 6px;
-      text-decoration: none;
+    .info-value {
+      font-weight: 600;
       color: #333;
     }
-
-    .pagination a:hover {
-      background-color: #ccc;
+    .current-status {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 25px;
+      text-align: center;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .stat-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 5px;
     }
   </style>
 </head>
 <body>
-  <h2>📅 Booking & Service Management</h2>
+  <div class="container-fluid">
+    <a href="/erp-dashboard" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Back to ERP Dashboard
+    </a>
 
-  <div class="summary">
-    <div class="summary-grid">
-      <div class="summary-item">
-        <strong>{{ bookings|length }}</strong>
-        <span>Total Bookings</span>
-      </div>
-      <div class="summary-item">
-        <strong>{{ bookings|selectattr('6', 'equalto', 'pending')|list|length }}</strong>
-        <span>Pending</span>
-      </div>
-      <div class="summary-item">
-        <strong>{{ bookings|selectattr('6', 'equalto', 'completed')|list|length }}</strong>
-        <span>Completed</span>
-      </div>
-      <div class="summary-item">
-        <strong id="linked-orders">-</strong>
-        <span>Linked Orders</span>
+    <div class="header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-calendar-check"></i> Booking Management</h2>
+          <p class="text-muted mb-0">Manage customer appointments and service bookings</p>
+        </div>
+        <div class="text-end">
+          <span class="badge bg-success fs-6">Live Updates</span>
+        </div>
       </div>
     </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-icon text-primary">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="stat-number text-primary">{{ bookings|length }}</div>
+        <div class="text-muted">Total Bookings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon text-warning">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-number text-warning">
+          {{ bookings|selectattr("4", "equalto", "confirmed")|list|length + 
+             bookings|selectattr("4", "equalto", "waiting")|list|length + 
+             bookings|selectattr("4", "equalto", "grooming")|list|length }}
+        </div>
+        <div class="text-muted">Active Sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon text-success">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-number text-success">{{ bookings|selectattr("4", "equalto", "completed")|list|length }}</div>
+        <div class="text-muted">Completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon text-info">
+          <i class="fas fa-gift"></i>
+        </div>
+        <div class="stat-number text-info">{{ bookings|selectattr("4", "equalto", "ready")|list|length }}</div>
+        <div class="text-muted">Ready for Pickup</div>
+      </div>
+    </div>
+
+    <!-- Bookings List -->
+    {% if bookings %}
+      {% for booking in bookings %}
+      <div class="booking-card" data-booking-id="{{ booking[0] }}">
+        <div class="booking-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-1">
+                <i class="fas fa-paw"></i> {{ booking[7] or 'Pet' }} - {{ booking[1] }}
+              </h5>
+              <small class="opacity-75">Booking #{{ booking[0] }} • {{ booking[8] or 'Customer' }}</small>
+            </div>
+            <span class="current-status bg-light text-dark">
+              {{ booking[4].replace('_', ' ').title() }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="booking-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Service Date</div>
+              <div class="info-value">{{ booking[2] }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Service Time</div>
+              <div class="info-value">{{ booking[3] }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Pet Parent</div>
+              <div class="info-value">{{ booking[8] or 'Not specified' }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Contact</div>
+              <div class="info-value">{{ booking[9] or 'Not provided' }}</div>
+            </div>
+          </div>
+
+          {% if booking[4] not in ['completed', 'cancelled'] %}
+          <div class="status-buttons">
+            <strong class="me-3">Update Status:</strong>
+            {% if booking[4] == 'confirmed' %}
+              <button class="status-btn btn-waiting" onclick="updateStatus({{ booking[0] }}, 'waiting')">
+                <i class="fas fa-hourglass-half"></i> Start Waiting
+              </button>
+            {% endif %}
+            
+            {% if booking[4] in ['confirmed', 'waiting'] %}
+              <button class="status-btn btn-grooming" onclick="updateStatus({{ booking[0] }}, 'grooming')">
+                <i class="fas fa-scissors"></i> Begin Grooming
+              </button>
+            {% endif %}
+            
+            {% if booking[4] == 'grooming' %}
+              <button class="status-btn btn-almost" onclick="updateStatus({{ booking[0] }}, 'almost-done')">
+                <i class="fas fa-medal"></i> Almost Done
+              </button>
+            {% endif %}
+            
+            {% if booking[4] == 'almost-done' %}
+              <button class="status-btn btn-ready" onclick="updateStatus({{ booking[0] }}, 'ready')">
+                <i class="fas fa-gift"></i> Ready for Pickup
+              </button>
+            {% endif %}
+            
+            {% if booking[4] == 'ready' %}
+              <button class="status-btn btn-complete" onclick="updateStatus({{ booking[0] }}, 'completed')">
+                <i class="fas fa-check-double"></i> Mark Complete
+              </button>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <!-- Completed booking info -->
+          {% if booking[4] == 'completed' %}
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> <strong>Service Completed!</strong> 
+            This booking has been successfully completed.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center" style="background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 80px 40px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+        <i class="fas fa-calendar-times" style="font-size: 5rem; color: #ddd; margin-bottom: 20px;"></i>
+        <h4>No Bookings Available</h4>
+        <p class="text-muted">Customer bookings will appear here once they schedule appointments.</p>
+      </div>
+    {% endif %}
   </div>
 
-  <div class="action-bar">
-    <a href="/erp/orders" class="btn btn-primary">📦 View Related Orders</a>
-    <a href="/erp/receipts" class="btn btn-success">🧾 Generate Receipt</a>
-  </div>
-
-  <div class="search-bar">
-    <form method="GET">
-      <input type="text" name="search" placeholder="Search by Pet, Service, or Date...">
-      <button type="submit">Search</button>
-    </form>
-  </div>
-
-  <table>
-    <tr>
-      <th>Pet Name</th>
-      <th>Pet Parent</th>
-      <th>Contact</th>
-      <th>Service</th>
-      <th>Date</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-    {% for booking in bookings %}
-    <tr>
-      <td>{{ booking[8] or 'Not specified' }}</td>
-      <td>{{ booking[9] or 'Not specified' }}</td>
-      <td>{{ booking[10] or 'Not specified' }}</td>
-      <td>{{ booking[3] }}</td>
-      <td>{{ booking[4] }}</td>
-      <td>{{ booking[7] }}</td>
-      <td>
-        <form method="POST" action="/erp/bookings/update/{{ booking[0] }}" style="display: inline-block;">
-          <select name="status" onchange="this.form.submit()" style="padding: 5px 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.8rem;">
-            <option value="{{ booking[6] }}" selected>Current: {{ booking[6].title() }}</option>
-            <option value="confirmed">✅ Confirmed</option>
-            <option value="waiting">🕐 Waiting</option>
-            <option value="grooming">✂️ Grooming</option>
-            <option value="almost-done">🎯 Almost Done</option>
-            <option value="ready">🎉 Ready for Pickup</option>
-            <option value="completed">✨ Completed</option>
-            <option value="cancelled">❌ Cancelled</option>
-          </select>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-
-  <div class="pagination">
-    <a href="?page=1">1</a>
-    <a href="?page=2">2</a>
-    <a href="?page=3">3</a>
-  </div>
+  <script>
+    function updateStatus(bookingId, newStatus) {
+      if (confirm(`Update booking status to: ${newStatus.replace('_', ' ').replace('-', ' ')}?`)) {
+        fetch('/erp-update-booking-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `booking_id=${bookingId}&status=${newStatus}`
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Failed to update status: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error updating status');
+        });
+      }
+    }
+  </script>
 </body>
 </html>
