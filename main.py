@@ -365,6 +365,23 @@ def init_erp_db():
         )
     ''')
 
+    # Vendor Services Management
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vendor_services (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            service_name TEXT NOT NULL,
+            description TEXT,
+            price REAL NOT NULL,
+            duration_minutes INTEGER DEFAULT 60,
+            category TEXT DEFAULT 'General',
+            is_active BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
     # Chat system tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS chat_conversations (
@@ -1729,52 +1746,57 @@ def vendor_profile(vendor_id):
             level = min(1 + (total_reviews // 10), 20)  # Cap at level 20
             xp = total_reviews * 100  # 100 XP per review
 
-            # Define services based on vendor category
-            category = data[6] or "General"
-            if "groom" in category.lower():
-                services = [
-                    {
-                        "name": "Full Grooming",
-                        "description": "Complete grooming package",
-                        "duration": 90,
-                        "price": 40.00,
-                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
-                    },
-                    {
-                        "name": "Basic Grooming",
-                        "description": "Basic bath and brush",
-                        "duration": 60,
-                        "price": 25.00,
-                        "available_slots": ["10:00", "12:00", "15:00"]
-                    }
-                ]
-            elif "boarding" in category.lower():
-                services = [
-                    {
-                        "name": "Overnight Boarding",
-                        "description": "Safe overnight pet boarding",
-                        "duration": 1440,  # 24 hours in minutes
-                        "price": 35.00,
-                        "available_slots": ["18:00"]
-                    },
-                    {
-                        "name": "Day Care",
-                        "description": "Day care services",
-                        "duration": 480,  # 8 hours
-                        "price": 20.00,
-                        "available_slots": ["08:00", "09:00"]
-                    }
-                ]
+            # Get services from database
+            c.execute("""
+                SELECT service_name, description, price, duration_minutes, category
+                FROM vendor_services 
+                WHERE vendor_id = ? AND is_active = 1
+                ORDER BY service_name
+            """, (vendor_id_db,))
+            
+            services_data = c.fetchall()
+            
+            if services_data:
+                services = []
+                for service in services_data:
+                    # Generate time slots based on service duration
+                    if service[3] <= 60:  # Short services
+                        available_slots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"]
+                    elif service[3] <= 240:  # Medium services
+                        available_slots = ["09:00", "11:00", "14:00", "16:00"]
+                    else:  # Long services (boarding, etc.)
+                        available_slots = ["18:00"]
+                    
+                    services.append({
+                        "name": service[0],
+                        "description": service[1] or "Professional pet care service",
+                        "duration": service[3],
+                        "price": service[2],
+                        "available_slots": available_slots
+                    })
             else:
-                services = [
-                    {
-                        "name": "Pet Care Service",
-                        "description": "General pet care",
-                        "duration": 60,
-                        "price": 30.00,
-                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
-                    }
-                ]
+                # Fallback services if none defined
+                category = data[6] or "General"
+                if "groom" in category.lower():
+                    services = [
+                        {
+                            "name": "Basic Grooming",
+                            "description": "Professional pet grooming service",
+                            "duration": 60,
+                            "price": 30.00,
+                            "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                        }
+                    ]
+                else:
+                    services = [
+                        {
+                            "name": "Pet Care Service",
+                            "description": "General pet care consultation",
+                            "duration": 60,
+                            "price": 30.00,
+                            "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                        }
+                    ]
 
             vendor = {
                 "id": data[0],
@@ -6808,6 +6830,169 @@ def business_analysis_api():
         "analysis_type": analysis_type,
         "vendor_email": email
     }
+
+# ---- VENDOR SERVICE MANAGEMENT ROUTES ----
+
+@app.route('/erp/services')
+def vendor_services():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+
+    if not vendor_result:
+        conn.close()
+        return render_template("vendor_services.html", services=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all services for this vendor
+    c.execute("""
+        SELECT id, service_name, description, price, duration_minutes, category, is_active, created_at
+        FROM vendor_services 
+        WHERE vendor_id = ?
+        ORDER BY service_name
+    """, (vendor_id,))
+    
+    services = c.fetchall()
+    conn.close()
+
+    return render_template("vendor_services.html", services=services)
+
+@app.route('/erp/services/add', methods=["GET", "POST"])
+def add_vendor_service():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    if request.method == "POST":
+        email = session["vendor"]
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+
+        if not vendor_result:
+            conn.close()
+            flash("Vendor not found")
+            return redirect(url_for("vendor_services"))
+
+        vendor_id = vendor_result[0]
+
+        # Get form data
+        service_name = request.form.get("service_name")
+        description = request.form.get("description", "")
+        price = float(request.form.get("price", 0))
+        duration_minutes = int(request.form.get("duration_minutes", 60))
+        category = request.form.get("category", "General")
+
+        if not service_name or price <= 0:
+            flash("Service name and valid price are required")
+            return redirect(url_for("add_vendor_service"))
+
+        # Insert new service
+        c.execute("""
+            INSERT INTO vendor_services (vendor_id, service_name, description, price, duration_minutes, category)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (vendor_id, service_name, description, price, duration_minutes, category))
+
+        conn.commit()
+        conn.close()
+
+        flash(f"Service '{service_name}' added successfully!")
+        return redirect(url_for("vendor_services"))
+
+    return render_template("add_vendor_service.html")
+
+@app.route('/erp/services/edit/<int:service_id>', methods=["GET", "POST"])
+def edit_vendor_service(service_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("vendor_services"))
+
+    vendor_id = vendor_result[0]
+
+    if request.method == "POST":
+        # Update service
+        service_name = request.form.get("service_name")
+        description = request.form.get("description", "")
+        price = float(request.form.get("price", 0))
+        duration_minutes = int(request.form.get("duration_minutes", 60))
+        category = request.form.get("category", "General")
+        is_active = 1 if request.form.get("is_active") else 0
+
+        c.execute("""
+            UPDATE vendor_services 
+            SET service_name=?, description=?, price=?, duration_minutes=?, category=?, is_active=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=? AND vendor_id=?
+        """, (service_name, description, price, duration_minutes, category, is_active, service_id, vendor_id))
+
+        conn.commit()
+        conn.close()
+
+        flash("Service updated successfully!")
+        return redirect(url_for("vendor_services"))
+
+    # Get service details
+    c.execute("""
+        SELECT id, service_name, description, price, duration_minutes, category, is_active
+        FROM vendor_services 
+        WHERE id=? AND vendor_id=?
+    """, (service_id, vendor_id))
+    
+    service = c.fetchone()
+    conn.close()
+
+    if not service:
+        flash("Service not found")
+        return redirect(url_for("vendor_services"))
+
+    return render_template("edit_vendor_service.html", service=service)
+
+@app.route('/erp/services/delete/<int:service_id>', methods=["POST"])
+def delete_vendor_service(service_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("vendor_services"))
+
+    vendor_id = vendor_result[0]
+
+    # Delete service
+    c.execute("DELETE FROM vendor_services WHERE id=? AND vendor_id=?", (service_id, vendor_id))
+    conn.commit()
+    conn.close()
+
+    flash("Service deleted successfully!")
+    return redirect(url_for("vendor_services"))
 
 # ---- CUSTOMER INTEGRATION API ----
 
