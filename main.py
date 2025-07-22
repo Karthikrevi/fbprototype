@@ -2181,7 +2181,39 @@ def handler_dashboard():
         UNION
         SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
     """)
+    pets_data = c.fetchall()
+    
+    # Get handler documents status for each pet
+    pets = []
+    for pet_data in pets_data:
+        pet_id = pet_data[0]
+        
+        # Get DGFT, AQCS, and quarantine docs status
+        c.execute("""
+            SELECT doc_type, filename, status, upload_time, dgft_reference
+            FROM passport_documents 
+            WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
+            ORDER BY upload_time DESC
+        """, (pet_id,))
+        
+        docs = c.fetchall()
+        doc_status = {}
+        for doc in docs:
+            doc_status[doc[0]] = {
+                'filename': doc[1],
+                'status': doc[2],
+                'upload_time': doc[3],
+                'dgft_reference': doc[4]
+            }
+        
+        pets.append({
+            'id': pet_id,
+            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
+            'doc_status': doc_status
+        })
 
+    conn.close()
+    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
 
 @app.route('/vet/pet/<int:pet_id>/history')
 def vet_pet_history(pet_id):
@@ -2256,8 +2288,7 @@ def search_pets_api():
             filtered_pets.append(pet)
     
     return {"pets": filtered_pets}
-FROM passport_documents pd
-        WHERE pd.pet_id NOT NULL
+        WHERE pd.pet_id IS NOT NULL
         UNION
         SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
     """)
@@ -2294,37 +2325,6 @@ FROM passport_documents pd
 
     conn.close()
     return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
-
-@app.route('/vet/pet/<int:pet_id>/history')
-def vet_pet_history(pet_id):
-    if "vet" not in session:
-        return redirect(url_for("vet_login"))
-
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    
-    # Get all documents for this pet
-    c.execute("""
-    SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, 
-               status, comments, is_signed, doc_hash, signature_timestamp
-        FROM passport_documents 
-        WHERE pet_id = ?
-        ORDER BY upload_time DESC
-    """, (pet_id,))
-    
-    documents = c.fetchall()
-    
-    # Get pet information (in a real system, this would come from the pet registration database)
-    pet_info = {
-        'id': pet_id,
-        'name': f'Pet {pet_id}' if pet_id > 3 else ['', 'Luna', 'Buddy', 'Max'][pet_id],
-        'breed': 'Mixed Breed',
-        'age': '2 years',
-        'microchip_id': f'MC00123456{pet_id}'
-    }
-    
-    conn.close()
-    return render_template("vet_pet_history.html", pet=pet_info, documents=documents)
 
 @app.route('/handler/upload', methods=["POST"])
 def handler_upload_document():
@@ -2508,11 +2508,9 @@ def isolation_upload_media():
     flash(f"{media_type.title()} uploaded successfully!")
     return redirect(url_for("isolation_dashboard"))
 
-# Add missing function
 def get_db_connection():
     return sqlite3.connect('erp.db')
-    """, (pet_id, "isolation", session["isolation"], filename, media_type, description))
-    
+
     conn.commit()
     conn.close()
 
