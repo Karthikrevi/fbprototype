@@ -2257,9 +2257,9 @@ def search_pets_api():
     
     return {"pets": filtered_pets}
 
-        FROM passport_documents pd
-        UNION
-        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
+FROM passport_documents pd
+    UNION
+    SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
     """)
     
     pets_data = c.fetchall()
@@ -2306,7 +2306,7 @@ def vet_pet_history(pet_id):
     
     # Get all documents for this pet
     c.execute("""
-        SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, 
+    SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, 
                status, comments, is_signed, doc_hash, signature_timestamp
         FROM passport_documents 
         WHERE pet_id = ?
