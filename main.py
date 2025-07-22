@@ -6,7 +6,7 @@ import json
 from werkzeug.utils import secure_filename
 from math import radians, cos, sin, asin, sqrt
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
@@ -2177,6 +2177,10 @@ def handler_dashboard():
     c.execute("""
         SELECT DISTINCT pd.pet_id, 
                (SELECT COUNT(*) FROM passport_documents WHERE pet_id = pd.pet_id AND doc_type IN ('dgft', 'aqcs', 'quarantine')) as handler_docs_count
+        FROM passport_documents pd
+        UNION
+        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
+    """)
 
 
 @app.route('/vet/pet/<int:pet_id>/history')
@@ -2508,9 +2512,6 @@ def isolation_upload_media():
 # Add missing function
 def get_db_connection():
     return sqlite3.connect('erp.db')
-        INSERT INTO pet_media 
-        (pet_id, uploaded_by_role, uploaded_by_user_id, filename, media_type, description)
-        VALUES (?, ?, ?, ?, ?, ?)
     """, (pet_id, "isolation", session["isolation"], filename, media_type, description))
     
     conn.commit()
@@ -7867,6 +7868,18 @@ def crm_dashboard():
 
     # Get recent interactions
     c.execute("""
+        SELECT ci.interaction_type, ci.description, ci.interaction_date, cc.first_name, cc.last_name
+        FROM crm_interactions ci
+        JOIN crm_customers cc ON ci.customer_id = cc.id
+        WHERE ci.vendor_id = ?
+        ORDER BY ci.interaction_date DESC
+        LIMIT 5
+    """, (vendor_id,))
+    
+    recent_interactions = c.fetchall()
+    conn.close()
+    
+    return render_template("crm_dashboard.html", stats=stats, recent_interactions=recent_interactions)
         SELECT ci.interaction_type, ci.description, ci.interaction_date, 
                cc.first_name, cc.last_name, ci.outcome
         FROM crm_interactions ci
