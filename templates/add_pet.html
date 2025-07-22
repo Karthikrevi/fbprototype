@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -56,18 +55,46 @@
       width: 100%;
       margin-bottom: 10px;
     }
+    .breed-search-container {
+      position: relative;
+    }
+    .breed-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+    .breed-option {
+      padding: 10px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    .breed-option:hover {
+      background-color: #f8f9fa;
+    }
+    .breed-option:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <a href="/pet-profile" class="back-btn">← Back to My Pets</a>
-    
+
     <div class="form-container">
       <div class="form-header">
         <h2>🐾 Add Your Furrbaby!</h2>
         <p>Please provide your pet's information</p>
       </div>
-      
+
       <form method="POST" enctype="multipart/form-data">
         <div class="row">
           <div class="col-md-6">
@@ -83,7 +110,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="row">
           <div class="col-md-6">
             <div class="mb-3">
@@ -98,27 +125,15 @@
             </div>
           </div>
         </div>
-        
+
         <div class="row">
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Breed</label>
-              <div class="input-group mb-3">
-                <input type="text" class="form-control" id="breedSearch" placeholder="Search breeds..." onkeyup="filterBreeds()">
-                <div class="input-group-append">
-                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</button>
-                  <div class="dropdown-menu">
-                    <select class="form-control" name="breed" id="breedSelect" size="5" style="width: 100%;">
-                      <option value="">Select a breed</option>
-                      {% for breed in breeds %}
-                        <option value="{{ breed }}">{{ breed }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                </div>
+              <div class="breed-search-container">
+                <input type="text" class="form-control" id="breedSearch" name="breed" placeholder="Search for breed..." autocomplete="off">
+                <div class="breed-dropdown" id="breedDropdown"></div>
               </div>
-                {% endfor %}
-              </select>
             </div>
           </div>
           <div class="col-md-6">
@@ -128,12 +143,12 @@
             </div>
           </div>
         </div>
-        
+
         <div class="mb-3">
           <label class="form-label">Pet Photo</label>
           <input type="file" class="form-control" name="photo" accept="image/*">
         </div>
-        
+
         <div class="d-grid">
           <button type="button" class="btn btn-secondary" onclick="location.href='/pet-profile'">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Pet</button>
@@ -143,132 +158,81 @@
   </div>
 
   <script>
-    let allBreeds = [];
-    
-    // Initialize breeds array when page loads
+    // Breed data from server
+    const breeds = {{ breeds | tojson }};
+
     document.addEventListener('DOMContentLoaded', function() {
-      const select = document.getElementById('breedSelect');
-      allBreeds = [];
-      for (let i = 1; i < select.options.length; i++) {
-        allBreeds.push(select.options[i].value);
-      }
-    });
-    
-    function filterBreeds() {
-      const searchInput = document.getElementById('breedSearch');
-      const select = document.getElementById('breedSelect');
-      const filter = searchInput.value.toLowerCase().trim();
-      
-      if (filter.length === 0) {
-        // Show all breeds when no search term
-        showAllBreeds();
-        select.size = 1;
-        return;
-      }
-      
-      // Find matching breeds
-      const matchingBreeds = allBreeds.filter(breed => 
-        breed.toLowerCase().includes(filter)
-      );
-      
-      // Sort matches: exact matches first, then starts-with, then contains
-      matchingBreeds.sort((a, b) => {
-        const aLower = a.toLowerCase();
-        const bLower = b.toLowerCase();
-        
-        // Exact match
-        if (aLower === filter) return -1;
-        if (bLower === filter) return 1;
-        
-        // Starts with
-        if (aLower.startsWith(filter) && !bLower.startsWith(filter)) return -1;
-        if (bLower.startsWith(filter) && !aLower.startsWith(filter)) return 1;
-        
-        // Alphabetical for same priority
-        return a.localeCompare(b);
-      });
-      
-      // Clear existing options except the first one
-      while (select.options.length > 1) {
-        select.removeChild(select.options[1]);
-      }
-      
-      // Add matching breeds
-      matchingBreeds.forEach(breed => {
-        const option = document.createElement('option');
-        option.value = breed;
-        option.text = breed;
-        select.appendChild(option);
-      });
-      
-      // Show dropdown with matches
-      if (matchingBreeds.length > 0) {
-        select.size = Math.min(8, matchingBreeds.length + 1);
-        
-        // Auto-select if only one match
-        if (matchingBreeds.length === 1) {
-          select.value = matchingBreeds[0];
+      const breedSearch = document.getElementById('breedSearch');
+      const breedDropdown = document.getElementById('breedDropdown');
+
+      breedSearch.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+
+        if (query.length === 0) {
+          breedDropdown.style.display = 'none';
+          return;
         }
-      } else {
-        // No matches - show "No breeds found"
-        const option = document.createElement('option');
-        option.value = '';
-        option.text = `No breeds found for "${filter}"`;
-        option.disabled = true;
-        select.appendChild(option);
-        select.size = 2;
-      }
-    }
-    
-    function showAllBreeds() {
-      const select = document.getElementById('breedSelect');
-      
-      // Clear existing options except the first one
-      while (select.options.length > 1) {
-        select.removeChild(select.options[1]);
-      }
-      
-      // Add all breeds back
-      allBreeds.forEach(breed => {
-        const option = document.createElement('option');
-        option.value = breed;
-        option.text = breed;
-        select.appendChild(option);
-      });
-    }
-    
-    // Reset dropdown when clicking away
-    document.getElementById('breedSelect').addEventListener('blur', function() {
-      this.size = 1;
-    });
-    
-    // Handle selection from dropdown
-    document.getElementById('breedSelect').addEventListener('change', function() {
-      if (this.value) {
-        document.getElementById('breedSearch').value = this.value;
-        this.size = 1;
-      }
-    });
-    
-    // Clear search when input is cleared
-    document.getElementById('breedSearch').addEventListener('input', function() {
-      if (this.value.trim() === '') {
-        document.getElementById('breedSelect').value = '';
-        showAllBreeds();
-      }
-    });
-    
-    // Handle Enter key in search
-    document.getElementById('breedSearch').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const select = document.getElementById('breedSelect');
-        if (select.options.length > 1 && select.options[1].value) {
-          select.value = select.options[1].value;
-          this.value = select.options[1].value;
-          select.size = 1;
+
+        // Filter breeds based on query
+        const matchingBreeds = breeds.filter(breed => 
+          breed.toLowerCase().includes(query)
+        );
+
+        // Sort matches: exact matches first, then starts-with, then contains
+        matchingBreeds.sort((a, b) => {
+          const aLower = a.toLowerCase();
+          const bLower = b.toLowerCase();
+
+          // Exact match
+          if (aLower === query) return -1;
+          if (bLower === query) return 1;
+
+          // Starts with
+          if (aLower.startsWith(query) && !bLower.startsWith(query)) return -1;
+          if (bLower.startsWith(query) && !aLower.startsWith(query)) return 1;
+
+          // Alphabetical for same priority
+          return a.localeCompare(b);
+        });
+
+        // Show dropdown with matches
+        if (matchingBreeds.length > 0) {
+          breedDropdown.innerHTML = '';
+          matchingBreeds.slice(0, 10).forEach(breed => {
+            const option = document.createElement('div');
+            option.className = 'breed-option';
+            option.textContent = breed;
+            option.addEventListener('click', function() {
+              breedSearch.value = breed;
+              breedDropdown.style.display = 'none';
+            });
+            breedDropdown.appendChild(option);
+          });
+          breedDropdown.style.display = 'block';
+        } else {
+          breedDropdown.innerHTML = '<div class="breed-option">No breeds found</div>';
+          breedDropdown.style.display = 'block';
         }
-      }
+      });
+
+      // Handle Enter key in search
+      breedSearch.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const firstOption = breedDropdown.querySelector('.breed-option');
+          if (firstOption && firstOption.textContent !== 'No breeds found') {
+            breedSearch.value = firstOption.textContent;
+            breedDropdown.style.display = 'none';
+          }
+        }
+      });
+
+      // Hide dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!breedSearch.contains(e.target) && !breedDropdown.contains(e.target)) {
+          breedDropdown.style.display = 'none';
+        }
+      });
     });
   </script>
 </body>
