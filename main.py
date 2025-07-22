@@ -2046,6 +2046,49 @@ def furrwings_vet_portal():
 
     return render_template("furrwings_vet_portal.html")
 
+@app.route('/vet/pet-profile/<int:pet_id>')
+def vet_pet_profile(pet_id):
+    """Individual pet profile for detailed document management"""
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get pet documents status
+    c.execute("""
+        SELECT doc_type, filename, status, upload_time, is_signed, doc_hash, signature_timestamp
+        FROM passport_documents 
+        WHERE pet_id = ? AND doc_type IN ('vaccine', 'health_cert') AND uploaded_by_role = 'vet'
+        ORDER BY upload_time DESC
+    """, (pet_id,))
+    
+    docs = c.fetchall()
+    doc_status = {}
+    for doc in docs:
+        doc_status[doc[0]] = {
+            'filename': doc[1],
+            'status': doc[2],
+            'upload_time': doc[3],
+            'is_signed': doc[4],
+            'doc_hash': doc[5],
+            'signature_timestamp': doc[6]
+        }
+    
+    pet_info = {
+        'id': pet_id,
+        'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
+        'breed': 'Golden Retriever',
+        'owner': 'John Smith',
+        'owner_email': 'john@example.com',
+        'travel_destination': 'USA → India',
+        'departure_date': 'Jan 15, 2024',
+        'doc_status': doc_status
+    }
+    
+    conn.close()
+    return render_template("vet_pet_profile.html", pet=pet_info, vet_name=session["vet_name"])
+
 @app.route('/vet/upload', methods=["POST"])
 def vet_upload_document():
     if "vet" not in session:
