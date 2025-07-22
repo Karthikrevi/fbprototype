@@ -19,6 +19,50 @@
             background-color: var(--soft-grey);
         }
 
+        .sidebar {
+            width: 300px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%);
+            box-shadow: 3px 0 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-brand {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.9);
+            padding: 0.7rem 1.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.15);
+            color: white;
+            transform: translateX(3px);
+        }
+
+        .nav-link i {
+            width: 18px;
+            margin-right: 0.75rem;
+        }
+
         .main-content {
             margin-left: 300px;
             padding: 2rem;
@@ -61,6 +105,61 @@
     </style>
 </head>
 <body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/furrvet" class="sidebar-brand">
+                <i class="fas fa-heart-pulse"></i> FurrVet ERP
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item">
+                <a href="/furrvet/dashboard" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/appointments" class="nav-link active">
+                    <i class="fas fa-calendar-check"></i>Appointments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/patients" class="nav-link">
+                    <i class="fas fa-paw"></i>Patients
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/medical-records" class="nav-link">
+                    <i class="fas fa-notes-medical"></i>Medical Records
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/laboratory" class="nav-link">
+                    <i class="fas fa-microscope"></i>Laboratory
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/billing" class="nav-link">
+                    <i class="fas fa-file-invoice-dollar"></i>Billing
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/inventory" class="nav-link">
+                    <i class="fas fa-boxes"></i>Inventory
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/reports" class="nav-link">
+                    <i class="fas fa-chart-line"></i>Reports
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/furrvet/logout" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>Logout
+                </a>
+            </div>
+        </nav>
+    </div>
+
     <div class="main-content">
         <div class="page-header">
             <div class="d-flex justify-content-between align-items-center">
