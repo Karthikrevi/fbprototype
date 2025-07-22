@@ -151,14 +151,23 @@
       </div>
     </div>
 
-    {% if vendors and vendors|length > 1 %}
+    <!-- Debug info -->
+    <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9em;">
+      <strong>Debug:</strong> Found {{ vendors|length }} vendors total
+    </div>
+
+    {% if vendors %}
       {% for vendor in vendors %}
       {% if vendor.id != 'fluffy-paws' %}
       <div class="vendor-card">
         <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
         <div class="vendor-details">
           <div class="status-badge">
+            {% if vendor.is_online %}
             <span class="online-badge">🟢 Available Now</span>
+            {% else %}
+            <span class="offline-badge">🔴 Offline</span>
+            {% endif %}
           </div>
           <h3>{{ vendor.name }}</h3>
           <div class="vendor-meta">{{ vendor.description }}</div>
@@ -166,7 +175,7 @@
           <div class="vendor-meta" id="distance-{{ vendor.id }}" style="color: #28a745;">📏 Calculating distance...</div>
           <div class="rating-stars">⭐ {{ vendor.rating }} | Level {{ vendor.level }} | XP {{ vendor.xp }}</div>
           <div class="xp-bar">
-            <div class="xp-fill" style="width: {{ vendor.xp / 50 }}%;"></div>
+            <div class="xp-fill" style="width: {{ (vendor.xp / 50) if vendor.xp < 5000 else 100 }}%;"></div>
           </div>
           <a href="/vendor/{{ vendor.id }}" class="profile-link">Book Service</a>
         </div>
@@ -175,9 +184,9 @@
       {% endfor %}
     {% else %}
       <div style="text-align: center; margin: 40px; padding: 20px; background: #fff; border-radius: 12px;">
-        <h3>🔍 No vendors in your area yet</h3>
-        <p>We're expanding our network! Check back soon for groomers and vendors near you.</p>
-        <p><small>Current location-based filtering is active. Vendors will appear here once they register with location data.</small></p>
+        <h3>🔍 No vendors found</h3>
+        <p>No vendors are currently registered in the system.</p>
+        <p><small>Vendors need to register through the ERP system to appear here.</small></p>
       </div>
     {% endif %}
   </div>
@@ -202,16 +211,16 @@
         {% for vendor in vendors %}
         {
           id: {{ vendor.id }},
-          lat: {{ vendor.latitude or 0 }},
-          lng: {{ vendor.longitude or 0 }},
-          name: "{{ vendor.name }}"
+          lat: {{ vendor.latitude or 8.5241 }},
+          lng: {{ vendor.longitude or 76.9366 }},
+          name: "{{ vendor.name|replace('"', '\\"') }}"
         }{% if not loop.last %},{% endif %}
         {% endfor %}
       ];
 
       vendors.forEach(vendor => {
         const distanceElement = document.getElementById(`distance-${vendor.id}`);
-        if (vendor.lat && vendor.lng && userLat && userLng) {
+        if (distanceElement && vendor.lat && vendor.lng && userLat && userLng) {
           const distance = calculateDistance(userLat, userLng, vendor.lat, vendor.lng);
           
           if (distance < 1) {
@@ -220,7 +229,7 @@
             distanceElement.textContent = `📏 ${distance.toFixed(1)}km away`;
           }
           distanceElement.style.color = distance < 5 ? '#28a745' : '#6c757d';
-        } else {
+        } else if (distanceElement) {
           distanceElement.textContent = '📏 Location not available';
           distanceElement.style.color = '#6c757d';
         }

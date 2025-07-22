@@ -1611,17 +1611,18 @@ def groomers():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Get all groomers/boarding services in the same city that are ONLINE and ACTIVE
-    # Include all necessary fields including location data
+    # Get all vendors that provide grooming/boarding services
+    # Removed strict city matching and online requirements for testing
     c.execute("""
         SELECT id, name, email, password, category, city, phone, bio, image_url, latitude, longitude, is_online, account_status, break_start_date, break_end_date, break_reason, address, state, pincode
         FROM vendors 
-        WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%' OR LOWER(category) LIKE '%boarding%')
-        AND LOWER(city) = LOWER(?)
-        AND is_online = 1
-        AND (account_status IS NULL OR account_status = 'active')
-    """, (user_city,))
+        WHERE (account_status IS NULL OR account_status = 'active')
+        ORDER BY name
+    """)
     db_vendors = c.fetchall()
+    
+    print(f"Found {len(db_vendors)} vendors in database")  # Debug log
+    
     conn.close()
 
     vendors = []
@@ -1635,8 +1636,8 @@ def groomers():
             "level": 10,
             "xp": 1500,
             "city": vendor[5] or "Unknown",
-            "latitude": vendor[9],
-            "longitude": vendor[10],
+            "latitude": vendor[9] or 8.5241,  # Default to Trivandrum coordinates
+            "longitude": vendor[10] or 76.9366,
             "is_online": vendor[11],
             "address": vendor[16] or "",
             "state": vendor[17] or "",
@@ -1644,6 +1645,7 @@ def groomers():
         }
         vendors.append(vendor_data)
 
+    print(f"Returning {len(vendors)} vendors to template")  # Debug log
     return render_template("groomers.html", vendors=vendors)
 
 # Vendor Profile
