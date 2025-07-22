@@ -72,6 +72,7 @@
       "sheep": ["A positive", "A negative", "B positive", "B negative", "AB positive", "AB negative", "Unknown"],
       "goat": ["A positive", "A negative", "B positive", "B negative", "Unknown"],
       "cow": ["A positive", "A negative", "B positive", "B negative", "F positive", "F negative", "J positive", "J negative", "Unknown"],
+      "elephant": ["Unknown", "Not applicable"],
       "other": ["Unknown", "Not applicable"]
     };
 
@@ -170,6 +171,7 @@
                 <option value="sheep" {% if pet.species == 'sheep' %}selected{% endif %}>Sheep</option>
                 <option value="goat" {% if pet.species == 'goat' %}selected{% endif %}>Goat</option>
                 <option value="cow" {% if pet.species == 'cow' %}selected{% endif %}>Cow</option>
+                <option value="elephant" {% if pet.species == 'elephant' %}selected{% endif %}>Elephant</option>
                 <option value="other" {% if pet.species == 'other' %}selected{% endif %}>Other</option>
               </select>
             </div>
