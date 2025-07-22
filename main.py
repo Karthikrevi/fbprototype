@@ -1798,6 +1798,7 @@ def add_pet():
         parent_name = request.form.get("parent_name")
         parent_phone = request.form.get("parent_phone")
         birthday = request.form.get("birthday")
+        species = request.form.get("species")
         breed = request.form.get("breed")
         blood = request.form.get("blood")
         photo_url = ""
@@ -1814,6 +1815,7 @@ def add_pet():
             "parent_name": parent_name,
             "parent_phone": parent_phone,
             "birthday": birthday,
+            "species": species,
             "breed": breed,
             "blood": blood,
             "photo": photo_url
@@ -1958,6 +1960,7 @@ def edit_pet(pet_index):
         pets[pet_index]["parent_name"] = request.form.get("parent_name")
         pets[pet_index]["parent_phone"] = request.form.get("parent_phone")
         pets[pet_index]["birthday"] = request.form.get("birthday")
+        pets[pet_index]["species"] = request.form.get("species")
         pets[pet_index]["breed"] = request.form.get("breed")
         pets[pet_index]["blood"] = request.form.get("blood")
 

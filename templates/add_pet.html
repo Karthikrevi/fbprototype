@@ -129,6 +129,23 @@
         <div class="row">
           <div class="col-md-6">
             <div class="mb-3">
+              <label class="form-label">Species</label>
+              <select class="form-control" id="speciesSelect" name="species" onchange="updateBloodTypes()">
+                <option value="">Select species</option>
+                <option value="dog">Dog</option>
+                <option value="cat">Cat</option>
+                <option value="rabbit">Rabbit</option>
+                <option value="horse">Horse</option>
+                <option value="pig">Pig</option>
+                <option value="sheep">Sheep</option>
+                <option value="goat">Goat</option>
+                <option value="cow">Cow</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
               <label class="form-label">Breed</label>
               <div class="breed-search-container">
                 <input type="text" class="form-control" id="breedSearch" name="breed" placeholder="Search for breed..." autocomplete="off">
@@ -136,11 +153,19 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="row">
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Blood Type</label>
-              <input type="text" class="form-control" name="blood" placeholder="e.g., DEA 1.1 positive">
+              <select class="form-control" id="bloodTypeSelect" name="blood">
+                <option value="">Select species first</option>
+              </select>
             </div>
+          </div>
+          <div class="col-md-6">
+            <!-- Empty column for spacing -->
           </div>
         </div>
 
@@ -160,6 +185,122 @@
   <script>
     // Breed data from server
     const breeds = {{ breeds | tojson }};
+    
+    // Blood types data
+    const bloodTypes = {
+      "dog": [
+        "DEA 1.1 positive",
+        "DEA 1.1 negative", 
+        "DEA 1.2 positive",
+        "DEA 1.2 negative",
+        "DEA 3 positive",
+        "DEA 3 negative",
+        "DEA 4 positive", 
+        "DEA 4 negative",
+        "DEA 5 positive",
+        "DEA 5 negative",
+        "DEA 7 positive",
+        "DEA 7 negative",
+        "Universal donor",
+        "Unknown"
+      ],
+      "cat": [
+        "Type A",
+        "Type B", 
+        "Type AB",
+        "Unknown"
+      ],
+      "rabbit": [
+        "Unknown",
+        "Type A",
+        "Type B"
+      ],
+      "horse": [
+        "Aa positive",
+        "Aa negative",
+        "Ca positive", 
+        "Ca negative",
+        "Da positive",
+        "Da negative",
+        "Ka positive",
+        "Ka negative",
+        "Pa positive",
+        "Pa negative",
+        "Qa positive",
+        "Qa negative",
+        "Ua positive",
+        "Ua negative"
+      ],
+      "pig": [
+        "A positive",
+        "A negative",
+        "O positive", 
+        "O negative",
+        "Unknown"
+      ],
+      "sheep": [
+        "A positive",
+        "A negative",
+        "B positive",
+        "B negative", 
+        "AB positive",
+        "AB negative",
+        "Unknown"
+      ],
+      "goat": [
+        "A positive",
+        "A negative",
+        "B positive",
+        "B negative",
+        "Unknown"
+      ],
+      "cow": [
+        "A positive", 
+        "A negative",
+        "B positive",
+        "B negative",
+        "F positive",
+        "F negative", 
+        "J positive",
+        "J negative",
+        "Unknown"
+      ],
+      "other": [
+        "Unknown",
+        "Not applicable"
+      ]
+    };
+
+    function updateBloodTypes() {
+      const speciesSelect = document.getElementById('speciesSelect');
+      const bloodTypeSelect = document.getElementById('bloodTypeSelect');
+      const selectedSpecies = speciesSelect.value;
+
+      // Clear existing options
+      bloodTypeSelect.innerHTML = '';
+
+      if (selectedSpecies && bloodTypes[selectedSpecies]) {
+        // Add placeholder option
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Select blood type';
+        bloodTypeSelect.appendChild(placeholderOption);
+
+        // Add blood type options for selected species
+        bloodTypes[selectedSpecies].forEach(bloodType => {
+          const option = document.createElement('option');
+          option.value = bloodType;
+          option.textContent = bloodType;
+          bloodTypeSelect.appendChild(option);
+        });
+      } else {
+        // No species selected
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Select species first';
+        bloodTypeSelect.appendChild(placeholderOption);
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
       const breedSearch = document.getElementById('breedSearch');

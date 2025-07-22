@@ -1,0 +1,84 @@
+
+{
+  "dog": [
+    "DEA 1.1 positive",
+    "DEA 1.1 negative", 
+    "DEA 1.2 positive",
+    "DEA 1.2 negative",
+    "DEA 3 positive",
+    "DEA 3 negative",
+    "DEA 4 positive", 
+    "DEA 4 negative",
+    "DEA 5 positive",
+    "DEA 5 negative",
+    "DEA 7 positive",
+    "DEA 7 negative",
+    "Universal donor",
+    "Unknown"
+  ],
+  "cat": [
+    "Type A",
+    "Type B", 
+    "Type AB",
+    "Unknown"
+  ],
+  "rabbit": [
+    "Unknown",
+    "Type A",
+    "Type B"
+  ],
+  "horse": [
+    "Aa positive",
+    "Aa negative",
+    "Ca positive", 
+    "Ca negative",
+    "Da positive",
+    "Da negative",
+    "Ka positive",
+    "Ka negative",
+    "Pa positive",
+    "Pa negative",
+    "Qa positive",
+    "Qa negative",
+    "Ua positive",
+    "Ua negative"
+  ],
+  "pig": [
+    "A positive",
+    "A negative",
+    "O positive", 
+    "O negative",
+    "Unknown"
+  ],
+  "sheep": [
+    "A positive",
+    "A negative",
+    "B positive",
+    "B negative", 
+    "AB positive",
+    "AB negative",
+    "Unknown"
+  ],
+  "goat": [
+    "A positive",
+    "A negative",
+    "B positive",
+    "B negative",
+    "Unknown"
+  ],
+  "cow": [
+    "A positive", 
+    "A negative",
+    "B positive",
+    "B negative",
+    "F positive",
+    "F negative", 
+    "J positive",
+    "J negative",
+    "Unknown"
+  ],
+  "other": [
+    "Unknown",
+    "Not applicable"
+  ]
+}
