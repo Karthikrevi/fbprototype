@@ -66,9 +66,14 @@
           <p class="mb-0">Welcome back, Dr. {{ vet_name }}</p>
         </div>
         <div class="col-md-6 text-end">
-          <a href="/vet/login" class="btn btn-outline-light">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </a>
+          <div class="d-flex gap-2 justify-content-end flex-wrap">
+            <a href="/vet/portal" class="btn btn-outline-light">
+              <i class="fas fa-clipboard-check"></i> Advanced Portal
+            </a>
+            <a href="/vet/login" class="btn btn-outline-light">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -82,8 +87,15 @@
 
     <div class="row">
       <div class="col-12">
-        <h3><i class="fas fa-clipboard-list"></i> Pet Passport Documents</h3>
-        <p class="text-muted">Upload and digitally sign vaccination records and health certificates for international pet travel.</p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h3><i class="fas fa-clipboard-list"></i> Pet Passport Documents</h3>
+            <p class="text-muted mb-0">Upload and digitally sign vaccination records and health certificates for international pet travel.</p>
+          </div>
+          <a href="/vet/portal" class="btn btn-primary">
+            <i class="fas fa-rocket"></i> Enhanced Portal
+          </a>
+        </div>
       </div>
     </div>
 
@@ -204,12 +216,18 @@
     {% else %}
       <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> No pets assigned for document verification yet.
+        <div class="mt-2">
+          <a href="/vet/portal" class="btn btn-primary btn-sm">
+            <i class="fas fa-rocket"></i> Try Enhanced Portal
+          </a>
+        </div>
       </div>
     {% endif %}
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+</html>
 <body>
   <div class="header">
     <div class="container">
