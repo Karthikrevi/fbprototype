@@ -103,7 +103,8 @@
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Breed</label>
-              <select class="form-control" name="breed">
+              <input type="text" class="form-control mb-2" id="breedSearch" placeholder="Search breeds..." onkeyup="filterBreeds()">
+              <select class="form-control" name="breed" id="breedSelect">
                 <option value="">Select a breed</option>
                 {% for breed in breeds %}
                   <option value="{{ breed }}">{{ breed }}</option>
@@ -131,5 +132,57 @@
       </form>
     </div>
   </div>
+
+  <script>
+    function filterBreeds() {
+      const searchInput = document.getElementById('breedSearch');
+      const select = document.getElementById('breedSelect');
+      const filter = searchInput.value.toLowerCase();
+      
+      // Show all options first
+      for (let i = 0; i < select.options.length; i++) {
+        select.options[i].style.display = '';
+      }
+      
+      // Hide options that don't match the search
+      for (let i = 1; i < select.options.length; i++) { // Start from 1 to skip "Select a breed"
+        const option = select.options[i];
+        const text = option.text.toLowerCase();
+        
+        if (!text.includes(filter)) {
+          option.style.display = 'none';
+        }
+      }
+      
+      // If there's a search term, open the dropdown
+      if (filter.length > 0) {
+        select.focus();
+        select.size = Math.min(10, select.options.length);
+      } else {
+        select.size = 1;
+      }
+    }
+    
+    // Reset dropdown size when clicking away
+    document.getElementById('breedSelect').addEventListener('blur', function() {
+      this.size = 1;
+    });
+    
+    // Auto-select if only one option matches
+    document.getElementById('breedSearch').addEventListener('input', function() {
+      const select = document.getElementById('breedSelect');
+      const visibleOptions = [];
+      
+      for (let i = 1; i < select.options.length; i++) {
+        if (select.options[i].style.display !== 'none') {
+          visibleOptions.push(select.options[i]);
+        }
+      }
+      
+      if (visibleOptions.length === 1) {
+        select.value = visibleOptions[0].value;
+      }
+    });
+  </script>
 </body>
 </html>
