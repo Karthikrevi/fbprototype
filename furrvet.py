@@ -636,4 +636,4 @@ def inventory():
                          all_items=all_items)
 
 if __name__ == '__main__':
-    furrvet_app.run(host='0.0.0.0', port=5001, debug=True)
+    furrvet_app.run(host='0.0.0.0', port=5000, debug=True)

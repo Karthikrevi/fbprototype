@@ -1417,11 +1417,11 @@ if furrvet_available:
     @app.route('/furrvet')
     @app.route('/furrvet/')
     def furrvet_redirect():
-        return redirect('http://localhost:5001/furrvet')
+        return redirect(url_for('furrvet_dashboard'))
     
     @app.route('/furrvet/login')
     def furrvet_login_redirect():
-        return redirect('http://localhost:5001/furrvet/login')
+        return redirect(url_for('vet_login'))
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
