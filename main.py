@@ -4411,7 +4411,7 @@ def accounting_settings():
         # Get current platform commission from master settings (not editable by vendor)
         c.execute("SELECT setting_value FROM master_settings WHERE setting_name = 'platform_commission_rate'")
         platform_fee_result = c.fetchone()
-        platform_fee = platform_fee_result[0] if platform_fee_result else 10.0
+        platform_fee = platform_fee_result[0] if platform_fee_result else 10.0 10.0
 
         # Insert or update settings
         c.execute("""
