@@ -7840,7 +7840,8 @@ def crm_dashboard():
     conn.close()
     
     return render_template("crm_dashboard.html", stats=stats, recent_interactions=recent_interactions)
-        SELECT ci.interaction_type, ci.description, ci.interaction_date, 
+    
+SELECT ci.interaction_type, ci.description, ci.interaction_date, 
                cc.first_name, cc.last_name, ci.outcome
         FROM crm_interactions ci
         JOIN crm_customers cc ON ci.customer_id = cc.id
