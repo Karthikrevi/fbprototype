@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FurrVet - Veterinary ERP Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --clinic-teal: #0891b2;
+            --soft-green: #059669;
+            --gradient: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%);
+        }
+
+        body {
+            background: var(--gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .furrvet-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .furrvet-logo h2 {
+            color: var(--primary-blue);
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .furrvet-logo p {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .feature-highlight {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid var(--clinic-teal);
+        }
+
+        .feature-highlight h6 {
+            color: var(--clinic-teal);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-highlight ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: #64748b;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .links a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: 500;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="furrvet-logo">
+            <h2><i class="fas fa-heartbeat"></i> FurrVet</h2>
+            <p>Professional Veterinary ERP System</p>
+        </div>
+
+        {% if get_flashed_messages() %}
+            {% for message in get_flashed_messages() %}
+                <div class="alert alert-danger">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="fas fa-envelope"></i> Email Address
+                </label>
+                <input type="email" class="form-control" name="email" required 
+                       placeholder="vet@furrvet.com" value="vet@furrvet.com">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="fas fa-lock"></i> Password
+                </label>
+                <input type="password" class="form-control" name="password" required 
+                       placeholder="Enter your password" value="vet123">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-sign-in-alt"></i> Login to FurrVet
+            </button>
+        </form>
+
+        <div class="feature-highlight">
+            <h6><i class="fas fa-star"></i> FurrVet Features</h6>
+            <ul>
+                <li>Complete Patient Management</li>
+                <li>Appointment Scheduling</li>
+                <li>Medical Records & Imaging</li>
+                <li>Billing & Inventory</li>
+                <li>Lab Test Management</li>
+            </ul>
+        </div>
+
+        <div class="links">
+            <a href="/"><i class="fas fa-home"></i> Back to FurrButler</a>
+            <span class="text-muted">|</span>
+            <a href="#"><i class="fas fa-question-circle"></i> Help</a>
+        </div>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                Demo Credentials: vet@furrvet.com / vet123
+            </small>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Management - FurrVet</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --clinic-teal: #0891b2;
+            --soft-green: #059669;
+            --soft-grey: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--soft-grey);
+        }
+
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .patient-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .search-form {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Include sidebar from dashboard -->
+    <div class="main-content">
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-paw"></i> Patient Management</h1>
+                    <p class="text-muted mb-0">Manage all your patients and their medical records</p>
+                </div>
+                <div>
+                    <a href="/furrvet/patients/new" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Patient
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-form">
+            <form method="GET">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" name="search" 
+                               placeholder="Search by pet name, owner name, or microchip ID..." 
+                               value="{{ search }}">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="row">
+            {% if patients %}
+                {% for patient in patients %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="patient-card">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3">
+                                {% if patient[13] %}
+                                    <img src="{{ patient[13] }}" alt="{{ patient[1] }}" 
+                                         class="rounded-circle" width="60" height="60" style="object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 60px; height: 60px;">
+                                        <i class="fas fa-paw text-white"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h5 class="mb-1">{{ patient[1] }}</h5>
+                                <small class="text-muted">{{ patient[2] }} - {{ patient[3] or 'Mixed' }}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Owner:</strong> {{ patient[15] }}<br>
+                            <strong>Phone:</strong> {{ patient[16] or 'Not provided' }}<br>
+                            {% if patient[7] %}
+                                <strong>Microchip:</strong> {{ patient[7] }}<br>
+                            {% endif %}
+                            <strong>Age:</strong> {{ patient[5] or 'Unknown' }}<br>
+                            <strong>Weight:</strong> {{ patient[6] or 'Not recorded' }} kg
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="/furrvet/patients/{{ patient[0] }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-paw text-muted" style="font-size: 4rem;"></i>
+                        <h3 class="text-muted mt-3">No patients found</h3>
+                        <p class="text-muted">
+                            {% if search %}
+                                No patients match your search criteria.
+                            {% else %}
+                                Start by adding your first patient to the system.
+                            {% endif %}
+                        </p>
+                        <a href="/furrvet/patients/new" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add First Patient
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

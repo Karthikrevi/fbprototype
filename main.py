@@ -14,6 +14,13 @@ from i18n import i18n, t, get_supported_languages, get_current_language
 # Import WhatsApp routes
 from whatsapp_routes import whatsapp_bp
 
+# Import FurrVet app
+try:
+    from furrvet import furrvet_app
+    furrvet_available = True
+except ImportError:
+    furrvet_available = False
+
 # Initialize ERP database if not exists
 def init_erp_db():
     conn = sqlite3.connect('erp.db')
@@ -1404,6 +1411,17 @@ app.jinja_env.globals.update(
 
 # Register WhatsApp blueprint
 app.register_blueprint(whatsapp_bp)
+
+# FurrVet routes integration
+if furrvet_available:
+    @app.route('/furrvet')
+    @app.route('/furrvet/')
+    def furrvet_redirect():
+        return redirect('http://localhost:5001/furrvet')
+    
+    @app.route('/furrvet/login')
+    def furrvet_login_redirect():
+        return redirect('http://localhost:5001/furrvet/login')
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
