@@ -2288,43 +2288,6 @@ def search_pets_api():
             filtered_pets.append(pet)
     
     return {"pets": filtered_pets}
-        WHERE pd.pet_id IS NOT NULL
-        UNION
-        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
-    """)
-    pets_data = c.fetchall()
-    
-    # Get handler documents status for each pet
-    pets = []
-    for pet_data in pets_data:
-        pet_id = pet_data[0]
-        
-        # Get DGFT, AQCS, and quarantine docs status
-        c.execute("""
-            SELECT doc_type, filename, status, upload_time, dgft_reference
-            FROM passport_documents 
-            WHERE pet_id = ? AND doc_type IN ('dgft', 'aqcs', 'quarantine') AND uploaded_by_role = 'handler'
-            ORDER BY upload_time DESC
-        """, (pet_id,))
-        
-        docs = c.fetchall()
-        doc_status = {}
-        for doc in docs:
-            doc_status[doc[0]] = {
-                'filename': doc[1],
-                'status': doc[2],
-                'upload_time': doc[3],
-                'dgft_reference': doc[4]
-            }
-        
-        pets.append({
-            'id': pet_id,
-            'name': f'Pet {pet_id}' if pet_id != 1 else 'Luna',
-            'doc_status': doc_status
-        })
-
-    conn.close()
-    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
 
 @app.route('/handler/upload', methods=["POST"])
 def handler_upload_document():
