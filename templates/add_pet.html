@@ -134,53 +134,131 @@
   </div>
 
   <script>
+    let allBreeds = [];
+    
+    // Initialize breeds array when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      const select = document.getElementById('breedSelect');
+      allBreeds = [];
+      for (let i = 1; i < select.options.length; i++) {
+        allBreeds.push(select.options[i].value);
+      }
+    });
+    
     function filterBreeds() {
       const searchInput = document.getElementById('breedSearch');
       const select = document.getElementById('breedSelect');
-      const filter = searchInput.value.toLowerCase();
+      const filter = searchInput.value.toLowerCase().trim();
       
-      // Show all options first
-      for (let i = 0; i < select.options.length; i++) {
-        select.options[i].style.display = '';
-      }
-      
-      // Hide options that don't match the search
-      for (let i = 1; i < select.options.length; i++) { // Start from 1 to skip "Select a breed"
-        const option = select.options[i];
-        const text = option.text.toLowerCase();
-        
-        if (!text.includes(filter)) {
-          option.style.display = 'none';
-        }
-      }
-      
-      // If there's a search term, open the dropdown
-      if (filter.length > 0) {
-        select.focus();
-        select.size = Math.min(10, select.options.length);
-      } else {
+      if (filter.length === 0) {
+        // Show all breeds when no search term
+        showAllBreeds();
         select.size = 1;
+        return;
+      }
+      
+      // Find matching breeds
+      const matchingBreeds = allBreeds.filter(breed => 
+        breed.toLowerCase().includes(filter)
+      );
+      
+      // Sort matches: exact matches first, then starts-with, then contains
+      matchingBreeds.sort((a, b) => {
+        const aLower = a.toLowerCase();
+        const bLower = b.toLowerCase();
+        
+        // Exact match
+        if (aLower === filter) return -1;
+        if (bLower === filter) return 1;
+        
+        // Starts with
+        if (aLower.startsWith(filter) && !bLower.startsWith(filter)) return -1;
+        if (bLower.startsWith(filter) && !aLower.startsWith(filter)) return 1;
+        
+        // Alphabetical for same priority
+        return a.localeCompare(b);
+      });
+      
+      // Clear existing options except the first one
+      while (select.options.length > 1) {
+        select.removeChild(select.options[1]);
+      }
+      
+      // Add matching breeds
+      matchingBreeds.forEach(breed => {
+        const option = document.createElement('option');
+        option.value = breed;
+        option.text = breed;
+        select.appendChild(option);
+      });
+      
+      // Show dropdown with matches
+      if (matchingBreeds.length > 0) {
+        select.size = Math.min(8, matchingBreeds.length + 1);
+        
+        // Auto-select if only one match
+        if (matchingBreeds.length === 1) {
+          select.value = matchingBreeds[0];
+        }
+      } else {
+        // No matches - show "No breeds found"
+        const option = document.createElement('option');
+        option.value = '';
+        option.text = `No breeds found for "${filter}"`;
+        option.disabled = true;
+        select.appendChild(option);
+        select.size = 2;
       }
     }
     
-    // Reset dropdown size when clicking away
+    function showAllBreeds() {
+      const select = document.getElementById('breedSelect');
+      
+      // Clear existing options except the first one
+      while (select.options.length > 1) {
+        select.removeChild(select.options[1]);
+      }
+      
+      // Add all breeds back
+      allBreeds.forEach(breed => {
+        const option = document.createElement('option');
+        option.value = breed;
+        option.text = breed;
+        select.appendChild(option);
+      });
+    }
+    
+    // Reset dropdown when clicking away
     document.getElementById('breedSelect').addEventListener('blur', function() {
       this.size = 1;
     });
     
-    // Auto-select if only one option matches
-    document.getElementById('breedSearch').addEventListener('input', function() {
-      const select = document.getElementById('breedSelect');
-      const visibleOptions = [];
-      
-      for (let i = 1; i < select.options.length; i++) {
-        if (select.options[i].style.display !== 'none') {
-          visibleOptions.push(select.options[i]);
-        }
+    // Handle selection from dropdown
+    document.getElementById('breedSelect').addEventListener('change', function() {
+      if (this.value) {
+        document.getElementById('breedSearch').value = this.value;
+        this.size = 1;
       }
-      
-      if (visibleOptions.length === 1) {
-        select.value = visibleOptions[0].value;
+    });
+    
+    // Clear search when input is cleared
+    document.getElementById('breedSearch').addEventListener('input', function() {
+      if (this.value.trim() === '') {
+        document.getElementById('breedSelect').value = '';
+        showAllBreeds();
+      }
+    });
+    
+    // Handle Enter key in search
+    document.getElementById('breedSearch').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const select = document.getElementById('breedSelect');
+        if (select.options.length > 1 && select.options[1].value) {
+          select.value = select.options[1].value;
+          this.value = select.options[1].value;
+          select.size = 1;
+        }
       }
     });
   </script>
