@@ -103,11 +103,20 @@
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Breed</label>
-              <input type="text" class="form-control mb-2" id="breedSearch" placeholder="Search breeds..." onkeyup="filterBreeds()">
-              <select class="form-control" name="breed" id="breedSelect">
-                <option value="">Select a breed</option>
-                {% for breed in breeds %}
-                  <option value="{{ breed }}">{{ breed }}</option>
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" id="breedSearch" placeholder="Search breeds..." onkeyup="filterBreeds()">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</button>
+                  <div class="dropdown-menu">
+                    <select class="form-control" name="breed" id="breedSelect" size="5" style="width: 100%;">
+                      <option value="">Select a breed</option>
+                      {% for breed in breeds %}
+                        <option value="{{ breed }}">{{ breed }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
                 {% endfor %}
               </select>
             </div>
