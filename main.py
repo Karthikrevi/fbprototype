@@ -14,12 +14,7 @@ from i18n import i18n, t, get_supported_languages, get_current_language
 # Import WhatsApp routes
 from whatsapp_routes import whatsapp_bp
 
-# Import FurrVet app
-try:
-    from furrvet import furrvet_app
-    furrvet_available = True
-except ImportError:
-    furrvet_available = False
+# FurrVet runs as a separate application
 
 # Initialize ERP database if not exists
 def init_erp_db():
@@ -507,127 +502,7 @@ def init_erp_db():
         )
     ''')
 
-    # FurrVet Veterinary ERP Tables
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_owners (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT,
-            phone TEXT,
-            address TEXT,
-            city TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            species TEXT NOT NULL,
-            breed TEXT,
-            gender TEXT,
-            age INTEGER,
-            weight REAL,
-            microchip_id TEXT,
-            owner_id INTEGER,
-            allergies TEXT,
-            medical_conditions TEXT,
-            vaccination_history TEXT,
-            photo_url TEXT,
-            status TEXT DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (owner_id) REFERENCES vet_owners (id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_appointments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            appointment_date DATE,
-            appointment_time TIME,
-            appointment_type TEXT,
-            duration INTEGER DEFAULT 30,
-            status TEXT DEFAULT 'scheduled',
-            notes TEXT,
-            vet_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES vet_patients (id),
-            FOREIGN KEY (vet_id) REFERENCES vets (id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_medical_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            appointment_id INTEGER,
-            visit_date DATE,
-            visit_type TEXT,
-            subjective TEXT,
-            objective TEXT,
-            assessment TEXT,
-            plan TEXT,
-            prescription TEXT,
-            images TEXT,
-            vet_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES vet_patients (id),
-            FOREIGN KEY (appointment_id) REFERENCES vet_appointments (id),
-            FOREIGN KEY (vet_id) REFERENCES vets (id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_invoices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            invoice_number TEXT UNIQUE,
-            patient_id INTEGER,
-            appointment_id INTEGER,
-            invoice_date DATE,
-            due_date DATE,
-            subtotal REAL,
-            tax_rate REAL DEFAULT 18.0,
-            tax_amount REAL,
-            discount_rate REAL DEFAULT 0.0,
-            discount_amount REAL,
-            total_amount REAL,
-            payment_method TEXT,
-            status TEXT DEFAULT 'pending',
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES vet_patients (id),
-            FOREIGN KEY (appointment_id) REFERENCES vet_appointments (id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_invoice_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            invoice_id INTEGER,
-            service_name TEXT,
-            description TEXT,
-            quantity INTEGER DEFAULT 1,
-            unit_price REAL,
-            total_price REAL,
-            FOREIGN KEY (invoice_id) REFERENCES vet_invoices (id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vet_inventory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            item_name TEXT NOT NULL,
-            category TEXT,
-            current_stock INTEGER DEFAULT 0,
-            minimum_stock INTEGER DEFAULT 10,
-            unit_price REAL,
-            supplier TEXT,
-            expiry_date DATE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    # FurrVet tables are managed in the separate furrvet.db database
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS pet_media (
@@ -1263,51 +1138,7 @@ def init_erp_db():
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', ("Bark & Board Manager", "isolation@furrwings.com", "isolation123", "Bark & Board Isolation Center", "ISO-2024-001", "+91-9876543212", "123 Pet Street", "Trivandrum"))
 
-    # Insert sample FurrVet data
-    c.execute('''
-        INSERT OR IGNORE INTO vet_owners (name, email, phone, address, city)
-        VALUES (?, ?, ?, ?, ?)
-    ''', ("Mr. Rajesh Kumar", "rajesh@example.com", "+91-9876543210", "123 Pet Street", "Trivandrum"))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_owners (name, email, phone, address, city)
-        VALUES (?, ?, ?, ?, ?)
-    ''', ("Mrs. Priya Sharma", "priya@example.com", "+91-9876543211", "456 Animal Avenue", "Trivandrum"))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_patients (name, species, breed, gender, age, weight, microchip_id, owner_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ("Buddy", "Dog", "Golden Retriever", "Male", 3, 32.0, "MC001234567", 1, "active"))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_patients (name, species, breed, gender, age, weight, microchip_id, owner_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ("Luna", "Cat", "Persian", "Female", 2, 4.2, "MC001234568", 2, "active"))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_appointments (patient_id, appointment_date, appointment_time, appointment_type, status, vet_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (1, "2025-01-15", "09:00", "Vaccination", "completed", 1))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_appointments (patient_id, appointment_date, appointment_time, appointment_type, status, vet_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (2, "2025-01-15", "14:00", "Check-up", "scheduled", 1))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_invoices (invoice_number, patient_id, appointment_id, invoice_date, subtotal, tax_amount, total_amount, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ("INV-2025-001", 1, 1, "2025-01-15", 2000.0, 360.0, 2260.0, "paid"))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_inventory (item_name, category, current_stock, minimum_stock, unit_price)
-        VALUES (?, ?, ?, ?, ?)
-    ''', ("Rabies Vaccine", "Vaccines", 25, 10, 1200.0))
-
-    c.execute('''
-        INSERT OR IGNORE INTO vet_inventory (item_name, category, current_stock, minimum_stock, unit_price)
-        VALUES (?, ?, ?, ?, ?)
-    ''', ("Antibiotics", "Medicines", 50, 20, 150.0))
+    # FurrVet demo data is managed in the separate furrvet.py application
 
     # Insert demo handler profiles
     demo_handlers = [
@@ -1412,124 +1243,17 @@ app.jinja_env.globals.update(
 # Register WhatsApp blueprint
 app.register_blueprint(whatsapp_bp)
 
-# FurrVet routes integration - Veterinary ERP System
-if furrvet_available:
-    @app.route('/furrvet')
-    @app.route('/furrvet/')
-    def furrvet_redirect():
-        if 'furrvet_user' in session:
-            return redirect(url_for('furrvet_main_dashboard'))
-        return redirect(url_for('furrvet_main_login'))
-    
-    @app.route('/furrvet/login', methods=["GET", "POST"])
-    def furrvet_main_login():
-        if request.method == "POST":
-            email = request.form.get("email")
-            password = request.form.get("password")
+# FurrVet redirect routes - FurrVet runs as a separate application
+@app.route('/furrvet')
+@app.route('/furrvet/')
+def furrvet_redirect():
+    flash("FurrVet is a separate application. Please run python furrvet.py to access it.")
+    return redirect(url_for('home'))
 
-            conn = sqlite3.connect('furrvet.db')
-            c = conn.cursor()
-            c.execute("SELECT * FROM vets WHERE email=? AND password=? AND is_active=1", (email, password))
-            vet = c.fetchone()
-            conn.close()
-
-            if vet:
-                session["furrvet_user"] = email
-                session["furrvet_vet_id"] = vet[0]
-                session["furrvet_vet_name"] = vet[1]
-                session["furrvet_clinic_name"] = vet[7]
-                session["furrvet_license"] = vet[3]
-                return redirect(url_for('furrvet_main_dashboard'))
-            else:
-                flash("Invalid FurrVet credentials")
-
-        return render_template("furrvet/furrvet_login.html")
-
-    @app.route('/furrvet/dashboard')
-    def furrvet_main_dashboard():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
-        
-        vet_id = session['furrvet_vet_id']
-        vet_name = session['furrvet_vet_name']
-        clinic_name = session['furrvet_clinic_name']
-        
-        conn = sqlite3.connect('furrvet.db')
-        c = conn.cursor()
-        
-        # Today's appointments
-        c.execute("""
-            SELECT COUNT(*) FROM appointments 
-            WHERE vet_id = ? AND DATE(appointment_date) = DATE('now')
-        """, (vet_id,))
-        today_appointments = c.fetchone()[0]
-        
-        # Total patients
-        c.execute("SELECT COUNT(*) FROM pets")
-        total_patients = c.fetchone()[0]
-        
-        # Today's revenue
-        c.execute("""
-            SELECT COALESCE(SUM(total_amount), 0) FROM invoices 
-            WHERE vet_id = ? AND DATE(invoice_date) = DATE('now') AND payment_status = 'paid'
-        """, (vet_id,))
-        today_revenue = c.fetchone()[0]
-        
-        # Pending appointments
-        c.execute("""
-            SELECT COUNT(*) FROM appointments 
-            WHERE vet_id = ? AND status = 'scheduled'
-        """, (vet_id,))
-        pending_appointments = c.fetchone()[0]
-        
-        # Recent appointments
-        c.execute("""
-            SELECT a.id, p.name as pet_name, po.name as owner_name, a.appointment_date, 
-                   a.appointment_time, a.appointment_type, a.status
-            FROM appointments a
-            JOIN pets p ON a.pet_id = p.id
-            JOIN pet_owners po ON p.owner_id = po.id
-            WHERE a.vet_id = ?
-            ORDER BY a.appointment_date DESC, a.appointment_time DESC
-            LIMIT 5
-        """, (vet_id,))
-        recent_appointments = c.fetchall()
-        
-        # Low stock items
-        c.execute("""
-            SELECT item_name, current_stock, minimum_stock 
-            FROM inventory 
-            WHERE current_stock <= minimum_stock 
-            ORDER BY current_stock ASC 
-            LIMIT 5
-        """)
-        low_stock_items = c.fetchall()
-        
-        conn.close()
-        
-        stats = {
-            'today_appointments': today_appointments,
-            'total_patients': total_patients,
-            'today_revenue': today_revenue,
-            'pending_appointments': pending_appointments
-        }
-        
-        return render_template('furrvet/furrvet_dashboard.html', 
-                             stats=stats, 
-                             recent_appointments=recent_appointments,
-                             low_stock_items=low_stock_items,
-                             vet_name=vet_name,
-                             clinic_name=clinic_name)
-
-    @app.route('/furrvet/logout')
-    def furrvet_logout():
-        session.pop("furrvet_user", None)
-        session.pop("furrvet_vet_id", None)
-        session.pop("furrvet_vet_name", None)
-        session.pop("furrvet_clinic_name", None)
-        session.pop("furrvet_license", None)
-        flash("You have been logged out from FurrVet")
-        return redirect(url_for('furrvet_main_login'))
+@app.route('/furrvet/login')
+def furrvet_login_redirect():
+    flash("FurrVet runs separately. Please start the FurrVet application.")
+    return redirect(url_for('home'))
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
