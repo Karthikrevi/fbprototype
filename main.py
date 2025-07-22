@@ -3717,8 +3717,8 @@ def ngo_register_stray():
     # === FURRVET PATIENT MANAGEMENT ===
     @app.route('/furrvet/patients')
     def furrvet_patients():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         search = request.args.get('search', '')
         conn = sqlite3.connect('furrvet.db')
@@ -3747,8 +3747,8 @@ def ngo_register_stray():
 
     @app.route('/furrvet/patients/<int:pet_id>')
     def furrvet_patient_detail(pet_id):
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         conn = sqlite3.connect('furrvet.db')
         c = conn.cursor()
@@ -3806,8 +3806,8 @@ def ngo_register_stray():
     # === FURRVET APPOINTMENT MANAGEMENT ===
     @app.route('/furrvet/appointments')
     def furrvet_appointments():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         vet_id = session['furrvet_vet_id']
         date_filter = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
@@ -3833,8 +3833,8 @@ def ngo_register_stray():
 
     @app.route('/furrvet/appointments/new', methods=["GET", "POST"])
     def furrvet_new_appointment():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         if request.method == "POST":
             vet_id = session['furrvet_vet_id']
@@ -3876,8 +3876,8 @@ def ngo_register_stray():
     # === FURRVET BILLING & INVOICING ===
     @app.route('/furrvet/billing')
     def furrvet_billing():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         vet_id = session['furrvet_vet_id']
         conn = sqlite3.connect('furrvet.db')
@@ -3885,7 +3885,7 @@ def ngo_register_stray():
         
         c.execute("""
             SELECT i.*, p.name as pet_name, po.name as owner_name
-            FROM invoices i
+            FROM furrvet_invoices i
             JOIN pets p ON i.pet_id = p.id
             JOIN pet_owners po ON i.owner_id = po.id
             WHERE i.vet_id = ?
@@ -3901,18 +3901,18 @@ def ngo_register_stray():
     # === FURRVET INVENTORY MANAGEMENT ===
     @app.route('/furrvet/inventory')
     def furrvet_inventory():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         conn = sqlite3.connect('furrvet.db')
         c = conn.cursor()
         
         # Get low stock items
-        c.execute("SELECT * FROM inventory WHERE current_stock <= minimum_stock ORDER BY current_stock")
+        c.execute("SELECT * FROM furrvet_inventory WHERE current_stock <= minimum_stock ORDER BY current_stock")
         low_stock_items = c.fetchall()
         
         # Get all inventory
-        c.execute("SELECT * FROM inventory ORDER BY item_name")
+        c.execute("SELECT * FROM furrvet_inventory ORDER BY item_name")
         all_items = c.fetchall()
         
         conn.close()
@@ -3924,8 +3924,8 @@ def ngo_register_stray():
     # === FURRVET MEDICAL RECORDS ===
     @app.route('/furrvet/medical-records')
     def furrvet_medical_records():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         vet_id = session['furrvet_vet_id']
         conn = sqlite3.connect('furrvet.db')
@@ -3949,34 +3949,16 @@ def ngo_register_stray():
     # === FURRVET LABORATORY & IMAGING ===
     @app.route('/furrvet/laboratory')
     def furrvet_laboratory():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         vet_id = session['furrvet_vet_id']
         conn = sqlite3.connect('furrvet.db')
         c = conn.cursor()
         
-        # Get lab tests
-        c.execute("""
-            SELECT lt.*, p.name as pet_name, po.name as owner_name
-            FROM lab_tests lt
-            JOIN pets p ON lt.pet_id = p.id
-            JOIN pet_owners po ON p.owner_id = po.id
-            WHERE lt.vet_id = ?
-            ORDER BY lt.ordered_date DESC
-        """, (vet_id,))
-        lab_tests = c.fetchall()
-        
-        # Get imaging records
-        c.execute("""
-            SELECT i.*, p.name as pet_name, po.name as owner_name
-            FROM imaging i
-            JOIN pets p ON i.pet_id = p.id
-            JOIN pet_owners po ON p.owner_id = po.id
-            WHERE i.vet_id = ?
-            ORDER BY i.imaging_date DESC
-        """, (vet_id,))
-        imaging_records = c.fetchall()
+        # Mock lab tests data since tables don't exist yet
+        lab_tests = []
+        imaging_records = []
         
         conn.close()
         
@@ -3987,8 +3969,8 @@ def ngo_register_stray():
     # === FURRVET REPORTS & ANALYTICS ===
     @app.route('/furrvet/reports')
     def furrvet_reports():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         vet_id = session['furrvet_vet_id']
         conn = sqlite3.connect('furrvet.db')
@@ -4000,7 +3982,7 @@ def ngo_register_stray():
                 COUNT(*) as total_invoices,
                 SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END) as total_revenue,
                 SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END) as pending_amount
-            FROM invoices 
+            FROM furrvet_invoices 
             WHERE vet_id = ? AND invoice_date >= date('now', '-30 days')
         """, (vet_id,))
         financial_summary = c.fetchone()
@@ -4045,23 +4027,16 @@ def ngo_register_stray():
     # === FURRVET HOSPITALIZATION ===
     @app.route('/furrvet/hospitalization')
     def furrvet_hospitalization():
-        if 'furrvet_user' not in session:
-            return redirect(url_for('furrvet_main_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet_login'))
 
         vet_id = session['furrvet_vet_id']
         conn = sqlite3.connect('furrvet.db')
         c = conn.cursor()
         
-        c.execute("""
-            SELECT h.*, p.name as pet_name, po.name as owner_name
-            FROM hospitalizations h
-            JOIN pets p ON h.pet_id = p.id
-            JOIN pet_owners po ON p.owner_id = po.id
-            WHERE h.vet_id = ?
-            ORDER BY h.admission_date DESC
-        """, (vet_id,))
+        # Mock hospitalization data since table doesn't exist yet
+        hospitalizations = []
         
-        hospitalizations = c.fetchall()
         conn.close()
         
         return render_template('furrvet/furrvet_hospitalization.html', hospitalizations=hospitalizations)
@@ -4224,91 +4199,7 @@ def ngo_add_vaccination():
 
     return render_template("add_vaccination.html")
 
-# ---- FURRVET VETERINARY ERP ROUTES ----
 
-@app.route('/furrvet')
-@app.route('/furrvet/dashboard')
-def furrvet_dashboard():
-    if "vet" not in session:
-        return redirect(url_for("vet_login"))
-    
-    # Get dashboard statistics
-    c = get_db_connection().cursor()
-    
-    # Today's appointments
-    c.execute("SELECT COUNT(*) FROM vet_appointments WHERE DATE(appointment_date) = DATE('now')")
-    today_appointments = c.fetchone()[0]
-    
-    # Total patients
-    c.execute("SELECT COUNT(*) FROM vet_patients")
-    total_patients = c.fetchone()[0]
-    
-    # Today's revenue
-    c.execute("SELECT SUM(total_amount) FROM vet_invoices WHERE DATE(invoice_date) = DATE('now') AND status = 'paid'")
-    today_revenue = c.fetchone()[0] or 0
-    
-    # Pending actions
-    c.execute("SELECT COUNT(*) FROM vet_appointments WHERE status = 'scheduled'")
-    pending_actions = c.fetchone()[0]
-    
-    return render_template("furrvet_dashboard.html", 
-                         vet_name=session.get("vet_name"),
-                         today_appointments=today_appointments,
-                         total_patients=total_patients,
-                         today_revenue=f"{today_revenue:,.0f}",
-                         pending_actions=pending_actions)
-
-@app.route('/furrvet/patients')
-def furrvet_patients():
-    if "vet" not in session:
-        return redirect(url_for("vet_login"))
-    
-    c = get_db_connection().cursor()
-    c.execute("""
-        SELECT p.*, o.name as owner_name, o.phone as owner_phone 
-        FROM vet_patients p 
-        LEFT JOIN vet_owners o ON p.owner_id = o.id 
-        ORDER BY p.created_at DESC
-    """)
-    patients = c.fetchall()
-    
-    return render_template("furrvet_patients.html", patients=patients)
-
-@app.route('/furrvet/appointments')
-def furrvet_appointments():
-    if "vet" not in session:
-        return redirect(url_for("vet_login"))
-    
-    c = get_db_connection().cursor()
-    c.execute("""
-        SELECT a.*, p.name as patient_name, p.species, o.name as owner_name
-        FROM vet_appointments a
-        LEFT JOIN vet_patients p ON a.patient_id = p.id
-        LEFT JOIN vet_owners o ON p.owner_id = o.id
-        WHERE DATE(a.appointment_date) = DATE('now')
-        ORDER BY a.appointment_time
-    """)
-    appointments = c.fetchall()
-    
-    return render_template("furrvet_appointments.html", appointments=appointments)
-
-@app.route('/furrvet/billing')
-def furrvet_billing():
-    if "vet" not in session:
-        return redirect(url_for("vet_login"))
-    
-    c = get_db_connection().cursor()
-    c.execute("""
-        SELECT i.*, p.name as patient_name, o.name as owner_name
-        FROM vet_invoices i
-        LEFT JOIN vet_patients p ON i.patient_id = p.id
-        LEFT JOIN vet_owners o ON p.owner_id = o.id
-        ORDER BY i.invoice_date DESC
-        LIMIT 20
-    """)
-    invoices = c.fetchall()
-    
-    return render_template("furrvet_billing.html", invoices=invoices)
 
 # ---- FURRWINGS ROLE-BASED LOGIN ROUTES ----
 
