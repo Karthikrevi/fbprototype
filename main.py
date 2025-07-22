@@ -5103,30 +5103,121 @@ def manage_vendors():
         ORDER BY name
     """)
     vendors = c.fetchall()
+    
+    # Get FurrWings vets
+    c.execute("""
+        SELECT id, name, email, password, 'Veterinarian' as category, city, phone, 
+               clinic_name as bio, is_active as is_online, 
+               CASE WHEN is_active = 1 THEN 'active' ELSE 'deactivated' END as account_status,
+               NULL as break_start_date, NULL as break_reason
+        FROM vets 
+        ORDER BY name
+    """)
+    vets = c.fetchall()
+    
+    # Get FurrWings handlers
+    c.execute("""
+        SELECT id, name, email, password, 'Pet Handler' as category, city, phone, 
+               company_name as bio, is_active as is_online,
+               CASE WHEN is_active = 1 THEN 'active' ELSE 'deactivated' END as account_status,
+               NULL as break_start_date, NULL as break_reason
+        FROM handlers 
+        ORDER BY name
+    """)
+    handlers = c.fetchall()
+    
+    # Get FurrWings isolation centers
+    c.execute("""
+        SELECT id, name, email, password, 'Isolation Center' as category, city, phone, 
+               center_name as bio, is_active as is_online,
+               CASE WHEN is_active = 1 THEN 'active' ELSE 'deactivated' END as account_status,
+               NULL as break_start_date, NULL as break_reason
+        FROM isolation_centers 
+        ORDER BY name
+    """)
+    isolation_centers = c.fetchall()
+
+    # Combine all vendor types
+    all_vendors = []
+    
+    # Process regular vendors
+    for vendor in vendors:
+        vendor_data = list(vendor) + ['Regular Vendor']  # Add vendor type
+        all_vendors.append(vendor_data)
+    
+    # Process vets
+    for vet in vets:
+        vendor_data = list(vet) + ['FurrWings Vet']  # Add vendor type
+        all_vendors.append(vendor_data)
+    
+    # Process handlers  
+    for handler in handlers:
+        vendor_data = list(handler) + ['FurrWings Handler']  # Add vendor type
+        all_vendors.append(vendor_data)
+    
+    # Process isolation centers
+    for center in isolation_centers:
+        vendor_data = list(center) + ['FurrWings Isolation']  # Add vendor type
+        all_vendors.append(vendor_data)
 
     # Get vendor statistics
     vendor_stats = []
-    for vendor in vendors:
+    for vendor_data in all_vendors:
+        vendor = vendor_data[:-1]  # Remove vendor type for processing
+        vendor_type = vendor_data[-1]  # Get vendor type
         vendor_id = vendor[0]
         
-        # Get total products
-        c.execute("SELECT COUNT(*) FROM products WHERE vendor_id = ?", (vendor_id,))
-        total_products = c.fetchone()[0]
+        # Initialize default stats
+        total_products = 0
+        total_sales = 0
+        total_bookings = 0
+        avg_rating = 0
         
-        # Get total sales
-        c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id = ?", (vendor_id,))
-        total_sales = c.fetchone()[0]
+        # Get stats based on vendor type
+        if vendor_type == 'Regular Vendor':
+            # Get total products
+            c.execute("SELECT COUNT(*) FROM products WHERE vendor_id = ?", (vendor_id,))
+            total_products = c.fetchone()[0]
+            
+            # Get total sales
+            c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id = ?", (vendor_id,))
+            total_sales = c.fetchone()[0]
+            
+            # Get total bookings
+            c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id = ?", (vendor_id,))
+            total_bookings = c.fetchone()[0]
+            
+            # Get average rating
+            c.execute("SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE vendor_id = ?", (vendor_id,))
+            avg_rating = c.fetchone()[0]
         
-        # Get total bookings
-        c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id = ?", (vendor_id,))
-        total_bookings = c.fetchone()[0]
+        elif vendor_type == 'FurrWings Vet':
+            # Get vet-specific stats
+            c.execute("SELECT COUNT(*) FROM vet_appointments WHERE vet_id = ?", (vendor_id,))
+            total_bookings = c.fetchone()[0]
+            
+            c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM vet_invoices WHERE patient_id IN (SELECT id FROM vet_patients WHERE id IN (SELECT patient_id FROM vet_appointments WHERE vet_id = ?))", (vendor_id,))
+            total_sales = c.fetchone()[0]
         
-        # Get average rating
-        c.execute("SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE vendor_id = ?", (vendor_id,))
-        avg_rating = c.fetchone()[0]
+        elif vendor_type == 'FurrWings Handler':
+            # Get handler-specific stats
+            c.execute("SELECT COUNT(*) FROM handler_bookings WHERE handler_id = ?", (vendor_id,))
+            total_bookings = c.fetchone()[0]
+            
+            c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM handler_bookings WHERE handler_id = ?", (vendor_id,))
+            total_sales = c.fetchone()[0]
+            
+            c.execute("SELECT COALESCE(AVG(rating), 0) FROM handler_reviews WHERE handler_id = ?", (vendor_id,))
+            avg_rating = c.fetchone()[0]
+        
+        elif vendor_type == 'FurrWings Isolation':
+            # Get isolation center stats
+            c.execute("SELECT COUNT(*) FROM pet_bookings WHERE center_id = ?", (vendor_id,))
+            total_bookings = c.fetchone()[0]
         
         vendor_stats.append({
             'vendor': vendor,
+            'vendor_type': vendor_type,
             'total_products': total_products,
             'total_sales': round(total_sales, 2),
             'total_bookings': total_bookings,

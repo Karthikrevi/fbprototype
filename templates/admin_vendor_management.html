@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -308,7 +307,7 @@
     document.getElementById('vendorSearch').addEventListener('input', function(e) {
       const searchTerm = e.target.value.toLowerCase();
       const vendorCards = document.querySelectorAll('[data-vendor-info]');
-      
+
       vendorCards.forEach(card => {
         const vendorInfo = card.getAttribute('data-vendor-info');
         if (vendorInfo.includes(searchTerm)) {
@@ -328,7 +327,7 @@
         alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 200px;';
         alert.innerHTML = '✅ Copied to clipboard!';
         document.body.appendChild(alert);
-        
+
         setTimeout(() => {
           document.body.removeChild(alert);
         }, 2000);
