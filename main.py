@@ -1612,8 +1612,10 @@ def groomers():
     c = conn.cursor()
 
     # Get all groomers/boarding services in the same city that are ONLINE and ACTIVE
+    # Include all necessary fields including location data
     c.execute("""
-        SELECT * FROM vendors 
+        SELECT id, name, email, password, category, city, phone, bio, image_url, latitude, longitude, is_online, account_status, break_start_date, break_end_date, break_reason, address, state, pincode
+        FROM vendors 
         WHERE (LOWER(category) LIKE '%groom%' OR LOWER(category) LIKE '%salon%' OR LOWER(category) LIKE '%spa%' OR LOWER(category) LIKE '%boarding%')
         AND LOWER(city) = LOWER(?)
         AND is_online = 1
@@ -1635,7 +1637,10 @@ def groomers():
             "city": vendor[5] or "Unknown",
             "latitude": vendor[9],
             "longitude": vendor[10],
-            "is_online": vendor[11]  # Add online status
+            "is_online": vendor[11],
+            "address": vendor[16] or "",
+            "state": vendor[17] or "",
+            "pincode": vendor[18] or ""
         }
         vendors.append(vendor_data)
 
@@ -4848,7 +4853,9 @@ def marketplace():
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("""
-        SELECT DISTINCT v.*, 
+        SELECT DISTINCT v.id, v.name, v.email, v.password, v.category, v.city, v.phone, v.bio, v.image_url, 
+               v.latitude, v.longitude, v.is_online, v.account_status, v.break_start_date, v.break_end_date, 
+               v.break_reason, v.address, v.state, v.pincode,
                (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
         FROM vendors v 
         WHERE LOWER(v.city) = LOWER(?)
@@ -4875,8 +4882,11 @@ def marketplace():
             "image_url": vendor[8] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400&h=400&fit=crop&crop=face",
             "latitude": vendor[9],
             "longitude": vendor[10],
-            "product_count": vendor[12],
-            "is_online": vendor[11]  # This will be 1 since we're filtering for online vendors
+            "product_count": vendor[19],
+            "is_online": vendor[11],
+            "address": vendor[16] or "",
+            "state": vendor[17] or "",
+            "pincode": vendor[18] or ""
         }
         vendors.append(vendor_data)
 

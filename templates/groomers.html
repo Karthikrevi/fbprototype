@@ -162,6 +162,8 @@
           </div>
           <h3>{{ vendor.name }}</h3>
           <div class="vendor-meta">{{ vendor.description }}</div>
+          <div class="vendor-meta">📍 {{ vendor.address or vendor.city or 'Location not specified' }}</div>
+          <div class="vendor-meta" id="distance-{{ vendor.id }}" style="color: #28a745;">📏 Calculating distance...</div>
           <div class="rating-stars">⭐ {{ vendor.rating }} | Level {{ vendor.level }} | XP {{ vendor.xp }}</div>
           <div class="xp-bar">
             <div class="xp-fill" style="width: {{ vendor.xp / 50 }}%;"></div>
@@ -181,14 +183,81 @@
   </div>
 
   <script>
+    // Distance calculation function
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Radius of the Earth in kilometers
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      return distance;
+    }
+
+    // Update distance for all vendors
+    function updateVendorDistances(userLat, userLng) {
+      const vendors = [
+        {% for vendor in vendors %}
+        {
+          id: {{ vendor.id }},
+          lat: {{ vendor.latitude or 0 }},
+          lng: {{ vendor.longitude or 0 }},
+          name: "{{ vendor.name }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ];
+
+      vendors.forEach(vendor => {
+        const distanceElement = document.getElementById(`distance-${vendor.id}`);
+        if (vendor.lat && vendor.lng && userLat && userLng) {
+          const distance = calculateDistance(userLat, userLng, vendor.lat, vendor.lng);
+          
+          if (distance < 1) {
+            distanceElement.textContent = `📏 ${Math.round(distance * 1000)}m away`;
+          } else {
+            distanceElement.textContent = `📏 ${distance.toFixed(1)}km away`;
+          }
+          distanceElement.style.color = distance < 5 ? '#28a745' : '#6c757d';
+        } else {
+          distanceElement.textContent = '📏 Location not available';
+          distanceElement.style.color = '#6c757d';
+        }
+      });
+    }
+
     window.onload = function () {
-      if (navigator.geolocation && !sessionStorage.getItem('locationSet')) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          fetch(`/set-location?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
-            .then(() => {
-              sessionStorage.setItem('locationSet', 'true');
-              location.reload();
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            
+            // Update distances
+            updateVendorDistances(userLat, userLng);
+            
+            // Set location in session if not already set
+            if (!sessionStorage.getItem('locationSet')) {
+              fetch(`/set-location?lat=${userLat}&lon=${userLng}`)
+                .then(() => {
+                  sessionStorage.setItem('locationSet', 'true');
+                });
+            }
+          },
+          function(error) {
+            console.error("Geolocation error:", error);
+            // Update all distance elements to show location not available
+            document.querySelectorAll('[id^="distance-"]').forEach(element => {
+              element.textContent = '📏 Enable location for distances';
+              element.style.color = '#6c757d';
             });
+          }
+        );
+      } else {
+        document.querySelectorAll('[id^="distance-"]').forEach(element => {
+          element.textContent = '📏 Location not supported';
+          element.style.color = '#6c757d';
         });
       }
     }
