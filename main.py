@@ -1644,7 +1644,36 @@ def vendor_profile(vendor_id):
             "xp": 2850,
             "total_reviews": 24,
             "success_rate": 95.8,
-            "services": ["Full Grooming", "Nail Trimming", "Ear Cleaning", "Teeth Cleaning", "Flea Treatment"],
+            "services": [
+                {
+                    "name": "Full Grooming Package",
+                    "description": "Complete grooming service including bath, brush, nail trim, and styling",
+                    "duration": 120,
+                    "price": 45.00,
+                    "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                },
+                {
+                    "name": "Basic Bath & Brush",
+                    "description": "Simple bath and brush service for regular maintenance",
+                    "duration": 60,
+                    "price": 25.00,
+                    "available_slots": ["10:00", "12:00", "15:00", "17:00"]
+                },
+                {
+                    "name": "Nail Trimming",
+                    "description": "Professional nail trimming service",
+                    "duration": 30,
+                    "price": 15.00,
+                    "available_slots": ["09:30", "13:30", "16:30"]
+                },
+                {
+                    "name": "Flea Treatment",
+                    "description": "Comprehensive flea treatment and prevention",
+                    "duration": 45,
+                    "price": 35.00,
+                    "available_slots": ["10:30", "14:30"]
+                }
+            ],
             "booking_url": f"/vendor/{vendor_id}/book",
             "market_url": f"/marketplace/vendor/{vendor_id}"
         }
@@ -1679,7 +1708,7 @@ def vendor_profile(vendor_id):
     try:
         conn = sqlite3.connect("erp.db")
         c = conn.cursor()
-        c.execute("SELECT id, name, bio, image_url, city, is_online FROM vendors WHERE id = ?", (vendor_id,))
+        c.execute("SELECT id, name, bio, image_url, city, is_online, category FROM vendors WHERE id = ?", (vendor_id,))
         data = c.fetchone()
 
         if data:
@@ -1700,6 +1729,53 @@ def vendor_profile(vendor_id):
             level = min(1 + (total_reviews // 10), 20)  # Cap at level 20
             xp = total_reviews * 100  # 100 XP per review
 
+            # Define services based on vendor category
+            category = data[6] or "General"
+            if "groom" in category.lower():
+                services = [
+                    {
+                        "name": "Full Grooming",
+                        "description": "Complete grooming package",
+                        "duration": 90,
+                        "price": 40.00,
+                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                    },
+                    {
+                        "name": "Basic Grooming",
+                        "description": "Basic bath and brush",
+                        "duration": 60,
+                        "price": 25.00,
+                        "available_slots": ["10:00", "12:00", "15:00"]
+                    }
+                ]
+            elif "boarding" in category.lower():
+                services = [
+                    {
+                        "name": "Overnight Boarding",
+                        "description": "Safe overnight pet boarding",
+                        "duration": 1440,  # 24 hours in minutes
+                        "price": 35.00,
+                        "available_slots": ["18:00"]
+                    },
+                    {
+                        "name": "Day Care",
+                        "description": "Day care services",
+                        "duration": 480,  # 8 hours
+                        "price": 20.00,
+                        "available_slots": ["08:00", "09:00"]
+                    }
+                ]
+            else:
+                services = [
+                    {
+                        "name": "Pet Care Service",
+                        "description": "General pet care",
+                        "duration": 60,
+                        "price": 30.00,
+                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                    }
+                ]
+
             vendor = {
                 "id": data[0],
                 "name": data[1],
@@ -1712,7 +1788,7 @@ def vendor_profile(vendor_id):
                 "xp": xp,
                 "total_reviews": total_reviews,
                 "success_rate": success_rate,
-                "services": ["Pet Grooming", "Pet Care", "Professional Services"],
+                "services": services,
                 "booking_url": f"/vendor/{data[0]}/book",
                 "market_url": f"/marketplace/vendor/{data[0]}"
             }
@@ -2521,12 +2597,42 @@ def book_vendor_service(vendor_id):
     # Handle demo vendor
     if vendor_id == "fluffy-paws":
         vendor_name = "Fluffy Paws Grooming"
-        services = ["Full Grooming", "Nail Trimming", "Ear Cleaning", "Teeth Cleaning", "Flea Treatment"]
+        services = [
+            {
+                "name": "Full Grooming Package",
+                "description": "Complete grooming service including bath, brush, nail trim, and styling",
+                "duration": 120,
+                "price": 45.00,
+                "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+            },
+            {
+                "name": "Basic Bath & Brush",
+                "description": "Simple bath and brush service for regular maintenance",
+                "duration": 60,
+                "price": 25.00,
+                "available_slots": ["10:00", "12:00", "15:00", "17:00"]
+            },
+            {
+                "name": "Nail Trimming",
+                "description": "Professional nail trimming service",
+                "duration": 30,
+                "price": 15.00,
+                "available_slots": ["09:30", "13:30", "16:30"]
+            },
+            {
+                "name": "Flea Treatment",
+                "description": "Comprehensive flea treatment and prevention",
+                "duration": 45,
+                "price": 35.00,
+                "available_slots": ["10:30", "14:30"]
+            }
+        ]
 
         if request.method == "POST":
             service = request.form.get("service")
             date = request.form.get("date")
             time = request.form.get("time", "10:00")
+            duration = int(request.form.get("duration", 60))
             pet_name = request.form.get("pet_name")
             pet_parent_name = request.form.get("pet_parent_name")
             pet_parent_phone = request.form.get("pet_parent_phone")
@@ -2535,48 +2641,109 @@ def book_vendor_service(vendor_id):
             conn = sqlite3.connect('erp.db')
             c = conn.cursor()
             c.execute("""
-                INSERT INTO bookings (vendor_id, user_email, service, date, time, status, pet_name, pet_parent_name, pet_parent_phone)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (0, user_email, service, date, time, "pending", pet_name, pet_parent_name, pet_parent_phone))
+                INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (0, user_email, service, date, time, duration, "pending", pet_name, pet_parent_name, pet_parent_phone))
             conn.commit()
             conn.close()
 
-            flash(f"Booking confirmed for {service} on {date}")
+            flash(f"Booking confirmed for {service} on {date} at {time}")
             return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
-        return render_template("booking.html", vendor_name=vendor_name, services=services)
+        return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
 
     # Handle database vendors
     try:
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
-        c.execute("SELECT id, name FROM vendors WHERE id = ?", (vendor_id,))
+        c.execute("SELECT id, name, category FROM vendors WHERE id = ?", (vendor_id,))
         vendor_data = c.fetchone()
 
         if vendor_data:
             vendor_name = vendor_data[1]
-            services = ["Pet Grooming", "Pet Care", "Consultation", "Health Check"]
+            category = vendor_data[2] or "General"
+            
+            # Define services based on vendor category
+            if "groom" in category.lower():
+                services = [
+                    {
+                        "name": "Full Grooming",
+                        "description": "Complete grooming package",
+                        "duration": 90,
+                        "price": 40.00,
+                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                    },
+                    {
+                        "name": "Basic Grooming",
+                        "description": "Basic bath and brush",
+                        "duration": 60,
+                        "price": 25.00,
+                        "available_slots": ["10:00", "12:00", "15:00"]
+                    },
+                    {
+                        "name": "Nail Trimming",
+                        "description": "Professional nail trimming",
+                        "duration": 30,
+                        "price": 15.00,
+                        "available_slots": ["09:30", "13:30", "16:30"]
+                    }
+                ]
+            elif "boarding" in category.lower():
+                services = [
+                    {
+                        "name": "Overnight Boarding",
+                        "description": "Safe overnight pet boarding",
+                        "duration": 1440,  # 24 hours in minutes
+                        "price": 35.00,
+                        "available_slots": ["18:00"]
+                    },
+                    {
+                        "name": "Day Care",
+                        "description": "Day care services",
+                        "duration": 480,  # 8 hours
+                        "price": 20.00,
+                        "available_slots": ["08:00", "09:00"]
+                    }
+                ]
+            else:
+                services = [
+                    {
+                        "name": "Pet Care Service",
+                        "description": "General pet care consultation",
+                        "duration": 60,
+                        "price": 30.00,
+                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                    },
+                    {
+                        "name": "Health Check",
+                        "description": "Basic health assessment",
+                        "duration": 45,
+                        "price": 25.00,
+                        "available_slots": ["10:00", "12:00", "15:00"]
+                    }
+                ]
 
             if request.method == "POST":
                 service = request.form.get("service")
                 date = request.form.get("date")
                 time = request.form.get("time", "10:00")
+                duration = int(request.form.get("duration", 60))
                 pet_name = request.form.get("pet_name")
                 pet_parent_name = request.form.get("pet_parent_name")
                 pet_parent_phone = request.form.get("pet_parent_phone")
 
                 c.execute("""
-                    INSERT INTO bookings (vendor_id, user_email, service, date, time, status, pet_name, pet_parent_name, pet_parent_phone)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (vendor_id, user_email, service, date, time, "pending", pet_name, pet_parent_name, pet_parent_phone))
+                    INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (vendor_id, user_email, service, date, time, duration, "pending", pet_name, pet_parent_name, pet_parent_phone))
                 conn.commit()
                 conn.close()
 
-                flash(f"Booking confirmed for {service} on {date}")
+                flash(f"Booking confirmed for {service} on {date} at {time}")
                 return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
             conn.close()
-            return render_template("booking.html", vendor_name=vendor_name, services=services)
+            return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
         else:
             conn.close()
             return "Vendor not found", 404
@@ -2657,14 +2824,54 @@ def my_bookings():
 
     # Get all bookings for this user with vendor info
     c.execute("""
-        SELECT b.id, b.service, b.date, b.time, b.status, v.name as vendor_name, v.phone, 
-               b.pet_name, b.pet_parent_name, b.pet_parent_phone
+        SELECT b.id, b.service, b.date, b.time, b.duration, b.status, v.name as vendor_name, v.phone, 
+               b.pet_name, b.pet_parent_name, b.pet_parent_phone, v.id as vendor_id,
+               CASE 
+                   WHEN b.vendor_id = 0 THEN 'Fluffy Paws Grooming'
+                   ELSE v.name
+               END as display_vendor_name,
+               CASE 
+                   WHEN b.vendor_id = 0 THEN '+91-9876543210'
+                   ELSE v.phone
+               END as display_phone
         FROM bookings b
-        JOIN vendors v ON b.vendor_id = v.id
+        LEFT JOIN vendors v ON b.vendor_id = v.id
         WHERE b.user_email = ?
         ORDER BY b.date DESC, b.time DESC
     """, (user_email,))
-    bookings = c.fetchall()
+    bookings_data = c.fetchall()
+
+    # Process bookings to add estimated completion time
+    bookings = []
+    for booking in bookings_data:
+        booking_dict = {
+            'id': booking[0],
+            'service': booking[1],
+            'date': booking[2],
+            'time': booking[3],
+            'duration': booking[4] if booking[4] else 60,  # Default 60 minutes
+            'status': booking[5],
+            'vendor_name': booking[11],  # display_vendor_name
+            'vendor_phone': booking[12],  # display_phone
+            'pet_name': booking[8],
+            'pet_parent_name': booking[9],
+            'pet_parent_phone': booking[10],
+            'vendor_id': booking[6] if booking[6] != 0 else 'fluffy-paws'
+        }
+        
+        # Calculate estimated completion time
+        if booking[3] and booking[4]:  # If time and duration exist
+            try:
+                from datetime import datetime, timedelta
+                start_time = datetime.strptime(booking[3], "%H:%M")
+                end_time = start_time + timedelta(minutes=booking[4])
+                booking_dict['estimated_completion'] = end_time.strftime("%H:%M")
+            except:
+                booking_dict['estimated_completion'] = "TBD"
+        else:
+            booking_dict['estimated_completion'] = "TBD"
+            
+        bookings.append(booking_dict)
 
     conn.close()
     return render_template("my_bookings.html", bookings=bookings)
