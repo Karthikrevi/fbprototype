@@ -2256,12 +2256,11 @@ def search_pets_api():
             filtered_pets.append(pet)
     
     return {"pets": filtered_pets}
-
 FROM passport_documents pd
-    UNION
-    SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
+        WHERE pd.pet_id NOT NULL
+        UNION
+        SELECT 1 as pet_id, 0 as handler_docs_count  -- Demo pet Luna
     """)
-    
     pets_data = c.fetchall()
     
     # Get handler documents status for each pet
