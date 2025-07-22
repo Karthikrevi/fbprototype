@@ -1,0 +1,78 @@
+**Prompt:**
+
+**Vet Portal** that handles document uploads related to pet travel (eventually to be exposed as an API).
+>
+> Right now, the portal shows a disorganized stack of pet passport requests. I want to **rebuild the UI layout** to make it more structured, actionable, and user-friendly for the **vet reviewing and uploading documents**.
+>
+> ---
+>
+> ### 🎯 Objective:
+>
+> Refactor the Vet Portal UI within FurrWings to make it clean, organized, and modular — while keeping it separate from the upcoming FurrVet ERP. This UI will *eventually feed into an API-based backend*, so modularity is key.
+>
+> ---
+>
+> ### 🐶 Current Functionality:
+>
+> * Shows pet passport requests as a list
+> * Each request shows pet info and a button like “Upload Now”
+> * No clear grouping or categories
+>
+> ---
+>
+> ### 🔧 Desired Redesign:
+>
+> For each **Pet Passport Request**, show a **card-style layout** (or accordion-style grouping) with the following structure:
+>
+> #### 🧾 Card Components:
+>
+> * Pet Name, Owner Name, Pet ID
+> * Pet Photo (optional thumbnail)
+> * Request Date
+> * Travel Destination
+>
+> #### 🗂 Document Upload Sections:
+>
+> Each card should show 3 collapsible sections (or vertical steps) with upload buttons:
+>
+> 1. **Microchip Details**
+>
+>    * Upload Document (PDF)
+>    * Microchip Number (text input)
+>    * Upload Date
+>    * Status: `Not Uploaded` / `Pending Verification` / `Verified`
+> 2. **Vaccination Certificate**
+>
+>    * Upload PDF
+>    * Select Vaccine Type (dropdown: Rabies, 5-in-1, etc.)
+>    * Vaccination Date (calendar picker)
+>    * Status: as above
+> 3. **Health Certificate**
+>
+>    * Upload PDF
+>    * Issuing Vet Name (text)
+>    * Date of Issue (calendar)
+>    * Remarks (optional)
+>    * Status
+>
+> ---
+>
+> ### 🧱 UI Features:
+>
+> * Display pending requests at the top
+> * Each document section should change color based on status (e.g., red for pending, green for verified)
+> * Allow in-line editing before final submission
+> * Add a “Submit All Documents” button once all three uploads are done
+>
+> ---
+>
+> ### 🔄 Tech Requirements:
+>
+> * Built with Flask templating (Jinja2)
+> * Use Bootstrap or Tailwind for styling
+> * Modular structure for future API support
+> * Can use mock data or a basic SQLite model for now
+>
+> ---
+>
+> This is a submodule of a larger project, so please name the template `furrwings_vet_portal.html` and isolate its logic in a corresponding route.
