@@ -2505,6 +2505,20 @@ def isolation_upload_media():
     flash(f"{media_type.title()} uploaded successfully!")
     return redirect(url_for("isolation_dashboard"))
 
+# Add missing function
+def get_db_connection():
+    return sqlite3.connect('erp.db')
+        INSERT INTO pet_media 
+        (pet_id, uploaded_by_role, uploaded_by_user_id, filename, media_type, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (pet_id, "isolation", session["isolation"], filename, media_type, description))
+    
+    conn.commit()
+    conn.close()
+
+    flash(f"{media_type.title()} uploaded successfully!")
+    return redirect(url_for("isolation_dashboard"))
+
 @app.route('/verify/document/<doc_hash>')
 def verify_document(doc_hash):
     conn = sqlite3.connect('erp.db')
