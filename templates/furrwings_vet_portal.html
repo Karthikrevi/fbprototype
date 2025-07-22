@@ -1,0 +1,693 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FurrWings Vet Portal - Document Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      color: #333;
+    }
+    
+    .portal-header {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .pet-card {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      border-left: 5px solid #667eea;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .pet-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .pet-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .pet-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #667eea;
+    }
+    
+    .pet-info h4 {
+      margin: 0 0 5px 0;
+      color: #667eea;
+      font-weight: 600;
+    }
+    
+    .pet-info .text-muted {
+      margin: 2px 0;
+    }
+    
+    .travel-info {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .document-section {
+      background: #fff;
+      border: 2px solid #e9ecef;
+      border-radius: 15px;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+    }
+    
+    .document-section.status-pending {
+      border-color: #ffc107;
+      background: #fff8e1;
+    }
+    
+    .document-section.status-verified {
+      border-color: #28a745;
+      background: #f0fff4;
+    }
+    
+    .document-section.status-not-uploaded {
+      border-color: #dc3545;
+      background: #fff5f5;
+    }
+    
+    .section-header {
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .section-title {
+      font-weight: 600;
+      color: #495057;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .status-badge {
+      padding: 6px 15px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-not-uploaded { background: #f8d7da; color: #721c24; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-verified { background: #d4edda; color: #155724; }
+    
+    .section-content {
+      padding: 20px;
+      display: none;
+    }
+    
+    .section-content.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .upload-area {
+      border: 2px dashed #667eea;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      background: rgba(102, 126, 234, 0.05);
+      transition: all 0.3s ease;
+      margin-bottom: 15px;
+    }
+    
+    .upload-area:hover {
+      border-color: #495057;
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 8px;
+    }
+    
+    .btn-primary-custom {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border: none;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+      color: white;
+    }
+    
+    .btn-success-custom {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      border: none;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    
+    .btn-success-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+      color: white;
+    }
+    
+    .progress-bar-custom {
+      height: 8px;
+      border-radius: 4px;
+      background: #e9ecef;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(45deg, #28a745, #20c997);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .priority-high {
+      border-left-color: #dc3545 !important;
+    }
+    
+    .priority-medium {
+      border-left-color: #ffc107 !important;
+    }
+    
+    .priority-low {
+      border-left-color: #28a745 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid px-4 py-3">
+    <!-- Header -->
+    <div class="portal-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-2">🏥 FurrWings Vet Portal</h1>
+          <p class="mb-0 text-muted">Document Management & Pet Travel Certification</p>
+        </div>
+        <div class="d-flex gap-3">
+          <button class="btn btn-outline-primary">
+            <i class="bi bi-bell"></i> Notifications <span class="badge bg-danger ms-1">3</span>
+          </button>
+          <a href="/vet/dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
+          <a href="/logout" class="btn btn-outline-danger">Logout</a>
+        </div>
+      </div>
+      
+      <!-- Stats Row -->
+      <div class="stats-row mt-4">
+        <div class="stat-card">
+          <div class="stat-number">12</div>
+          <div class="stat-label">Pending Requests</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">8</div>
+          <div class="stat-label">In Review</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">25</div>
+          <div class="stat-label">Completed Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">96%</div>
+          <div class="stat-label">Approval Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pet Passport Requests -->
+    <div class="row">
+      <div class="col-12">
+        <!-- Priority Request -->
+        <div class="pet-card priority-high">
+          <div class="pet-header">
+            <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&h=200&fit=crop" alt="Buddy" class="pet-photo">
+            <div class="pet-info flex-grow-1">
+              <h4>Buddy - Golden Retriever</h4>
+              <div class="text-muted">Owner: Sarah Johnson</div>
+              <div class="text-muted">Pet ID: PET-2024-001</div>
+              <div class="text-muted">Request Date: Jan 15, 2024</div>
+            </div>
+            <div class="text-end">
+              <span class="badge bg-danger fs-6">URGENT</span>
+              <div class="mt-2"><small class="text-muted">Travel in 3 days</small></div>
+            </div>
+          </div>
+          
+          <div class="travel-info">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>🌍 Destination:</strong> United States
+              </div>
+              <div class="col-md-6">
+                <strong>✈️ Travel Date:</strong> Jan 18, 2024
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-bar-custom">
+            <div class="progress-fill" style="width: 33%"></div>
+          </div>
+          <small class="text-muted">Progress: 1 of 3 documents completed</small>
+
+          <!-- Document Sections -->
+          <!-- Microchip Section -->
+          <div class="document-section status-verified" data-section="microchip">
+            <div class="section-header" onclick="toggleSection('microchip-buddy')">
+              <div class="section-title">
+                <i class="bi bi-cpu"></i>
+                1. Microchip Details
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <span class="status-badge status-verified">✓ Verified</span>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+            <div class="section-content" id="microchip-buddy">
+              <div class="alert alert-success">
+                <i class="bi bi-check-circle"></i> Microchip certificate verified and approved
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <strong>Microchip Number:</strong> 956000012345678
+                </div>
+                <div class="col-md-6">
+                  <strong>Upload Date:</strong> Jan 15, 2024
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vaccination Section -->
+          <div class="document-section status-pending" data-section="vaccination">
+            <div class="section-header" onclick="toggleSection('vaccination-buddy')">
+              <div class="section-title">
+                <i class="bi bi-shield-plus"></i>
+                2. Vaccination Certificate
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <span class="status-badge status-pending">⏳ Pending Review</span>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+            <div class="section-content" id="vaccination-buddy">
+              <form id="vaccinationForm" onsubmit="handleFormSubmit(event, 'vaccination')">
+                <div class="upload-area">
+                  <i class="bi bi-file-earmark-pdf fs-1 text-muted mb-3"></i>
+                  <div class="mb-3">
+                    <input type="file" class="form-control" accept=".pdf" required>
+                  </div>
+                  <p class="text-muted">Upload vaccination certificate (PDF only)</p>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Vaccine Type</label>
+                      <select class="form-control" required>
+                        <option value="">Select vaccine type</option>
+                        <option value="rabies">Rabies</option>
+                        <option value="5-in-1">5-in-1 (DHPP)</option>
+                        <option value="bordetella">Bordetella</option>
+                        <option value="lyme">Lyme Disease</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Vaccination Date</label>
+                      <input type="date" class="form-control" required>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label>Veterinarian Notes (Optional)</label>
+                  <textarea class="form-control" rows="3" placeholder="Additional notes about the vaccination..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary-custom">
+                  <i class="bi bi-upload"></i> Upload & Submit
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Health Certificate Section -->
+          <div class="document-section status-not-uploaded" data-section="health">
+            <div class="section-header" onclick="toggleSection('health-buddy')">
+              <div class="section-title">
+                <i class="bi bi-clipboard-pulse"></i>
+                3. Health Certificate
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <span class="status-badge status-not-uploaded">❌ Not Uploaded</span>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+            <div class="section-content" id="health-buddy">
+              <form id="healthForm" onsubmit="handleFormSubmit(event, 'health')">
+                <div class="upload-area">
+                  <i class="bi bi-file-earmark-medical fs-1 text-muted mb-3"></i>
+                  <div class="mb-3">
+                    <input type="file" class="form-control" accept=".pdf" required>
+                  </div>
+                  <p class="text-muted">Upload health certificate (PDF only)</p>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Issuing Vet Name</label>
+                      <input type="text" class="form-control" placeholder="Dr. Name" required>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Date of Issue</label>
+                      <input type="date" class="form-control" required>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label>Health Remarks</label>
+                  <textarea class="form-control" rows="3" placeholder="Pet health status, special conditions, etc..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary-custom">
+                  <i class="bi bi-upload"></i> Upload & Submit
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Submit All Button -->
+          <div class="text-center mt-4">
+            <button class="btn btn-success-custom" onclick="submitAllDocuments()" disabled id="submitAllBtn">
+              <i class="bi bi-check-all"></i> Submit All Documents for Approval
+            </button>
+            <div class="mt-2">
+              <small class="text-muted">Complete all sections to enable final submission</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Normal Priority Request -->
+        <div class="pet-card priority-medium">
+          <div class="pet-header">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop" alt="Luna" class="pet-photo">
+            <div class="pet-info flex-grow-1">
+              <h4>Luna - Persian Cat</h4>
+              <div class="text-muted">Owner: Mike Chen</div>
+              <div class="text-muted">Pet ID: PET-2024-002</div>
+              <div class="text-muted">Request Date: Jan 14, 2024</div>
+            </div>
+            <div class="text-end">
+              <span class="badge bg-warning fs-6">MEDIUM</span>
+              <div class="mt-2"><small class="text-muted">Travel in 7 days</small></div>
+            </div>
+          </div>
+          
+          <div class="travel-info">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>🌍 Destination:</strong> Canada
+              </div>
+              <div class="col-md-6">
+                <strong>✈️ Travel Date:</strong> Jan 21, 2024
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-bar-custom">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          <small class="text-muted">Progress: 0 of 3 documents completed</small>
+
+          <!-- Collapsed by default for normal priority -->
+          <div class="text-center mt-3">
+            <button class="btn btn-outline-primary" onclick="expandPetCard(this)">
+              <i class="bi bi-chevron-down"></i> Expand to Manage Documents
+            </button>
+          </div>
+        </div>
+
+        <!-- Low Priority Request -->
+        <div class="pet-card priority-low">
+          <div class="pet-header">
+            <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop" alt="Max" class="pet-photo">
+            <div class="pet-info flex-grow-1">
+              <h4>Max - German Shepherd</h4>
+              <div class="text-muted">Owner: Emma Wilson</div>
+              <div class="text-muted">Pet ID: PET-2024-003</div>
+              <div class="text-muted">Request Date: Jan 13, 2024</div>
+            </div>
+            <div class="text-end">
+              <span class="badge bg-success fs-6">LOW</span>
+              <div class="mt-2"><small class="text-muted">Travel in 14 days</small></div>
+            </div>
+          </div>
+          
+          <div class="travel-info">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>🌍 Destination:</strong> United Kingdom
+              </div>
+              <div class="col-md-6">
+                <strong>✈️ Travel Date:</strong> Jan 27, 2024
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-bar-custom">
+            <div class="progress-fill" style="width: 100%"></div>
+          </div>
+          <small class="text-success">Progress: 3 of 3 documents completed ✓</small>
+
+          <div class="text-center mt-3">
+            <span class="badge bg-success fs-6 px-4 py-2">
+              <i class="bi bi-check-circle"></i> Ready for Final Review
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleSection(sectionId) {
+      const content = document.getElementById(sectionId);
+      const icon = content.previousElementSibling.querySelector('.bi-chevron-down, .bi-chevron-up');
+      
+      if (content.classList.contains('show')) {
+        content.classList.remove('show');
+        icon.className = 'bi bi-chevron-down';
+      } else {
+        content.classList.add('show');
+        icon.className = 'bi bi-chevron-up';
+      }
+    }
+
+    function handleFormSubmit(event, sectionType) {
+      event.preventDefault();
+      
+      // Simulate upload process
+      const section = event.target.closest('.document-section');
+      const statusBadge = section.querySelector('.status-badge');
+      
+      // Change to pending
+      section.className = 'document-section status-pending';
+      statusBadge.className = 'status-badge status-pending';
+      statusBadge.textContent = '⏳ Uploading...';
+      
+      // Simulate upload completion after 2 seconds
+      setTimeout(() => {
+        section.className = 'document-section status-verified';
+        statusBadge.className = 'status-badge status-verified';
+        statusBadge.textContent = '✓ Verified';
+        
+        // Update progress
+        updateProgress();
+        
+        // Show success message
+        showNotification('Document uploaded and verified successfully!', 'success');
+      }, 2000);
+    }
+
+    function updateProgress() {
+      const verifiedSections = document.querySelectorAll('.status-verified').length;
+      const progressBar = document.querySelector('.progress-fill');
+      const progressText = document.querySelector('small.text-muted');
+      const submitBtn = document.getElementById('submitAllBtn');
+      
+      const progressPercent = (verifiedSections / 3) * 100;
+      progressBar.style.width = progressPercent + '%';
+      progressText.textContent = `Progress: ${verifiedSections} of 3 documents completed`;
+      
+      if (verifiedSections === 3) {
+        submitBtn.disabled = false;
+        progressText.className = 'text-success';
+        progressText.innerHTML = 'Progress: 3 of 3 documents completed ✓';
+      }
+    }
+
+    function submitAllDocuments() {
+      showNotification('All documents submitted for final approval!', 'success');
+      
+      // Simulate submission process
+      const submitBtn = document.getElementById('submitAllBtn');
+      submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+      submitBtn.disabled = true;
+      
+      setTimeout(() => {
+        submitBtn.innerHTML = '<i class="bi bi-check-all"></i> Submitted Successfully';
+        submitBtn.className = 'btn btn-success-custom';
+      }, 3000);
+    }
+
+    function expandPetCard(button) {
+      const petCard = button.closest('.pet-card');
+      
+      // Add the document sections (you would generate these dynamically in real app)
+      const documentHTML = `
+        <div class="document-sections-container mt-4">
+          <div class="document-section status-not-uploaded">
+            <div class="section-header" onclick="toggleSection('microchip-luna')">
+              <div class="section-title">
+                <i class="bi bi-cpu"></i>
+                1. Microchip Details
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <span class="status-badge status-not-uploaded">❌ Not Uploaded</span>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+            <div class="section-content" id="microchip-luna">
+              <!-- Similar form structure as above -->
+              <div class="upload-area">
+                <i class="bi bi-file-earmark-pdf fs-1 text-muted mb-3"></i>
+                <div class="mb-3">
+                  <input type="file" class="form-control" accept=".pdf">
+                </div>
+                <p class="text-muted">Upload microchip certificate (PDF only)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      button.parentNode.innerHTML = documentHTML;
+    }
+
+    function showNotification(message, type) {
+      const notification = document.createElement('div');
+      notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+      notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+      notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 5000);
+    }
+
+    // Auto-expand urgent priority sections on load
+    document.addEventListener('DOMContentLoaded', function() {
+      const urgentSections = document.querySelectorAll('.priority-high .section-content');
+      urgentSections.forEach(section => {
+        if (section.id === 'vaccination-buddy' || section.id === 'health-buddy') {
+          section.classList.add('show');
+          const icon = section.previousElementSibling.querySelector('.bi-chevron-down');
+          if (icon) icon.className = 'bi bi-chevron-up';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -2038,6 +2038,14 @@ def vet_dashboard():
     conn.close()
     return render_template("vet_dashboard.html", pets=pets, vet_name=session["vet_name"])
 
+@app.route('/vet/portal')
+def furrwings_vet_portal():
+    """FurrWings Vet Portal - Enhanced document management interface"""
+    if "vet" not in session:
+        return redirect(url_for("vet_login"))
+
+    return render_template("furrwings_vet_portal.html")
+
 @app.route('/vet/upload', methods=["POST"])
 def vet_upload_document():
     if "vet" not in session:
