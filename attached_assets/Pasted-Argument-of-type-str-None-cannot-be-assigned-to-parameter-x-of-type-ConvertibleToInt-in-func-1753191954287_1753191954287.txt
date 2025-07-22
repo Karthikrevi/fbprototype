@@ -1,0 +1,126 @@
+Argument of type "str | None" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+(pyright-extended)
+Ln 1664, Col 22
+"(" was not closed
+(pyright-extended)
+Ln 2177, Col 14
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2192, Col 9
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2192, Col 16
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2194, Col 9
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2194, Col 14
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2195, Col 9
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2195, Col 15
+SyntaxError: Got unexpected token ?
+(pyright-extended)
+Ln 2195, Col 24
+SyntaxError: Positional argument cannot follow keyword argument
+(pyright-extended)
+Ln 2196, Col 9
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2196, Col 15
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2196, Col 18
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2196, Col 30
+SyntaxError: Expected ',', found string
+(pyright-extended)
+Ln 2197, Col 5
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2215, Col 8
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2215, Col 12
+SyntaxError: Unparenthesized generator expression cannot be used here
+(pyright-extended)
+Ln 2215, Col 12
+SyntaxError: Positional argument cannot follow keyword argument
+(pyright-extended)
+Ln 2215, Col 12
+SyntaxError: Expected 'in', found name
+(pyright-extended)
+Ln 2215, Col 35
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2215, Col 40
+SyntaxError: Expected ',', found name
+(pyright-extended)
+Ln 2215, Col 43
+SyntaxError: Positional argument cannot follow keyword argument
+(pyright-extended)
+Ln 2215, Col 49
+SyntaxError: Expected ',', found 'or'
+(pyright-extended)
+Ln 2215, Col 56
+SyntaxError: Positional argument cannot follow keyword argument
+(pyright-extended)
+Ln 2215, Col 59
+SyntaxError: Expected ',', found string
+(pyright-extended)
+Ln 2215, Col 68
+"title" is not a known member of "None"
+(pyright-extended)
+Ln 2505, Col 25
+Argument of type "str | None" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+(pyright-extended)
+Ln 2686, Col 18
+"get_db_connection" is not defined
+(pyright-extended)
+Ln 3397, Col 9
+"get_db_connection" is not defined
+(pyright-extended)
+Ln 3427, Col 9
+"get_db_connection" is not defined
+(pyright-extended)
+Ln 3443, Col 9
+"get_db_connection" is not defined
+(pyright-extended)
+Ln 3461, Col 9
+Argument of type "str | None" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+(pyright-extended)
+Ln 4378, Col 24
+"timedelta" is not defined
+(pyright-extended)
+Ln 5033, Col 52
+"timedelta" is not defined
+(pyright-extended)
+Ln 5035, Col 52
+"replace" is not a known member of "None"
+(pyright-extended)
+Ln 5073, Col 61
+Cannot access member "smart_bot" for type "InventoryBot"   Member "smart_bot" is unknown
+(pyright-extended)
+Ln 6413, Col 37
+Cannot access member "smart_bot" for type "InventoryBot"   Member "smart_bot" is unknown
+(pyright-extended)
+Ln 6427, Col 39
+Cannot access member "smart_bot" for type "InventoryBot"   Member "smart_bot" is unknown
+(pyright-extended)
+Ln 6441, Col 36
+No parameter named "room"
+(pyright-extended)
+Ln 6851, Col 8
+Argument of type "str | None" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+(pyright-extended)
+Ln 8359, Col 26
+Argument of type "str | None" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+(pyright-extended)
+Ln 8360, Col 27
+Arguments missing for parameters "use_reloader", "log_output"
+(pyright-extended)
+Ln 8595, Col 5
