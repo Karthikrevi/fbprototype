@@ -11,8 +11,9 @@ import hashlib
 from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
 
-# Import WhatsApp routes
+# Import WhatsApp routes and module manager
 from whatsapp_routes import whatsapp_bp
+from module_manager import ModuleManager, require_module
 
 # FurrVet runs as a separate application
 
@@ -5312,6 +5313,7 @@ def get_hr_metrics(vendor_id, cursor):
     }
 
 @app.route('/erp/hr/employees', methods=["GET", "POST"])
+@require_module('hr_management')
 def manage_employees():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
@@ -5588,6 +5590,156 @@ def erp_logout():
     session.pop("vendor", None)
     return redirect(url_for("erp_login"))
 
+# ---- MODULE MANAGEMENT ROUTES ----
+
+@app.route('/erp/modules')
+def module_management():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+    
+    module_manager = ModuleManager()
+    modules = module_manager.get_vendor_modules(vendor_id)
+    
+    # Calculate stats
+    enabled_count = sum(1 for m in modules if m['is_enabled'])
+    trial_count = sum(1 for m in modules if m['status'] == 'trial')
+    total_monthly_cost = sum(m['monthly_price'] for m in modules if m['is_enabled'] and m['subscription_type'] != 'trial')
+    total_modules = len(modules)
+    
+    # Category icons
+    category_icons = {
+        'core': 'home',
+        'inventory': 'boxes',
+        'crm': 'users',
+        'hr': 'user-tie',
+        'accounting': 'calculator',
+        'communication': 'comments',
+        'ai': 'robot',
+        'furrwings': 'plane',
+        'social': 'heart'
+    }
+    
+    conn.close()
+    
+    return render_template("module_management.html", 
+                         modules=modules,
+                         enabled_count=enabled_count,
+                         trial_count=trial_count,
+                         total_monthly_cost=total_monthly_cost,
+                         total_modules=total_modules,
+                         category_icons=category_icons)
+
+@app.route('/erp/modules/enable', methods=["POST"])
+def enable_module():
+    if "vendor" not in session:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    data = request.get_json()
+    module_name = data.get('module_name')
+    
+    if not module_name:
+        return {"success": False, "message": "Module name required"}, 400
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    conn.close()
+    
+    if not vendor_result:
+        return {"success": False, "message": "Vendor not found"}, 404
+    
+    vendor_id = vendor_result[0]
+    
+    module_manager = ModuleManager()
+    module_manager.enable_module(vendor_id, module_name)
+    
+    return {"success": True, "message": f"Module {module_name} enabled successfully"}
+
+@app.route('/erp/modules/disable', methods=["POST"])
+def disable_module():
+    if "vendor" not in session:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    data = request.get_json()
+    module_name = data.get('module_name')
+    
+    if not module_name:
+        return {"success": False, "message": "Module name required"}, 400
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    conn.close()
+    
+    if not vendor_result:
+        return {"success": False, "message": "Vendor not found"}, 404
+    
+    vendor_id = vendor_result[0]
+    
+    module_manager = ModuleManager()
+    success = module_manager.disable_module(vendor_id, module_name)
+    
+    if success:
+        return {"success": True, "message": f"Module {module_name} disabled successfully"}
+    else:
+        return {"success": False, "message": "Cannot disable core modules"}, 400
+
+@app.route('/erp/modules/trial', methods=["POST"])
+def start_module_trial():
+    if "vendor" not in session:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    data = request.get_json()
+    module_name = data.get('module_name')
+    
+    if not module_name:
+        return {"success": False, "message": "Module name required"}, 400
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    conn.close()
+    
+    if not vendor_result:
+        return {"success": False, "message": "Vendor not found"}, 404
+    
+    vendor_id = vendor_result[0]
+    
+    module_manager = ModuleManager()
+    module_manager.start_trial(vendor_id, module_name, trial_days=14)
+    
+    return {"success": True, "message": f"14-day trial started for {module_name}"}
+
+@app.route('/erp/modules/subscribe/<module_name>')
+def module_subscription_page(module_name=None):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    # This would integrate with payment gateway (Razorpay, Stripe, etc.)
+    # For now, show a placeholder subscription page
+    return render_template("module_subscription.html", module_name=module_name)
+
 # ---- ACCOUNTING & REPORTING ROUTES ----
 
 @app.route('/erp/reports')
@@ -5665,6 +5817,7 @@ def general_ledger():
     return render_template("general_ledger.html", entries=entries)
 
 @app.route('/erp/reports/pnl')
+@require_module('advanced_accounting')
 def profit_loss():
     if "vendor" not in session:
         return redirect(url_for("vendor_login"))
@@ -5926,6 +6079,7 @@ def sales_analytics():
                          top_products=top_products)
 
 @app.route('/erp/reports/inventory-analytics')
+@require_module('advanced_inventory')
 def inventory_analytics():
     if "vendor" not in session:
         return redirect(url_for("vendor_login"))
@@ -9602,6 +9756,7 @@ def crm_dashboard():
     return render_template("crm_dashboard.html", stats=stats, recent_interactions=recent_interactions)
 
 @app.route('/erp/crm/customers')
+@require_module('basic_crm')
 def crm_customers():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))

@@ -1,0 +1,352 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Management - FurrButler ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .module-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        .module-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .module-enabled {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%);
+        }
+        .module-trial {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #f8f9fa 0%, #fff3cd 100%);
+        }
+        .module-disabled {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #f8f9fa 0%, #f8d7da 100%);
+        }
+        .pricing-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+        }
+        .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0 15px 0;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #28a745;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-puzzle-piece text-primary"></i> Module Management</h2>
+                <p class="text-muted">Control which features are available in your ERP system</p>
+            </div>
+            <div>
+                <a href="/erp/dashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <button class="btn btn-primary" onclick="refreshModules()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <h3>{{ enabled_count }}</h3>
+                    <p class="mb-0">Enabled Modules</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <h3>{{ trial_count }}</h3>
+                    <p class="mb-0">Trial Modules</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <h3>₹{{ total_monthly_cost }}</h3>
+                    <p class="mb-0">Monthly Cost</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <h3>{{ total_modules }}</h3>
+                    <p class="mb-0">Total Modules</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module Categories -->
+        {% set current_category = '' %}
+        {% for module in modules %}
+            {% if module.category != current_category %}
+                {% set current_category = module.category %}
+                <div class="category-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-{{ category_icons.get(module.category, 'cog') }}"></i> 
+                        {{ module.category.title() }} Modules
+                    </h4>
+                </div>
+                <div class="row">
+            {% endif %}
+
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card module-card 
+                    {% if module.is_enabled %}module-enabled
+                    {% elif module.status == 'trial' %}module-trial
+                    {% else %}module-disabled{% endif %}">
+                    
+                    <!-- Pricing Badge -->
+                    {% if not module.is_core %}
+                        <span class="badge 
+                            {% if module.pricing_tier == 'free' %}bg-success
+                            {% elif module.pricing_tier == 'starter' %}bg-info
+                            {% elif module.pricing_tier == 'premium' %}bg-warning
+                            {% else %}bg-danger{% endif %} pricing-badge">
+                            {{ module.pricing_tier.upper() }}
+                        </span>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title">{{ module.display_name }}</h5>
+                            {% if not module.is_core %}
+                                <label class="toggle-switch">
+                                    <input type="checkbox" 
+                                           {% if module.is_enabled %}checked{% endif %}
+                                           onchange="toggleModule('{{ module.module_name }}', this.checked)"
+                                           {% if module.pricing_tier != 'free' and not module.is_enabled %}disabled{% endif %}>
+                                    <span class="slider"></span>
+                                </label>
+                            {% else %}
+                                <span class="badge bg-primary">CORE</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="card-text text-muted">{{ module.description }}</p>
+
+                        <!-- Status Information -->
+                        <div class="mb-3">
+                            {% if module.is_core %}
+                                <span class="badge bg-primary">Always Enabled</span>
+                            {% elif module.is_enabled %}
+                                {% if module.status == 'trial' %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock"></i> Trial 
+                                        {% if module.trial_ends_at %}
+                                            (expires {{ module.trial_ends_at[:10] }})
+                                        {% endif %}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Enabled
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-times"></i> Disabled
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Pricing Information -->
+                        {% if not module.is_core and module.monthly_price > 0 %}
+                            <div class="pricing-info">
+                                <small class="text-muted">
+                                    <strong>₹{{ module.monthly_price }}/month</strong>
+                                    {% if module.annual_price > 0 %}
+                                        or ₹{{ module.annual_price }}/year
+                                    {% endif %}
+                                </small>
+                            </div>
+                        {% endif %}
+
+                        <!-- Action Buttons -->
+                        <div class="mt-3">
+                            {% if not module.is_core %}
+                                {% if not module.is_enabled %}
+                                    {% if module.pricing_tier == 'free' %}
+                                        <button class="btn btn-success btn-sm" 
+                                                onclick="enableModule('{{ module.module_name }}')">
+                                            <i class="fas fa-play"></i> Enable
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-warning btn-sm" 
+                                                onclick="startTrial('{{ module.module_name }}')">
+                                            <i class="fas fa-hourglass-start"></i> Start Trial
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" 
+                                                onclick="subscribe('{{ module.module_name }}')">
+                                            <i class="fas fa-credit-card"></i> Subscribe
+                                        </button>
+                                    {% endif %}
+                                {% else %}
+                                    <button class="btn btn-danger btn-sm" 
+                                            onclick="disableModule('{{ module.module_name }}')">
+                                        <i class="fas fa-stop"></i> Disable
+                                    </button>
+                                    {% if module.status == 'trial' %}
+                                        <button class="btn btn-primary btn-sm" 
+                                                onclick="subscribe('{{ module.module_name }}')">
+                                            <i class="fas fa-upgrade"></i> Upgrade
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Close row for category -->
+            {% if loop.last or modules[loop.index0 + 1].category != current_category %}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleModule(moduleName, enabled) {
+            if (enabled) {
+                enableModule(moduleName);
+            } else {
+                disableModule(moduleName);
+            }
+        }
+
+        function enableModule(moduleName) {
+            fetch('/erp/modules/enable', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    module_name: moduleName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        function disableModule(moduleName) {
+            if (confirm('Are you sure you want to disable this module?')) {
+                fetch('/erp/modules/disable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        module_name: moduleName
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                });
+            }
+        }
+
+        function startTrial(moduleName) {
+            fetch('/erp/modules/trial', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    module_name: moduleName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Trial started! You have 14 days to try this module.');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        function subscribe(moduleName) {
+            // Redirect to subscription payment page
+            window.location.href = `/erp/modules/subscribe/${moduleName}`;
+        }
+
+        function refreshModules() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
