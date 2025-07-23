@@ -269,3 +269,116 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Customer - FurrButler ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 bg-dark text-white p-3">
+                <h5><i class="fas fa-dog"></i> FurrButler ERP</h5>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/erp/dashboard" class="nav-link text-white">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/erp/crm" class="nav-link text-warning">
+                            <i class="fas fa-users"></i> CRM
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/erp/products" class="nav-link text-white">
+                            <i class="fas fa-box"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/erp/reports" class="nav-link text-white">
+                            <i class="fas fa-chart-bar"></i> Reports
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                    <h2><i class="fas fa-user-plus"></i> Add New Customer</h2>
+                    <a href="/erp/crm/customers" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Customers
+                    </a>
+                </div>
+
+                <!-- Add Customer Form -->
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Customer Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">First Name *</label>
+                                                <input type="text" class="form-control" name="first_name" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Last Name</label>
+                                                <input type="text" class="form-control" name="last_name">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Email</label>
+                                                <input type="email" class="form-control" name="email">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Phone *</label>
+                                                <input type="tel" class="form-control" name="phone" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Customer Type</label>
+                                        <select class="form-select" name="customer_type">
+                                            <option value="offline">Walk-in Customer</option>
+                                            <option value="online">Online Customer</option>
+                                            <option value="lead">Lead/Prospect</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <a href="/erp/crm/customers" class="btn btn-secondary">Cancel</a>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Save Customer
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

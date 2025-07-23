@@ -5590,6 +5590,122 @@ def erp_logout():
     session.pop("vendor", None)
     return redirect(url_for("erp_login"))
 
+# ---- CRM ROUTES ----
+
+@app.route('/erp/crm')
+@require_module('basic_crm')
+def crm_dashboard():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+
+    # Get CRM statistics
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id = ?", (vendor_id,))
+    total_customers = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_interactions WHERE vendor_id = ? AND DATE(interaction_date) = DATE('now')", (vendor_id,))
+    today_interactions = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_opportunities WHERE vendor_id = ? AND stage NOT IN ('closed_won', 'closed_lost')", (vendor_id,))
+    active_opportunities = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status = 'pending'", (vendor_id,))
+    pending_tasks = c.fetchone()[0] or 0
+
+    stats = {
+        'total_customers': total_customers,
+        'today_interactions': today_interactions,
+        'active_opportunities': active_opportunities,
+        'pending_tasks': pending_tasks
+    }
+
+    conn.close()
+    return render_template("crm_dashboard.html", stats=stats)
+
+@app.route('/erp/crm/customers')
+@require_module('basic_crm')
+def crm_customers():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+
+    # Get all customers for this vendor
+    c.execute("""
+        SELECT id, first_name, last_name, phone, email, customer_type, 
+               lifecycle_stage, total_spent, total_orders, created_at
+        FROM crm_customers 
+        WHERE vendor_id = ?
+        ORDER BY created_at DESC
+    """, (vendor_id,))
+    
+    customers = c.fetchall()
+    conn.close()
+    
+    return render_template("crm_customers.html", customers=customers)
+
+@app.route('/erp/crm/customer/add', methods=["GET", "POST"])
+@require_module('basic_crm')
+def add_crm_customer():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    if request.method == "POST":
+        email = session["vendor"]
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            return redirect(url_for("erp_login"))
+        
+        vendor_id = vendor_result[0]
+
+        # Get form data
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
+        customer_email = request.form.get("email")
+        phone = request.form.get("phone")
+        customer_type = request.form.get("customer_type", "offline")
+        
+        # Insert customer
+        c.execute("""
+            INSERT INTO crm_customers 
+            (vendor_id, first_name, last_name, user_email, phone, customer_type)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (vendor_id, first_name, last_name, customer_email, phone, customer_type))
+        
+        conn.commit()
+        conn.close()
+        
+        flash("Customer added successfully!")
+        return redirect(url_for("crm_customers"))
+
+    return render_template("add_crm_customer.html")
+
 # ---- MODULE MANAGEMENT ROUTES ----
 
 @app.route('/erp/modules')
@@ -5741,6 +5857,14 @@ def module_subscription_page(module_name=None):
     # This would integrate with payment gateway (Razorpay, Stripe, etc.)
     # For now, show a placeholder subscription page
     return render_template("module_subscription.html", module_name=module_name)
+
+@app.route('/erp/modules/subscribe')
+def module_subscription_page_general():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    # Redirect to module management if no specific module
+    return redirect(url_for("module_management"))
 
 @app.route('/erp/settings')
 def erp_settings():

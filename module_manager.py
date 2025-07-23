@@ -464,7 +464,7 @@ def require_module(module_name):
             
             if not module_manager.is_module_enabled(vendor_id, module_name):
                 flash(f"This feature requires the {module_name.replace('_', ' ').title()} module. Please upgrade your plan.")
-                return redirect(url_for("module_subscription_page"))
+                return redirect(url_for("module_management"))
             
             # Log module usage
             module_manager.log_module_usage(vendor_id, module_name, 'feature_accessed')
