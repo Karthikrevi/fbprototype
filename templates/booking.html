@@ -1,206 +1,625 @@
+
 <!DOCTYPE html>
 <html>
 <head>
   <title>Book {{ vendor_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     body {
       background-color: #fff6ec;
       font-family: 'Poppins', sans-serif;
     }
-    .container {
-      margin-top: 50px;
-      max-width: 600px;
+    .booking-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 0;
+      margin-bottom: 30px;
+    }
+    .vendor-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .vendor-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .pet-selection {
       background: white;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    h2 {
-      color: #ff6b6b;
+    .pet-card {
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
     }
-    .form-label {
+    .pet-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+    .pet-card.selected {
+      border-color: #28a745;
+      background-color: #f8fff9;
+    }
+    .pet-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      color: #28a745;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .pet-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .pet-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .services-section {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .service-item {
+      border: 1px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+    }
+    .service-item:hover {
+      border-color: #667eea;
+      box-shadow: 0 3px 10px rgba(102, 126, 234, 0.1);
+    }
+    .service-header {
+      display: flex;
+      justify-content: between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .service-name {
       font-weight: 600;
+      color: #333;
+      font-size: 1.1rem;
     }
-    .btn-book {
-      background-color: #74c69d;
+    .service-price {
+      color: #28a745;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+    .service-description {
+      color: #666;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+    .service-details {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .time-slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .time-slot {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .time-slot:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .time-slot.selected {
+      background: #28a745;
+      color: white;
+      border-color: #28a745;
+    }
+    .add-to-cart-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .date-picker {
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-right: 15px;
+    }
+    .btn-add-to-cart {
+      background: #28a745;
       color: white;
       border: none;
       padding: 10px 20px;
-      border-radius: 12px;
-      font-weight: bold;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .btn-book:hover {
-      background-color: #95d5b2;
+    .btn-add-to-cart:hover {
+      background: #218838;
+    }
+    .btn-add-to-cart:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    .cart-sidebar {
+      position: fixed;
+      right: -400px;
+      top: 0;
+      width: 400px;
+      height: 100vh;
+      background: white;
+      box-shadow: -3px 0 15px rgba(0,0,0,0.1);
+      transition: right 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    .cart-sidebar.open {
+      right: 0;
+    }
+    .cart-header {
+      background: #667eea;
+      color: white;
+      padding: 20px;
+      position: sticky;
+      top: 0;
+    }
+    .cart-content {
+      padding: 20px;
+    }
+    .cart-item {
+      border-bottom: 1px solid #e9ecef;
+      padding: 15px 0;
+    }
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+    .cart-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 15px 25px;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+      cursor: pointer;
+      z-index: 999;
+      transition: all 0.3s ease;
+    }
+    .cart-toggle:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+    .cart-badge {
+      background: #dc3545;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      margin-left: 10px;
+    }
+    .no-pets-warning {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      color: #856404;
+    }
+    @media (max-width: 768px) {
+      .cart-sidebar {
+        width: 100%;
+        right: -100%;
+      }
+      .service-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .add-to-cart-section {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📅 Book a Service with {{ vendor_name }}</h2>
-    <form method="POST" id="bookingForm">
-      <div class="mb-3 mt-4">
-        <label for="service" class="form-label">Select Service:</label>
-        <select class="form-select" id="service" name="service" required onchange="updateServiceDetails()">
-          <option value="">Choose a service...</option>
-          {% for service in services %}
-          <option value="{{ service.name }}" 
-                  data-price="{{ service.price }}" 
-                  data-duration="{{ service.duration }}"
-                  data-description="{{ service.description }}">
-            {{ service.name }} - ${{ "%.2f"|format(service.price) }}
-          </option>
-          {% endfor %}
-        </select>
-        <input type="hidden" id="duration" name="duration" value="60">
+  <div class="booking-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="vendor-info">
+          <img src="https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=60&h=60&fit=crop&crop=face" 
+               alt="{{ vendor_name }}" class="vendor-avatar">
+          <div>
+            <h2 class="mb-1">{{ vendor_name }}</h2>
+            <p class="mb-0 opacity-75">
+              <i class="fas fa-star"></i> 4.8 · Professional Pet Care · 30-90 min
+            </p>
+          </div>
+        </div>
+        <a href="javascript:history.back()" class="btn btn-outline-light">
+          <i class="fas fa-arrow-left"></i> Back
+        </a>
       </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Pet Selection -->
+    <div class="pet-selection">
+      <h4><i class="fas fa-paw"></i> Select Your Pet</h4>
+      <p class="text-muted mb-3">Choose which pet you'd like to book services for</p>
       
-      <div id="serviceDetails" class="mb-3" style="display: none;">
-        <div class="alert alert-info">
-          <strong>Service Details:</strong>
-          <div id="serviceDescription"></div>
-          <div>Duration: <span id="serviceDuration"></span> minutes</div>
-          <div>Price: $<span id="servicePrice"></span></div>
+      <div id="petSelection">
+        <!-- This will be populated by JavaScript with user's pets -->
+        <div class="no-pets-warning">
+          <i class="fas fa-info-circle"></i>
+          <p class="mb-2"><strong>No pets found!</strong></p>
+          <p class="mb-3">You need to add at least one pet to book services.</p>
+          <a href="/add-pet" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Your First Pet
+          </a>
         </div>
       </div>
+    </div>
 
-      <div class="mb-3">
-        <label for="pet_name" class="form-label">Pet Name:</label>
-        <input type="text" class="form-control" id="pet_name" name="pet_name" required>
+    <!-- Services Section -->
+    <div class="services-section">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4><i class="fas fa-scissors"></i> Available Services</h4>
+        <span class="badge bg-info">{{ services|length }} services available</span>
       </div>
 
-      <div class="mb-3">
-        <label for="pet_parent_name" class="form-label">Pet Parent Name:</label>
-        <input type="text" class="form-control" id="pet_parent_name" name="pet_parent_name" required>
+      {% for service in services %}
+      <div class="service-item" data-service="{{ service.name }}" data-price="{{ service.price }}" data-duration="{{ service.duration }}">
+        <div class="service-header">
+          <div class="flex-grow-1">
+            <div class="service-name">{{ service.name }}</div>
+            <div class="service-description">{{ service.description }}</div>
+          </div>
+          <div class="service-price">${{ "%.2f"|format(service.price) }}</div>
+        </div>
+        
+        <div class="service-details">
+          <span><i class="fas fa-clock"></i> {{ service.duration }} min</span>
+          <span><i class="fas fa-calendar"></i> Available today</span>
+        </div>
+
+        <div class="time-slots mb-3">
+          {% for slot in service.available_slots %}
+          <span class="time-slot" data-time="{{ slot }}">{{ slot }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="add-to-cart-section">
+          <input type="date" class="date-picker" min="{{ today }}" required>
+          <button class="btn-add-to-cart" disabled>
+            <i class="fas fa-plus"></i> Add to Cart
+          </button>
+        </div>
       </div>
-
-      <div class="mb-3">
-        <label for="pet_parent_phone" class="form-label">Contact Phone:</label>
-        <input type="tel" class="form-control" id="pet_parent_phone" name="pet_parent_phone" placeholder="e.g., +91-9876543210">
-      </div>
-
-      <div class="mb-3">
-        <label for="date" class="form-label">Preferred Date:</label>
-        <input type="date" class="form-control" id="date" name="date" required onchange="generateTimeSlots()">
-      </div>
-
-      <div class="mb-4" id="timeSlotContainer" style="display: none;">
-        <label class="form-label">Available Time Slots:</label>
-        <div id="timeSlots" class="d-flex flex-wrap gap-2"></div>
-        <input type="hidden" id="selectedTime" name="time" value="">
-      </div>
-
-      <div class="mb-3">
-        <label for="notes" class="form-label">Special Instructions (Optional):</label>
-        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any special requirements or notes for the service provider..."></textarea>
-      </div>
-
-      <button type="submit" class="btn-book" id="submitBtn" disabled>Confirm Booking</button>
-    </form>
-
-    <script>
-    let selectedService = null;
-    let availableSlots = [];
-
-    function updateServiceDetails() {
-      const serviceSelect = document.getElementById('service');
-      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-      
-      if (selectedOption.value) {
-        selectedService = {
-          name: selectedOption.value,
-          price: selectedOption.dataset.price,
-          duration: selectedOption.dataset.duration,
-          description: selectedOption.dataset.description
-        };
-        
-        document.getElementById('duration').value = selectedService.duration;
-        document.getElementById('serviceDescription').textContent = selectedService.description;
-        document.getElementById('serviceDuration').textContent = selectedService.duration;
-        document.getElementById('servicePrice').textContent = selectedService.price;
-        document.getElementById('serviceDetails').style.display = 'block';
-        
-        // Generate available slots based on service
-        availableSlots = selectedOption.dataset.availableSlots ? 
-          JSON.parse(selectedOption.dataset.availableSlots) : 
-          ['09:00', '11:00', '14:00', '16:00'];
-        
-        // Reset time selection
-        document.getElementById('timeSlotContainer').style.display = 'none';
-        document.getElementById('selectedTime').value = '';
-        checkFormValidity();
-      } else {
-        document.getElementById('serviceDetails').style.display = 'none';
-        selectedService = null;
-        checkFormValidity();
-      }
-    }
-
-    function generateTimeSlots() {
-      const dateInput = document.getElementById('date');
-      const timeSlotContainer = document.getElementById('timeSlotContainer');
-      const timeSlotsDiv = document.getElementById('timeSlots');
-      
-      if (dateInput.value && selectedService) {
-        timeSlotsDiv.innerHTML = '';
-        
-        // Use service-specific slots or default slots
-        const slots = {% if services and services[0].get('available_slots') %}
-          {{ services[0].available_slots|tojson|safe }}
-        {% else %}
-          ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
-        {% endif %};
-        
-        slots.forEach(slot => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'btn btn-outline-primary btn-sm';
-          button.textContent = slot;
-          button.onclick = () => selectTimeSlot(slot, button);
-          timeSlotsDiv.appendChild(button);
-        });
-        
-        timeSlotContainer.style.display = 'block';
-      }
-    }
-
-    function selectTimeSlot(time, button) {
-      // Remove active class from all buttons
-      document.querySelectorAll('#timeSlots button').forEach(btn => {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-outline-primary');
-      });
-      
-      // Add active class to selected button
-      button.classList.remove('btn-outline-primary');
-      button.classList.add('btn-primary');
-      
-      document.getElementById('selectedTime').value = time;
-      checkFormValidity();
-    }
-
-    function checkFormValidity() {
-      const service = document.getElementById('service').value;
-      const date = document.getElementById('date').value;
-      const time = document.getElementById('selectedTime').value;
-      const petName = document.getElementById('pet_name').value;
-      const petParent = document.getElementById('pet_parent_name').value;
-      
-      const isValid = service && date && time && petName && petParent;
-      document.getElementById('submitBtn').disabled = !isValid;
-    }
-
-    // Set minimum date to today
-    document.addEventListener('DOMContentLoaded', function() {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('date').min = today;
-      
-      // Add event listeners for form validation
-      ['pet_name', 'pet_parent_name'].forEach(id => {
-        document.getElementById(id).addEventListener('input', checkFormValidity);
-      });
-    });
-    </script>
+      {% endfor %}
+    </div>
   </div>
+
+  <!-- Cart Sidebar -->
+  <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> Your Cart</h5>
+        <button class="btn btn-sm btn-outline-light" onclick="toggleCart()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="cart-content">
+      <div id="cartItems">
+        <div class="text-center text-muted py-4">
+          <i class="fas fa-shopping-cart fa-2x mb-3"></i>
+          <p>Your cart is empty</p>
+        </div>
+      </div>
+      
+      <div id="cartSummary" style="display: none;">
+        <hr>
+        <div class="d-flex justify-content-between mb-2">
+          <span>Subtotal:</span>
+          <span id="cartSubtotal">$0.00</span>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+          <strong>Total:</strong>
+          <strong id="cartTotal">$0.00</strong>
+        </div>
+        <button class="btn btn-success w-100" onclick="proceedToCheckout()">
+          <i class="fas fa-credit-card"></i> Book Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Toggle Button -->
+  <button class="cart-toggle" id="cartToggle" onclick="toggleCart()" style="display: none;">
+    <i class="fas fa-shopping-cart"></i> Cart
+    <span class="cart-badge" id="cartBadge">0</span>
+  </button>
+
+  <script>
+    let selectedPet = null;
+    let cart = [];
+    let userPets = [];
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUserPets();
+      setupServiceInteractions();
+      setMinDate();
+    });
+
+    // Load user's pets from localStorage or make API call
+    function loadUserPets() {
+      // In a real app, this would be an API call
+      // For now, we'll use dummy data or localStorage
+      const pets = JSON.parse(localStorage.getItem('userPets') || '[]');
+      
+      if (pets.length > 0) {
+        displayPets(pets);
+      } else {
+        // Try to get pets from session/backend
+        fetchUserPets();
+      }
+    }
+
+    function fetchUserPets() {
+      // This would typically be an API call to get user's pets
+      // For demo, we'll use some sample data
+      const samplePets = [
+        {
+          id: 1,
+          name: "Buddy",
+          breed: "Golden Retriever",
+          photo: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face"
+        },
+        {
+          id: 2,
+          name: "Luna",
+          breed: "Persian Cat",
+          photo: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop&crop=face"
+        }
+      ];
+      
+      displayPets(samplePets);
+    }
+
+    function displayPets(pets) {
+      userPets = pets;
+      const petSelection = document.getElementById('petSelection');
+      
+      if (pets.length === 0) {
+        return; // Keep the no-pets warning
+      }
+
+      petSelection.innerHTML = pets.map(pet => `
+        <div class="pet-card" onclick="selectPet(${pet.id})" id="pet-${pet.id}">
+          <div class="pet-info">
+            <img src="${pet.photo}" alt="${pet.name}" class="pet-avatar">
+            <div>
+              <div class="fw-bold">${pet.name}</div>
+              <div class="text-muted small">${pet.breed}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectPet(petId) {
+      // Remove previous selection
+      document.querySelectorAll('.pet-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      // Select new pet
+      document.getElementById(`pet-${petId}`).classList.add('selected');
+      selectedPet = userPets.find(pet => pet.id === petId);
+      
+      // Enable service selection
+      updateServiceButtons();
+    }
+
+    function setupServiceInteractions() {
+      document.querySelectorAll('.service-item').forEach(serviceItem => {
+        const timeSlots = serviceItem.querySelectorAll('.time-slot');
+        const datePicker = serviceItem.querySelector('.date-picker');
+        const addButton = serviceItem.querySelector('.btn-add-to-cart');
+        
+        let selectedTime = null;
+        let selectedDate = null;
+
+        // Time slot selection
+        timeSlots.forEach(slot => {
+          slot.addEventListener('click', () => {
+            timeSlots.forEach(s => s.classList.remove('selected'));
+            slot.classList.add('selected');
+            selectedTime = slot.dataset.time;
+            updateAddButton();
+          });
+        });
+
+        // Date selection
+        datePicker.addEventListener('change', () => {
+          selectedDate = datePicker.value;
+          updateAddButton();
+        });
+
+        // Add to cart button
+        addButton.addEventListener('click', () => {
+          if (selectedPet && selectedTime && selectedDate) {
+            addToCart(serviceItem, selectedTime, selectedDate);
+          }
+        });
+
+        function updateAddButton() {
+          const canAdd = selectedPet && selectedTime && selectedDate;
+          addButton.disabled = !canAdd;
+          addButton.style.opacity = canAdd ? '1' : '0.5';
+        }
+      });
+    }
+
+    function updateServiceButtons() {
+      document.querySelectorAll('.service-item .btn-add-to-cart').forEach(button => {
+        const serviceItem = button.closest('.service-item');
+        const hasTime = serviceItem.querySelector('.time-slot.selected');
+        const hasDate = serviceItem.querySelector('.date-picker').value;
+        
+        button.disabled = !(selectedPet && hasTime && hasDate);
+      });
+    }
+
+    function addToCart(serviceItem, time, date) {
+      const serviceName = serviceItem.dataset.service;
+      const price = parseFloat(serviceItem.dataset.price);
+      const duration = serviceItem.dataset.duration;
+
+      const cartItem = {
+        id: Date.now(),
+        pet: selectedPet,
+        service: serviceName,
+        price: price,
+        duration: duration,
+        date: date,
+        time: time
+      };
+
+      cart.push(cartItem);
+      updateCartDisplay();
+      showSuccess(`${serviceName} added to cart for ${selectedPet.name}!`);
+    }
+
+    function updateCartDisplay() {
+      const cartItems = document.getElementById('cartItems');
+      const cartSummary = document.getElementById('cartSummary');
+      const cartBadge = document.getElementById('cartBadge');
+      const cartToggle = document.getElementById('cartToggle');
+
+      if (cart.length === 0) {
+        cartItems.innerHTML = `
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-shopping-cart fa-2x mb-3"></i>
+            <p>Your cart is empty</p>
+          </div>
+        `;
+        cartSummary.style.display = 'none';
+        cartToggle.style.display = 'none';
+        return;
+      }
+
+      // Show cart toggle
+      cartToggle.style.display = 'block';
+      cartBadge.textContent = cart.length;
+
+      // Display cart items
+      cartItems.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="fw-bold">${item.service}</div>
+              <div class="text-muted small">for ${item.pet.name}</div>
+              <div class="text-muted small">
+                <i class="fas fa-calendar"></i> ${item.date} at ${item.time}
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-success">$${item.price.toFixed(2)}</div>
+              <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.id})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Calculate totals
+      const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById('cartSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById('cartTotal').textContent = `$${subtotal.toFixed(2)}`;
+      
+      cartSummary.style.display = 'block';
+    }
+
+    function removeFromCart(itemId) {
+      cart = cart.filter(item => item.id !== itemId);
+      updateCartDisplay();
+    }
+
+    function toggleCart() {
+      const cartSidebar = document.getElementById('cartSidebar');
+      cartSidebar.classList.toggle('open');
+    }
+
+    function proceedToCheckout() {
+      if (cart.length === 0) return;
+
+      // Store cart data and redirect to checkout
+      localStorage.setItem('bookingCart', JSON.stringify(cart));
+      window.location.href = '/checkout-booking';
+    }
+
+    function setMinDate() {
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('.date-picker').forEach(picker => {
+        picker.min = today;
+      });
+    }
+
+    function showSuccess(message) {
+      // Simple success notification
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-success position-fixed';
+      alert.style = 'top: 20px; right: 20px; z-index: 9999;';
+      alert.innerHTML = `<i class="fas fa-check"></i> ${message}`;
+      document.body.appendChild(alert);
+      
+      setTimeout(() => {
+        alert.remove();
+      }, 3000);
+    }
+  </script>
 </body>
 </html>
