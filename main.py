@@ -5473,7 +5473,7 @@ def manage_payroll():
                          current_month=current_month)
 
 @app.route('/api/hr-metrics')
-def get_hr_metrics():
+def api_get_hr_metrics():
     """API endpoint for HR metrics"""
     if "vendor" not in session:
         return {"success": False, "error": "Unauthorized"}, 401
