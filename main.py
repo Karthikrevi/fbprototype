@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from replit import db
 import os
@@ -14,6 +14,11 @@ from i18n import i18n, t, get_supported_languages, get_current_language
 # Import WhatsApp routes and module manager
 from whatsapp_routes import whatsapp_bp
 from module_manager import ModuleManager, require_module
+
+# Import new utilities
+from database_utils import db_connection, get_vendor_id, is_user_logged_in, get_vendor_stats
+from error_handlers import setup_error_handlers, log_error, handle_database_error
+from vendor_services import VendorServiceManager
 
 # FurrVet runs as a separate application
 
@@ -314,6 +319,44 @@ def init_erp_db():
             commission_rate REAL NOT NULL,
             commission_amount REAL NOT NULL,
             transaction_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    # User activity logging table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT NOT NULL,
+            action TEXT NOT NULL,
+            details TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            ip_address TEXT,
+            user_agent TEXT
+        )
+    ''')
+
+    # Error logging table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS error_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            error_type TEXT NOT NULL,
+            error_message TEXT NOT NULL,
+            user_email TEXT,
+            additional_data TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            resolved BOOLEAN DEFAULT 0
+        )
+    ''')
+
+    # Performance metrics table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS performance_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            metric_name TEXT NOT NULL,
+            metric_value REAL NOT NULL,
+            vendor_id INTEGER,
+            measurement_date TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
     ''')
@@ -1593,6 +1636,9 @@ init_furrvet_db()
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Setup error handlers
+setup_error_handlers(app)
 
 # Register i18n functions with Jinja2
 app.jinja_env.globals.update(
