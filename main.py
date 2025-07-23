@@ -3324,7 +3324,6 @@ def passport_upload():
         'aqcs': ['handler'],
         'quarantine': ['handler']
     }
-    }
 
     # Check if user role can upload this document type
     if user_role not in role_permissions.get(doc_type, []):
