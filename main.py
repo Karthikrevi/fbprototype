@@ -1438,6 +1438,10 @@ app.jinja_env.globals.update(
     get_current_language=get_current_language
 )
 
+# Register JSON filter for templates
+import json
+app.jinja_env.filters['tojson'] = lambda obj: json.dumps(obj)
+
 # Register WhatsApp blueprint
 app.register_blueprint(whatsapp_bp)
 

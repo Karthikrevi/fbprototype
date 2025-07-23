@@ -146,7 +146,7 @@
         
         // Use service-specific slots or default slots
         const slots = {% if services and services[0].get('available_slots') %}
-          {{ services[0].available_slots|tojsonfilter }}
+          {{ services[0].available_slots|tojson|safe }}
         {% else %}
           ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
         {% endif %};
