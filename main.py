@@ -1633,6 +1633,24 @@ def init_furrvet_db():
 init_erp_db()
 init_furrvet_db()
 
+# Optimize databases on startup
+def optimize_startup_databases():
+    """Optimize databases on startup to prevent locks"""
+    databases = ['erp.db', 'users.db', 'furrvet.db']
+    for db_path in databases:
+        if os.path.exists(db_path):
+            try:
+                conn = sqlite3.connect(db_path, timeout=30.0)
+                conn.execute('PRAGMA journal_mode=WAL;')
+                conn.execute('PRAGMA synchronous=NORMAL;')
+                conn.execute('PRAGMA busy_timeout=30000;')
+                conn.close()
+                print(f"✅ {db_path} optimized for startup")
+            except Exception as e:
+                print(f"⚠️  Could not optimize {db_path}: {e}")
+
+optimize_startup_databases()
+
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -5908,25 +5926,33 @@ def api_get_hr_metrics():
         return {"success": False, "error": "Unauthorized"}, 401
 
     email = session["vendor"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-
-    # Get vendor ID
-    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_result = c.fetchone()
     
-    if not vendor_result:
+    try:
+        conn = sqlite3.connect('erp.db', timeout=10.0)
+        conn.execute('PRAGMA journal_mode=WAL;')
+        conn.execute('PRAGMA busy_timeout=10000;')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        
+        if not vendor_result:
+            conn.close()
+            return {"success": False, "error": "Vendor not found"}, 404
+        
+        vendor_id = vendor_result[0]
+
+        # Get HR metrics
+        hr_metrics = get_hr_metrics(vendor_id, c)
+        
         conn.close()
-        return {"success": False, "error": "Vendor not found"}, 404
-    
-    vendor_id = vendor_result[0]
-
-    # Get HR metrics
-    hr_metrics = get_hr_metrics(vendor_id, c)
-    
-    conn.close()
-    
-    return {"success": True, "metrics": hr_metrics}
+        
+        return {"success": True, "metrics": hr_metrics}
+    except sqlite3.OperationalError as e:
+        return {"success": False, "error": f"Database busy: {str(e)}"}, 503
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
 
 @app.route('/api/available-slots/<int:vendor_id>')
 def get_available_slots(vendor_id):
