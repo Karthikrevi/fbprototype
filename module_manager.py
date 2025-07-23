@@ -299,12 +299,13 @@ class ModuleManager:
     
     def enable_module(self, vendor_id, module_name, subscription_type='free', duration_days=None):
         """Enable a module for a vendor"""
+        from datetime import datetime, timedelta
+        
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
         expires_at = None
         if duration_days:
-            from datetime import datetime, timedelta
             expires_at = (datetime.now() + timedelta(days=duration_days)).isoformat()
         
         c.execute('''

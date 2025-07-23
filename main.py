@@ -5740,6 +5740,36 @@ def module_subscription_page(module_name=None):
     # For now, show a placeholder subscription page
     return render_template("module_subscription.html", module_name=module_name)
 
+@app.route('/erp/settings')
+def erp_settings():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    
+    return render_template("erp_settings.html")
+
+@app.route('/api/vendor-modules')
+def get_vendor_modules():
+    if "vendor" not in session:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+    vendor_result = c.fetchone()
+    conn.close()
+    
+    if not vendor_result:
+        return {"success": False, "message": "Vendor not found"}, 404
+    
+    vendor_id = vendor_result[0]
+    
+    module_manager = ModuleManager()
+    modules = module_manager.get_vendor_modules(vendor_id)
+    
+    return {"success": True, "modules": modules}
+
 # ---- ACCOUNTING & REPORTING ROUTES ----
 
 @app.route('/erp/reports')
