@@ -3324,6 +3324,7 @@ def passport_upload():
         'aqcs': ['handler'],
         'quarantine': ['handler']
     }
+    }
 
     # Check if user role can upload this document type
     if user_role not in role_permissions.get(doc_type, []):
@@ -3746,6 +3747,137 @@ def my_bookings():
 
     conn.close()
     return render_template("my_bookings.html", bookings=bookings)
+
+# GDPR Data Export
+@app.route('/gdpr/export-data', methods=['GET', 'POST'])
+def gdpr_export_data():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == 'POST':
+        from encryption import encrypt_data, decrypt_data
+        import json
+        
+        user_email = session["user"]
+        encrypted_email = encrypt_data(user_email)
+        
+        # Collect all user data
+        user_data = {"email": user_email, "export_date": datetime.now().isoformat()}
+        
+        # Get pets data
+        pets = db.get(f"pets:{user_email}", [])
+        user_data["pets"] = pets
+        
+        # Get bookings
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM bookings WHERE user_email = ?", (user_email,))
+        bookings = [dict(zip([col[0] for col in c.description], row)) for row in c.fetchall()]
+        user_data["bookings"] = bookings
+        
+        # Get orders
+        c.execute("SELECT * FROM orders WHERE user_email = ?", (user_email,))
+        orders = [dict(zip([col[0] for col in c.description], row)) for row in c.fetchall()]
+        user_data["orders"] = orders
+        conn.close()
+        
+        # Return as JSON download
+        from flask import Response
+        response = Response(
+            json.dumps(user_data, indent=2),
+            mimetype='application/json',
+            headers={'Content-Disposition': f'attachment; filename=furrbutler_data_{user_email}.json'}
+        )
+        
+        # Log export activity
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+        user_record = c.fetchone()
+        if user_record:
+            c.execute("""
+                INSERT INTO data_processing_log (
+                    user_id, activity_type, data_category, purpose, legal_basis
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (user_record[0], "export", "all_data", "GDPR data portability request", "legal_obligation"))
+            conn.commit()
+        conn.close()
+        
+        return response
+    
+    return render_template("gdpr_export.html")
+
+# GDPR Data Deletion
+@app.route('/gdpr/delete-account', methods=['GET', 'POST'])
+def gdpr_delete_account():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == 'POST':
+        from encryption import encrypt_data
+        
+        user_email = session["user"]
+        encrypted_email = encrypt_data(user_email)
+        
+        # Confirm deletion
+        if request.form.get('confirm') == 'DELETE':
+            try:
+                # Delete from pets data
+                if f"pets:{user_email}" in db:
+                    del db[f"pets:{user_email}"]
+                
+                # Anonymize bookings (keep for business records but remove PII)
+                conn = sqlite3.connect('erp.db')
+                c = conn.cursor()
+                c.execute("""
+                    UPDATE bookings 
+                    SET user_email = 'DELETED_USER', pet_parent_name = 'DELETED', pet_parent_phone = 'DELETED'
+                    WHERE user_email = ?
+                """, (user_email,))
+                
+                # Anonymize orders
+                c.execute("UPDATE orders SET user_email = 'DELETED_USER' WHERE user_email = ?", (user_email,))
+                conn.commit()
+                conn.close()
+                
+                # Delete from GDPR users database
+                conn = sqlite3.connect('users.db')
+                c = conn.cursor()
+                c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+                user_record = c.fetchone()
+                if user_record:
+                    user_id = user_record[0]
+                    
+                    # Log deletion
+                    c.execute("""
+                        INSERT INTO data_processing_log (
+                            user_id, activity_type, data_category, purpose, legal_basis
+                        ) VALUES (?, ?, ?, ?, ?)
+                    """, (user_id, "deletion", "all_data", "GDPR right to be forgotten", "legal_obligation"))
+                    
+                    # Delete user record
+                    c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                    conn.commit()
+                conn.close()
+                
+                # Clear session
+                session.clear()
+                flash("Your account and data have been permanently deleted.")
+                return redirect(url_for("home"))
+                
+            except Exception as e:
+                flash(f"Error deleting account: {str(e)}")
+        else:
+            flash("Please type 'DELETE' to confirm account deletion.")
+    
+    return render_template("gdpr_delete.html")
+
+# Settings page with GDPR options
+@app.route('/settings')
+def settings():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template("settings.html")
 
 # Logout
 @app.route('/logout')
