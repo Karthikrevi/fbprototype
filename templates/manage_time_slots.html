@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Slot Management - FurrButler ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Poppins', sans-serif;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .settings-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .time-input {
+            width: 150px;
+        }
+        .capacity-indicator {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .booking-timeline {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .time-slot-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">⏰ Time Slot Management</h1>
+                    <p class="mb-0">Configure your availability and booking capacity</p>
+                </div>
+                <a href="/erp/dashboard" class="btn btn-outline-light">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'message' else category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="settings-card">
+                    <h4>🛠️ Time Slot Configuration</h4>
+                    <form method="POST" id="timeSlotForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Opening Time</label>
+                                <input type="time" class="form-control time-input" name="opening_time" 
+                                       value="{{ time_slot_settings[2] if time_slot_settings else '09:00' }}" 
+                                       onchange="updatePreview()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Closing Time</label>
+                                <input type="time" class="form-control time-input" name="closing_time" 
+                                       value="{{ time_slot_settings[3] if time_slot_settings else '18:00' }}" 
+                                       onchange="updatePreview()">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Slot Duration</label>
+                                <select class="form-select" name="slot_duration" onchange="updatePreview()">
+                                    <option value="15" {% if time_slot_settings and time_slot_settings[4] == 15 %}selected{% endif %}>15 minutes</option>
+                                    <option value="30" {% if not time_slot_settings or time_slot_settings[4] == 30 %}selected{% endif %}>30 minutes</option>
+                                    <option value="45" {% if time_slot_settings and time_slot_settings[4] == 45 %}selected{% endif %}>45 minutes</option>
+                                    <option value="60" {% if time_slot_settings and time_slot_settings[4] == 60 %}selected{% endif %}>60 minutes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Number of Groomers</label>
+                                <select class="form-select" name="max_groomers">
+                                    {% for i in range(1, 11) %}
+                                    <option value="{{ i }}" {% if time_slot_settings and time_slot_settings[7] == i %}selected{% endif %}>{{ i }} groomer{{ 's' if i > 1 else '' }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Lunch Break Start</label>
+                                <input type="time" class="form-control time-input" name="lunch_break_start" 
+                                       value="{{ time_slot_settings[5] if time_slot_settings else '13:00' }}" 
+                                       onchange="updatePreview()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Lunch Break End</label>
+                                <input type="time" class="form-control time-input" name="lunch_break_end" 
+                                       value="{{ time_slot_settings[6] if time_slot_settings else '14:00' }}" 
+                                       onchange="updatePreview()">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Operating Days</label>
+                            <div class="row">
+                                {% set current_days = time_slot_settings[8].split(',') if time_slot_settings and time_slot_settings[8] else ['mon','tue','wed','thu','fri','sat'] %}
+                                {% for day in [('mon', 'Monday'), ('tue', 'Tuesday'), ('wed', 'Wednesday'), ('thu', 'Thursday'), ('fri', 'Friday'), ('sat', 'Saturday'), ('sun', 'Sunday')] %}
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="days_of_week" value="{{ day[0] }}" 
+                                               {% if day[0] in current_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ day[1] }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="time-slot-preview" id="slotPreview">
+                            <h6>📋 Preview Available Slots</h6>
+                            <div id="previewSlots">Loading preview...</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg mt-3">
+                            💾 Save Time Slot Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="settings-card">
+                    <h5>📊 Booking Summary</h5>
+                    <div class="capacity-indicator">
+                        <div class="text-center">
+                            <h4 class="text-primary">{{ time_slot_settings[7] if time_slot_settings else 1 }}</h4>
+                            <small>Maximum Concurrent Bookings</small>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-4">📅 Upcoming Bookings</h6>
+                    <div class="booking-timeline">
+                        {% if upcoming_bookings %}
+                            {% for booking in upcoming_bookings %}
+                            <div class="border-bottom py-2">
+                                <div class="fw-bold">{{ booking[2] }}</div>
+                                <small class="text-muted">
+                                    📅 {{ booking[0] }} at {{ booking[1] }}<br>
+                                    🐾 {{ booking[3] }} ({{ booking[4] }})
+                                </small>
+                                <span class="badge bg-{{ 'success' if booking[5] == 'confirmed' else 'warning' }}">{{ booking[5] }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No upcoming bookings</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h6>💡 Tips</h6>
+                    <ul class="small text-muted">
+                        <li>Adjust groomer count based on your team size</li>
+                        <li>30-minute slots work well for most services</li>
+                        <li>Set lunch breaks to avoid overbooking</li>
+                        <li>Update operating days for holidays</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updatePreview() {
+            const openingTime = document.querySelector('input[name="opening_time"]').value;
+            const closingTime = document.querySelector('input[name="closing_time"]').value;
+            const slotDuration = parseInt(document.querySelector('select[name="slot_duration"]').value);
+            const lunchStart = document.querySelector('input[name="lunch_break_start"]').value;
+            const lunchEnd = document.querySelector('input[name="lunch_break_end"]').value;
+
+            if (!openingTime || !closingTime) return;
+
+            const slots = generatePreviewSlots(openingTime, closingTime, slotDuration, lunchStart, lunchEnd);
+            
+            document.getElementById('previewSlots').innerHTML = slots.map(slot => 
+                `<span class="badge bg-light text-dark me-1 mb-1">${slot}</span>`
+            ).join('');
+        }
+
+        function generatePreviewSlots(start, end, duration, lunchStart, lunchEnd) {
+            const slots = [];
+            const startTime = new Date(`2000-01-01 ${start}`);
+            const endTime = new Date(`2000-01-01 ${end}`);
+            const lunchStartTime = lunchStart ? new Date(`2000-01-01 ${lunchStart}`) : null;
+            const lunchEndTime = lunchEnd ? new Date(`2000-01-01 ${lunchEnd}`) : null;
+
+            let current = new Date(startTime);
+            
+            while (current < endTime) {
+                // Check if current time is during lunch break
+                if (lunchStartTime && lunchEndTime && current >= lunchStartTime && current < lunchEndTime) {
+                    current.setMinutes(current.getMinutes() + duration);
+                    continue;
+                }
+
+                slots.push(current.toTimeString().slice(0, 5));
+                current.setMinutes(current.getMinutes() + duration);
+            }
+
+            return slots;
+        }
+
+        // Initialize preview on page load
+        document.addEventListener('DOMContentLoaded', updatePreview);
+    </script>
+</body>
+</html>

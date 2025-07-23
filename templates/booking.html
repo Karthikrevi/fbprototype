@@ -187,10 +187,8 @@
 
                         <div class="mb-3">
                             <label class="form-label"><strong>Select Time:</strong></label>
-                            <div class="time-slots">
-                                {% for slot in service.available_slots %}
-                                <div class="time-slot" data-time="{{ slot }}">{{ slot }}</div>
-                                {% endfor %}
+                            <div class="time-slots" id="time-slots-{{ loop.index0 }}">
+                                <div class="text-muted">Select a date first to see available times</div>
                             </div>
                         </div>
 
@@ -266,14 +264,57 @@
             });
         });
 
-        // Handle date selection
-        document.querySelectorAll('.service-date').forEach(dateInput => {
+        // Handle date selection with dynamic time slot loading
+        document.querySelectorAll('.service-date').forEach((dateInput, index) => {
             dateInput.addEventListener('change', function() {
                 const serviceCard = this.closest('.service-card');
                 const serviceName = serviceCard.dataset.service;
                 selectedDates[serviceName] = this.value;
+                
+                // Load available time slots for this date
+                loadAvailableTimeSlots('{{ vendor_id }}', this.value, index);
             });
         });
+
+        async function loadAvailableTimeSlots(vendorId, date, serviceIndex) {
+            const timeSlotsContainer = document.getElementById(`time-slots-${serviceIndex}`);
+            timeSlotsContainer.innerHTML = '<div class="text-muted">Loading available times...</div>';
+
+            try {
+                const response = await fetch(`/api/available-slots/${vendorId}?date=${date}`);
+                const data = await response.json();
+
+                if (data.slots && data.slots.length > 0) {
+                    timeSlotsContainer.innerHTML = data.slots.map(slot => 
+                        `<div class="time-slot" data-time="${slot.time}">
+                            ${slot.time}
+                            ${slot.remaining_capacity < 3 ? `<br><small class="text-warning">${slot.remaining_capacity} left</small>` : ''}
+                        </div>`
+                    ).join('');
+
+                    // Re-attach click events to new time slots
+                    timeSlotsContainer.querySelectorAll('.time-slot').forEach(slot => {
+                        slot.addEventListener('click', function() {
+                            const serviceCard = this.closest('.service-card');
+                            const serviceName = serviceCard.dataset.service;
+                            const timeValue = this.dataset.time;
+
+                            // Remove previous selection in this service
+                            serviceCard.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+
+                            // Select current time
+                            this.classList.add('selected');
+                            selectedTimes[serviceName] = timeValue;
+                        });
+                    });
+                } else {
+                    timeSlotsContainer.innerHTML = '<div class="text-muted">No available times for this date</div>';
+                }
+            } catch (error) {
+                console.error('Error loading time slots:', error);
+                timeSlotsContainer.innerHTML = '<div class="text-danger">Error loading times. Please try again.</div>';
+            }
+        }
 
         function addToCart(serviceName, price, duration) {
             const pet = selectedPets[serviceName];

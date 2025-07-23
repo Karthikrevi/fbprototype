@@ -809,6 +809,40 @@ def init_erp_db():
         )
     ''')
 
+    # Vendor Time Slot Configuration
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS vendor_time_slots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            opening_time TEXT NOT NULL DEFAULT '09:00',
+            closing_time TEXT NOT NULL DEFAULT '18:00',
+            slot_duration INTEGER NOT NULL DEFAULT 30,
+            lunch_break_start TEXT DEFAULT '13:00',
+            lunch_break_end TEXT DEFAULT '14:00',
+            max_groomers INTEGER NOT NULL DEFAULT 1,
+            days_of_week TEXT NOT NULL DEFAULT 'mon,tue,wed,thu,fri,sat',
+            is_active BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    # Time Slot Bookings Tracking
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS time_slot_bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            booking_date DATE NOT NULL,
+            time_slot TEXT NOT NULL,
+            current_bookings INTEGER DEFAULT 0,
+            max_capacity INTEGER DEFAULT 1,
+            is_available BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
     # Stray Tracker System Tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS ngo_partners (
@@ -5046,6 +5080,149 @@ def vendor_reactivate():
     flash("Welcome back! Your account has been reactivated.")
     return redirect(url_for("erp_profile"))
 
+@app.route('/erp/time-slots', methods=["GET", "POST"])
+def manage_time_slots():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+
+    if request.method == "POST":
+        opening_time = request.form.get("opening_time")
+        closing_time = request.form.get("closing_time")
+        slot_duration = int(request.form.get("slot_duration", 30))
+        lunch_break_start = request.form.get("lunch_break_start")
+        lunch_break_end = request.form.get("lunch_break_end")
+        max_groomers = int(request.form.get("max_groomers", 1))
+        days_of_week = ','.join(request.form.getlist("days_of_week"))
+
+        # Insert or update time slot settings
+        c.execute("""
+            INSERT OR REPLACE INTO vendor_time_slots 
+            (vendor_id, opening_time, closing_time, slot_duration, lunch_break_start, 
+             lunch_break_end, max_groomers, days_of_week, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, opening_time, closing_time, slot_duration, lunch_break_start,
+              lunch_break_end, max_groomers, days_of_week, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+        conn.commit()
+        flash("Time slot settings updated successfully!")
+        return redirect(url_for("manage_time_slots"))
+
+    # Get current time slot settings
+    c.execute("SELECT * FROM vendor_time_slots WHERE vendor_id = ?", (vendor_id,))
+    time_slot_settings = c.fetchone()
+
+    # Get upcoming bookings with time slots
+    c.execute("""
+        SELECT date, time, service, pet_name, pet_parent_name, status
+        FROM bookings 
+        WHERE vendor_id = ? AND date >= date('now')
+        ORDER BY date, time
+    """, (vendor_id,))
+    upcoming_bookings = c.fetchall()
+
+    conn.close()
+    return render_template("manage_time_slots.html", 
+                         time_slot_settings=time_slot_settings,
+                         upcoming_bookings=upcoming_bookings)
+
+@app.route('/api/available-slots/<int:vendor_id>')
+def get_available_slots(vendor_id):
+    """API endpoint to get available time slots for a specific date"""
+    date = request.args.get('date')
+    if not date:
+        return {"error": "Date parameter required"}, 400
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor time slot settings
+    c.execute("SELECT * FROM vendor_time_slots WHERE vendor_id = ? AND is_active = 1", (vendor_id,))
+    settings = c.fetchone()
+
+    if not settings:
+        # Default settings if none configured
+        available_slots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", 
+                          "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"]
+    else:
+        # Generate slots based on vendor settings
+        available_slots = generate_time_slots(settings, date)
+
+    # Check existing bookings for this date
+    c.execute("""
+        SELECT time, COUNT(*) as booking_count
+        FROM bookings 
+        WHERE vendor_id = ? AND date = ? AND status != 'cancelled'
+        GROUP BY time
+    """, (vendor_id, date))
+    
+    existing_bookings = dict(c.fetchall())
+    max_capacity = settings[6] if settings else 1  # max_groomers
+
+    # Filter out fully booked slots
+    final_slots = []
+    for slot in available_slots:
+        current_bookings = existing_bookings.get(slot, 0)
+        if current_bookings < max_capacity:
+            final_slots.append({
+                "time": slot,
+                "available": True,
+                "remaining_capacity": max_capacity - current_bookings
+            })
+
+    conn.close()
+    return {"slots": final_slots}
+
+def generate_time_slots(settings, date):
+    """Generate time slots based on vendor settings"""
+    from datetime import datetime, timedelta
+    
+    # Parse settings
+    opening_time = datetime.strptime(settings[2], "%H:%M").time()
+    closing_time = datetime.strptime(settings[3], "%H:%M").time()
+    slot_duration = settings[4]  # in minutes
+    lunch_start = datetime.strptime(settings[5], "%H:%M").time() if settings[5] else None
+    lunch_end = datetime.strptime(settings[6], "%H:%M").time() if settings[6] else None
+    
+    # Check if the date falls on an available day
+    date_obj = datetime.strptime(date, "%Y-%m-%d")
+    day_name = date_obj.strftime('%a').lower()
+    available_days = settings[8].split(',') if settings[8] else []
+    
+    if day_name not in available_days:
+        return []
+    
+    slots = []
+    current_time = datetime.combine(date_obj.date(), opening_time)
+    end_time = datetime.combine(date_obj.date(), closing_time)
+    
+    while current_time < end_time:
+        slot_time = current_time.time()
+        
+        # Skip lunch break slots
+        if lunch_start and lunch_end:
+            if lunch_start <= slot_time < lunch_end:
+                current_time += timedelta(minutes=slot_duration)
+                continue
+        
+        slots.append(current_time.strftime("%H:%M"))
+        current_time += timedelta(minutes=slot_duration)
+    
+    return slots
+
 @app.route('/erp/logout')
 def erp_logout():
     session.pop("vendor", None)
@@ -5726,6 +5903,22 @@ def process_booking_checkout():
             if vendor_id == 'fluffy-paws':
                 vendor_id = 0
             
+            # Check time slot capacity before booking
+            c.execute("""
+                SELECT COUNT(*) FROM bookings 
+                WHERE vendor_id = ? AND date = ? AND time = ? AND status != 'cancelled'
+            """, (vendor_id, booking['date'], booking['time']))
+            
+            current_bookings = c.fetchone()[0]
+            
+            # Get vendor capacity
+            c.execute("SELECT max_groomers FROM vendor_time_slots WHERE vendor_id = ?", (vendor_id,))
+            capacity_result = c.fetchone()
+            max_capacity = capacity_result[0] if capacity_result else 1
+            
+            if current_bookings >= max_capacity:
+                return {"success": False, "error": f"Time slot {booking['time']} is fully booked"}, 400
+
             # Insert booking
             c.execute("""
                 INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
