@@ -2073,11 +2073,24 @@ def vendor_profile(vendor_id):
     try:
         conn = sqlite3.connect("erp.db")
         c = conn.cursor()
-        c.execute("SELECT id, name, bio, image_url, city, is_online, category FROM vendors WHERE id = ?", (vendor_id,))
+        
+        # Get full vendor information with proper field names
+        c.execute("""
+            SELECT id, name, email, password, category, city, phone, bio, image_url, 
+                   latitude, longitude, is_online, account_status, break_start_date, 
+                   break_end_date, break_reason, address, state, pincode
+            FROM vendors WHERE id = ?
+        """, (vendor_id,))
         data = c.fetchone()
 
         if data:
             vendor_id_db = data[0]
+            vendor_name = data[1]
+            vendor_bio = data[7]
+            vendor_image = data[8]
+            vendor_city = data[5]
+            vendor_is_online = data[11]
+            vendor_category = data[4]
 
             # Calculate dynamic stats from reviews
             c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (vendor_id_db,))
@@ -2093,6 +2106,10 @@ def vendor_profile(vendor_id):
             # Calculate level based on total reviews (every 10 reviews = 1 level)
             level = min(1 + (total_reviews // 10), 20)  # Cap at level 20
             xp = total_reviews * 100  # 100 XP per review
+
+            # Check if vendor has products for marketplace
+            c.execute("SELECT COUNT(*) FROM products WHERE vendor_id = ? AND quantity > 0", (vendor_id_db,))
+            has_products = c.fetchone()[0] > 0
 
             # Get services from database
             c.execute("""
@@ -2123,9 +2140,9 @@ def vendor_profile(vendor_id):
                         "available_slots": available_slots
                     })
             else:
-                # Fallback services if none defined
-                category = data[6] or "General"
-                if "groom" in category.lower():
+                # Fallback services based on category
+                services = []
+                if vendor_category and "groom" in vendor_category.lower():
                     services = [
                         {
                             "name": "Basic Grooming",
@@ -2133,6 +2150,30 @@ def vendor_profile(vendor_id):
                             "duration": 60,
                             "price": 30.00,
                             "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                        },
+                        {
+                            "name": "Full Grooming Package",
+                            "description": "Complete grooming service with bath, brush, and styling",
+                            "duration": 90,
+                            "price": 45.00,
+                            "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                        }
+                    ]
+                elif vendor_category and "boarding" in vendor_category.lower():
+                    services = [
+                        {
+                            "name": "Day Boarding",
+                            "description": "Safe day care for your pet",
+                            "duration": 480,
+                            "price": 25.00,
+                            "available_slots": ["08:00", "09:00"]
+                        },
+                        {
+                            "name": "Overnight Boarding",
+                            "description": "Overnight pet boarding service",
+                            "duration": 1440,
+                            "price": 40.00,
+                            "available_slots": ["18:00"]
                         }
                     ]
                 else:
@@ -2147,20 +2188,22 @@ def vendor_profile(vendor_id):
                     ]
 
             vendor = {
-                "id": data[0],
-                "name": data[1],
-                "description": data[2] or "Trusted pet care provider.",
-                "image": data[3] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=600&h=400&fit=crop=face",
-                "city": data[4] or "Unknown",
-                "is_online": data[5],
+                "id": vendor_id_db,
+                "name": vendor_name or "Pet Care Provider",
+                "description": vendor_bio or "Trusted pet care provider.",
+                "image": vendor_image or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=600&h=400&fit=crop=face",
+                "city": vendor_city or "Unknown",
+                "is_online": vendor_is_online,
+                "category": vendor_category or "General",
                 "rating": avg_rating,
                 "level": level,
                 "xp": xp,
                 "total_reviews": total_reviews,
                 "success_rate": success_rate,
                 "services": services,
-                "booking_url": f"/vendor/{data[0]}/book",
-                "market_url": f"/marketplace/vendor/{data[0]}"
+                "has_products": has_products,
+                "booking_url": f"/vendor/{vendor_id_db}/book",
+                "market_url": f"/marketplace/vendor/{vendor_id_db}"
             }
 
             # Get reviews for this vendor
