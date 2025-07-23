@@ -5596,46 +5596,7 @@ def erp_logout():
 
 # Duplicate crm_customers route removed - already defined above
 
-@app.route('/erp/crm/customer/add', methods=["GET", "POST"])
-@require_module('basic_crm')
-def add_crm_customer():
-    if "vendor" not in session:
-        return redirect(url_for("erp_login"))
-
-    if request.method == "POST":
-        email = session["vendor"]
-        conn = sqlite3.connect('erp.db')
-        c = conn.cursor()
-
-        # Get vendor ID
-        c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
-        vendor_result = c.fetchone()
-        if not vendor_result:
-            return redirect(url_for("erp_login"))
-        
-        vendor_id = vendor_result[0]
-
-        # Get form data
-        first_name = request.form.get("first_name")
-        last_name = request.form.get("last_name")
-        customer_email = request.form.get("email")
-        phone = request.form.get("phone")
-        customer_type = request.form.get("customer_type", "offline")
-        
-        # Insert customer
-        c.execute("""
-            INSERT INTO crm_customers 
-            (vendor_id, first_name, last_name, user_email, phone, customer_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (vendor_id, first_name, last_name, customer_email, phone, customer_type))
-        
-        conn.commit()
-        conn.close()
-        
-        flash("Customer added successfully!")
-        return redirect(url_for("crm_customers"))
-
-    return render_template("add_crm_customer.html")
+# Duplicate add_crm_customer route removed - already defined above
 
 # ---- MODULE MANAGEMENT ROUTES ----
 
