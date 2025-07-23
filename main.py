@@ -5697,6 +5697,8 @@ def disable_module():
     module_manager = ModuleManager()
     success = module_manager.disable_module(vendor_id, module_name)
     
+    print(f"DEBUG: Disable module {module_name} for vendor {vendor_id}: {'SUCCESS' if success else 'FAILED'}")
+    
     if success:
         return {"success": True, "message": f"Module {module_name} disabled successfully"}
     else:

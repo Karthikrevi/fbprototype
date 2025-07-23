@@ -328,18 +328,36 @@ class ModuleManager:
         c.execute("SELECT is_core FROM modules WHERE module_name = ?", (module_name,))
         module = c.fetchone()
         if module and module[0]:  # Can't disable core modules
+            print(f"DEBUG: Cannot disable core module: {module_name}")
             conn.close()
             return False
         
-        c.execute('''
-            UPDATE vendor_module_subscriptions 
-            SET status = 'disabled' 
-            WHERE vendor_id = ? AND module_name = ?
-        ''', (vendor_id, module_name))
+        # Check if subscription exists
+        c.execute("SELECT id FROM vendor_module_subscriptions WHERE vendor_id = ? AND module_name = ?", (vendor_id, module_name))
+        existing = c.fetchone()
         
+        if existing:
+            # Update existing subscription
+            c.execute('''
+                UPDATE vendor_module_subscriptions 
+                SET status = 'disabled' 
+                WHERE vendor_id = ? AND module_name = ?
+            ''', (vendor_id, module_name))
+            print(f"DEBUG: Updated existing subscription for {module_name} to disabled")
+        else:
+            # Insert new disabled subscription
+            c.execute('''
+                INSERT INTO vendor_module_subscriptions 
+                (vendor_id, module_name, status, subscription_type)
+                VALUES (?, ?, 'disabled', 'free')
+            ''', (vendor_id, module_name))
+            print(f"DEBUG: Created new disabled subscription for {module_name}")
+        
+        rows_affected = c.rowcount
         conn.commit()
         conn.close()
         
+        print(f"DEBUG: Disable operation affected {rows_affected} rows")
         self.log_module_usage(vendor_id, module_name, 'module_disabled')
         return True
     
