@@ -5594,37 +5594,7 @@ def erp_logout():
 
 # Duplicate route removed - CRM dashboard is already defined above
 
-@app.route('/erp/crm/customers')
-@require_module('basic_crm')
-def crm_customers():
-    if "vendor" not in session:
-        return redirect(url_for("erp_login"))
-
-    email = session["vendor"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-
-    # Get vendor ID
-    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
-    vendor_result = c.fetchone()
-    if not vendor_result:
-        return redirect(url_for("erp_login"))
-    
-    vendor_id = vendor_result[0]
-
-    # Get all customers for this vendor
-    c.execute("""
-        SELECT id, first_name, last_name, phone, email, customer_type, 
-               lifecycle_stage, total_spent, total_orders, created_at
-        FROM crm_customers 
-        WHERE vendor_id = ?
-        ORDER BY created_at DESC
-    """, (vendor_id,))
-    
-    customers = c.fetchall()
-    conn.close()
-    
-    return render_template("crm_customers.html", customers=customers)
+# Duplicate crm_customers route removed - already defined above
 
 @app.route('/erp/crm/customer/add', methods=["GET", "POST"])
 @require_module('basic_crm')
