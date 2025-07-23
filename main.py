@@ -5592,46 +5592,7 @@ def erp_logout():
 
 # ---- CRM ROUTES ----
 
-@app.route('/erp/crm')
-@require_module('basic_crm')
-def crm_dashboard():
-    if "vendor" not in session:
-        return redirect(url_for("erp_login"))
-
-    email = session["vendor"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-
-    # Get vendor ID
-    c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
-    vendor_result = c.fetchone()
-    if not vendor_result:
-        return redirect(url_for("erp_login"))
-    
-    vendor_id = vendor_result[0]
-
-    # Get CRM statistics
-    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id = ?", (vendor_id,))
-    total_customers = c.fetchone()[0] or 0
-
-    c.execute("SELECT COUNT(*) FROM crm_interactions WHERE vendor_id = ? AND DATE(interaction_date) = DATE('now')", (vendor_id,))
-    today_interactions = c.fetchone()[0] or 0
-
-    c.execute("SELECT COUNT(*) FROM crm_opportunities WHERE vendor_id = ? AND stage NOT IN ('closed_won', 'closed_lost')", (vendor_id,))
-    active_opportunities = c.fetchone()[0] or 0
-
-    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status = 'pending'", (vendor_id,))
-    pending_tasks = c.fetchone()[0] or 0
-
-    stats = {
-        'total_customers': total_customers,
-        'today_interactions': today_interactions,
-        'active_opportunities': active_opportunities,
-        'pending_tasks': pending_tasks
-    }
-
-    conn.close()
-    return render_template("crm_dashboard.html", stats=stats)
+# Duplicate route removed - CRM dashboard is already defined above
 
 @app.route('/erp/crm/customers')
 @require_module('basic_crm')
