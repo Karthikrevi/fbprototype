@@ -3474,35 +3474,55 @@ def book_vendor_service(vendor_id):
                 booking_data = request.get_json() if request.is_json else None
                 
                 if booking_data:
+
                     # Process booking from checkout
                     try:
+                        if not booking_data.get('bookings'):
+                            conn.close()
+                            return {"success": False, "error": "Invalid booking data"}, 400
+
                         for booking in booking_data['bookings']:
                             pet = next((p for p in pets if p['name'] == booking['pet_name']), None)
                             if pet:
-                                c.execute("""
-                                    INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """, (vendor_id, user_email, booking['service'], booking['date'], booking['time'], 
-                                      booking['duration'], "confirmed", pet['name'], pet.get('parent_name', ''), 
-                                      pet.get('parent_phone', ''), booking.get('notes', '')))
-                        
+                                try:
+                                    c.execute("""
+                                        INSERT INTO bookings (
+                                            vendor_id, user_email, service, date, time, duration,
+                                            status, pet_name, pet_parent_name, pet_parent_phone, status_details
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """, (
+                                        vendor_id,
+                                        user_email,
+                                        booking['service'],
+                                        booking['date'],
+                                        booking['time'],
+                                        booking['duration'],
+                                        "confirmed",
+                                        pet['name'],
+                                        pet.get('parent_name', ''),
+                                        pet.get('parent_phone', ''),
+                                        booking.get('notes', '')
+                                    ))
+                                except sqlite3.Error as insert_error:
+                                    conn.rollback()
+                                    conn.close()
+                                    return {"success": False, "error": f"Database insert error: {str(insert_error)}"}, 500
+
                         conn.commit()
                         conn.close()
-                        
                         return {"success": True, "message": "Bookings confirmed successfully!"}
-                        
+
                     except Exception as e:
                         conn.close()
                         return {"success": False, "error": str(e)}, 400
-                
-                conn.close()
-                return {"success": False, "error": "Invalid booking data"}, 400
 
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            flash(f"Error: {str(e)}")
-            return redirect(url_for("manage_time_slots"))
+                    # Database connection error catch (outside booking processing)
+                    except sqlite3.Error as error:
+                        conn.rollback()
+                        conn.close()
+                        flash(f"An error occurred in the database: {str(error)}")
+                        return redirect(url_for("manage_time_slots"))
+
 
 # Enhanced HR and Payroll Management Routes
 @app.route('/erp/hr/generate-payslip/<int:employee_id>', methods=["GET", "POST"])
