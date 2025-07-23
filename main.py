@@ -1435,7 +1435,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 app.jinja_env.globals.update(
     t=t,
     get_supported_languages=get_supported_languages,
-    get_current_language=get_current_language
+    get_current_language=get_current_language,
+    datetime=datetime
 )
 
 # Register JSON filter for templates
