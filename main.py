@@ -3872,6 +3872,94 @@ def gdpr_delete_account():
     
     return render_template("gdpr_delete.html")
 
+# Email Verification Routes
+@app.route('/send_verification/<email>')
+def send_verification(email):
+    """Send verification email to the specified email address"""
+    try:
+        from email_verification import generate_email_token
+        from send_email import send_verification_email
+        
+        # Generate verification token
+        token = generate_email_token(email)
+        
+        # Send verification email (mock)
+        send_verification_email(email, token)
+        
+        flash(f"Verification email sent to {email}. Please check your console for the verification link.")
+        return redirect(url_for("login"))
+        
+    except Exception as e:
+        flash(f"Error sending verification email: {str(e)}")
+        return redirect(url_for("login"))
+
+@app.route('/verify_email/<token>')
+def verify_email(token):
+    """Verify email using the provided token"""
+    try:
+        from email_verification import confirm_email_token
+        from encryption import encrypt_data
+        from itsdangerous import SignatureExpired, BadSignature
+        
+        # Confirm the token and get the email
+        try:
+            email = confirm_email_token(token)
+        except SignatureExpired:
+            flash("The verification link has expired. Please request a new verification email.")
+            return redirect(url_for("login"))
+        except BadSignature:
+            flash("Invalid verification link. Please check the link or request a new one.")
+            return redirect(url_for("login"))
+        
+        # Encrypt the email to match against database
+        encrypted_email = encrypt_data(email)
+        
+        if encrypted_email is None:
+            flash("System error during verification. Please try again.")
+            return redirect(url_for("login"))
+        
+        # Update verified_at timestamp in database
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        
+        # Check if user exists
+        c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+        user = c.fetchone()
+        
+        if user:
+            user_id = user[0]
+            
+            # Update verified_at timestamp
+            c.execute("""
+                UPDATE users 
+                SET verified_at = ? 
+                WHERE id = ?
+            """, (datetime.now().isoformat(), user_id))
+            
+            # Log verification activity for GDPR Article 30
+            c.execute("""
+                INSERT INTO data_processing_log (
+                    user_id, activity_type, data_category, purpose, legal_basis
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (
+                user_id, "email_verification", "contact_data", 
+                "Email address verification for account security", "legitimate_interest"
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            flash("Email successfully verified! You can now log in.")
+            return redirect(url_for("login"))
+        else:
+            conn.close()
+            flash("User not found. Please register first.")
+            return redirect(url_for("register"))
+            
+    except Exception as e:
+        flash(f"Email verification failed: {str(e)}")
+        return redirect(url_for("login"))
+
 # Settings page with GDPR options
 @app.route('/settings')
 def settings():
