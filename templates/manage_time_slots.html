@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -248,7 +249,7 @@
             <div class="tab-pane fade" id="timesheets" role="tabpanel">
                 <div class="hr-card">
                     <h4><i class="fas fa-clock text-warning"></i> Daily Timesheets</h4>
-
+                    
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <input type="date" class="form-control" id="timesheetDate" value="2025-07-23">
@@ -330,7 +331,7 @@
                     <div class="col-md-8">
                         <div class="hr-card">
                             <h4><i class="fas fa-money-bill text-success"></i> Payroll Management</h4>
-
+                            
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -417,7 +418,7 @@
             <div class="tab-pane fade" id="performance" role="tabpanel">
                 <div class="hr-card">
                     <h4><i class="fas fa-chart-bar text-info"></i> Employee Performance</h4>
-
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card">
@@ -480,7 +481,7 @@
             <div class="tab-pane fade" id="time-slots" role="tabpanel">
                 <div class="hr-card">
                     <h4><i class="fas fa-calendar-alt text-primary"></i> Time Slot Configuration</h4>
-
+                    
                     <form method="POST" id="timeSlotForm">
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -679,7 +680,7 @@
             if (!openingTime || !closingTime) return;
 
             const slots = generatePreviewSlots(openingTime, closingTime, slotDuration, lunchStart, lunchEnd);
-
+            
             const previewContainer = document.getElementById('previewSlots');
             if (previewContainer) {
                 previewContainer.innerHTML = slots.map(slot => 
@@ -696,7 +697,7 @@
             const lunchEndTime = lunchEnd ? new Date(`2000-01-01 ${lunchEnd}`) : null;
 
             let current = new Date(startTime);
-
+            
             while (current < endTime) {
                 if (lunchStartTime && lunchEndTime && current >= lunchStartTime && current < lunchEndTime) {
                     current.setMinutes(current.getMinutes() + duration);
@@ -726,10 +727,10 @@
         function saveEmployee() {
             const form = document.getElementById('addEmployeeForm');
             const formData = new FormData(form);
-
+            
             // Here you would typically send the data to the server
             alert('Employee saved successfully!');
-
+            
             // Close modal and refresh employee list
             const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
             modal.hide();
@@ -739,7 +740,7 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             updatePreview();
-
+            
             // Update metrics periodically
             setInterval(updateMetrics, 30000); // Update every 30 seconds
         });
