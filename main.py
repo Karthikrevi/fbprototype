@@ -3498,7 +3498,7 @@ def book_vendor_service(vendor_id):
                 conn.close()
                 return {"success": False, "error": "Invalid booking data"}, 400
 
-            except Exception as e:
+        except Exception as e:
             conn.rollback()
             conn.close()
             flash(f"Error: {str(e)}")
