@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Booking Management - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .booking-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .booking-header {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+      padding: 20px;
+      border-radius: 15px 15px 0 0;
+    }
+    .groomer-assignment {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+    .revenue-badge {
+      background: #28a745;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+    }
+    .not-tracked {
+      background: #ffc107;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid p-4">
+    <a href="/erp/bookings" class="btn btn-light mb-3">
+      <i class="fas fa-arrow-left"></i> Back to Basic Bookings
+    </a>
+
+    <div class="header bg-white rounded-4 p-4 mb-4">
+      <h2><i class="fas fa-users-cog"></i> Enhanced Booking Management</h2>
+      <p class="text-muted mb-0">Assign groomers, set prices, and track revenue by employee</p>
+    </div>
+
+    {% for booking in bookings %}
+    <div class="booking-card">
+      <div class="booking-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5>{{ booking[1] }} - {{ booking[5] or 'Pet' }}</h5>
+            <small>Booking #{{ booking[0] }} • {{ booking[2] }} at {{ booking[3] }}</small>
+          </div>
+          <span class="badge bg-light text-dark">{{ booking[4].title() }}</span>
+        </div>
+      </div>
+      
+      <div class="p-4">
+        <div class="row">
+          <div class="col-md-6">
+            <strong>Pet Parent:</strong> {{ booking[6] or 'Not specified' }}<br>
+            <strong>Service:</strong> {{ booking[1] }}<br>
+            <strong>Status:</strong> {{ booking[4].replace('_', ' ').title() }}
+          </div>
+          <div class="col-md-6">
+            <div class="groomer-assignment">
+              <h6><i class="fas fa-user-tie"></i> Groomer Assignment</h6>
+              
+              <form onsubmit="assignGroomer(event, {{ booking[0] }})">
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <select class="form-select form-select-sm" name="groomer_id" required>
+                      <option value="">Select Groomer</option>
+                      {% for employee in employees %}
+                        <option value="{{ employee[0] }}" 
+                          {% if booking[7] == employee[0] %}selected{% endif %}>
+                          {{ employee[1] }} ({{ employee[2] }})
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <input type="number" class="form-control form-control-sm" 
+                           name="service_price" placeholder="Price ₹" 
+                           value="{{ booking[8] or '' }}" step="0.01" min="0">
+                  </div>
+                  <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      <i class="fas fa-save"></i>
+                    </button>
+                  </div>
+                </div>
+              </form>
+              
+              <div class="mt-2">
+                {% if booking[9] %}
+                  <small class="text-success">
+                    <i class="fas fa-user"></i> Assigned to: {{ booking[9] }}
+                  </small>
+                {% else %}
+                  <small class="text-muted">No groomer assigned</small>
+                {% endif %}
+                
+                {% if booking[8] %}
+                  <span class="revenue-badge {% if not booking[10] %}not-tracked{% endif %} ms-2">
+                    ₹{{ "%.2f"|format(booking[8]) }}
+                    {% if booking[10] %}
+                      <i class="fas fa-check"></i>
+                    {% else %}
+                      <i class="fas fa-clock"></i>
+                    {% endif %}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if not bookings %}
+    <div class="text-center bg-white rounded-4 p-5">
+      <i class="fas fa-calendar-times text-muted" style="font-size: 3rem;"></i>
+      <h4 class="mt-3">No Bookings Found</h4>
+      <p class="text-muted">Bookings will appear here once customers schedule appointments.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function assignGroomer(event, bookingId) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = new FormData(form);
+      formData.append('booking_id', bookingId);
+      
+      fetch('/erp/assign-groomer', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error assigning groomer');
+      });
+    }
+  </script>
+</body>
+</html>

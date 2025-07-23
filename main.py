@@ -971,6 +971,22 @@ def init_erp_db():
         )
     ''')
 
+    # Add groomer assignment to bookings table
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN assigned_groomer_id INTEGER")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN service_price REAL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN revenue_tracked BOOLEAN DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
     # Stray Tracker System Tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS ngo_partners (
@@ -2981,6 +2997,178 @@ def isolation_dashboard():
         bookings.append({
             'id': booking[0],
             'pet_id': booking[1],
+
+
+@app.route('/erp/assign-groomer', methods=["POST"])
+def assign_groomer_to_booking():
+    """Assign or reassign a groomer to a booking"""
+    if "vendor" not in session:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    try:
+        booking_id = request.form.get("booking_id")
+        groomer_id = request.form.get("groomer_id")
+        service_price = float(request.form.get("service_price", 0))
+        
+        email = session["vendor"]
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+        vendor_result = c.fetchone()
+        
+        if not vendor_result:
+            conn.close()
+            return jsonify({"success": False, "message": "Vendor not found"}), 404
+
+        vendor_id = vendor_result[0]
+
+        # Update booking with groomer assignment and price
+        c.execute("""
+            UPDATE bookings 
+            SET assigned_groomer_id = ?, service_price = ?
+            WHERE id = ? AND vendor_id = ?
+        """, (groomer_id, service_price, booking_id, vendor_id))
+
+        if c.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "message": "Booking not found"}), 404
+
+        # Get service name for tracking
+        c.execute("SELECT service FROM bookings WHERE id = ?", (booking_id,))
+        service_name = c.fetchone()[0]
+
+        # If booking is already completed, track revenue immediately
+        c.execute("SELECT status FROM bookings WHERE id = ?", (booking_id,))
+        status = c.fetchone()[0]
+        
+        if status == 'completed' and service_price > 0:
+            track_booking_revenue(booking_id, groomer_id, vendor_id, service_price, service_name)
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"success": True, "message": "Groomer assigned successfully"})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/erp/employee-revenue')
+def employee_revenue_dashboard():
+    """Dashboard showing employee revenue tracking"""
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return render_template("employee_revenue.html", employees=[], revenue_data=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get all employees
+    c.execute("""
+        SELECT id, name, position, status
+        FROM employees 
+        WHERE vendor_id = ? AND status = 'active'
+        ORDER BY name
+    """, (vendor_id,))
+    employees = c.fetchall()
+
+    # Get revenue data for current month
+    current_month = datetime.now().strftime("%Y-%m")
+    
+    c.execute("""
+        SELECT e.name, e.position,
+               COUNT(ert.id) as total_services,
+               COALESCE(SUM(ert.revenue_amount), 0) as total_revenue,
+               COALESCE(AVG(ert.revenue_amount), 0) as avg_service_value,
+               DATE(MAX(ert.transaction_date)) as last_service
+        FROM employees e
+        LEFT JOIN employee_revenue_tracking ert ON e.id = ert.employee_id 
+            AND strftime('%Y-%m', ert.transaction_date) = ?
+        WHERE e.vendor_id = ? AND e.status = 'active'
+        GROUP BY e.id, e.name, e.position
+        ORDER BY total_revenue DESC
+    """, (current_month, vendor_id))
+    
+    revenue_data = c.fetchall()
+
+    # Get daily revenue breakdown for chart
+    c.execute("""
+        SELECT DATE(ert.transaction_date) as date,
+               e.name as employee_name,
+               SUM(ert.revenue_amount) as daily_revenue
+        FROM employee_revenue_tracking ert
+        JOIN employees e ON ert.employee_id = e.id
+        WHERE ert.vendor_id = ? AND ert.transaction_date >= date('now', '-30 days')
+        GROUP BY DATE(ert.transaction_date), e.id, e.name
+        ORDER BY date DESC
+    """, (vendor_id,))
+    
+    daily_breakdown = c.fetchall()
+
+    conn.close()
+    return render_template("employee_revenue.html", 
+                         employees=employees,
+                         revenue_data=revenue_data,
+                         daily_breakdown=daily_breakdown,
+                         current_month=current_month)
+
+@app.route('/erp/bookings/manage')
+def manage_bookings_enhanced():
+    """Enhanced booking management with groomer assignment"""
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return render_template("manage_bookings_enhanced.html", bookings=[], employees=[])
+
+    vendor_id = vendor_result[0]
+
+    # Get bookings with groomer information
+    c.execute("""
+        SELECT b.id, b.service, b.date, b.time, b.status, b.pet_name, 
+               b.pet_parent_name, b.assigned_groomer_id, b.service_price,
+               e.name as groomer_name, b.revenue_tracked
+        FROM bookings b
+        LEFT JOIN employees e ON b.assigned_groomer_id = e.id
+        WHERE b.vendor_id = ?
+        ORDER BY b.date DESC, b.time DESC
+    """, (vendor_id,))
+    bookings = c.fetchall()
+
+    # Get active employees
+    c.execute("""
+        SELECT id, name, position
+        FROM employees 
+        WHERE vendor_id = ? AND status = 'active'
+        ORDER BY name
+    """, (vendor_id,))
+    employees = c.fetchall()
+
+    conn.close()
+    return render_template("manage_bookings_enhanced.html", 
+                         bookings=bookings, 
+                         employees=employees)
+
             'pet_name': f'Pet {booking[1]}' if booking[1] != 1 else 'Luna',
             'status': booking[2],
             'check_in_date': booking[3],
@@ -3455,6 +3643,20 @@ def erp_update_booking_status():
 
         vendor_id = vendor_result[0]
 
+        # Get booking details for revenue tracking
+        c.execute("""
+            SELECT service, assigned_groomer_id, service_price, revenue_tracked
+            FROM bookings 
+            WHERE id = ? AND vendor_id = ?
+        """, (booking_id, vendor_id))
+        
+        booking_data = c.fetchone()
+        if not booking_data:
+            conn.close()
+            return jsonify({"success": False, "message": "Booking not found or unauthorized"}), 404
+
+        service_name, groomer_id, service_price, revenue_tracked = booking_data
+
         # Update booking status
         c.execute("""
             UPDATE bookings 
@@ -3462,9 +3664,9 @@ def erp_update_booking_status():
             WHERE id = ? AND vendor_id = ?
         """, (new_status, f"Status updated to {new_status}", booking_id, vendor_id))
 
-        if c.rowcount == 0:
-            conn.close()
-            return jsonify({"success": False, "message": "Booking not found or unauthorized"}), 404
+        # Track revenue when service is completed and groomer is assigned
+        if new_status == 'completed' and groomer_id and service_price and not revenue_tracked:
+            track_booking_revenue(booking_id, groomer_id, vendor_id, service_price, service_name)
 
         conn.commit()
         conn.close()
@@ -5301,15 +5503,100 @@ def get_hr_metrics(vendor_id, cursor):
     """, (vendor_id,))
     monthly_payroll = cursor.fetchone()[0]
     
-    # Productivity score (mock calculation)
-    productivity = 87  # This would be calculated based on actual metrics
+    # Revenue generated today by employees
+    cursor.execute("""
+        SELECT COALESCE(SUM(revenue_amount), 0) FROM employee_revenue_tracking 
+        WHERE vendor_id = ? AND transaction_date = date('now')
+    """, (vendor_id,))
+    daily_revenue = cursor.fetchone()[0]
     
     return {
         'total_employees': total_employees,
         'hours_today': hours_today,
         'monthly_payroll': monthly_payroll,
-        'productivity': productivity
+        'daily_revenue': daily_revenue
     }
+
+def track_booking_revenue(booking_id, employee_id, vendor_id, service_price, service_name):
+    """Track revenue for a specific booking and employee"""
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    try:
+        # Check if revenue already tracked for this booking
+        c.execute("SELECT id FROM employee_revenue_tracking WHERE booking_id = ?", (booking_id,))
+        existing = c.fetchone()
+        
+        if existing:
+            # Update existing record with new employee
+            c.execute("""
+                UPDATE employee_revenue_tracking 
+                SET employee_id = ?, revenue_amount = ?, notes = ?
+                WHERE booking_id = ?
+            """, (employee_id, service_price, f"Groomer reassigned for {service_name}", booking_id))
+        else:
+            # Create new revenue tracking record
+            c.execute("""
+                INSERT INTO employee_revenue_tracking 
+                (employee_id, vendor_id, booking_id, service_type, revenue_amount, transaction_date, notes)
+                VALUES (?, ?, ?, ?, ?, date('now'), ?)
+            """, (employee_id, vendor_id, booking_id, service_name, service_price, f"Revenue from {service_name} service"))
+        
+        # Mark booking as revenue tracked
+        c.execute("UPDATE bookings SET revenue_tracked = 1 WHERE id = ?", (booking_id,))
+        
+        # Add to accounting ledger
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'credit', 'Service Revenue', ?, ?, 'Employee Revenue')
+        """, (vendor_id, service_price, f"Employee revenue - {service_name}"))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"Error tracking revenue: {e}")
+        return False
+    finally:
+        conn.close()
+
+def reassign_booking_groomer(booking_id, new_groomer_id, vendor_id):
+    """Reassign booking to a different groomer and update revenue tracking"""
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    
+    try:
+        # Get booking details
+        c.execute("SELECT service, assigned_groomer_id, service_price FROM bookings WHERE id = ?", (booking_id,))
+        booking_data = c.fetchone()
+        
+        if not booking_data:
+            return False, "Booking not found"
+        
+        service_name, old_groomer_id, service_price = booking_data
+        service_price = service_price or 0
+        
+        # Update booking assignment
+        c.execute("UPDATE bookings SET assigned_groomer_id = ? WHERE id = ?", (new_groomer_id, booking_id))
+        
+        # Update revenue tracking if it exists
+        c.execute("""
+            UPDATE employee_revenue_tracking 
+            SET employee_id = ?, notes = ?
+            WHERE booking_id = ?
+        """, (new_groomer_id, f"Groomer reassigned from employee {old_groomer_id} to {new_groomer_id}", booking_id))
+        
+        # If no revenue tracking exists yet, create it
+        if c.rowcount == 0 and service_price > 0:
+            track_booking_revenue(booking_id, new_groomer_id, vendor_id, service_price, service_name)
+        
+        conn.commit()
+        return True, "Groomer reassigned successfully"
+    except Exception as e:
+        conn.rollback()
+        return False, f"Error reassigning groomer: {e}"
+    finally:
+        conn.close()
 
 @app.route('/erp/hr/employees', methods=["GET", "POST"])
 def manage_employees():
