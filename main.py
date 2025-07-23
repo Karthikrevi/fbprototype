@@ -5472,6 +5472,33 @@ def manage_payroll():
                          payroll_summary=payroll_summary,
                          current_month=current_month)
 
+@app.route('/api/hr-metrics')
+def get_hr_metrics():
+    """API endpoint for HR metrics"""
+    if "vendor" not in session:
+        return {"success": False, "error": "Unauthorized"}, 401
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}, 404
+    
+    vendor_id = vendor_result[0]
+
+    # Get HR metrics
+    hr_metrics = get_hr_metrics(vendor_id, c)
+    
+    conn.close()
+    
+    return {"success": True, "metrics": hr_metrics}
+
 @app.route('/api/available-slots/<int:vendor_id>')
 def get_available_slots(vendor_id):
     """API endpoint to get available time slots for a specific date"""
