@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HR-Accounting Integration - FurrButler ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .integration-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .amount {
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .credit { color: #28a745; }
+        .debit { color: #dc3545; }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/erp/reports" class="back-btn">← Back to Reports</a>
+    
+    <div class="container-fluid" style="padding: 20px;">
+        <div class="header">
+            <h1>🔗 HR-Accounting Integration</h1>
+            <p>Monitor how HR activities are reflected in your accounting ledgers</p>
+        </div>
+
+        <!-- Payroll Summary -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <h5 class="text-primary">Total Salary Expense</h5>
+                    <h3>₹{{ "%.2f"|format(payroll_summary[0] or 0) }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <h5 class="text-warning">PF Liability</h5>
+                    <h3>₹{{ "%.2f"|format(payroll_summary[1] or 0) }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <h5 class="text-info">ESI Liability</h5>
+                    <h3>₹{{ "%.2f"|format(payroll_summary[2] or 0) }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <h5 class="text-danger">TDS Liability</h5>
+                    <h3>₹{{ "%.2f"|format(payroll_summary[3] or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Status -->
+        <div class="integration-card">
+            <h4>✅ Integration Status</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Connected Modules:</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Payroll → Salary Expenses</span>
+                            <span class="badge bg-success">✓ Connected</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Employee Bonuses → Expenses</span>
+                            <span class="badge bg-success">✓ Connected</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Statutory Deductions → Liabilities</span>
+                            <span class="badge bg-success">✓ Connected</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Payslip Generation → Ledger Entries</span>
+                            <span class="badge bg-success">✓ Connected</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Excluded from Accounts (As Requested):</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Employee Revenue Tracking</span>
+                            <span class="badge bg-secondary">Not Connected</span>
+                        </li>
+                        <li class="list-group-item">
+                            <small class="text-muted">Revenue tracking is for performance monitoring only and does not affect accounting ledgers.</small>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent HR Ledger Entries -->
+        <div class="integration-card">
+            <h4>📊 Recent HR Accounting Entries</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Entry Type</th>
+                            <th>Account</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in hr_ledger_entries %}
+                        <tr>
+                            <td>{{ entry[5][:10] }}</td>
+                            <td>
+                                <span class="badge {{ 'bg-danger' if entry[1] == 'debit' else 'bg-success' }}">
+                                    {{ entry[1].title() }}
+                                </span>
+                            </td>
+                            <td><strong>{{ entry[2] }}</strong></td>
+                            <td class="amount {{ 'debit' if entry[1] == 'debit' else 'credit' }}">
+                                ₹{{ "%.2f"|format(entry[3]) }}
+                            </td>
+                            <td>{{ entry[4] }}</td>
+                        </tr>
+                        {% endfor %}
+                        
+                        {% if not hr_ledger_entries %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding: 40px;">
+                                <div style="font-size: 1.2rem;">📋</div>
+                                <div>No HR-related accounting entries yet</div>
+                                <a href="/erp/hr/employees" class="btn btn-primary mt-3">Generate First Payslip</a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Account Mapping -->
+        <div class="integration-card">
+            <h4>🗂️ HR-Accounting Account Mapping</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Expense Accounts:</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>Salary Expense</strong></td>
+                                <td>Employee gross salaries</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Operating Expenses</strong></td>
+                                <td>Performance bonuses</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Employee Benefits</strong></td>
+                                <td>Employer PF & ESI contributions</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>Liability Accounts:</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>PF Liability</strong></td>
+                                <td>Employee & employer PF contributions</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ESI Liability</strong></td>
+                                <td>Employee & employer ESI contributions</td>
+                            </tr>
+                            <tr>
+                                <td><strong>TDS Liability</strong></td>
+                                <td>Income tax deducted from salaries</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Salary Payable</strong></td>
+                                <td>Net salary pending payment</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Dashboard -->
+        <div class="integration-card">
+            <h4>⚖️ Government Compliance Dashboard</h4>
+            <div class="row">
+                <div class="col-md-3 text-center">
+                    <div class="border rounded p-3">
+                        <h6>PF Compliance</h6>
+                        <div class="badge bg-success">Active</div>
+                        <p class="small mt-2">12% employee + 12% employer</p>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="border rounded p-3">
+                        <h6>ESI Compliance</h6>
+                        <div class="badge bg-success">Active</div>
+                        <p class="small mt-2">0.75% employee + 3.25% employer</p>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="border rounded p-3">
+                        <h6>Professional Tax</h6>
+                        <div class="badge bg-success">Active</div>
+                        <p class="small mt-2">₹200 per month</p>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="border rounded p-3">
+                        <h6>TDS Compliance</h6>
+                        <div class="badge bg-success">Active</div>
+                        <p class="small mt-2">As per income tax slabs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
