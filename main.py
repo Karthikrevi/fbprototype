@@ -3001,23 +3001,37 @@ def book_vendor_service(vendor_id):
         if request.method == "POST":
             service = request.form.get("service")
             date = request.form.get("date")
-            time = request.form.get("time", "10:00")
+            time = request.form.get("time")
             duration = int(request.form.get("duration", 60))
             pet_name = request.form.get("pet_name")
             pet_parent_name = request.form.get("pet_parent_name")
             pet_parent_phone = request.form.get("pet_parent_phone")
+            notes = request.form.get("notes", "")
+
+            # Validation
+            if not all([service, date, time, pet_name, pet_parent_name]):
+                flash("Please fill in all required fields")
+                return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
 
             # Store booking in database (using vendor_id=0 for demo)
             conn = sqlite3.connect('erp.db')
             c = conn.cursor()
-            c.execute("""
-                INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (0, user_email, service, date, time, duration, "pending", pet_name, pet_parent_name, pet_parent_phone))
-            conn.commit()
-            conn.close()
+            
+            try:
+                c.execute("""
+                    INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (0, user_email, service, date, time, duration, "confirmed", pet_name, pet_parent_name, pet_parent_phone, notes))
+                conn.commit()
+                
+                booking_id = c.lastrowid
+                flash(f"Booking #{booking_id} confirmed for {service} on {date} at {time}")
+                
+            except Exception as e:
+                flash(f"Error creating booking: {str(e)}")
+            finally:
+                conn.close()
 
-            flash(f"Booking confirmed for {service} on {date} at {time}")
             return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
         return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
@@ -3096,20 +3110,34 @@ def book_vendor_service(vendor_id):
             if request.method == "POST":
                 service = request.form.get("service")
                 date = request.form.get("date")
-                time = request.form.get("time", "10:00")
+                time = request.form.get("time")
                 duration = int(request.form.get("duration", 60))
                 pet_name = request.form.get("pet_name")
                 pet_parent_name = request.form.get("pet_parent_name")
                 pet_parent_phone = request.form.get("pet_parent_phone")
+                notes = request.form.get("notes", "")
 
-                c.execute("""
-                    INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (vendor_id, user_email, service, date, time, duration, "pending", pet_name, pet_parent_name, pet_parent_phone))
-                conn.commit()
-                conn.close()
+                # Validation
+                if not all([service, date, time, pet_name, pet_parent_name]):
+                    flash("Please fill in all required fields")
+                    conn.close()
+                    return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
 
-                flash(f"Booking confirmed for {service} on {date} at {time}")
+                try:
+                    c.execute("""
+                        INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (vendor_id, user_email, service, date, time, duration, "confirmed", pet_name, pet_parent_name, pet_parent_phone, notes))
+                    conn.commit()
+                    
+                    booking_id = c.lastrowid
+                    flash(f"Booking #{booking_id} confirmed for {service} on {date} at {time}")
+                    
+                except Exception as e:
+                    flash(f"Error creating booking: {str(e)}")
+                finally:
+                    conn.close()
+
                 return redirect(url_for("vendor_profile", vendor_id=vendor_id))
 
             conn.close()
@@ -3181,6 +3209,52 @@ def update_booking_status(booking_id):
 
     flash(f"Booking status updated to {new_status}")
     return redirect(url_for("erp_bookings"))
+
+@app.route('/erp-update-booking-status', methods=["POST"])
+def erp_update_booking_status():
+    """AJAX endpoint for updating booking status"""
+    if "vendor" not in session:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    try:
+        booking_id = request.form.get("booking_id")
+        new_status = request.form.get("status")
+        
+        if not booking_id or not new_status:
+            return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+        email = session["vendor"]
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email = ?", (email,))
+        vendor_result = c.fetchone()
+        
+        if not vendor_result:
+            conn.close()
+            return jsonify({"success": False, "message": "Vendor not found"}), 404
+
+        vendor_id = vendor_result[0]
+
+        # Update booking status
+        c.execute("""
+            UPDATE bookings 
+            SET status = ?, status_details = ?
+            WHERE id = ? AND vendor_id = ?
+        """, (new_status, f"Status updated to {new_status}", booking_id, vendor_id))
+
+        if c.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "message": "Booking not found or unauthorized"}), 404
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"success": True, "message": f"Booking status updated to {new_status}"})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # User booking tracking route
 @app.route('/my-bookings')

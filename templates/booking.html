@@ -38,14 +38,30 @@
 <body>
   <div class="container">
     <h2>📅 Book a Service with {{ vendor_name }}</h2>
-    <form method="POST">
+    <form method="POST" id="bookingForm">
       <div class="mb-3 mt-4">
         <label for="service" class="form-label">Select Service:</label>
-        <select class="form-select" id="service" name="service" required>
+        <select class="form-select" id="service" name="service" required onchange="updateServiceDetails()">
+          <option value="">Choose a service...</option>
           {% for service in services %}
-          <option value="{{ service }}">{{ service }}</option>
+          <option value="{{ service.name }}" 
+                  data-price="{{ service.price }}" 
+                  data-duration="{{ service.duration }}"
+                  data-description="{{ service.description }}">
+            {{ service.name }} - ${{ "%.2f"|format(service.price) }}
+          </option>
           {% endfor %}
         </select>
+        <input type="hidden" id="duration" name="duration" value="60">
+      </div>
+      
+      <div id="serviceDetails" class="mb-3" style="display: none;">
+        <div class="alert alert-info">
+          <strong>Service Details:</strong>
+          <div id="serviceDescription"></div>
+          <div>Duration: <span id="serviceDuration"></span> minutes</div>
+          <div>Price: $<span id="servicePrice"></span></div>
+        </div>
       </div>
 
       <div class="mb-3">
@@ -63,13 +79,128 @@
         <input type="tel" class="form-control" id="pet_parent_phone" name="pet_parent_phone" placeholder="e.g., +91-9876543210">
       </div>
 
-      <div class="mb-4">
+      <div class="mb-3">
         <label for="date" class="form-label">Preferred Date:</label>
-        <input type="date" class="form-control" id="date" name="date" required>
+        <input type="date" class="form-control" id="date" name="date" required onchange="generateTimeSlots()">
       </div>
 
-      <button type="submit" class="btn-book">Confirm Booking</button>
+      <div class="mb-4" id="timeSlotContainer" style="display: none;">
+        <label class="form-label">Available Time Slots:</label>
+        <div id="timeSlots" class="d-flex flex-wrap gap-2"></div>
+        <input type="hidden" id="selectedTime" name="time" value="">
+      </div>
+
+      <div class="mb-3">
+        <label for="notes" class="form-label">Special Instructions (Optional):</label>
+        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any special requirements or notes for the service provider..."></textarea>
+      </div>
+
+      <button type="submit" class="btn-book" id="submitBtn" disabled>Confirm Booking</button>
     </form>
+
+    <script>
+    let selectedService = null;
+    let availableSlots = [];
+
+    function updateServiceDetails() {
+      const serviceSelect = document.getElementById('service');
+      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+      
+      if (selectedOption.value) {
+        selectedService = {
+          name: selectedOption.value,
+          price: selectedOption.dataset.price,
+          duration: selectedOption.dataset.duration,
+          description: selectedOption.dataset.description
+        };
+        
+        document.getElementById('duration').value = selectedService.duration;
+        document.getElementById('serviceDescription').textContent = selectedService.description;
+        document.getElementById('serviceDuration').textContent = selectedService.duration;
+        document.getElementById('servicePrice').textContent = selectedService.price;
+        document.getElementById('serviceDetails').style.display = 'block';
+        
+        // Generate available slots based on service
+        availableSlots = selectedOption.dataset.availableSlots ? 
+          JSON.parse(selectedOption.dataset.availableSlots) : 
+          ['09:00', '11:00', '14:00', '16:00'];
+        
+        // Reset time selection
+        document.getElementById('timeSlotContainer').style.display = 'none';
+        document.getElementById('selectedTime').value = '';
+        checkFormValidity();
+      } else {
+        document.getElementById('serviceDetails').style.display = 'none';
+        selectedService = null;
+        checkFormValidity();
+      }
+    }
+
+    function generateTimeSlots() {
+      const dateInput = document.getElementById('date');
+      const timeSlotContainer = document.getElementById('timeSlotContainer');
+      const timeSlotsDiv = document.getElementById('timeSlots');
+      
+      if (dateInput.value && selectedService) {
+        timeSlotsDiv.innerHTML = '';
+        
+        // Use service-specific slots or default slots
+        const slots = {% if services and services[0].get('available_slots') %}
+          {{ services[0].available_slots|tojsonfilter }}
+        {% else %}
+          ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
+        {% endif %};
+        
+        slots.forEach(slot => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'btn btn-outline-primary btn-sm';
+          button.textContent = slot;
+          button.onclick = () => selectTimeSlot(slot, button);
+          timeSlotsDiv.appendChild(button);
+        });
+        
+        timeSlotContainer.style.display = 'block';
+      }
+    }
+
+    function selectTimeSlot(time, button) {
+      // Remove active class from all buttons
+      document.querySelectorAll('#timeSlots button').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary');
+      });
+      
+      // Add active class to selected button
+      button.classList.remove('btn-outline-primary');
+      button.classList.add('btn-primary');
+      
+      document.getElementById('selectedTime').value = time;
+      checkFormValidity();
+    }
+
+    function checkFormValidity() {
+      const service = document.getElementById('service').value;
+      const date = document.getElementById('date').value;
+      const time = document.getElementById('selectedTime').value;
+      const petName = document.getElementById('pet_name').value;
+      const petParent = document.getElementById('pet_parent_name').value;
+      
+      const isValid = service && date && time && petName && petParent;
+      document.getElementById('submitBtn').disabled = !isValid;
+    }
+
+    // Set minimum date to today
+    document.addEventListener('DOMContentLoaded', function() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('date').min = today;
+      
+      // Add event listeners for form validation
+      ['pet_name', 'pet_parent_name'].forEach(id => {
+        document.getElementById(id).addEventListener('input', checkFormValidity);
+      });
+    });
+    </script>
   </div>
 </body>
 </html>
