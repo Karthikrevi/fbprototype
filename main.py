@@ -843,6 +843,134 @@ def init_erp_db():
         )
     ''')
 
+    # HR Management Tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            position TEXT NOT NULL,
+            base_salary REAL NOT NULL,
+            hourly_rate REAL NOT NULL,
+            join_date TEXT NOT NULL,
+            status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'terminated')),
+            emergency_contact TEXT,
+            address TEXT,
+            skills TEXT,
+            certifications TEXT,
+            profile_image TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employee_timesheets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            work_date DATE NOT NULL,
+            check_in_time TEXT,
+            check_out_time TEXT,
+            break_duration INTEGER DEFAULT 0,
+            total_hours REAL DEFAULT 0,
+            overtime_hours REAL DEFAULT 0,
+            status TEXT DEFAULT 'present' CHECK(status IN ('present', 'absent', 'late', 'leave', 'half_day')),
+            notes TEXT,
+            approved_by INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employee_payroll (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            pay_period_start DATE NOT NULL,
+            pay_period_end DATE NOT NULL,
+            base_pay REAL NOT NULL,
+            overtime_pay REAL DEFAULT 0,
+            bonus REAL DEFAULT 0,
+            deductions REAL DEFAULT 0,
+            total_pay REAL NOT NULL,
+            payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'cancelled')),
+            payment_date TEXT,
+            payment_method TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employee_performance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            performance_month TEXT NOT NULL,
+            services_completed INTEGER DEFAULT 0,
+            revenue_generated REAL DEFAULT 0,
+            customer_rating REAL DEFAULT 0,
+            attendance_rate REAL DEFAULT 0,
+            productivity_score REAL DEFAULT 0,
+            bonus_earned REAL DEFAULT 0,
+            feedback TEXT,
+            reviewed_by INTEGER,
+            review_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employee_leaves (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            leave_type TEXT NOT NULL CHECK(leave_type IN ('sick', 'vacation', 'personal', 'emergency', 'maternity', 'paternity')),
+            start_date DATE NOT NULL,
+            end_date DATE NOT NULL,
+            days_count INTEGER NOT NULL,
+            reason TEXT,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+            approved_by INTEGER,
+            approval_date TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employee_revenue_tracking (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            booking_id INTEGER,
+            sale_id INTEGER,
+            service_type TEXT NOT NULL,
+            revenue_amount REAL NOT NULL,
+            commission_rate REAL DEFAULT 0,
+            commission_amount REAL DEFAULT 0,
+            transaction_date DATE NOT NULL,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id),
+            FOREIGN KEY (booking_id) REFERENCES bookings(id),
+            FOREIGN KEY (sale_id) REFERENCES sales_log(id)
+        )
+    ''')
+
     # Stray Tracker System Tables
     c.execute('''
         CREATE TABLE IF NOT EXISTS ngo_partners (
@@ -5134,10 +5262,215 @@ def manage_time_slots():
     """, (vendor_id,))
     upcoming_bookings = c.fetchall()
 
+    # Get employees for HR management
+    c.execute("""
+        SELECT id, name, email, phone, position, base_salary, hourly_rate, status, join_date
+        FROM employees 
+        WHERE vendor_id = ? AND status = 'active'
+        ORDER BY name
+    """, (vendor_id,))
+    employees = c.fetchall()
+
+    # Get HR metrics
+    hr_metrics = get_hr_metrics(vendor_id, c)
+
     conn.close()
     return render_template("manage_time_slots.html", 
                          time_slot_settings=time_slot_settings,
-                         upcoming_bookings=upcoming_bookings)
+                         upcoming_bookings=upcoming_bookings,
+                         employees=employees,
+                         hr_metrics=hr_metrics)
+
+def get_hr_metrics(vendor_id, cursor):
+    """Get HR metrics for dashboard"""
+    # Total employees
+    cursor.execute("SELECT COUNT(*) FROM employees WHERE vendor_id = ? AND status = 'active'", (vendor_id,))
+    total_employees = cursor.fetchone()[0]
+    
+    # Hours today
+    cursor.execute("""
+        SELECT COALESCE(SUM(total_hours), 0) FROM employee_timesheets 
+        WHERE vendor_id = ? AND work_date = date('now')
+    """, (vendor_id,))
+    hours_today = cursor.fetchone()[0]
+    
+    # Monthly payroll
+    cursor.execute("""
+        SELECT COALESCE(SUM(base_salary), 0) FROM employees 
+        WHERE vendor_id = ? AND status = 'active'
+    """, (vendor_id,))
+    monthly_payroll = cursor.fetchone()[0]
+    
+    # Productivity score (mock calculation)
+    productivity = 87  # This would be calculated based on actual metrics
+    
+    return {
+        'total_employees': total_employees,
+        'hours_today': hours_today,
+        'monthly_payroll': monthly_payroll,
+        'productivity': productivity
+    }
+
+@app.route('/erp/hr/employees', methods=["GET", "POST"])
+def manage_employees():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+
+    if request.method == "POST":
+        # Add new employee
+        name = request.form.get("name")
+        email_emp = request.form.get("email")
+        phone = request.form.get("phone")
+        position = request.form.get("position")
+        base_salary = float(request.form.get("salary"))
+        hourly_rate = float(request.form.get("hourly_rate"))
+        join_date = request.form.get("join_date")
+
+        c.execute("""
+            INSERT INTO employees 
+            (vendor_id, name, email, phone, position, base_salary, hourly_rate, join_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, name, email_emp, phone, position, base_salary, hourly_rate, join_date))
+
+        conn.commit()
+        flash("Employee added successfully!")
+        return redirect(url_for("manage_employees"))
+
+    # Get all employees
+    c.execute("""
+        SELECT id, name, email, phone, position, base_salary, hourly_rate, status, join_date
+        FROM employees 
+        WHERE vendor_id = ?
+        ORDER BY name
+    """, (vendor_id,))
+    employees = c.fetchall()
+
+    conn.close()
+    return render_template("manage_employees.html", employees=employees)
+
+@app.route('/erp/hr/timesheets', methods=["GET", "POST"])
+def manage_timesheets():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+
+    if request.method == "POST":
+        # Handle timesheet updates
+        employee_id = request.form.get("employee_id")
+        work_date = request.form.get("work_date")
+        check_in = request.form.get("check_in_time")
+        check_out = request.form.get("check_out_time")
+        
+        # Calculate total hours
+        if check_in and check_out:
+            check_in_time = datetime.strptime(check_in, "%H:%M")
+            check_out_time = datetime.strptime(check_out, "%H:%M")
+            total_hours = (check_out_time - check_in_time).total_seconds() / 3600
+            
+            c.execute("""
+                INSERT OR REPLACE INTO employee_timesheets 
+                (employee_id, vendor_id, work_date, check_in_time, check_out_time, total_hours)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (employee_id, vendor_id, work_date, check_in, check_out, total_hours))
+            
+            conn.commit()
+            flash("Timesheet updated successfully!")
+
+    # Get timesheet data for today
+    today = datetime.now().strftime("%Y-%m-%d")
+    c.execute("""
+        SELECT e.name, e.position, ts.check_in_time, ts.check_out_time, 
+               ts.total_hours, ts.status, e.hourly_rate
+        FROM employees e
+        LEFT JOIN employee_timesheets ts ON e.id = ts.employee_id AND ts.work_date = ?
+        WHERE e.vendor_id = ? AND e.status = 'active'
+        ORDER BY e.name
+    """, (today, vendor_id))
+    
+    timesheets = c.fetchall()
+
+    conn.close()
+    return render_template("manage_timesheets.html", timesheets=timesheets, today=today)
+
+@app.route('/erp/hr/payroll')
+def manage_payroll():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get vendor ID
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    
+    vendor_id = vendor_result[0]
+
+    # Get current month's payroll data
+    current_month = datetime.now().strftime("%Y-%m")
+    
+    c.execute("""
+        SELECT e.id, e.name, e.position, e.base_salary, e.hourly_rate,
+               COALESCE(SUM(ts.total_hours), 0) as total_hours,
+               COALESCE(SUM(ts.overtime_hours), 0) as overtime_hours
+        FROM employees e
+        LEFT JOIN employee_timesheets ts ON e.id = ts.employee_id 
+            AND strftime('%Y-%m', ts.work_date) = ?
+        WHERE e.vendor_id = ? AND e.status = 'active'
+        GROUP BY e.id
+        ORDER BY e.name
+    """, (current_month, vendor_id))
+    
+    payroll_data = c.fetchall()
+
+    # Calculate payroll summary
+    total_base_salaries = sum([emp[3] for emp in payroll_data])
+    total_overtime = sum([emp[6] * emp[4] * 1.5 for emp in payroll_data])  # 1.5x rate for overtime
+    total_payroll = total_base_salaries + total_overtime
+
+    payroll_summary = {
+        'total_base_salaries': total_base_salaries,
+        'total_overtime': total_overtime,
+        'total_payroll': total_payroll
+    }
+
+    conn.close()
+    return render_template("manage_payroll.html", 
+                         payroll_data=payroll_data,
+                         payroll_summary=payroll_summary,
+                         current_month=current_month)
 
 @app.route('/api/available-slots/<int:vendor_id>')
 def get_available_slots(vendor_id):
