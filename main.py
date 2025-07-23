@@ -2029,20 +2029,116 @@ def home():
 def register():
     if request.method == "POST":
         email = request.form.get("email")
+        phone = request.form.get("phone")
         password = request.form.get("password")
-
+        consent_given = request.form.get("consent") == "on"
+        
+        # Validation
         if not email or not password:
-            return "Please enter both email and password."
+            flash("Email and password are required.")
+            return render_template("register_new.html")
+        
+        if not consent_given:
+            flash("You must consent to data processing to create an account.")
+            return render_template("register_new.html")
+        
+        # Password validation
+        if len(password) < 8:
+            flash("Password must be at least 8 characters long.")
+            return render_template("register_new.html")
+        
+        import re
+        if not re.search(r'[A-Z]', password):
+            flash("Password must contain at least one uppercase letter.")
+            return render_template("register_new.html")
+        
+        if not re.search(r'[a-z]', password):
+            flash("Password must contain at least one lowercase letter.")
+            return render_template("register_new.html")
+        
+        if not re.search(r'\d', password):
+            flash("Password must contain at least one number.")
+            return render_template("register_new.html")
+        
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            flash("Password must contain at least one special character.")
+            return render_template("register_new.html")
+        
+        # Import encryption and security functions
+        from encryption import encrypt_data
+        from werkzeug.security import generate_password_hash
+        
+        # Encrypt PII data
+        encrypted_email = encrypt_data(email)
+        encrypted_phone = encrypt_data(phone) if phone else None
+        
+        if encrypted_email is None:
+            flash("Encryption system error. Please try again.")
+            return render_template("register_new.html")
+        
+        # Hash password
+        password_hash = generate_password_hash(password)
+        
+        # Save to users database
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            # Check if user already exists (by encrypted email comparison)
+            c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+            if c.fetchone():
+                flash("User already exists with this email.")
+                conn.close()
+                return render_template("register_new.html")
+            
+            # Insert new user
+            c.execute("""
+                INSERT INTO users (
+                    email, phone, password_hash, consent_given, consent_date,
+                    data_processing_consent, marketing_consent, consent_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                encrypted_email, encrypted_phone, password_hash, consent_given,
+                datetime.now().isoformat(), True, False, "1.0"
+            ))
+            
+            user_id = c.lastrowid
+            
+            # Log consent for audit trail
+            c.execute("""
+                INSERT INTO user_consent_log (
+                    user_id, consent_type, consent_given, consent_version,
+                    ip_address, user_agent
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                user_id, "registration", consent_given, "1.0",
+                request.environ.get('REMOTE_ADDR', ''),
+                request.environ.get('HTTP_USER_AGENT', '')
+            ))
+            
+            # Log data processing activity for GDPR Article 30
+            c.execute("""
+                INSERT INTO data_processing_log (
+                    user_id, activity_type, data_category, purpose, legal_basis
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (
+                user_id, "registration", "contact_data", 
+                "Account creation and service provision", "consent"
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            flash("Registration successful! Please log in.")
+            return redirect(url_for("login"))
+            
+        except sqlite3.Error as e:
+            flash(f"Database error: {str(e)}")
+            return render_template("register_new.html")
+        except Exception as e:
+            flash(f"Registration failed: {str(e)}")
+            return render_template("register_new.html")
 
-        if f"user:{email}" in db:
-            return "User already exists. Try logging in."
-
-        db[f"user:{email}"] = {
-            "email": email,
-            "password": password
-        }
-
-        return redirect(url_for("login"))
     return render_template("register_new.html")
 
 # Login
