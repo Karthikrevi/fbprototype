@@ -2149,16 +2149,82 @@ def login():
         password = request.form.get("password")
 
         if not email or not password:
-            return "Please enter both email and password."
+            flash("Please enter both email and password.")
+            return render_template("login.html")
 
-        user_key = f"user:{email}"
-        user = db.get(user_key)
+        # Import required functions
+        from encryption import encrypt_data
+        from werkzeug.security import check_password_hash
 
-        if user and user["password"] == password:
-            session["user"] = email
-            return redirect(url_for("dashboard"))
-        else:
-            return "Invalid email or password."
+        # Encrypt the provided email to match against database
+        encrypted_email = encrypt_data(email)
+        
+        if encrypted_email is None:
+            flash("System error. Please try again.")
+            return render_template("login.html")
+
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            # Find user by encrypted email
+            c.execute("SELECT id, password_hash, verified_at FROM users WHERE email = ?", (encrypted_email,))
+            user = c.fetchone()
+            
+            if user:
+                user_id, stored_password_hash, verified_at = user
+                
+                # Verify password using werkzeug
+                if check_password_hash(stored_password_hash, password):
+                    # Update last_accessed timestamp
+                    c.execute("""
+                        UPDATE users 
+                        SET last_accessed = ? 
+                        WHERE id = ?
+                    """, (datetime.now().isoformat(), user_id))
+                    
+                    # Log data processing activity for GDPR Article 30
+                    c.execute("""
+                        INSERT INTO data_processing_log (
+                            user_id, activity_type, data_category, purpose, legal_basis
+                        ) VALUES (?, ?, ?, ?, ?)
+                    """, (
+                        user_id, "login", "authentication_data", 
+                        "User authentication and session management", "legitimate_interest"
+                    ))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    # Set session (store original email for convenience)
+                    session["user"] = email
+                    session["user_id"] = user_id
+                    
+                    flash("Login successful!")
+                    return redirect(url_for("dashboard"))
+                else:
+                    # Log failed login attempt
+                    c.execute("""
+                        UPDATE users 
+                        SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1
+                        WHERE id = ?
+                    """, (user_id,))
+                    conn.commit()
+                    conn.close()
+                    
+                    flash("Invalid email or password.")
+                    return render_template("login.html")
+            else:
+                conn.close()
+                flash("Invalid email or password.")
+                return render_template("login.html")
+                
+        except sqlite3.Error as e:
+            flash(f"Database error: {str(e)}")
+            return render_template("login.html")
+        except Exception as e:
+            flash(f"Login failed: {str(e)}")
+            return render_template("login.html")
 
     return render_template("login.html")
 
