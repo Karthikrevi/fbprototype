@@ -334,3 +334,331 @@
   </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Bookings - FurrButler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        .checkout-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .checkout-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .booking-item {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            background-color: #f8f9fa;
+        }
+        .pet-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .pet-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        .service-details {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .price-breakdown {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .total-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #28a745;
+        }
+        .btn-confirm {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .btn-back {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            border: none;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-right: 15px;
+        }
+        .loading {
+            display: none;
+        }
+        .success-message {
+            display: none;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .error-message {
+            display: none;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="checkout-container">
+        <div class="checkout-card">
+            <h2>🛒 Checkout Your Bookings</h2>
+            <p class="text-muted">Review your selected services before confirming</p>
+
+            <div id="booking-items"></div>
+
+            <div class="price-breakdown">
+                <h5>📊 Booking Summary</h5>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Total Services:</span>
+                    <span id="total-services">0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Service Fee:</span>
+                    <span id="service-fee">$0.00</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="total-amount">Total Amount:</span>
+                    <span class="total-amount" id="total-amount">$0.00</span>
+                </div>
+            </div>
+
+            <div class="success-message" id="success-message">
+                <h5>✅ Bookings Confirmed!</h5>
+                <p>Your bookings have been successfully confirmed. You can track them in your bookings page.</p>
+                <a href="/my-bookings" class="btn btn-success">View My Bookings</a>
+            </div>
+
+            <div class="error-message" id="error-message">
+                <h5>❌ Booking Error</h5>
+                <p id="error-text">There was an error processing your bookings. Please try again.</p>
+            </div>
+
+            <div class="text-center mt-4" id="checkout-actions">
+                <button class="btn-back" onclick="goBack()">← Back to Services</button>
+                <button class="btn-confirm" onclick="confirmBookings()">
+                    <span class="loading">
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        Processing...
+                    </span>
+                    <span class="normal-text">Confirm Bookings</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bookingCart = [];
+        let vendorName = '';
+
+        window.onload = function() {
+            // Load cart from sessionStorage
+            const savedCart = sessionStorage.getItem('bookingCart');
+            vendorName = sessionStorage.getItem('vendorName') || 'Unknown Vendor';
+            
+            if (!savedCart) {
+                document.getElementById('booking-items').innerHTML = `
+                    <div class="alert alert-warning text-center">
+                        <h5>No bookings found</h5>
+                        <p>Your cart is empty. <a href="/groomers">Browse services</a> to get started.</p>
+                    </div>
+                `;
+                document.getElementById('checkout-actions').style.display = 'none';
+                return;
+            }
+
+            bookingCart = JSON.parse(savedCart);
+            displayBookings();
+        };
+
+        function displayBookings() {
+            const bookingItemsDiv = document.getElementById('booking-items');
+            let bookingsHTML = `<h4>📋 Booking from ${vendorName}</h4>`;
+            let totalAmount = 0;
+
+            bookingCart.forEach((booking, index) => {
+                totalAmount += booking.price;
+                
+                // Find pet info (assuming we have access to pets data)
+                const petInfo = getPetInfo(booking.pet);
+                
+                bookingsHTML += `
+                    <div class="booking-item">
+                        <div class="pet-info">
+                            <img src="${petInfo.photo}" alt="${booking.pet}" class="pet-avatar">
+                            <div>
+                                <h6>${booking.pet}</h6>
+                                <small class="text-muted">${petInfo.breed}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="service-details">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5 class="text-primary">${booking.service}</h5>
+                                    <p class="mb-1"><strong>📅 Date:</strong> ${formatDate(booking.date)}</p>
+                                    <p class="mb-1"><strong>🕐 Time:</strong> ${booking.time}</p>
+                                    <p class="mb-0"><strong>⏱️ Duration:</strong> ${booking.duration} minutes</p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="h4 text-success">$${booking.price.toFixed(2)}</div>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="removeBooking(${index})">
+                                        🗑️ Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            bookingItemsDiv.innerHTML = bookingsHTML;
+            
+            document.getElementById('total-services').textContent = bookingCart.length;
+            document.getElementById('service-fee').textContent = `$${totalAmount.toFixed(2)}`;
+            document.getElementById('total-amount').textContent = `$${totalAmount.toFixed(2)}`;
+        }
+
+        function getPetInfo(petName) {
+            // This would normally come from the server, using defaults for now
+            return {
+                photo: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=100&h=100&fit=crop',
+                breed: 'Mixed Breed'
+            };
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        function removeBooking(index) {
+            bookingCart.splice(index, 1);
+            
+            if (bookingCart.length === 0) {
+                sessionStorage.removeItem('bookingCart');
+                location.reload();
+                return;
+            }
+            
+            sessionStorage.setItem('bookingCart', JSON.stringify(bookingCart));
+            displayBookings();
+        }
+
+        function goBack() {
+            history.back();
+        }
+
+        function confirmBookings() {
+            if (bookingCart.length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+
+            // Show loading state
+            document.querySelector('.loading').style.display = 'inline-block';
+            document.querySelector('.normal-text').style.display = 'none';
+            document.querySelector('.btn-confirm').disabled = true;
+
+            // Prepare booking data
+            const bookingData = {
+                bookings: bookingCart.map(booking => ({
+                    pet_name: booking.pet,
+                    service: booking.service,
+                    date: booking.date,
+                    time: booking.time,
+                    duration: booking.duration,
+                    price: booking.price,
+                    vendor_id: booking.vendor_id,
+                    notes: ''
+                }))
+            };
+
+            // Send to server
+            fetch('/process-booking-checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookingData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading state
+                document.querySelector('.loading').style.display = 'none';
+                document.querySelector('.normal-text').style.display = 'inline-block';
+                document.querySelector('.btn-confirm').disabled = false;
+
+                if (data.success) {
+                    // Show success message
+                    document.getElementById('success-message').style.display = 'block';
+                    document.getElementById('checkout-actions').style.display = 'none';
+                    
+                    // Clear cart
+                    sessionStorage.removeItem('bookingCart');
+                    sessionStorage.removeItem('vendorName');
+                } else {
+                    // Show error message
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('error-text').textContent = data.error || 'Unknown error occurred';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Hide loading state
+                document.querySelector('.loading').style.display = 'none';
+                document.querySelector('.normal-text').style.display = 'inline-block';
+                document.querySelector('.btn-confirm').disabled = false;
+                
+                // Show error message
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-text').textContent = 'Network error occurred. Please try again.';
+            });
+        }
+    </script>
+</body>
+</html>

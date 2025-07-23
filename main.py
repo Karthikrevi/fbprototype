@@ -3010,6 +3010,9 @@ def book_vendor_service(vendor_id):
         return redirect(url_for("login"))
 
     user_email = session["user"]
+    
+    # Get user's pets for selection
+    pets = db.get(f"pets:{user_email}", [])
 
     # Handle demo vendor
     if vendor_id == "fluffy-paws":
@@ -3046,42 +3049,36 @@ def book_vendor_service(vendor_id):
         ]
 
         if request.method == "POST":
-            service = request.form.get("service")
-            date = request.form.get("date")
-            time = request.form.get("time")
-            duration = int(request.form.get("duration", 60))
-            pet_name = request.form.get("pet_name")
-            pet_parent_name = request.form.get("pet_parent_name")
-            pet_parent_phone = request.form.get("pet_parent_phone")
-            notes = request.form.get("notes", "")
-
-            # Validation
-            if not all([service, date, time, pet_name, pet_parent_name]):
-                flash("Please fill in all required fields")
-                return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
-
-            # Store booking in database (using vendor_id=0 for demo)
-            conn = sqlite3.connect('erp.db')
-            c = conn.cursor()
+            # Get booking data from checkout
+            booking_data = request.get_json() if request.is_json else None
             
-            try:
-                c.execute("""
-                    INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (0, user_email, service, date, time, duration, "confirmed", pet_name, pet_parent_name, pet_parent_phone, notes))
-                conn.commit()
-                
-                booking_id = c.lastrowid
-                flash(f"Booking #{booking_id} confirmed for {service} on {date} at {time}")
-                
-            except Exception as e:
-                flash(f"Error creating booking: {str(e)}")
-            finally:
-                conn.close()
+            if booking_data:
+                # Process booking from checkout
+                try:
+                    conn = sqlite3.connect('erp.db')
+                    c = conn.cursor()
+                    
+                    for booking in booking_data['bookings']:
+                        pet = next((p for p in pets if p['name'] == booking['pet_name']), None)
+                        if pet:
+                            c.execute("""
+                                INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (0, user_email, booking['service'], booking['date'], booking['time'], 
+                                  booking['duration'], "confirmed", pet['name'], pet.get('parent_name', ''), 
+                                  pet.get('parent_phone', ''), booking.get('notes', '')))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    return {"success": True, "message": "Bookings confirmed successfully!"}
+                    
+                except Exception as e:
+                    return {"success": False, "error": str(e)}, 400
+            
+            return {"success": False, "error": "Invalid booking data"}, 400
 
-            return redirect(url_for("vendor_profile", vendor_id=vendor_id))
-
-        return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
+        return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id, pets=pets)
 
     # Handle database vendors
     try:
@@ -3094,101 +3091,112 @@ def book_vendor_service(vendor_id):
             vendor_name = vendor_data[1]
             category = vendor_data[2] or "General"
             
-            # Define services based on vendor category
-            if "groom" in category.lower():
-                services = [
-                    {
-                        "name": "Full Grooming",
-                        "description": "Complete grooming package",
-                        "duration": 90,
-                        "price": 40.00,
-                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
-                    },
-                    {
-                        "name": "Basic Grooming",
-                        "description": "Basic bath and brush",
-                        "duration": 60,
-                        "price": 25.00,
-                        "available_slots": ["10:00", "12:00", "15:00"]
-                    },
-                    {
-                        "name": "Nail Trimming",
-                        "description": "Professional nail trimming",
-                        "duration": 30,
-                        "price": 15.00,
-                        "available_slots": ["09:30", "13:30", "16:30"]
-                    }
-                ]
-            elif "boarding" in category.lower():
-                services = [
-                    {
-                        "name": "Overnight Boarding",
-                        "description": "Safe overnight pet boarding",
-                        "duration": 1440,  # 24 hours in minutes
-                        "price": 35.00,
-                        "available_slots": ["18:00"]
-                    },
-                    {
-                        "name": "Day Care",
-                        "description": "Day care services",
-                        "duration": 480,  # 8 hours
-                        "price": 20.00,
-                        "available_slots": ["08:00", "09:00"]
-                    }
-                ]
+            # Get services from database
+            c.execute("""
+                SELECT service_name, description, price, duration_minutes, category
+                FROM vendor_services 
+                WHERE vendor_id = ? AND is_active = 1
+                ORDER BY service_name
+            """, (vendor_id,))
+            
+            services_data = c.fetchall()
+            
+            if services_data:
+                services = []
+                for service in services_data:
+                    # Generate time slots based on service duration
+                    if service[3] <= 60:  # Short services
+                        available_slots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"]
+                    elif service[3] <= 240:  # Medium services
+                        available_slots = ["09:00", "11:00", "14:00", "16:00"]
+                    else:  # Long services (boarding, etc.)
+                        available_slots = ["18:00"]
+                    
+                    services.append({
+                        "name": service[0],
+                        "description": service[1] or "Professional pet care service",
+                        "duration": service[3],
+                        "price": service[2],
+                        "available_slots": available_slots
+                    })
             else:
-                services = [
-                    {
-                        "name": "Pet Care Service",
-                        "description": "General pet care consultation",
-                        "duration": 60,
-                        "price": 30.00,
-                        "available_slots": ["09:00", "11:00", "14:00", "16:00"]
-                    },
-                    {
-                        "name": "Health Check",
-                        "description": "Basic health assessment",
-                        "duration": 45,
-                        "price": 25.00,
-                        "available_slots": ["10:00", "12:00", "15:00"]
-                    }
-                ]
+                # Fallback services based on category
+                if "groom" in category.lower():
+                    services = [
+                        {
+                            "name": "Full Grooming",
+                            "description": "Complete grooming package",
+                            "duration": 90,
+                            "price": 40.00,
+                            "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                        },
+                        {
+                            "name": "Basic Grooming",
+                            "description": "Basic bath and brush",
+                            "duration": 60,
+                            "price": 25.00,
+                            "available_slots": ["10:00", "12:00", "15:00"]
+                        }
+                    ]
+                elif "boarding" in category.lower():
+                    services = [
+                        {
+                            "name": "Overnight Boarding",
+                            "description": "Safe overnight pet boarding",
+                            "duration": 1440,  # 24 hours in minutes
+                            "price": 35.00,
+                            "available_slots": ["18:00"]
+                        },
+                        {
+                            "name": "Day Care",
+                            "description": "Day care services",
+                            "duration": 480,  # 8 hours
+                            "price": 20.00,
+                            "available_slots": ["08:00", "09:00"]
+                        }
+                    ]
+                else:
+                    services = [
+                        {
+                            "name": "Pet Care Service",
+                            "description": "General pet care consultation",
+                            "duration": 60,
+                            "price": 30.00,
+                            "available_slots": ["09:00", "11:00", "14:00", "16:00"]
+                        }
+                    ]
 
             if request.method == "POST":
-                service = request.form.get("service")
-                date = request.form.get("date")
-                time = request.form.get("time")
-                duration = int(request.form.get("duration", 60))
-                pet_name = request.form.get("pet_name")
-                pet_parent_name = request.form.get("pet_parent_name")
-                pet_parent_phone = request.form.get("pet_parent_phone")
-                notes = request.form.get("notes", "")
-
-                # Validation
-                if not all([service, date, time, pet_name, pet_parent_name]):
-                    flash("Please fill in all required fields")
-                    conn.close()
-                    return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
-
-                try:
-                    c.execute("""
-                        INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (vendor_id, user_email, service, date, time, duration, "confirmed", pet_name, pet_parent_name, pet_parent_phone, notes))
-                    conn.commit()
-                    
-                    booking_id = c.lastrowid
-                    flash(f"Booking #{booking_id} confirmed for {service} on {date} at {time}")
-                    
-                except Exception as e:
-                    flash(f"Error creating booking: {str(e)}")
-                finally:
-                    conn.close()
-
-                return redirect(url_for("vendor_profile", vendor_id=vendor_id))
+                # Handle checkout data
+                booking_data = request.get_json() if request.is_json else None
+                
+                if booking_data:
+                    # Process booking from checkout
+                    try:
+                        for booking in booking_data['bookings']:
+                            pet = next((p for p in pets if p['name'] == booking['pet_name']), None)
+                            if pet:
+                                c.execute("""
+                                    INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (vendor_id, user_email, booking['service'], booking['date'], booking['time'], 
+                                      booking['duration'], "confirmed", pet['name'], pet.get('parent_name', ''), 
+                                      pet.get('parent_phone', ''), booking.get('notes', '')))
+                        
+                        conn.commit()
+                        conn.close()
+                        
+                        return {"success": True, "message": "Bookings confirmed successfully!"}
+                        
+                    except Exception as e:
+                        conn.close()
+                        return {"success": False, "error": str(e)}, 400
+                
+                conn.close()
+                return {"success": False, "error": "Invalid booking data"}, 400
 
             conn.close()
-            return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id)
+            return render_template("booking.html", vendor_name=vendor_name, services=services, vendor_id=vendor_id, pets=pets)
         else:
             conn.close()
             return "Vendor not found", 404
@@ -5675,6 +5683,69 @@ def checkout():
         return redirect(url_for("login"))
 
     return render_template("checkout.html")
+
+@app.route('/checkout-booking')
+def checkout_booking():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    # Get user's pets for the checkout
+    user_email = session["user"]
+    pets = db.get(f"pets:{user_email}", [])
+    
+    return render_template("checkout_booking.html", pets=pets)
+
+@app.route('/process-booking-checkout', methods=["POST"])
+def process_booking_checkout():
+    if "user" not in session:
+        return {"success": False, "error": "Unauthorized"}, 401
+
+    user_email = session["user"]
+    data = request.get_json()
+
+    if not data or 'bookings' not in data:
+        return {"success": False, "error": "No booking data provided"}, 400
+
+    try:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Get user's pets
+        pets = db.get(f"pets:{user_email}", [])
+        
+        booking_ids = []
+        
+        for booking in data['bookings']:
+            # Find the pet
+            pet = next((p for p in pets if p['name'] == booking['pet_name']), None)
+            if not pet:
+                continue
+                
+            vendor_id = booking.get('vendor_id', 0)
+            if vendor_id == 'fluffy-paws':
+                vendor_id = 0
+            
+            # Insert booking
+            c.execute("""
+                INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status, pet_name, pet_parent_name, pet_parent_phone, status_details)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (vendor_id, user_email, booking['service'], booking['date'], booking['time'], 
+                  booking['duration'], "confirmed", pet['name'], pet.get('parent_name', ''), 
+                  pet.get('parent_phone', ''), booking.get('notes', '')))
+            
+            booking_ids.append(c.lastrowid)
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "success": True, 
+            "message": f"Successfully booked {len(booking_ids)} services!",
+            "booking_ids": booking_ids
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
 
 @app.route('/place-order', methods=["POST"])
 def place_order():
