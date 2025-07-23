@@ -3499,6 +3499,12 @@ def book_vendor_service(vendor_id):
                 return {"success": False, "error": "Invalid booking data"}, 400
 
 
+except Exception as e:
+        conn.rollback()
+        conn.close()
+        flash(f"Error: {str(e)}")
+        return redirect(url_for("manage_time_slots"))
+
 # Enhanced HR and Payroll Management Routes
 @app.route('/erp/hr/generate-payslip/<int:employee_id>', methods=["GET", "POST"])
 def generate_payslip(employee_id):
