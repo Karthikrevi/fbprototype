@@ -1633,6 +1633,24 @@ def init_furrvet_db():
 init_erp_db()
 init_furrvet_db()
 
+# Optimize databases on startup
+def optimize_startup_databases():
+    """Optimize databases on startup to prevent locks"""
+    databases = ['erp.db', 'users.db', 'furrvet.db']
+    for db_path in databases:
+        if os.path.exists(db_path):
+            try:
+                conn = sqlite3.connect(db_path, timeout=30.0)
+                conn.execute('PRAGMA journal_mode=WAL;')
+                conn.execute('PRAGMA synchronous=NORMAL;')
+                conn.execute('PRAGMA busy_timeout=30000;')
+                conn.close()
+                print(f"✅ {db_path} optimized for startup")
+            except Exception as e:
+                print(f"⚠️  Could not optimize {db_path}: {e}")
+
+optimize_startup_databases()
+
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -2029,20 +2047,116 @@ def home():
 def register():
     if request.method == "POST":
         email = request.form.get("email")
+        phone = request.form.get("phone")
         password = request.form.get("password")
-
+        consent_given = request.form.get("consent") == "on"
+        
+        # Validation
         if not email or not password:
-            return "Please enter both email and password."
+            flash("Email and password are required.")
+            return render_template("register_new.html")
+        
+        if not consent_given:
+            flash("You must consent to data processing to create an account.")
+            return render_template("register_new.html")
+        
+        # Password validation
+        if len(password) < 8:
+            flash("Password must be at least 8 characters long.")
+            return render_template("register_new.html")
+        
+        import re
+        if not re.search(r'[A-Z]', password):
+            flash("Password must contain at least one uppercase letter.")
+            return render_template("register_new.html")
+        
+        if not re.search(r'[a-z]', password):
+            flash("Password must contain at least one lowercase letter.")
+            return render_template("register_new.html")
+        
+        if not re.search(r'\d', password):
+            flash("Password must contain at least one number.")
+            return render_template("register_new.html")
+        
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            flash("Password must contain at least one special character.")
+            return render_template("register_new.html")
+        
+        # Import encryption and security functions
+        from encryption import encrypt_data
+        from werkzeug.security import generate_password_hash
+        
+        # Encrypt PII data
+        encrypted_email = encrypt_data(email)
+        encrypted_phone = encrypt_data(phone) if phone else None
+        
+        if encrypted_email is None:
+            flash("Encryption system error. Please try again.")
+            return render_template("register_new.html")
+        
+        # Hash password
+        password_hash = generate_password_hash(password)
+        
+        # Save to users database
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            # Check if user already exists (by encrypted email comparison)
+            c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+            if c.fetchone():
+                flash("User already exists with this email.")
+                conn.close()
+                return render_template("register_new.html")
+            
+            # Insert new user
+            c.execute("""
+                INSERT INTO users (
+                    email, phone, password_hash, consent_given, consent_date,
+                    data_processing_consent, marketing_consent, consent_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                encrypted_email, encrypted_phone, password_hash, consent_given,
+                datetime.now().isoformat(), True, False, "1.0"
+            ))
+            
+            user_id = c.lastrowid
+            
+            # Log consent for audit trail
+            c.execute("""
+                INSERT INTO user_consent_log (
+                    user_id, consent_type, consent_given, consent_version,
+                    ip_address, user_agent
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                user_id, "registration", consent_given, "1.0",
+                request.environ.get('REMOTE_ADDR', ''),
+                request.environ.get('HTTP_USER_AGENT', '')
+            ))
+            
+            # Log data processing activity for GDPR Article 30
+            c.execute("""
+                INSERT INTO data_processing_log (
+                    user_id, activity_type, data_category, purpose, legal_basis
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (
+                user_id, "registration", "contact_data", 
+                "Account creation and service provision", "consent"
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            flash("Registration successful! Please log in.")
+            return redirect(url_for("login"))
+            
+        except sqlite3.Error as e:
+            flash(f"Database error: {str(e)}")
+            return render_template("register_new.html")
+        except Exception as e:
+            flash(f"Registration failed: {str(e)}")
+            return render_template("register_new.html")
 
-        if f"user:{email}" in db:
-            return "User already exists. Try logging in."
-
-        db[f"user:{email}"] = {
-            "email": email,
-            "password": password
-        }
-
-        return redirect(url_for("login"))
     return render_template("register_new.html")
 
 # Login
@@ -2053,16 +2167,82 @@ def login():
         password = request.form.get("password")
 
         if not email or not password:
-            return "Please enter both email and password."
+            flash("Please enter both email and password.")
+            return render_template("login.html")
 
-        user_key = f"user:{email}"
-        user = db.get(user_key)
+        # Import required functions
+        from encryption import encrypt_data
+        from werkzeug.security import check_password_hash
 
-        if user and user["password"] == password:
-            session["user"] = email
-            return redirect(url_for("dashboard"))
-        else:
-            return "Invalid email or password."
+        # Encrypt the provided email to match against database
+        encrypted_email = encrypt_data(email)
+        
+        if encrypted_email is None:
+            flash("System error. Please try again.")
+            return render_template("login.html")
+
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            # Find user by encrypted email
+            c.execute("SELECT id, password_hash, verified_at FROM users WHERE email = ?", (encrypted_email,))
+            user = c.fetchone()
+            
+            if user:
+                user_id, stored_password_hash, verified_at = user
+                
+                # Verify password using werkzeug
+                if check_password_hash(stored_password_hash, password):
+                    # Update last_accessed timestamp
+                    c.execute("""
+                        UPDATE users 
+                        SET last_accessed = ? 
+                        WHERE id = ?
+                    """, (datetime.now().isoformat(), user_id))
+                    
+                    # Log data processing activity for GDPR Article 30
+                    c.execute("""
+                        INSERT INTO data_processing_log (
+                            user_id, activity_type, data_category, purpose, legal_basis
+                        ) VALUES (?, ?, ?, ?, ?)
+                    """, (
+                        user_id, "login", "authentication_data", 
+                        "User authentication and session management", "legitimate_interest"
+                    ))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    # Set session (store original email for convenience)
+                    session["user"] = email
+                    session["user_id"] = user_id
+                    
+                    flash("Login successful!")
+                    return redirect(url_for("dashboard"))
+                else:
+                    # Log failed login attempt
+                    c.execute("""
+                        UPDATE users 
+                        SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1
+                        WHERE id = ?
+                    """, (user_id,))
+                    conn.commit()
+                    conn.close()
+                    
+                    flash("Invalid email or password.")
+                    return render_template("login.html")
+            else:
+                conn.close()
+                flash("Invalid email or password.")
+                return render_template("login.html")
+                
+        except sqlite3.Error as e:
+            flash(f"Database error: {str(e)}")
+            return render_template("login.html")
+        except Exception as e:
+            flash(f"Login failed: {str(e)}")
+            return render_template("login.html")
 
     return render_template("login.html")
 
@@ -3584,6 +3764,225 @@ def my_bookings():
 
     conn.close()
     return render_template("my_bookings.html", bookings=bookings)
+
+# GDPR Data Export
+@app.route('/gdpr/export-data', methods=['GET', 'POST'])
+def gdpr_export_data():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == 'POST':
+        from encryption import encrypt_data, decrypt_data
+        import json
+        
+        user_email = session["user"]
+        encrypted_email = encrypt_data(user_email)
+        
+        # Collect all user data
+        user_data = {"email": user_email, "export_date": datetime.now().isoformat()}
+        
+        # Get pets data
+        pets = db.get(f"pets:{user_email}", [])
+        user_data["pets"] = pets
+        
+        # Get bookings
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM bookings WHERE user_email = ?", (user_email,))
+        bookings = [dict(zip([col[0] for col in c.description], row)) for row in c.fetchall()]
+        user_data["bookings"] = bookings
+        
+        # Get orders
+        c.execute("SELECT * FROM orders WHERE user_email = ?", (user_email,))
+        orders = [dict(zip([col[0] for col in c.description], row)) for row in c.fetchall()]
+        user_data["orders"] = orders
+        conn.close()
+        
+        # Return as JSON download
+        from flask import Response
+        response = Response(
+            json.dumps(user_data, indent=2),
+            mimetype='application/json',
+            headers={'Content-Disposition': f'attachment; filename=furrbutler_data_{user_email}.json'}
+        )
+        
+        # Log export activity
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+        user_record = c.fetchone()
+        if user_record:
+            c.execute("""
+                INSERT INTO data_processing_log (
+                    user_id, activity_type, data_category, purpose, legal_basis
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (user_record[0], "export", "all_data", "GDPR data portability request", "legal_obligation"))
+            conn.commit()
+        conn.close()
+        
+        return response
+    
+    return render_template("gdpr_export.html")
+
+# GDPR Data Deletion
+@app.route('/gdpr/delete-account', methods=['GET', 'POST'])
+def gdpr_delete_account():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == 'POST':
+        from encryption import encrypt_data
+        
+        user_email = session["user"]
+        encrypted_email = encrypt_data(user_email)
+        
+        # Confirm deletion
+        if request.form.get('confirm') == 'DELETE':
+            try:
+                # Delete from pets data
+                if f"pets:{user_email}" in db:
+                    del db[f"pets:{user_email}"]
+                
+                # Anonymize bookings (keep for business records but remove PII)
+                conn = sqlite3.connect('erp.db')
+                c = conn.cursor()
+                c.execute("""
+                    UPDATE bookings 
+                    SET user_email = 'DELETED_USER', pet_parent_name = 'DELETED', pet_parent_phone = 'DELETED'
+                    WHERE user_email = ?
+                """, (user_email,))
+                
+                # Anonymize orders
+                c.execute("UPDATE orders SET user_email = 'DELETED_USER' WHERE user_email = ?", (user_email,))
+                conn.commit()
+                conn.close()
+                
+                # Delete from GDPR users database
+                conn = sqlite3.connect('users.db')
+                c = conn.cursor()
+                c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+                user_record = c.fetchone()
+                if user_record:
+                    user_id = user_record[0]
+                    
+                    # Log deletion
+                    c.execute("""
+                        INSERT INTO data_processing_log (
+                            user_id, activity_type, data_category, purpose, legal_basis
+                        ) VALUES (?, ?, ?, ?, ?)
+                    """, (user_id, "deletion", "all_data", "GDPR right to be forgotten", "legal_obligation"))
+                    
+                    # Delete user record
+                    c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                    conn.commit()
+                conn.close()
+                
+                # Clear session
+                session.clear()
+                flash("Your account and data have been permanently deleted.")
+                return redirect(url_for("home"))
+                
+            except Exception as e:
+                flash(f"Error deleting account: {str(e)}")
+        else:
+            flash("Please type 'DELETE' to confirm account deletion.")
+    
+    return render_template("gdpr_delete.html")
+
+# Email Verification Routes
+@app.route('/send_verification/<email>')
+def send_verification(email):
+    """Send verification email to the specified email address"""
+    try:
+        from email_verification import generate_email_token
+        from send_email import send_verification_email
+        
+        # Generate verification token
+        token = generate_email_token(email)
+        
+        # Send verification email (mock)
+        send_verification_email(email, token)
+        
+        flash(f"Verification email sent to {email}. Please check your console for the verification link.")
+        return redirect(url_for("login"))
+        
+    except Exception as e:
+        flash(f"Error sending verification email: {str(e)}")
+        return redirect(url_for("login"))
+
+@app.route('/verify_email/<token>')
+def verify_email(token):
+    """Verify email using the provided token"""
+    try:
+        from email_verification import confirm_email_token
+        from encryption import encrypt_data
+        from itsdangerous import SignatureExpired, BadSignature
+        
+        # Confirm the token and get the email
+        try:
+            email = confirm_email_token(token)
+        except SignatureExpired:
+            flash("The verification link has expired. Please request a new verification email.")
+            return redirect(url_for("login"))
+        except BadSignature:
+            flash("Invalid verification link. Please check the link or request a new one.")
+            return redirect(url_for("login"))
+        
+        # Encrypt the email to match against database
+        encrypted_email = encrypt_data(email)
+        
+        if encrypted_email is None:
+            flash("System error during verification. Please try again.")
+            return redirect(url_for("login"))
+        
+        # Update verified_at timestamp in database
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        
+        # Check if user exists
+        c.execute("SELECT id FROM users WHERE email = ?", (encrypted_email,))
+        user = c.fetchone()
+        
+        if user:
+            user_id = user[0]
+            
+            # Update verified_at timestamp
+            c.execute("""
+                UPDATE users 
+                SET verified_at = ? 
+                WHERE id = ?
+            """, (datetime.now().isoformat(), user_id))
+            
+            # Log verification activity for GDPR Article 30
+            c.execute("""
+                INSERT INTO data_processing_log (
+                    user_id, activity_type, data_category, purpose, legal_basis
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (
+                user_id, "email_verification", "contact_data", 
+                "Email address verification for account security", "legitimate_interest"
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            flash("Email successfully verified! You can now log in.")
+            return redirect(url_for("login"))
+        else:
+            conn.close()
+            flash("User not found. Please register first.")
+            return redirect(url_for("register"))
+            
+    except Exception as e:
+        flash(f"Email verification failed: {str(e)}")
+        return redirect(url_for("login"))
+
+# Settings page with GDPR options
+@app.route('/settings')
+def settings():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template("settings.html")
 
 # Logout
 @app.route('/logout')
@@ -5527,25 +5926,33 @@ def api_get_hr_metrics():
         return {"success": False, "error": "Unauthorized"}, 401
 
     email = session["vendor"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-
-    # Get vendor ID
-    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
-    vendor_result = c.fetchone()
     
-    if not vendor_result:
+    try:
+        conn = sqlite3.connect('erp.db', timeout=10.0)
+        conn.execute('PRAGMA journal_mode=WAL;')
+        conn.execute('PRAGMA busy_timeout=10000;')
+        c = conn.cursor()
+
+        # Get vendor ID
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        
+        if not vendor_result:
+            conn.close()
+            return {"success": False, "error": "Vendor not found"}, 404
+        
+        vendor_id = vendor_result[0]
+
+        # Get HR metrics
+        hr_metrics = get_hr_metrics(vendor_id, c)
+        
         conn.close()
-        return {"success": False, "error": "Vendor not found"}, 404
-    
-    vendor_id = vendor_result[0]
-
-    # Get HR metrics
-    hr_metrics = get_hr_metrics(vendor_id, c)
-    
-    conn.close()
-    
-    return {"success": True, "metrics": hr_metrics}
+        
+        return {"success": True, "metrics": hr_metrics}
+    except sqlite3.OperationalError as e:
+        return {"success": False, "error": f"Database busy: {str(e)}"}, 503
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
 
 @app.route('/api/available-slots/<int:vendor_id>')
 def get_available_slots(vendor_id):
