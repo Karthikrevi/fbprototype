@@ -8,10 +8,7 @@ from datetime import datetime
 @contextmanager
 def db_connection(db_name='erp.db'):
     """Context manager for database connections"""
-    conn = sqlite3.connect(db_name, timeout=30.0)
-    # Enable WAL mode for better concurrency
-    conn.execute('PRAGMA journal_mode=WAL;')
-    conn.execute('PRAGMA busy_timeout=30000;')  # 30 seconds
+    conn = sqlite3.connect(db_name)
     try:
         yield conn
     except Exception as e:
@@ -23,10 +20,7 @@ def db_connection(db_name='erp.db'):
 @contextmanager
 def furrvet_db_connection():
     """Context manager for FurrVet database connections"""
-    conn = sqlite3.connect('furrvet.db', timeout=30.0)
-    # Enable WAL mode for better concurrency
-    conn.execute('PRAGMA journal_mode=WAL;')
-    conn.execute('PRAGMA busy_timeout=30000;')  # 30 seconds
+    conn = sqlite3.connect('furrvet.db')
     try:
         yield conn
     except Exception as e:

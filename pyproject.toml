@@ -13,5 +13,4 @@ dependencies = [
     "numpy>=1.24.0",
     "pandas>=2.0.0",
     "nltk>=3.8.0",
-    "cryptography>=45.0.4",
 ]

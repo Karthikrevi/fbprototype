@@ -42,60 +42,20 @@
 <body>
   <div class="register-container">
     <h2>🐶 Create Your Account</h2>
-    
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    
     <form method="POST">
       <div class="mb-3">
-        <label class="form-label">Email <span class="text-danger">*</span></label>
+        <label class="form-label">Email</label>
         <input type="email" class="form-control" name="email" required>
       </div>
       <div class="mb-3">
-        <label class="form-label">Phone (Optional)</label>
-        <input type="tel" class="form-control" name="phone" placeholder="+1234567890">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Password <span class="text-danger">*</span></label>
+        <label class="form-label">Password</label>
         <input type="password" class="form-control" name="password" required>
-        <div class="form-text">
-          <small>Password must be at least 8 characters with uppercase, lowercase, number, and special character.</small>
-        </div>
       </div>
-      
-      <div class="mb-3">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" name="consent" id="consent" required>
-          <label class="form-check-label" for="consent">
-            <small>I consent to the processing of my personal data for account creation and service provision in accordance with our Privacy Policy. <span class="text-danger">*</span></small>
-          </label>
-        </div>
-      </div>
-      
-      <div class="mb-3">
-        <div class="alert alert-info">
-          <small>
-            <strong>GDPR Notice:</strong> Your email and phone will be encrypted and stored securely. 
-            You can request data export or deletion at any time by contacting support.
-          </small>
-        </div>
-      </div>
-      
       <button type="submit" class="btn btn-primary w-100">Register</button>
     </form>
     <div class="text-center mt-3">
       <p>Already have an account? <a href="/login">Login</a></p>
     </div>
   </div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
