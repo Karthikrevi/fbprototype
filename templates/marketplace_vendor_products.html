@@ -115,10 +115,10 @@
     <a href="/marketplace" class="back-btn">← Back to Marketplace</a>
 
     <div class="vendor-header">
-      <h1>🛍️ {{ vendor[0] }}</h1>
-      <p>📍 {{ vendor[1] }}</p>
-      {% if vendor[2] %}
-      <p>{{ vendor[2] }}</p>
+      <h1>🛍️ {{ vendor.name }}</h1>
+      <p>📍 {{ vendor.city }}</p>
+      {% if vendor.bio %}
+      <p>{{ vendor.bio }}</p>
       {% endif %}
 
       <div class="vendor-status">
@@ -147,7 +147,7 @@
 
           <div class="product-info">
             <h5>{{ product[1] }}</h5>
-            <p class="text-muted">{{ product[2][:80] }}{% if product[2] and product[2]|length > 80 %}...{% endif %}</p>
+            <p class="text-muted">{{ (product[2] or 'No description available')[:80] }}{% if product[2] and product[2]|length > 80 %}...{% endif %}</p>
 
             <div class="d-flex justify-content-between align-items-center">
               <div class="price-section">
