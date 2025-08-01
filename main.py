@@ -4064,13 +4064,14 @@ def ngo_register_stray():
         c = conn.cursor()
         
         if search:
+            search_param = f'%{search}%'
             c.execute("""
                 SELECT p.*, po.name as owner_name, po.phone as owner_phone
                 FROM pets p
                 JOIN pet_owners po ON p.owner_id = po.id
                 WHERE p.name LIKE ? OR po.name LIKE ? OR p.microchip_id LIKE ?
                 ORDER BY p.name
-            """, (f'%{search}%', f'%{search}%', f'%{search}%'))
+            """, (search_param, search_param, search_param))
         else:
             c.execute("""
                 SELECT p.*, po.name as owner_name, po.phone as owner_phone
