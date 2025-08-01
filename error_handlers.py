@@ -19,7 +19,16 @@ def setup_error_handlers(app):
         if request.is_json:
             return jsonify({"success": False, "error": "Unauthorized", "code": 401}), 401
         flash("You need to log in to access this page.")
-        return redirect(url_for('erp_login'))
+        # Store the current page for redirect after login, but validate it first
+        from urllib.parse import urlparse
+        next_page = request.url
+        parsed = urlparse(next_page)
+        if parsed.netloc and parsed.netloc != request.host:
+            next_page = None
+        login_url = url_for('erp_login')
+        if next_page:
+            login_url = f"{login_url}?next={next_page}"
+        return redirect(login_url)
 
     @app.errorhandler(403)
     def forbidden(error):
