@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -103,43 +104,40 @@
       background-color: #6c757d;
       color: white;
     }
-    .upload-form {
-      background-color: #f8f9fa;
+    .booking-section {
+      background-color: #e3f2fd;
       padding: 15px;
       border-radius: 8px;
       margin-top: 15px;
+      border-left: 4px solid #2196f3;
     }
     .document-info {
       font-size: 0.9rem;
       color: #6c757d;
       margin-top: 8px;
     }
-    .role-badge {
-      font-size: 0.8rem;
-      padding: 4px 8px;
-      border-radius: 12px;
-    }
-    .role-parent {
-      background-color: #e3f2fd;
-      color: #1976d2;
-    }
-    .role-vet {
-      background-color: #e8f5e8;
-      color: #2e7d32;
-    }
-    .role-handler {
-      background-color: #fff3e0;
-      color: #f57c00;
-    }
-    .btn-upload {
+    .btn-book {
       background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       border: none;
       color: white;
       padding: 8px 16px;
       border-radius: 6px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-book:hover {
+      color: white;
+      transform: translateY(-1px);
     }
     .alert-info {
       border-left: 4px solid #17a2b8;
+    }
+    .booking-status {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -154,16 +152,6 @@
         <div>
           <h2>🛂 {{ pet.name }}'s Pet Passport</h2>
           <p class="mb-0">FurrWings International Travel Documentation</p>
-        </div>
-      </div>
-
-      <!-- Role Switcher for Testing -->
-      <div class="mt-3">
-        <small>Current Role: <span class="role-badge role-{{ user_role }}">{{ user_role.title() }}</span></small>
-        <div class="btn-group btn-group-sm ms-3" role="group">
-          <a href="?role=parent" class="btn btn-outline-light {% if user_role == 'parent' %}active{% endif %}">Parent</a>
-          <a href="?role=vet" class="btn btn-outline-light {% if user_role == 'vet' %}active{% endif %}">Vet</a>
-          <a href="?role=handler" class="btn btn-outline-light {% if user_role == 'handler' %}active{% endif %}">Handler</a>
         </div>
       </div>
     </div>
@@ -222,11 +210,7 @@
                     <i class="fas fa-clock"></i> Uploaded: {{ doc_status[doc_type]['upload_time'] }}
                   </p>
                   <p class="mb-1">
-                    <i class="fas fa-user"></i> By: 
-                    <span class="role-badge role-{{ doc_status[doc_type]['uploaded_by_role'] }}">
-                      {{ doc_status[doc_type]['uploaded_by_role'].title() }}
-                    </span>
-                    ({{ doc_status[doc_type]['uploaded_by_user_id'] }})
+                    <i class="fas fa-user"></i> By: {{ doc_status[doc_type]['uploaded_by_role'].title() }}
                   </p>
                   <p class="mb-1">
                     <i class="fas fa-info-circle"></i> Status: 
@@ -242,19 +226,7 @@
                       </span>
                     {% endif %}
                   </p>
-                  {% if doc_status[doc_type].get('doc_hash') %}
-                    <p class="mb-1">
-                      <i class="fas fa-fingerprint"></i> F-DSC Hash: 
-                      <code>{{ doc_status[doc_type]['doc_hash'][:16] }}...</code>
-                      <a href="/verify/document/{{ doc_status[doc_type]['doc_hash'] }}" target="_blank" class="ms-2">
-                        <i class="fas fa-external-link-alt"></i> Verify
-                      </a>
-                    </p>
-                    <p class="mb-1">
-                      <i class="fas fa-clock"></i> Signed: {{ doc_status[doc_type]['signature_timestamp'] }}
-                    </p>
-                  {% endif %}
-                  {% if doc_status[doc_type]['comments'] %}
+                  {% if doc_status[doc_type].get('comments') %}
                     <p class="mb-1">
                       <i class="fas fa-comment"></i> Comment: {{ doc_status[doc_type]['comments'] }}
                     </p>
@@ -264,40 +236,60 @@
                 <p class="text-muted mb-2">No document uploaded yet</p>
               {% endif %}
 
-              <!-- Upload form - only show if user has permission -->
-              {% if user_role in doc_info.allowed_roles %}
-                <div class="upload-form">
-                  <form action="/passport/upload" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="pet_id" value="{{ pet_id }}">
-                    <input type="hidden" name="pet_index" value="{{ pet_index }}">
-                    <input type="hidden" name="doc_type" value="{{ doc_type }}">
-                    <input type="hidden" name="user_role" value="{{ user_role }}">
+              <!-- Booking section for required appointments -->
+              {% if doc_type not in doc_status or doc_status[doc_type]['status'] != 'approved' %}
+                <div class="booking-section">
+                  {% if doc_type in ['vaccine', 'health_cert'] %}
+                    <h6><i class="fas fa-stethoscope"></i> Veterinary Appointment Required</h6>
+                    <p class="mb-2">Book an appointment with a certified FurrWings veterinarian for {{ doc_info.name.lower() }}.</p>
+                    
+                    {% if doc_type + '_booking' in booking_status %}
+                      <div class="booking-status">
+                        <i class="fas fa-calendar-check"></i> 
+                        <strong>Appointment Booked:</strong> {{ booking_status[doc_type + '_booking']['date'] }} at {{ booking_status[doc_type + '_booking']['time'] }}
+                        <br>
+                        <small>Vet: {{ booking_status[doc_type + '_booking']['provider_name'] }} | Status: {{ booking_status[doc_type + '_booking']['status'].title() }}</small>
+                      </div>
+                    {% else %}
+                      <a href="/passport/book-vet?pet_id={{ pet_id }}&doc_type={{ doc_type }}" class="btn-book">
+                        <i class="fas fa-calendar-plus"></i> Book Vet Appointment
+                      </a>
+                    {% endif %}
 
-                    <div class="row align-items-end">
-                      <div class="col-md-8">
-                        <label class="form-label small">Upload {{ doc_info.name }}</label>
-                        <input type="file" class="form-control form-control-sm" name="file" 
-                               accept=".pdf,.jpg,.jpeg,.png" required>
-                        <div class="form-text">Accepted formats: PDF, JPG, PNG (Max 10MB)</div>
+                  {% elif doc_type in ['dgft', 'aqcs'] %}
+                    <h6><i class="fas fa-plane"></i> Handler Documentation Required</h6>
+                    <p class="mb-2">Book a handler consultation for {{ doc_info.name.lower() }} processing.</p>
+                    
+                    {% if doc_type + '_booking' in booking_status %}
+                      <div class="booking-status">
+                        <i class="fas fa-calendar-check"></i> 
+                        <strong>Handler Booked:</strong> {{ booking_status[doc_type + '_booking']['date'] }} at {{ booking_status[doc_type + '_booking']['time'] }}
+                        <br>
+                        <small>Handler: {{ booking_status[doc_type + '_booking']['provider_name'] }} | Status: {{ booking_status[doc_type + '_booking']['status'].title() }}</small>
                       </div>
-                      <div class="col-md-4">
-                        <button type="submit" class="btn btn-upload btn-sm w-100">
-                          <i class="fas fa-upload"></i> Upload
-                        </button>
+                    {% else %}
+                      <a href="/passport/book-handler?pet_id={{ pet_id }}&doc_type={{ doc_type }}" class="btn-book">
+                        <i class="fas fa-user-tie"></i> Book Handler Consultation
+                      </a>
+                    {% endif %}
+
+                  {% elif doc_type == 'quarantine' %}
+                    <h6><i class="fas fa-home"></i> Isolation Center Required</h6>
+                    <p class="mb-2">Book quarantine/isolation services for travel preparation.</p>
+                    
+                    {% if doc_type + '_booking' in booking_status %}
+                      <div class="booking-status">
+                        <i class="fas fa-calendar-check"></i> 
+                        <strong>Isolation Booked:</strong> {{ booking_status[doc_type + '_booking']['date'] }} to {{ booking_status[doc_type + '_booking']['end_date'] }}
+                        <br>
+                        <small>Center: {{ booking_status[doc_type + '_booking']['provider_name'] }} | Status: {{ booking_status[doc_type + '_booking']['status'].title() }}</small>
                       </div>
-                    </div>
-                  </form>
-                </div>
-              {% elif doc_type not in doc_status %}
-                <div class="alert alert-info py-2 px-3 mb-0">
-                  <small>
-                    <i class="fas fa-info-circle"></i> 
-                    This document can only be uploaded by: 
-                    {% for role in doc_info.allowed_roles %}
-                      <span class="role-badge role-{{ role }}">{{ role.title() }}</span>
-                      {% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                  </small>
+                    {% else %}
+                      <a href="/passport/book-isolation?pet_id={{ pet_id }}&doc_type={{ doc_type }}" class="btn-book">
+                        <i class="fas fa-building"></i> Book Isolation Center
+                      </a>
+                    {% endif %}
+                  {% endif %}
                 </div>
               {% endif %}
             </div>
@@ -325,12 +317,5 @@
       </p>
     </div>
   </div>
-
-  <script>
-    // Auto-refresh page every 30 seconds to check for status updates
-    setTimeout(function() {
-      location.reload();
-    }, 30000);
-  </script>
 </body>
 </html>

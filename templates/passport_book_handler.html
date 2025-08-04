@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Book Handler Consultation - {{ pet.name }} - FurrWings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .booking-container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .handler-card {
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+    .handler-card:hover {
+      border-color: #007bff;
+      box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+    }
+    .handler-card.selected {
+      border-color: #28a745;
+      background-color: #f8fff9;
+    }
+    .btn-book {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      border: none;
+      color: white;
+      padding: 15px 40px;
+      border-radius: 25px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="booking-container">
+    <div class="card-header bg-primary text-white p-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h4><i class="fas fa-plane"></i> Book Handler Consultation</h4>
+          <p class="mb-0">{{ pet.name }} - {{ document_name }}</p>
+        </div>
+        <a href="/pet/{{ pet_index }}/passport" class="btn btn-outline-light">Back</a>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <form method="POST">
+        <input type="hidden" name="pet_id" value="{{ pet_id }}">
+        <input type="hidden" name="doc_type" value="{{ doc_type }}">
+
+        <h5><i class="fas fa-user-tie"></i> Select Handler</h5>
+        <div class="row mb-4">
+          {% for handler in available_handlers %}
+            <div class="col-md-6 mb-3">
+              <div class="handler-card" onclick="selectHandler({{ handler.id }}, this)">
+                <input type="radio" name="handler_id" value="{{ handler.id }}" style="display: none;" required>
+                <div class="d-flex align-items-center mb-2">
+                  <i class="fas fa-user-tie fa-2x text-primary me-3"></i>
+                  <div>
+                    <h6 class="mb-1">{{ handler.name }}</h6>
+                    <small class="text-muted">{{ handler.specialization }}</small>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-6">
+                    <small class="text-muted">Experience</small>
+                    <div>{{ handler.experience }} years</div>
+                  </div>
+                  <div class="col-6">
+                    <small class="text-muted">Success Rate</small>
+                    <div>{{ handler.success_rate }}%</div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <small class="text-muted">Countries:</small>
+                  <span class="badge bg-info">{{ handler.countries }}</span>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <h5><i class="fas fa-calendar"></i> Consultation Details</h5>
+            
+            <div class="mb-3">
+              <label class="form-label">Preferred Date *</label>
+              <input type="date" class="form-control" name="consultation_date" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Preferred Time *</label>
+              <select class="form-control" name="consultation_time" required>
+                <option value="">Select Time</option>
+                <option value="09:00">9:00 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="14:00">2:00 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="16:00">4:00 PM</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Service Type *</label>
+              <select class="form-control" name="service_type" required>
+                {% if doc_type == 'dgft' %}
+                  <option value="dgft_processing">DGFT Document Processing</option>
+                  <option value="export_permit">Export Permit Assistance</option>
+                {% elif doc_type == 'aqcs' %}
+                  <option value="aqcs_processing">AQCS Certificate Processing</option>
+                  <option value="quarantine_cert">Quarantine Certificate</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <h5><i class="fas fa-plane"></i> Travel Information</h5>
+            
+            <div class="mb-3">
+              <label class="form-label">Destination Country *</label>
+              <input type="text" class="form-control" name="destination_country" required placeholder="e.g., United States">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Planned Travel Date</label>
+              <input type="date" class="form-control" name="travel_date">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Travel Purpose</label>
+              <select class="form-control" name="travel_purpose">
+                <option value="relocation">Permanent Relocation</option>
+                <option value="temporary">Temporary Visit</option>
+                <option value="breeding">Breeding Program</option>
+                <option value="show">Dog Show/Competition</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Special Requirements</label>
+              <textarea class="form-control" name="special_requirements" rows="3" placeholder="Any specific documentation needs or concerns..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-warning">
+          <h6><i class="fas fa-exclamation-triangle"></i> Handler Consultation Process</h6>
+          <ul class="mb-0">
+            <li>Initial consultation to assess documentation requirements</li>
+            <li>Handler will guide you through the official government process</li>
+            <li>Documents will be processed through certified authorities</li>
+            <li>Consultation fee: ₹2000-₹5000 (varies by complexity)</li>
+            <li>Government fees and processing time apply separately</li>
+          </ul>
+        </div>
+
+        <div class="text-center">
+          <button type="submit" class="btn-book btn">
+            <i class="fas fa-handshake"></i> Book Consultation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function selectHandler(handlerId, element) {
+      // Remove selection from all cards
+      document.querySelectorAll('.handler-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      // Add selection to clicked card
+      element.classList.add('selected');
+      
+      // Check the radio button
+      element.querySelector('input[type="radio"]').checked = true;
+    }
+
+    // Set minimum date to today
+    document.querySelector('input[type="date"]').min = new Date().toISOString().split('T')[0];
+  </script>
+</body>
+</html>
