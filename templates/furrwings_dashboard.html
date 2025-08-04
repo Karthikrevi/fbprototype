@@ -1,0 +1,368 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FurrWings Management Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .stats-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .data-table-card {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .nav-tabs .nav-link {
+      border-radius: 10px 10px 0 0;
+      color: #667eea;
+      font-weight: 600;
+    }
+    .nav-tabs .nav-link.active {
+      background-color: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .table thead th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+    }
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .status-approved { background: #d4edda; color: #155724; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-rejected { background: #f8d7da; color: #721c24; }
+    .status-active { background: #d1ecf1; color: #0c5460; }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="text-white"><i class="fas fa-plane"></i> FurrWings Management Dashboard</h2>
+      <div>
+        <a href="/" class="btn btn-outline-light me-2">← Home</a>
+        <a href="/logout" class="btn btn-outline-light">Logout</a>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-primary">{{ stats.total_pets }}</h3>
+          <p class="mb-0"><i class="fas fa-paw"></i> Total Pets</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-success">{{ stats.completed_passports }}</h3>
+          <p class="mb-0"><i class="fas fa-passport"></i> Completed Passports</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-warning">{{ stats.pending_documents }}</h3>
+          <p class="mb-0"><i class="fas fa-clock"></i> Pending Documents</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-info">{{ stats.active_bookings }}</h3>
+          <p class="mb-0"><i class="fas fa-calendar"></i> Active Bookings</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabbed Data Views -->
+    <div class="data-table-card">
+      <ul class="nav nav-tabs" id="dataTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pets" type="button">
+            <i class="fas fa-paw"></i> Pet Registry
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#documents" type="button">
+            <i class="fas fa-file-medical"></i> Documents
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#bookings" type="button">
+            <i class="fas fa-calendar-check"></i> Bookings
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vets" type="button">
+            <i class="fas fa-user-md"></i> Veterinarians
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#handlers" type="button">
+            <i class="fas fa-plane"></i> Handlers
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="dataTabContent">
+        <!-- Pet Registry Tab -->
+        <div class="tab-pane fade show active" id="pets" role="tabpanel">
+          <div class="mt-4">
+            <h5><i class="fas fa-paw"></i> Pet Registry Database</h5>
+            <table class="table table-striped" id="petsTable">
+              <thead>
+                <tr>
+                  <th>Pet ID</th>
+                  <th>Name</th>
+                  <th>Species</th>
+                  <th>Breed</th>
+                  <th>Owner</th>
+                  <th>Passport Status</th>
+                  <th>Travel Destination</th>
+                  <th>Registration Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for pet in pets_data %}
+                <tr>
+                  <td>{{ pet.id }}</td>
+                  <td><strong>{{ pet.name }}</strong></td>
+                  <td>{{ pet.species }}</td>
+                  <td>{{ pet.breed }}</td>
+                  <td>{{ pet.owner_name }}</td>
+                  <td>
+                    <span class="status-badge status-{{ pet.passport_status }}">
+                      {{ pet.passport_status.title() }}
+                    </span>
+                  </td>
+                  <td>{{ pet.destination or 'N/A' }}</td>
+                  <td>{{ pet.created_at }}</td>
+                  <td>
+                    <a href="/furrwings/pet/{{ pet.id }}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div class="tab-pane fade" id="documents" role="tabpanel">
+          <div class="mt-4">
+            <h5><i class="fas fa-file-medical"></i> Document Management</h5>
+            <table class="table table-striped" id="documentsTable">
+              <thead>
+                <tr>
+                  <th>Document ID</th>
+                  <th>Pet Name</th>
+                  <th>Document Type</th>
+                  <th>Uploaded By</th>
+                  <th>Status</th>
+                  <th>Upload Date</th>
+                  <th>Expiry Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for doc in documents_data %}
+                <tr>
+                  <td>{{ doc.id }}</td>
+                  <td>{{ doc.pet_name }}</td>
+                  <td>{{ doc.doc_type.replace('_', ' ').title() }}</td>
+                  <td>{{ doc.uploaded_by_role.title() }}</td>
+                  <td>
+                    <span class="status-badge status-{{ doc.status }}">
+                      {{ doc.status.title() }}
+                    </span>
+                  </td>
+                  <td>{{ doc.upload_time }}</td>
+                  <td>{{ doc.expiry_date or 'N/A' }}</td>
+                  <td>
+                    <a href="/static/uploads/{{ doc.filename }}" target="_blank" class="btn btn-sm btn-info">
+                      <i class="fas fa-download"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Bookings Tab -->
+        <div class="tab-pane fade" id="bookings" role="tabpanel">
+          <div class="mt-4">
+            <h5><i class="fas fa-calendar-check"></i> Appointment Bookings</h5>
+            <table class="table table-striped" id="bookingsTable">
+              <thead>
+                <tr>
+                  <th>Booking ID</th>
+                  <th>Pet Name</th>
+                  <th>Service Type</th>
+                  <th>Provider</th>
+                  <th>Date & Time</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for booking in bookings_data %}
+                <tr>
+                  <td>{{ booking.id }}</td>
+                  <td>{{ booking.pet_name }}</td>
+                  <td>{{ booking.service_type.replace('_', ' ').title() }}</td>
+                  <td>{{ booking.provider_name }}</td>
+                  <td>{{ booking.appointment_date }} {{ booking.appointment_time }}</td>
+                  <td>
+                    <span class="status-badge status-{{ booking.status }}">
+                      {{ booking.status.title() }}
+                    </span>
+                  </td>
+                  <td>{{ booking.created_at }}</td>
+                  <td>
+                    <a href="/furrwings/booking/{{ booking.id }}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Veterinarians Tab -->
+        <div class="tab-pane fade" id="vets" role="tabpanel">
+          <div class="mt-4">
+            <h5><i class="fas fa-user-md"></i> Veterinarian Network</h5>
+            <table class="table table-striped" id="vetsTable">
+              <thead>
+                <tr>
+                  <th>Vet ID</th>
+                  <th>Name</th>
+                  <th>License</th>
+                  <th>Clinic</th>
+                  <th>City</th>
+                  <th>Documents Signed</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for vet in vets_data %}
+                <tr>
+                  <td>{{ vet.id }}</td>
+                  <td>{{ vet.name }}</td>
+                  <td>{{ vet.license_number }}</td>
+                  <td>{{ vet.clinic_name }}</td>
+                  <td>{{ vet.city }}</td>
+                  <td>{{ vet.documents_signed }}</td>
+                  <td>
+                    <span class="status-badge status-{{ 'active' if vet.is_active else 'inactive' }}">
+                      {{ 'Active' if vet.is_active else 'Inactive' }}
+                    </span>
+                  </td>
+                  <td>
+                    <a href="/furrwings/vet/{{ vet.id }}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Handlers Tab -->
+        <div class="tab-pane fade" id="handlers" role="tabpanel">
+          <div class="mt-4">
+            <h5><i class="fas fa-plane"></i> Handler Network</h5>
+            <table class="table table-striped" id="handlersTable">
+              <thead>
+                <tr>
+                  <th>Handler ID</th>
+                  <th>Name</th>
+                  <th>Company</th>
+                  <th>License</th>
+                  <th>City</th>
+                  <th>Documents Processed</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for handler in handlers_data %}
+                <tr>
+                  <td>{{ handler.id }}</td>
+                  <td>{{ handler.name }}</td>
+                  <td>{{ handler.company_name }}</td>
+                  <td>{{ handler.license_number }}</td>
+                  <td>{{ handler.city }}</td>
+                  <td>{{ handler.documents_processed }}</td>
+                  <td>
+                    <span class="status-badge status-{{ 'active' if handler.is_active else 'inactive' }}">
+                      {{ 'Active' if handler.is_active else 'Inactive' }}
+                    </span>
+                  </td>
+                  <td>
+                    <a href="/furrwings/handler/{{ handler.id }}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Initialize DataTables for all tables
+      $('#petsTable, #documentsTable, #bookingsTable, #vetsTable, #handlersTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        order: [[0, 'desc']],
+        dom: 'Bfrtip',
+        buttons: ['copy', 'csv', 'excel', 'pdf']
+      });
+    });
+  </script>
+</body>
+</html>

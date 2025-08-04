@@ -853,6 +853,117 @@ def init_erp_db():
         )
     ''')
 
+    # Research Database Tables for Government and Research Purposes
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS research_pet_registry (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            research_id TEXT UNIQUE NOT NULL,
+            anonymized_pet_data TEXT NOT NULL,
+            species TEXT NOT NULL,
+            breed TEXT,
+            age_group TEXT,
+            health_conditions TEXT,
+            vaccination_history TEXT,
+            travel_history TEXT,
+            geographic_region TEXT,
+            registration_source TEXT,
+            data_collection_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            consent_given BOOLEAN DEFAULT 0,
+            research_purpose TEXT,
+            data_retention_period INTEGER DEFAULT 2555, -- 7 years in days
+            anonymization_level TEXT DEFAULT 'high'
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS research_health_trends (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trend_category TEXT NOT NULL,
+            species TEXT NOT NULL,
+            geographic_region TEXT,
+            time_period TEXT NOT NULL,
+            health_condition TEXT,
+            frequency_count INTEGER DEFAULT 0,
+            percentage_affected REAL DEFAULT 0.0,
+            severity_level TEXT,
+            vaccination_correlation TEXT,
+            environmental_factors TEXT,
+            calculated_date TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS research_vaccination_efficacy (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vaccine_name TEXT NOT NULL,
+            species TEXT NOT NULL,
+            batch_number TEXT,
+            manufacturer TEXT,
+            administration_date TEXT,
+            geographic_region TEXT,
+            efficacy_rate REAL DEFAULT 0.0,
+            adverse_reactions_count INTEGER DEFAULT 0,
+            follow_up_period INTEGER DEFAULT 365,
+            breakthrough_infections INTEGER DEFAULT 0,
+            study_period_start TEXT,
+            study_period_end TEXT,
+            sample_size INTEGER DEFAULT 0
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS research_travel_patterns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            origin_country TEXT NOT NULL,
+            destination_country TEXT NOT NULL,
+            species TEXT NOT NULL,
+            travel_month INTEGER,
+            travel_year INTEGER,
+            quarantine_duration INTEGER DEFAULT 0,
+            health_complications BOOLEAN DEFAULT 0,
+            documentation_issues BOOLEAN DEFAULT 0,
+            travel_cost_range TEXT,
+            success_rate REAL DEFAULT 100.0,
+            common_delays TEXT
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS government_compliance_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_type TEXT NOT NULL,
+            reporting_period TEXT NOT NULL,
+            total_pets_registered INTEGER DEFAULT 0,
+            total_vaccinations INTEGER DEFAULT 0,
+            disease_outbreaks INTEGER DEFAULT 0,
+            quarantine_violations INTEGER DEFAULT 0,
+            documentation_compliance_rate REAL DEFAULT 100.0,
+            cross_border_movements INTEGER DEFAULT 0,
+            health_certificate_issues INTEGER DEFAULT 0,
+            regulatory_changes TEXT,
+            submitted_to_authority TEXT,
+            submission_date TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS research_data_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requester_organization TEXT NOT NULL,
+            requester_contact TEXT NOT NULL,
+            research_purpose TEXT NOT NULL,
+            data_fields_requested TEXT NOT NULL,
+            ethical_approval_number TEXT,
+            request_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            approval_status TEXT DEFAULT 'pending',
+            approved_by TEXT,
+            approval_date TEXT,
+            data_access_period INTEGER DEFAULT 90,
+            anonymization_required BOOLEAN DEFAULT 1,
+            data_sharing_agreement TEXT
+        )
+    ''')
+
     # Vendor Time Slot Configuration
     c.execute('''
         CREATE TABLE IF NOT EXISTS vendor_time_slots (
@@ -2715,11 +2826,11 @@ def vet_dashboard():
     for pet_data in pets_data:
         pet_id = pet_data[0]
         
-        # Get vaccine and health cert status
+        # Get microchip, vaccine and health cert status
         c.execute("""
             SELECT doc_type, filename, status, upload_time, is_signed, doc_hash, signature_timestamp
             FROM passport_documents 
-            WHERE pet_id = ? AND doc_type IN ('vaccine', 'health_cert') AND uploaded_by_role = 'vet'
+            WHERE pet_id = ? AND doc_type IN ('microchip', 'vaccine', 'health_cert') AND uploaded_by_role = 'vet'
             ORDER BY upload_time DESC
         """, (pet_id,))
         
@@ -2804,8 +2915,8 @@ def vet_upload_document():
     doc_type = request.form.get("doc_type")
     should_sign = request.form.get("sign_document") == "on"
     
-    if doc_type not in ['vaccine', 'health_cert']:
-        flash("Vets can only upload vaccine and health certificate documents")
+    if doc_type not in ['microchip', 'vaccine', 'health_cert']:
+        flash("Vets can only upload microchip, vaccine, and health certificate documents")
         return redirect(url_for("vet_dashboard"))
 
     # Handle file upload
@@ -3114,6 +3225,246 @@ def isolation_upload_media():
 
     flash(f"{media_type.title()} uploaded successfully!")
     return redirect(url_for("isolation_dashboard"))
+
+@app.route('/furrwings/dashboard')
+def furrwings_dashboard():
+    """FurrWings organized dashboard with tabular data views"""
+    if "user" not in session and "vendor" not in session and "vet" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Get statistics
+    c.execute("SELECT COUNT(*) FROM passport_documents")
+    total_pets = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM passport_documents WHERE status = 'approved'")
+    completed_passports = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM passport_documents WHERE status = 'pending'")
+    pending_documents = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM pet_bookings WHERE status IN ('pending', 'approved', 'in_progress')")
+    active_bookings = c.fetchone()[0] or 0
+
+    stats = {
+        'total_pets': total_pets,
+        'completed_passports': completed_passports,
+        'pending_documents': pending_documents,
+        'active_bookings': active_bookings
+    }
+
+    # Get pets data (simulated - would come from actual pet registry)
+    pets_data = [
+        {
+            'id': 1,
+            'name': 'Luna',
+            'species': 'Dog',
+            'breed': 'Golden Retriever',
+            'owner_name': 'John Smith',
+            'passport_status': 'approved',
+            'destination': 'USA',
+            'created_at': '2024-01-15'
+        },
+        {
+            'id': 2,
+            'name': 'Max',
+            'species': 'Cat',
+            'breed': 'Persian',
+            'owner_name': 'Sarah Johnson',
+            'passport_status': 'pending',
+            'destination': 'UK',
+            'created_at': '2024-01-20'
+        }
+    ]
+
+    # Get documents data
+    c.execute("""
+        SELECT pd.id, 'Pet ' || pd.pet_id as pet_name, pd.doc_type, pd.uploaded_by_role, 
+               pd.status, pd.upload_time, pd.filename, NULL as expiry_date
+        FROM passport_documents pd
+        ORDER BY pd.upload_time DESC
+        LIMIT 50
+    """)
+    documents_data = [
+        {
+            'id': row[0],
+            'pet_name': row[1],
+            'doc_type': row[2],
+            'uploaded_by_role': row[3],
+            'status': row[4],
+            'upload_time': row[5],
+            'filename': row[6],
+            'expiry_date': row[7]
+        } for row in c.fetchall()
+    ]
+
+    # Get bookings data (simulated)
+    bookings_data = [
+        {
+            'id': 1,
+            'pet_name': 'Luna',
+            'service_type': 'vaccination',
+            'provider_name': 'Dr. Sarah Vet',
+            'appointment_date': '2024-02-01',
+            'appointment_time': '10:00',
+            'status': 'confirmed',
+            'created_at': '2024-01-25'
+        }
+    ]
+
+    # Get vets data
+    c.execute("""
+        SELECT v.id, v.name, v.license_number, v.clinic_name, v.city, v.is_active,
+               COUNT(pd.id) as documents_signed
+        FROM vets v
+        LEFT JOIN passport_documents pd ON pd.vet_id = v.id
+        GROUP BY v.id
+        ORDER BY v.name
+    """)
+    vets_data = [
+        {
+            'id': row[0],
+            'name': row[1],
+            'license_number': row[2],
+            'clinic_name': row[3],
+            'city': row[4],
+            'is_active': row[5],
+            'documents_signed': row[6]
+        } for row in c.fetchall()
+    ]
+
+    # Get handlers data
+    c.execute("""
+        SELECT h.id, h.name, h.company_name, h.license_number, h.city, h.is_active,
+               COUNT(pd.id) as documents_processed
+        FROM handlers h
+        LEFT JOIN passport_documents pd ON pd.uploaded_by_role = 'handler'
+        GROUP BY h.id
+        ORDER BY h.name
+    """)
+    handlers_data = [
+        {
+            'id': row[0],
+            'name': row[1],
+            'company_name': row[2],
+            'license_number': row[3],
+            'city': row[4],
+            'is_active': row[5],
+            'documents_processed': row[6]
+        } for row in c.fetchall()
+    ]
+
+    conn.close()
+
+    return render_template('furrwings_dashboard.html',
+                         stats=stats,
+                         pets_data=pets_data,
+                         documents_data=documents_data,
+                         bookings_data=bookings_data,
+                         vets_data=vets_data,
+                         handlers_data=handlers_data)
+
+@app.route('/research/dashboard')
+def research_dashboard():
+    """Research database dashboard for government and research purposes"""
+    if "user" not in session and "master_admin" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    # Collect anonymized pet data for research
+    populate_research_data(c)
+
+    # Get research statistics
+    c.execute("SELECT COUNT(*) FROM research_pet_registry")
+    total_research_records = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(DISTINCT species) FROM research_pet_registry")
+    species_tracked = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(DISTINCT geographic_region) FROM research_pet_registry")
+    regions_covered = c.fetchone()[0] or 0
+
+    # Get health trends
+    c.execute("""
+        SELECT trend_category, species, health_condition, frequency_count, percentage_affected
+        FROM research_health_trends
+        ORDER BY frequency_count DESC
+        LIMIT 10
+    """)
+    health_trends = c.fetchall()
+
+    # Get vaccination efficacy data
+    c.execute("""
+        SELECT vaccine_name, species, efficacy_rate, adverse_reactions_count, sample_size
+        FROM research_vaccination_efficacy
+        ORDER BY sample_size DESC
+        LIMIT 10
+    """)
+    vaccination_data = c.fetchall()
+
+    conn.close()
+
+    return render_template('research_dashboard.html',
+                         total_records=total_research_records,
+                         species_tracked=species_tracked,
+                         regions_covered=regions_covered,
+                         health_trends=health_trends,
+                         vaccination_data=vaccination_data)
+
+def populate_research_data(cursor):
+    """Populate research database with anonymized pet data"""
+    import hashlib
+    import random
+    
+    # Get existing pets data and anonymize
+    cursor.execute("""
+        SELECT p.species, p.breed, p.birthday, pd.doc_type
+        FROM passport_documents pd
+        LEFT JOIN (SELECT 1 as pet_id, 'Dog' as species, 'Golden Retriever' as breed, '2020-01-01' as birthday) p 
+        ON pd.pet_id = p.pet_id
+        WHERE pd.status = 'approved'
+    """)
+    
+    pets_data = cursor.fetchall()
+    
+    for pet in pets_data:
+        # Create anonymized research ID
+        research_id = hashlib.md5(f"{pet[0]}{pet[1]}{random.randint(1000,9999)}".encode()).hexdigest()[:12]
+        
+        # Anonymize pet data
+        anonymized_data = {
+            'species': pet[0] or 'Unknown',
+            'breed_category': pet[1][:3] if pet[1] else 'Unknown',  # Partial breed info
+            'age_group': calculate_age_group(pet[2]) if pet[2] else 'Unknown'
+        }
+        
+        cursor.execute("""
+            INSERT OR IGNORE INTO research_pet_registry 
+            (research_id, anonymized_pet_data, species, breed, age_group, geographic_region, registration_source, consent_given)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (research_id, str(anonymized_data), pet[0] or 'Unknown', pet[1] or 'Unknown', 
+              anonymized_data['age_group'], 'India', 'FurrWings', 1))
+
+def calculate_age_group(birthday):
+    """Calculate age group from birthday"""
+    from datetime import datetime
+    try:
+        birth_date = datetime.strptime(birthday, '%Y-%m-%d')
+        age = (datetime.now() - birth_date).days // 365
+        if age < 1:
+            return 'Puppy/Kitten'
+        elif age < 3:
+            return 'Young'
+        elif age < 8:
+            return 'Adult'
+        else:
+            return 'Senior'
+    except:
+        return 'Unknown'
 
 @app.route('/verify/document/<doc_hash>')
 def verify_document(doc_hash):

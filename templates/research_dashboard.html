@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pet Research Database - Government & Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .research-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .stats-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .data-card {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .research-header {
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      color: white;
+      text-align: center;
+    }
+    .chart-container {
+      height: 400px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="research-container">
+    <div class="research-header">
+      <h2><i class="fas fa-database"></i> Pet Research Database</h2>
+      <p class="mb-0">Anonymized pet health and travel data for research and government compliance</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-primary">{{ total_records }}</h3>
+          <p class="mb-0"><i class="fas fa-paw"></i> Research Records</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-success">{{ species_tracked }}</h3>
+          <p class="mb-0"><i class="fas fa-dna"></i> Species Tracked</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-warning">{{ regions_covered }}</h3>
+          <p class="mb-0"><i class="fas fa-globe"></i> Geographic Regions</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <h3 class="text-info">{{ health_trends|length }}</h3>
+          <p class="mb-0"><i class="fas fa-chart-line"></i> Health Trends</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Trends Analysis -->
+    <div class="data-card">
+      <h5><i class="fas fa-chart-bar"></i> Health Trends Analysis</h5>
+      <p class="text-muted">Anonymized health condition tracking across species and regions</p>
+      <div class="table-responsive">
+        <table class="table table-striped" id="healthTrendsTable">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Species</th>
+              <th>Health Condition</th>
+              <th>Frequency</th>
+              <th>Percentage Affected</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for trend in health_trends %}
+            <tr>
+              <td>{{ trend[0] }}</td>
+              <td>{{ trend[1] }}</td>
+              <td>{{ trend[2] }}</td>
+              <td>{{ trend[3] }}</td>
+              <td>{{ "%.2f"|format(trend[4]) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vaccination Efficacy Data -->
+    <div class="data-card">
+      <h5><i class="fas fa-syringe"></i> Vaccination Efficacy Research</h5>
+      <p class="text-muted">Vaccination effectiveness and safety monitoring</p>
+      <div class="table-responsive">
+        <table class="table table-striped" id="vaccinationTable">
+          <thead>
+            <tr>
+              <th>Vaccine Name</th>
+              <th>Species</th>
+              <th>Efficacy Rate</th>
+              <th>Adverse Reactions</th>
+              <th>Sample Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for vaccine in vaccination_data %}
+            <tr>
+              <td>{{ vaccine[0] }}</td>
+              <td>{{ vaccine[1] }}</td>
+              <td>{{ "%.1f"|format(vaccine[2]) }}%</td>
+              <td>{{ vaccine[3] }}</td>
+              <td>{{ vaccine[4] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Data Privacy Notice -->
+    <div class="data-card">
+      <h5><i class="fas fa-shield-alt"></i> Data Privacy & Compliance</h5>
+      <div class="row">
+        <div class="col-md-6">
+          <h6>Privacy Protection</h6>
+          <ul>
+            <li>All pet data is anonymized using advanced hashing</li>
+            <li>Personal identifiers are removed or encrypted</li>
+            <li>Consent-based data collection only</li>
+            <li>7-year data retention policy</li>
+          </ul>
+        </div>
+        <div class="col-md-6">
+          <h6>Government Compliance</h6>
+          <ul>
+            <li>Ministry of Animal Husbandry reporting</li>
+            <li>Zoonotic disease surveillance</li>
+            <li>Cross-border movement tracking</li>
+            <li>Vaccination coverage monitoring</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Research Request System -->
+    <div class="data-card">
+      <h5><i class="fas fa-microscope"></i> Research Data Access</h5>
+      <p class="text-muted">Request access to anonymized research data for scientific studies</p>
+      <form method="POST" action="/research/request-data">
+        <div class="row">
+          <div class="col-md-4">
+            <label class="form-label">Organization</label>
+            <input type="text" class="form-control" name="organization" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contact Email</label>
+            <input type="email" class="form-control" name="contact" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Research Purpose</label>
+            <select class="form-control" name="purpose" required>
+              <option value="">Select Purpose</option>
+              <option value="academic">Academic Research</option>
+              <option value="government">Government Study</option>
+              <option value="pharmaceutical">Pharmaceutical Research</option>
+              <option value="epidemiological">Epidemiological Study</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Data Fields Required</label>
+          <textarea class="form-control" name="data_fields" rows="3" placeholder="Specify the data fields and analysis requirements..."></textarea>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Submit Research Request
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#healthTrendsTable, #vaccinationTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        order: [[3, 'desc']],
+        dom: 'Bfrtip',
+        buttons: ['copy', 'csv', 'excel', 'pdf']
+      });
+    });
+  </script>
+</body>
+</html>

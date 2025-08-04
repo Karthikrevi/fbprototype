@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -242,7 +241,7 @@
                   {% if doc_type in ['vaccine', 'health_cert'] %}
                     <h6><i class="fas fa-stethoscope"></i> Veterinary Appointment Required</h6>
                     <p class="mb-2">Book an appointment with a certified FurrWings veterinarian for {{ doc_info.name.lower() }}.</p>
-                    
+
                     {% if doc_type + '_booking' in booking_status %}
                       <div class="booking-status">
                         <i class="fas fa-calendar-check"></i> 
@@ -259,7 +258,7 @@
                   {% elif doc_type in ['dgft', 'aqcs'] %}
                     <h6><i class="fas fa-plane"></i> Handler Documentation Required</h6>
                     <p class="mb-2">Book a handler consultation for {{ doc_info.name.lower() }} processing.</p>
-                    
+
                     {% if doc_type + '_booking' in booking_status %}
                       <div class="booking-status">
                         <i class="fas fa-calendar-check"></i> 
@@ -276,7 +275,7 @@
                   {% elif doc_type == 'quarantine' %}
                     <h6><i class="fas fa-home"></i> Isolation Center Required</h6>
                     <p class="mb-2">Book quarantine/isolation services for travel preparation.</p>
-                    
+
                     {% if doc_type + '_booking' in booking_status %}
                       <div class="booking-status">
                         <i class="fas fa-calendar-check"></i> 
