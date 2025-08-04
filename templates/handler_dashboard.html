@@ -414,7 +414,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Pickup Date</label>
-                            <input type="date" class="form-control" id="pickupDate" min="{{ date.today() }}">
+                            <input type="date" class="form-control" id="pickupDate" min="{{ date.today().isoformat() }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Pickup Time Window</label>

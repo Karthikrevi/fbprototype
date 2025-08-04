@@ -486,7 +486,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Check-in Date</label>
-                            <input type="date" class="form-control" id="checkinDate" min="{{ date.today() }}">
+                            <input type="date" class="form-control" id="checkinDate" min="{{ date.today().isoformat() }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Room Assignment</label>

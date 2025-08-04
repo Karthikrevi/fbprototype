@@ -1,0 +1,248 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My FurrWings Services - {{ t('app_name') }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        .container-fluid {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .booking-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid #667eea;
+        }
+        .booking-card.veterinary { border-left-color: #28a745; }
+        .booking-card.transport { border-left-color: #ffc107; }
+        .booking-card.isolation { border-left-color: #9C27B0; }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-timeline {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .timeline-item {
+            padding: 10px;
+            border-left: 3px solid #667eea;
+            margin-left: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .health-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .metric-box {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-plane"></i> My FurrWings Services</h2>
+                    <p class="text-muted mb-0">Track your pet's veterinary, transport, and isolation services</p>
+                </div>
+                <a href="/dashboard" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Bookings List -->
+        {% if bookings %}
+            {% for booking in bookings %}
+                <div class="booking-card {{ booking.service_type }}">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-2">
+                                {% if booking.service_type == 'veterinary' %}
+                                    <i class="fas fa-stethoscope fa-2x text-success me-3"></i>
+                                {% elif booking.service_type == 'transport' %}
+                                    <i class="fas fa-shipping-fast fa-2x text-warning me-3"></i>
+                                {% elif booking.service_type == 'isolation' %}
+                                    <i class="fas fa-home fa-2x text-purple me-3"></i>
+                                {% endif %}
+                                <div>
+                                    <h5 class="mb-1">
+                                        {% if booking.service_type == 'veterinary' %}
+                                            Veterinary Appointment - {{ booking.pet_name }}
+                                        {% elif booking.service_type == 'transport' %}
+                                            Pet Transport - {{ booking.pet_name }}
+                                        {% elif booking.service_type == 'isolation' %}
+                                            Isolation Service - {{ booking.pet_name }}
+                                        {% endif %}
+                                    </h5>
+                                    <p class="text-muted mb-1">
+                                        {% if booking.service_type == 'veterinary' %}
+                                            <strong>Vet:</strong> {{ booking.vet_name or 'Dr. Veterinarian' }}
+                                        {% elif booking.service_type == 'transport' %}
+                                            <strong>Handler:</strong> {{ booking.handler_name or 'FurrWings Handler' }}
+                                        {% elif booking.service_type == 'isolation' %}
+                                            <strong>Center:</strong> {{ booking.isolation_center or 'Isolation Center' }}
+                                        {% endif %}
+                                    </p>
+                                    <small class="text-muted">Booked on: {{ booking.created_at }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="status-badge 
+                                {% if booking.status == 'pending' %}bg-warning text-dark
+                                {% elif booking.status == 'scheduled' %}bg-primary text-white
+                                {% elif booking.status == 'in_progress' %}bg-info text-white
+                                {% elif booking.status == 'completed' %}bg-success text-white
+                                {% else %}bg-secondary text-white{% endif %}">
+                                {{ booking.status.title() }}
+                            </span>
+                            
+                            {% if booking.service_type == 'veterinary' and booking.appointment_date %}
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-calendar"></i> {{ booking.appointment_date }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-clock"></i> {{ booking.appointment_time }}
+                                    </small>
+                                </div>
+                            {% elif booking.service_type == 'transport' and booking.pickup_date %}
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-calendar"></i> {{ booking.pickup_date }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-clock"></i> {{ booking.pickup_time }}
+                                    </small>
+                                </div>
+                            {% elif booking.service_type == 'isolation' and booking.checkin_date %}
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-calendar"></i> {{ booking.checkin_date }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-door-open"></i> {{ booking.room_assignment }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Transport Status Updates -->
+                    {% if booking.service_type == 'transport' and booking.status_updates %}
+                        <div class="status-timeline">
+                            <h6><i class="fas fa-route"></i> Transport Timeline</h6>
+                            {% for update in booking.status_updates[:3] %}
+                                <div class="timeline-item">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{{ update.status.replace('_', ' ').title() }}</strong>
+                                        <small class="text-muted">{{ update.timestamp }}</small>
+                                    </div>
+                                    {% if update.location %}
+                                        <p class="mb-1"><i class="fas fa-map-marker-alt"></i> {{ update.location }}</p>
+                                    {% endif %}
+                                    {% if update.notes %}
+                                        <small class="text-muted">{{ update.notes }}</small>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Isolation Daily Checks -->
+                    {% if booking.service_type == 'isolation' and booking.daily_checks %}
+                        <div class="status-timeline">
+                            <h6><i class="fas fa-heartbeat"></i> Recent Health Checks</h6>
+                            {% for check in booking.daily_checks[:2] %}
+                                <div class="timeline-item">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Health Check</strong>
+                                        <small class="text-muted">{{ check.check_date }}</small>
+                                    </div>
+                                    <div class="health-metrics">
+                                        <div class="metric-box">
+                                            <small class="text-muted d-block">Temperature</small>
+                                            <strong>{{ check.temperature }}°F</strong>
+                                        </div>
+                                        <div class="metric-box">
+                                            <small class="text-muted d-block">Appetite</small>
+                                            <strong>{{ check.appetite }}</strong>
+                                        </div>
+                                        <div class="metric-box">
+                                            <small class="text-muted d-block">Mood</small>
+                                            <strong>{{ check.mood }}</strong>
+                                        </div>
+                                        <div class="metric-box">
+                                            <small class="text-muted d-block">Activity</small>
+                                            <strong>{{ check.activity_level }}</strong>
+                                        </div>
+                                    </div>
+                                    {% if check.notes %}
+                                        <p class="mt-2 mb-0"><small class="text-muted">{{ check.notes }}</small></p>
+                                    {% endif %}
+                                    <small class="text-muted">Caretaker: {{ check.caretaker_name }}</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="booking-card text-center">
+                <i class="fas fa-plane fa-3x text-muted mb-3"></i>
+                <h5>No FurrWings Services Yet</h5>
+                <p class="text-muted">You haven't booked any FurrWings services for your pets yet.</p>
+                <a href="/furrwings/dashboard" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Book Services
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-refresh every 30 seconds for real-time updates
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                location.reload();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
