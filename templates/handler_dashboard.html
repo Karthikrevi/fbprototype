@@ -1,208 +1,590 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Handler Dashboard - FurrWings</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #f8f9fa;
-      font-family: 'Poppins', sans-serif;
-    }
-    .header {
-      background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);
-      color: white;
-      padding: 20px 0;
-      margin-bottom: 30px;
-    }
-    .booking-card {
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-bottom: 30px;
-      overflow: hidden;
-    }
-    .escrow-status {
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: 600;
-      display: inline-block;
-    }
-    .upload-section {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FurrWings Handler Portal - {{ handler_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .tab-content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        .booking-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .booking-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .booking-card.pending { border-left: 5px solid #FF9800; }
+        .booking-card.in-transit { border-left: 5px solid #2196F3; }
+        .booking-card.delivered { border-left: 5px solid #4CAF50; }
+        .pet-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-picker {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .location-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        .timeline-log {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .timeline-entry {
+            padding: 10px;
+            border-left: 3px solid #4CAF50;
+            margin-left: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .quick-status-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .status-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .status-btn.picked-up { background: #fff3e0; color: #f57c00; }
+        .status-btn.in-transit { background: #e3f2fd; color: #1976d2; }
+        .status-btn.delivered { background: #e8f5e8; color: #2e7d32; }
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+            .quick-status-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h2><i class="fas fa-shipping-fast"></i> Welcome, {{ handler_name }}</h2>
-          <p class="mb-0">FurrWings Handler Portal</p>
-        </div>
-        <a href="/handler/login" class="btn btn-outline-light">Logout</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="container-fluid mt-4">
-    <div class="row justify-content-center">
-      <div class="col-12 col-xl-10">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-          <h2 class="mb-2">📋 Handler Bookings</h2>
-          <div>
-            <span class="badge bg-success me-2">{{ stats.total_bookings }} Total Bookings</span>
-            <span class="badge bg-primary me-2">${{ "%.2f"|format(stats.total_earnings) }} Potential Earnings</span>
-            <a href="/handler/logout" class="btn btn-outline-danger">Logout</a>
-          </div>
-        </div>
-    <div class="row">
-      {% for booking in bookings %}
-        <div class="col-lg-6">
-          <div class="booking-card">
-            <div class="card-header bg-warning text-dark">
-              <div class="d-flex justify-content-between align-items-center">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <h5><i class="fas fa-paw"></i> {{ booking.pet_name }} ({{ booking.pet_type }})</h5>
-                  <small>Booking #{{ booking.id }} | {{ booking.pet_parent_email }}</small>
+                    <h2><i class="fas fa-shipping-fast"></i> FurrWings Handler Portal</h2>
+                    <p class="text-muted mb-0">Welcome back, {{ handler_name }}</p>
                 </div>
-                <div class="text-end">
-                  <div class="escrow-status bg-{{ 'success' if booking.escrow_status == 'released' else 'primary' if booking.escrow_status == 'held' else 'danger' }} text-white">
-                    ${{ "%.2f"|format(booking.handler_fee) }}
-                  </div>
-                  <small>{{ booking.escrow_status.title() }}</small>
+                <div>
+                    <button class="btn btn-outline-success me-2" onclick="getCurrentLocation()">
+                        <i class="fas fa-map-marker-alt"></i> Update Location
+                    </button>
+                    <a href="/logout" class="btn btn-outline-danger">Logout</a>
                 </div>
-              </div>
             </div>
-            <div class="card-body">
-
-              <!-- Booking Details -->
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <strong><i class="fas fa-map-marker-alt"></i> Destination:</strong><br>
-                  <span class="text-muted">{{ booking.destination_country }}</span>
+            
+            <!-- Quick Stats -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-warning">2</h4>
+                        <small>Awaiting Pickup</small>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                  <strong><i class="fas fa-calendar"></i> Travel Date:</strong><br>
-                  <span class="text-muted">{{ booking.travel_date or 'TBD' }}</span>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-primary">1</h4>
+                        <small>In Transit</small>
+                    </div>
                 </div>
-              </div>
-
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <strong><i class="fas fa-tasks"></i> Status:</strong><br>
-                  <span class="badge bg-{{ 'success' if booking.booking_status == 'completed' else 'warning' if booking.booking_status == 'docs_uploaded' else 'primary' }}">
-                    {{ booking.booking_status.replace('_', ' ').title() }}
-                  </span>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-success">5</h4>
+                        <small>Delivered</small>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                  <strong><i class="fas fa-shield-alt"></i> Escrow:</strong><br>
-                  <span class="badge bg-{{ 'success' if booking.escrow_status == 'released' else 'primary' if booking.escrow_status == 'held' else 'danger' }}">
-                    {{ booking.escrow_status.title() }}
-                  </span>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-info">8</h4>
+                        <small>Total This Month</small>
+                    </div>
                 </div>
-              </div>
-
-              {% if booking.notes %}
-              <div class="mb-3">
-                <strong><i class="fas fa-sticky-note"></i> Special Notes:</strong><br>
-                <span class="text-muted">{{ booking.notes }}</span>
-              </div>
-              {% endif %}
-
-              <!-- Status Update Section -->
-              <div class="upload-section">
-                <h6><i class="fas fa-edit"></i> Update Booking Status</h6>
-                <form action="/handler/update-booking-status" method="POST">
-                  <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                  <div class="row align-items-end">
-                    <div class="col-md-8">
-                      <label class="form-label">Status</label>
-                      <select class="form-control" name="status" required>
-                        <option value="pending" {{ 'selected' if booking.booking_status == 'pending' else '' }}>Pending</option>
-                        <option value="confirmed" {{ 'selected' if booking.booking_status == 'confirmed' else '' }}>Confirmed</option>
-                        <option value="docs_uploaded" {{ 'selected' if booking.booking_status == 'docs_uploaded' else '' }}>Documents Uploaded</option>
-                        <option value="completed" {{ 'selected' if booking.booking_status == 'completed' else '' }}>Completed</option>
-                      </select>
-                    </div>
-                    <div class="col-md-4">
-                      <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-save"></i> Update
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-              <hr>
-
-              <!-- Document Upload Section -->
-              <div class="upload-section">
-                <h6><i class="fas fa-upload"></i> Upload Travel Documents</h6>
-                
-                {% if booking.documents %}
-                  <div class="mb-3">
-                    <strong>Uploaded Documents:</strong>
-                    {% for doc in booking.documents %}
-                      <div class="d-flex justify-content-between align-items-center border p-2 rounded mb-2">
-                        <div>
-                          <span>{{ doc.document_type }}</span>
-                          <small class="text-muted d-block">{{ doc.filename }}</small>
-                        </div>
-                        <small class="text-muted">{{ doc.upload_time }}</small>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% endif %}
-
-                <form action="/handler/upload-document" method="POST" enctype="multipart/form-data">
-                  <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                  
-                  <div class="row">
-                    <div class="col-md-4">
-                      <label class="form-label">Document Type</label>
-                      <select class="form-control" name="document_type" required>
-                        <option value="">Select Type</option>
-                        <option value="Health Certificate">Health Certificate</option>
-                        <option value="Import Permit">Import Permit</option>
-                        <option value="Vaccination Records">Vaccination Records</option>
-                        <option value="Export Certificate">Export Certificate</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div class="col-md-5">
-                      <label class="form-label">Upload File</label>
-                      <input type="file" class="form-control" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                      <button type="submit" class="btn btn-warning w-100">
-                        <i class="fas fa-upload"></i> Upload
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div class="mt-2">
-                    <input type="text" class="form-control" name="description" placeholder="Description (optional)">
-                  </div>
-                </form>
-              </div>
-
             </div>
-          </div>
         </div>
-      {% endfor %}
+
+        <!-- Tab Navigation -->
+        <div class="tab-content-card">
+            <ul class="nav nav-tabs nav-justified mb-4" id="handlerTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-requests" type="button" role="tab">
+                        <i class="fas fa-inbox"></i> New Requests <span class="badge bg-warning ms-2">2</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-transports" type="button" role="tab">
+                        <i class="fas fa-truck"></i> Active Transports <span class="badge bg-primary ms-2">1</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed-transports" type="button" role="tab">
+                        <i class="fas fa-check-circle"></i> Completed <span class="badge bg-success ms-2">5</span>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="handlerTabContent">
+                <!-- New Requests Tab -->
+                <div class="tab-pane fade show active" id="new-requests" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-inbox"></i> New Transport Requests</h5>
+                        <span class="text-muted">2 pending requests</span>
+                    </div>
+
+                    <!-- New Request Cards -->
+                    <div class="booking-card pending">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=60&h=60&fit=crop" alt="Luna" class="pet-avatar">
+                                <small class="d-block text-muted mt-1">Pet ID: 001</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="mb-1">Luna - Golden Retriever</h6>
+                                <p class="mb-1"><strong>Owner:</strong> John Smith</p>
+                                <p class="mb-1"><i class="fas fa-phone"></i> +91-9876543210</p>
+                                <p class="mb-0"><i class="fas fa-envelope"></i> john@example.com</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="mb-1"><strong>Route:</strong> Mumbai → Dubai</p>
+                                <p class="mb-1"><strong>Pickup Date:</strong> Feb 1, 2024</p>
+                                <p class="mb-1"><strong>Service Type:</strong> International</p>
+                                <p class="mb-0"><span class="location-tag">Airport Pickup Required</span></p>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <span class="status-badge bg-warning text-dark">Pending Response</span>
+                                <div class="mt-2">
+                                    <button class="btn btn-success btn-sm me-2" onclick="acceptTransport(1)">
+                                        <i class="fas fa-check"></i> Accept
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="declineTransport(1)">
+                                        <i class="fas fa-times"></i> Decline
+                                    </button>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm mt-2" onclick="viewTransportDetails(1)">
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="booking-card pending">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <img src="https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=60&h=60&fit=crop" alt="Max" class="pet-avatar">
+                                <small class="d-block text-muted mt-1">Pet ID: 002</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="mb-1">Max - Persian Cat</h6>
+                                <p class="mb-1"><strong>Owner:</strong> Sarah Johnson</p>
+                                <p class="mb-1"><i class="fas fa-phone"></i> +91-9876543211</p>
+                                <p class="mb-0"><i class="fas fa-envelope"></i> sarah@example.com</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="mb-1"><strong>Route:</strong> Delhi → London</p>
+                                <p class="mb-1"><strong>Pickup Date:</strong> Feb 5, 2024</p>
+                                <p class="mb-1"><strong>Service Type:</strong> International</p>
+                                <p class="mb-0"><span class="location-tag">Quarantine Coordination</span></p>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <span class="status-badge bg-warning text-dark">Pending Response</span>
+                                <div class="mt-2">
+                                    <button class="btn btn-success btn-sm me-2" onclick="acceptTransport(2)">
+                                        <i class="fas fa-check"></i> Accept
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="declineTransport(2)">
+                                        <i class="fas fa-times"></i> Decline
+                                    </button>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm mt-2" onclick="viewTransportDetails(2)">
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Transports Tab -->
+                <div class="tab-pane fade" id="active-transports" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-truck"></i> Active Transports</h5>
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshTracking()">
+                            <i class="fas fa-sync"></i> Refresh Tracking
+                        </button>
+                    </div>
+
+                    <!-- Active Transport Cards -->
+                    <div class="booking-card in-transit">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=60&h=60&fit=crop" alt="Buddy" class="pet-avatar">
+                                <small class="d-block text-muted mt-1">Pet ID: 003</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="mb-1">Buddy - Labrador</h6>
+                                <p class="mb-1"><strong>Owner:</strong> Mike Wilson</p>
+                                <p class="mb-1"><i class="fas fa-phone"></i> +91-9876543212</p>
+                                <p class="mb-0"><i class="fas fa-envelope"></i> mike@example.com</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="mb-1"><strong>Route:</strong> Bangalore → Singapore</p>
+                                <p class="mb-1"><strong>Current Status:</strong> In Transit</p>
+                                <p class="mb-1"><strong>ETA:</strong> Feb 2, 2024 - 6:00 PM</p>
+                                <p class="mb-0"><span class="location-tag">Flight AI-348</span></p>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <span class="status-badge bg-primary text-white">In Transit</span>
+                                <div class="quick-status-buttons">
+                                    <button class="status-btn picked-up" onclick="updateStatus(3, 'picked_up')">
+                                        <i class="fas fa-hand-paper"></i> Picked Up
+                                    </button>
+                                    <button class="status-btn in-transit" onclick="updateStatus(3, 'in_transit')">
+                                        <i class="fas fa-plane"></i> In Transit
+                                    </button>
+                                    <button class="status-btn delivered" onclick="updateStatus(3, 'delivered')">
+                                        <i class="fas fa-check"></i> Delivered
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Update Section -->
+                        <div class="status-picker">
+                            <h6><i class="fas fa-edit"></i> Update Status & Location</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Current Location</label>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Enter current location..." id="currentLocation">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Upload Photo</label>
+                                    <input type="file" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this)">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Notes</label>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Add notes..." id="statusNotes">
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <button class="btn btn-success btn-sm" onclick="submitStatusUpdate(3)">
+                                    <i class="fas fa-paper-plane"></i> Submit Update
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm ms-2" onclick="sendLocationUpdate(3)">
+                                    <i class="fas fa-map-marker-alt"></i> Send Location
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Handler Log Timeline -->
+                        <div class="timeline-log">
+                            <h6><i class="fas fa-history"></i> Handler Log</h6>
+                            <div class="timeline-entry">
+                                <div class="d-flex justify-content-between">
+                                    <strong>Status: In Transit</strong>
+                                    <small class="text-muted">Feb 1, 2024 - 8:30 AM</small>
+                                </div>
+                                <p class="mb-1">Pet boarded flight AI-348 successfully. All documentation verified.</p>
+                                <small class="text-muted">Location: Mumbai Airport Terminal 2</small>
+                            </div>
+                            <div class="timeline-entry">
+                                <div class="d-flex justify-content-between">
+                                    <strong>Status: Picked Up</strong>
+                                    <small class="text-muted">Feb 1, 2024 - 6:00 AM</small>
+                                </div>
+                                <p class="mb-1">Pet collected from owner's residence. Health certificate verified.</p>
+                                <small class="text-muted">Location: Bandra West, Mumbai</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Transports Tab -->
+                <div class="tab-pane fade" id="completed-transports" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-check-circle"></i> Completed Transports</h5>
+                        <button class="btn btn-outline-success btn-sm" onclick="exportTransportHistory()">
+                            <i class="fas fa-download"></i> Export History
+                        </button>
+                    </div>
+
+                    <!-- Completed Transport Cards -->
+                    <div class="booking-card delivered">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=60&h=60&fit=crop" alt="Whiskers" class="pet-avatar">
+                                <small class="d-block text-muted mt-1">Pet ID: 004</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="mb-1">Whiskers - Siamese Cat</h6>
+                                <p class="mb-1"><strong>Owner:</strong> Emma Davis</p>
+                                <p class="mb-1"><i class="fas fa-phone"></i> +91-9876543213</p>
+                                <p class="mb-0"><i class="fas fa-envelope"></i> emma@example.com</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="mb-1"><strong>Route:</strong> Chennai → Toronto</p>
+                                <p class="mb-1"><strong>Completed:</strong> Jan 28, 2024</p>
+                                <p class="mb-1"><strong>Duration:</strong> 18 hours</p>
+                                <p class="mb-0"><span class="location-tag">Successfully Delivered</span></p>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <span class="status-badge bg-success text-white">Delivered</span>
+                                <div class="mt-2">
+                                    <button class="btn btn-outline-primary btn-sm me-2" onclick="viewTransportReport(4)">
+                                        <i class="fas fa-file-alt"></i> View Report
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="downloadDocuments(4)">
+                                        <i class="fas fa-download"></i> Documents
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+
+    <!-- Transport Acceptance Modal -->
+    <div class="modal fade" id="acceptTransportModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Schedule Pickup</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Pickup Date</label>
+                            <input type="date" class="form-control" id="pickupDate" min="{{ date.today() }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pickup Time Window</label>
+                            <select class="form-control" id="pickupTime">
+                                <option value="">Select Time Window</option>
+                                <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
+                                <option value="afternoon">Afternoon (12:00 PM - 5:00 PM)</option>
+                                <option value="evening">Evening (5:00 PM - 8:00 PM)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Special Instructions</label>
+                        <textarea class="form-control" rows="3" placeholder="Any special handling requirements or pickup instructions..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="confirmTransportAcceptance()">
+                        <i class="fas fa-check"></i> Accept & Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentTransportId = null;
+
+        function acceptTransport(transportId) {
+            currentTransportId = transportId;
+            $('#acceptTransportModal').modal('show');
+        }
+
+        function declineTransport(transportId) {
+            if (confirm('Are you sure you want to decline this transport request?')) {
+                // API call to decline transport
+                showNotification('Transport request declined', 'warning');
+            }
+        }
+
+        function confirmTransportAcceptance() {
+            const date = document.getElementById('pickupDate').value;
+            const time = document.getElementById('pickupTime').value;
+            
+            if (!date || !time) {
+                alert('Please select both pickup date and time window');
+                return;
+            }
+
+            // API call to accept transport and schedule pickup
+            $('#acceptTransportModal').modal('hide');
+            showNotification('Transport accepted! Pickup scheduled successfully.', 'success');
+            
+            // Refresh the page or update the UI
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+
+        function updateStatus(transportId, status) {
+            const statusNames = {
+                'picked_up': 'Picked Up',
+                'in_transit': 'In Transit', 
+                'delivered': 'Delivered'
+            };
+            
+            // Highlight the selected status button
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.style.opacity = '0.6';
+            });
+            event.target.style.opacity = '1';
+            
+            showNotification(`Status updated to: ${statusNames[status]}`, 'info');
+        }
+
+        function submitStatusUpdate(transportId) {
+            const location = document.getElementById('currentLocation').value;
+            const notes = document.getElementById('statusNotes').value;
+            
+            if (!location) {
+                alert('Please enter current location');
+                return;
+            }
+
+            // API call to submit status update
+            showNotification('Status update submitted successfully!', 'success');
+            
+            // Clear the form
+            document.getElementById('currentLocation').value = '';
+            document.getElementById('statusNotes').value = '';
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    showNotification(`Location updated: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, 'success');
+                });
+            } else {
+                alert('Geolocation is not supported by this browser');
+            }
+        }
+
+        function sendLocationUpdate(transportId) {
+            getCurrentLocation();
+            // API call to send location to pet parent
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Show image preview (optional)
+                    console.log('Image selected for upload');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            // Create and show notification
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        function viewTransportDetails(transportId) {
+            // Navigate to detailed view
+            window.location.href = `/handler/transport/${transportId}`;
+        }
+
+        function viewTransportReport(transportId) {
+            // Open transport completion report
+            window.location.href = `/handler/report/${transportId}`;
+        }
+
+        function downloadDocuments(transportId) {
+            // Download all transport documents
+            window.location.href = `/handler/documents/${transportId}/download`;
+        }
+
+        function refreshTracking() {
+            showNotification('Tracking information refreshed', 'info');
+            // API call to refresh tracking data
+        }
+
+        function exportTransportHistory() {
+            // Export transport history
+            window.location.href = '/handler/export/history';
+        }
+
+        // Auto-refresh active transports every 60 seconds
+        setInterval(() => {
+            if (document.querySelector('#active-tab').classList.contains('active')) {
+                console.log('Refreshing active transport status...');
+                // API call to refresh active transport data
+            }
+        }, 60000);
+    </script>
 </body>
 </html>
