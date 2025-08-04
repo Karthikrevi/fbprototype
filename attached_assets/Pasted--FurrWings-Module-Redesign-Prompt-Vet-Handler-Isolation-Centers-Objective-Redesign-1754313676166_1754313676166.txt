@@ -1,0 +1,135 @@
+**FurrWings Module Redesign Prompt: Vet, Handler & Isolation Centers**
+
+---
+
+**Objective:**
+Redesign and clean up the Vet, Handler, and Isolation Center modules in the FurrWings system to make them structured, user-friendly, and operationally clear. The modules should support smooth booking workflows, time-slot scheduling, live updates, and integration with the Pet Passport system.
+
+---
+
+### GENERAL UI & STRUCTURE GUIDELINES
+
+* Use a **three-tab layout** or segmented navigation for each module: `New Bookings`, `Scheduled`, `Completed`.
+
+* Display booking data in clean **card or row format**, each containing:
+
+  * Pet Name & ID
+  * Pet Parent Info (Name, Phone, Email)
+  * Requested Service Type
+  * Requested Date/Time
+  * Status: Pending / Scheduled / Completed / Cancelled
+  * Action Buttons: Accept / Reject / Reschedule / View Details
+
+* **Calendar View** integration for scheduled items.
+
+* **Sidebar Filters**: Filter by pet name, date range, status, or service type.
+
+* Unified **notification banner** at the top for real-time updates.
+
+* Mobile responsive layout for all modules.
+
+---
+
+### VET MODULE
+
+**Workflow:**
+
+1. **Receive Booking**:
+
+   * Shows up under "New Bookings" tab.
+   * Option to Accept or Decline.
+
+2. **Accept Booking**:
+
+   * Opens a calendar-style slot picker for vet to assign time.
+   * Confirmation is sent to pet parent.
+
+3. **After Appointment**:
+
+   * Upload health check report (PDF or JPG), digitally signed (DSC required).
+   * System auto-links uploaded doc to pet’s Pet Passport (read-only).
+   * Add a "Reapply" workflow if vet needs to make corrections:
+
+     * Vet re-uploads amended file + original proof.
+     * Flags this in the passport as "Revised Document" with both versions visible.
+
+**UI Features:**
+
+* **Timeline widget** per pet shows visit history.
+* Highlight upcoming appointments in dashboard.
+* Action buttons should be fixed at bottom of screen for mobile users.
+
+---
+
+### HANDLER MODULE
+
+**Workflow:**
+
+1. **Receive Booking**:
+
+   * Pickup/drop request for pet relocation.
+   * Accept or Decline the booking.
+
+2. **Upon Acceptance**:
+
+   * Display an option to schedule pickup window (date + time).
+   * After pickup, enable real-time or periodic **Status Updates**:
+
+     * Status = Picked Up / In Transit / Delivered
+     * Add notes (text), images, timestamp, and location tag.
+
+3. **Pet Status Updates**:
+
+   * Appear inside the **Pet Passport Timeline** under a new section: `Handler Log`
+   * This is *not* part of official document uploads.
+   * Status entries are automatically timestamped and read-only once submitted.
+
+**UI Features:**
+
+* Minimalist list-view dashboard with icons for: "In Transit", "Delivered", "Awaiting Pickup"
+* Status update modal with photo upload + notes field + auto timestamp.
+
+---
+
+### ISOLATION CENTER MODULE
+
+**Workflow:**
+
+1. **Receive Booking Request**:
+
+   * Shown under New Bookings.
+   * Accept or Decline.
+
+2. **On Acceptance**:
+
+   * Set Isolation Start and End Dates.
+   * Option to connect a **Live Feed** (iframe/embed link).
+
+     * If live feed is available: Display it on pet parent app.
+     * If not: Enable **Daily Isolation Check Form**:
+
+       * Upload Pet Photo
+       * Daily Health Metrics (Temp, Appetite, Mood)
+       * Notes from caretaker
+
+3. **Reports & Logs**:
+
+   * Daily check-in reports show in `Isolation Reports` tab in Pet Passport.
+   * Each report has date, caretaker name, and status summary.
+
+**UI Features:**
+
+* Daily timeline feed UI per pet.
+* Tab for "Live View" if enabled, otherwise show last check-in entry.
+* Chart-style widget summarizing health over isolation period (optional).
+
+---
+
+### ADDITIONAL FEATURES (All Modules)
+
+* Push notifications to pet parent and partner for all status changes.
+* Booking history export (CSV or PDF).
+* Secure partner login, role-based access controls.
+* Optional chat widget for pet parent ↔ partner communication.
+
+---
