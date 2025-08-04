@@ -132,6 +132,17 @@
         <div class="tab-pane fade show active" id="pets" role="tabpanel">
           <div class="mt-4">
             <h5><i class="fas fa-paw"></i> Pet Registry Database</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5><i class="fas fa-paw"></i> Pet Registry Database</h5>
+              <div>
+                <button class="btn btn-sm btn-success" onclick="exportTableData('pets')">
+                  <i class="fas fa-download"></i> Export Data
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="generatePassportReport()">
+                  <i class="fas fa-passport"></i> Passport Report
+                </button>
+              </div>
+            </div>
             <table class="table table-striped" id="petsTable">
               <thead>
                 <tr>
@@ -142,6 +153,7 @@
                   <th>Owner</th>
                   <th>Passport Status</th>
                   <th>Travel Destination</th>
+                  <th>Documents</th>
                   <th>Registration Date</th>
                   <th>Actions</th>
                 </tr>
@@ -160,11 +172,18 @@
                     </span>
                   </td>
                   <td>{{ pet.destination or 'N/A' }}</td>
+                  <td>
+                    <span class="badge bg-info">{{ pet.total_documents or 0 }}</span>
+                    <small class="text-muted">({{ pet.verified_documents or 0 }} verified)</small>
+                  </td>
                   <td>{{ pet.created_at }}</td>
                   <td>
-                    <a href="/furrwings/pet/{{ pet.id }}" class="btn btn-sm btn-primary">
+                    <a href="/furrwings/pet/{{ pet.id }}" class="btn btn-sm btn-primary" title="View Details">
                       <i class="fas fa-eye"></i>
                     </a>
+                    <button class="btn btn-sm btn-success" onclick="downloadPassport({{ pet.id }})" title="Download Passport">
+                      <i class="fas fa-download"></i>
+                    </button>
                   </td>
                 </tr>
                 {% endfor %}
@@ -363,6 +382,33 @@
         buttons: ['copy', 'csv', 'excel', 'pdf']
       });
     });
+
+    function exportTableData(type) {
+      // Export organized data for government/research use
+      window.location.href = `/furrwings/export/${type}`;
+      
+      // Show success message
+      const toast = document.createElement('div');
+      toast.className = 'toast align-items-center text-white bg-success border-0';
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="fas fa-check-circle"></i> ${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!
+          </div>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+    }
+
+    function generatePassportReport() {
+      window.location.href = '/furrwings/passport-report';
+    }
+
+    function downloadPassport(petId) {
+      window.location.href = `/furrwings/pet/${petId}/passport-pdf`;
+    }
   </script>
 </body>
 </html>
