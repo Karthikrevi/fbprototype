@@ -1,8 +1,10 @@
+
 from enum import Enum
 from functools import wraps
-from flask import current_app, jsonify
-from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request, get_jwt
-from .models.user import User, UserRole
+from flask import current_app
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from .models.user import User
+
 
 class Role(Enum):
     """User roles in the system"""
@@ -20,42 +22,42 @@ class Permission(Enum):
     # Pet management
     VIEW_PETS = "view_pets"
     MANAGE_PETS = "manage_pets"
-
+    
     # Vendor/Services
     VIEW_VENDORS = "view_vendors"
     MANAGE_VENDOR_PROFILE = "manage_vendor_profile"
-
+    
     # Bookings
     CREATE_BOOKINGS = "create_bookings"
     MANAGE_BOOKINGS = "manage_bookings"
     VIEW_ALL_BOOKINGS = "view_all_bookings"
-
+    
     # Passport/FurrWings
     REQUEST_PASSPORT = "request_passport"
     ISSUE_HEALTH_CERT = "issue_health_cert"
     MANAGE_TRAVEL_DOCS = "manage_travel_docs"
-
+    
     # Handler operations
     MANAGE_HANDLER_TASKS = "manage_handler_tasks"
     UPDATE_TRAVEL_STATUS = "update_travel_status"
-
+    
     # Isolation center
     MANAGE_ISOLATION_STAYS = "manage_isolation_stays"
     LOG_DAILY_ACTIVITIES = "log_daily_activities"
-
+    
     # NGO operations
     REGISTER_STRAYS = "register_strays"
     MANAGE_NGO_DATA = "manage_ngo_data"
-
+    
     # Government access
     VIEW_AGGREGATE_DATA = "view_aggregate_data"
     EXPORT_COMPLIANCE_DATA = "export_compliance_data"
-
+    
     # Admin
     MANAGE_USERS = "manage_users"
     VIEW_ANALYTICS = "view_analytics"
     MANAGE_SYSTEM = "manage_system"
-
+    
     # Data rights
     HANDLE_DSR_REQUESTS = "handle_dsr_requests"
     MANAGE_CONSENTS = "manage_consents"
@@ -64,31 +66,31 @@ class Permission(Enum):
 # Role-Permission mapping
 ROLE_PERMISSIONS = {
     Role.ADMIN: [perm for perm in Permission],  # Admin has all permissions
-
+    
     Role.PET_PARENT: [
         Permission.VIEW_PETS, Permission.MANAGE_PETS,
         Permission.VIEW_VENDORS, Permission.CREATE_BOOKINGS,
         Permission.REQUEST_PASSPORT
     ],
-
+    
     Role.VET: [
         Permission.VIEW_PETS, Permission.MANAGE_VENDOR_PROFILE,
         Permission.MANAGE_BOOKINGS, Permission.ISSUE_HEALTH_CERT
     ],
-
+    
     Role.HANDLER: [
         Permission.MANAGE_HANDLER_TASKS, Permission.UPDATE_TRAVEL_STATUS,
         Permission.MANAGE_TRAVEL_DOCS
     ],
-
+    
     Role.ISOLATION_CENTER: [
         Permission.MANAGE_ISOLATION_STAYS, Permission.LOG_DAILY_ACTIVITIES
     ],
-
+    
     Role.NGO: [
         Permission.REGISTER_STRAYS, Permission.MANAGE_NGO_DATA
     ],
-
+    
     Role.GOVERNMENT: [
         Permission.VIEW_AGGREGATE_DATA, Permission.EXPORT_COMPLIANCE_DATA
     ]
@@ -97,7 +99,7 @@ ROLE_PERMISSIONS = {
 
 def init_rbac(app):
     """Initialize RBAC system"""
-
+    
     @app.before_request
     def load_user():
         """Load user context for request"""
@@ -112,12 +114,12 @@ def require_permission(permission):
         def decorated_function(*args, **kwargs):
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-
+            
             # TODO: Port legacy logic - load user and check permissions
             # user = User.query.get(user_id)
             # if not user or not user.has_permission(permission):
             #     return {'error': 'Insufficient permissions'}, 403
-
+            
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -130,91 +132,12 @@ def require_role(role):
         def decorated_function(*args, **kwargs):
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-
+            
             # TODO: Port legacy logic - load user and check role
             # user = User.query.get(user_id)
             # if not user or user.role != role.value:
             #     return {'error': 'Insufficient permissions'}, 403
-
+            
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-
-
-def require_roles(*allowed_roles):
-    """Decorator to require specific roles for endpoint access."""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            verify_jwt_in_request()
-            claims = get_jwt()
-            user_role = claims.get('role')
-
-            if not user_role:
-                return jsonify({
-                    'error': {
-                        'code': 'MISSING_ROLE',
-                        'message': 'User role not found in token'
-                    }
-                }), 403
-
-            # Convert string to UserRole enum for comparison
-            try:
-                user_role_enum = UserRole(user_role)
-            except ValueError:
-                return jsonify({
-                    'error': {
-                        'code': 'INVALID_ROLE',
-                        'message': 'Invalid user role'
-                    }
-                }), 403
-
-            # Check if user role is in allowed roles
-            allowed_role_values = [role.value if hasattr(role, 'value') else role for role in allowed_roles]
-            if user_role not in allowed_role_values:
-                return jsonify({
-                    'error': {
-                        'code': 'INSUFFICIENT_PERMISSIONS',
-                        'message': f'Access denied. Required roles: {", ".join(allowed_role_values)}'
-                    }
-                }), 403
-
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-def require_admin():
-    """Decorator to require admin role."""
-    return require_roles(UserRole.ADMIN.value)
-
-def require_vendor():
-    """Decorator to require any vendor role."""
-    return require_roles(
-        UserRole.VENDOR_GROOMER.value,
-        UserRole.VENDOR_BOARDING.value
-    )
-
-def require_medical():
-    """Decorator to require medical professional roles."""
-    return require_roles(
-        UserRole.VET.value,
-        UserRole.PHARMACY.value
-    )
-
-def get_current_user_id():
-    """Get current user ID from JWT token."""
-    verify_jwt_in_request()
-    claims = get_jwt()
-    return claims.get('sub')
-
-def get_current_user_role():
-    """Get current user role from JWT token."""
-    verify_jwt_in_request()
-    claims = get_jwt()
-    return claims.get('role')
-
-def get_current_user_email():
-    """Get current user email from JWT token."""
-    verify_jwt_in_request()
-    claims = get_jwt()
-    return claims.get('email')

@@ -1,32 +1,25 @@
+
 import os
 from datetime import timedelta
-from dotenv import load_dotenv
 
-load_dotenv()
 
 class Config:
     """Base configuration with environment variables"""
     
-    # Flask
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')
-    FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
-    DEBUG = FLASK_ENV == 'development'
-
     # Database
-    DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///dev.db')
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///furrbutler.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
+    # Flask
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-change-this')
+    
     # JWT
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-change-me')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.environ.get('ACCESS_TOKEN_EXPIRES_MIN', 15)))
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.environ.get('REFRESH_TOKEN_EXPIRES_DAYS', 7)))
-    JWT_ALGORITHM = 'HS256'
-    JWT_BLACKLIST_ENABLED = True
-    JWT_BLACKLIST_TOKEN_CHECKS = ['access', 'refresh']
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-change-this')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     
     # Mail
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
@@ -40,7 +33,7 @@ class Config:
     RATELIMIT_STORAGE_URL = os.environ.get('RATELIMIT_STORAGE_URL', 'memory://')
     
     # CORS
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
     
     # External APIs
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')

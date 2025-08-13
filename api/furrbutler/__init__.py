@@ -1,43 +1,71 @@
 
-import os
 from flask import Flask
-from api.extensions import init_extensions
-from api.error_handlers import register_error_handlers
+from flask_cors import CORS
+from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+from .extensions import db, jwt, mail, limiter
+from .config import Config
+from .rbac import init_rbac
 
 
-def create_app(config_name=None):
-    """Create and configure the Flask application."""
-    app = Flask(__name__, 
-                template_folder='../../templates',
-                static_folder='../../static')
-    
-    # Load configuration
-    if config_name is None:
-        config_name = os.getenv('FLASK_ENV', 'development')
-    
-    from api.config import config
-    app.config.from_object(config[config_name])
-    
-    # Load environment variables
-    from dotenv import load_dotenv
-    load_dotenv()
-    
-    # Override config with environment variables
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', app.config.get('SECRET_KEY'))
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', app.config.get('JWT_SECRET_KEY'))
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', app.config.get('SQLALCHEMY_DATABASE_URI'))
+def create_app(config_class=Config):
+    """Application factory pattern"""
+    app = Flask(__name__)
+    app.config.from_object(config_class)
     
     # Initialize extensions
-    init_extensions(app)
+    db.init_app(app)
+    jwt.init_app(app)
+    mail.init_app(app)
+    limiter.init_app(app)
     
-    # Register error handlers
-    register_error_handlers(app)
+    # CORS configuration
+    CORS(app, origins=app.config.get('CORS_ORIGINS', ['http://localhost:3000']))
+    
+    # Database migrations
+    Migrate(app, db)
+    
+    # Initialize RBAC
+    init_rbac(app)
     
     # Register blueprints
-    from api.blueprints.auth import bp as auth_bp
-    from api.blueprints.pets import bp as pets_bp
+    from .blueprints.auth import bp as auth_bp
+    from .blueprints.pets import bp as pets_bp
+    from .blueprints.vendors import bp as vendors_bp
+    from .blueprints.bookings import bp as bookings_bp
+    from .blueprints.passport import bp as passport_bp
+    from .blueprints.handlers import bp as handlers_bp
+    from .blueprints.isolation import bp as isolation_bp
+    from .blueprints.ngo import bp as ngo_bp
+    from .blueprints.govt import bp as govt_bp
+    from .blueprints.dsr import bp as dsr_bp
+    from .blueprints.consent import bp as consent_bp
+    from .blueprints.admin import bp as admin_bp
+    from .blueprints.files import bp as files_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(pets_bp, url_prefix='/api/pets')
+    app.register_blueprint(vendors_bp, url_prefix='/api/vendors')
+    app.register_blueprint(bookings_bp, url_prefix='/api/bookings')
+    app.register_blueprint(passport_bp, url_prefix='/api/passport')
+    app.register_blueprint(handlers_bp, url_prefix='/api/handlers')
+    app.register_blueprint(isolation_bp, url_prefix='/api/isolation')
+    app.register_blueprint(ngo_bp, url_prefix='/api/ngo')
+    app.register_blueprint(govt_bp, url_prefix='/api/govt')
+    app.register_blueprint(dsr_bp, url_prefix='/api/dsr')
+    app.register_blueprint(consent_bp, url_prefix='/api/consent')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(files_bp, url_prefix='/api/files')
+    
+    # Health check endpoint
+    @app.route('/health')
+    def health_check():
+        return {'status': 'healthy', 'service': 'furrbutler-api'}
+    
+    # Error handlers
+    from .error_handlers import register_error_handlers
+    register_error_handlers(app)
     
     return app

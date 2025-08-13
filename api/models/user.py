@@ -1,77 +1,68 @@
 
 from datetime import datetime
-from enum import Enum
-from api.extensions import db, bcrypt
-from email_validator import validate_email, EmailNotValidError
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Enum
+from sqlalchemy.orm import relationship
+from ..extensions import db
+from ..rbac import Role, Permission, ROLE_PERMISSIONS
 
-class UserRole(Enum):
-    PET_PARENT = 'pet_parent'
-    VENDOR_GROOMER = 'vendor_groomer'
-    VENDOR_BOARDING = 'vendor_boarding'
-    VET = 'vet'
-    PHARMACY = 'pharmacy'
-    HANDLER = 'handler'
-    ISOLATION = 'isolation'
-    NGO = 'ngo'
-    GOV_VIEW = 'gov_view'
-    ADMIN = 'admin'
 
 class User(db.Model):
+    """User model with role-based access control"""
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(128), nullable=False)
-    role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.PET_PARENT)
-    is_email_verified = db.Column(db.Boolean, default=False, nullable=False)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
+    phone = Column(String(20))
+    role = Column(Enum(Role), nullable=False, default=Role.PET_PARENT)
     
-    # Additional profile fields
-    full_name = db.Column(db.String(100))
-    phone = db.Column(db.String(20))
+    # Account status
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    email_verified_at = Column(DateTime)
     
-    def __init__(self, email, password, role=UserRole.PET_PARENT, **kwargs):
-        self.email = self.validate_email(email)
-        self.set_password(password)
-        self.role = role
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = Column(DateTime)
     
-    @staticmethod
-    def validate_email(email):
-        """Validate email format."""
-        try:
-            validated_email = validate_email(email)
-            return validated_email.email
-        except EmailNotValidError:
-            raise ValueError(f"Invalid email address: {email}")
-    
-    def set_password(self, password):
-        """Hash and set password."""
-        if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-    
-    def check_password(self, password):
-        """Check if provided password matches hash."""
-        return bcrypt.check_password_hash(self.password_hash, password)
-    
-    def to_dict(self, include_sensitive=False):
-        """Convert user to dictionary."""
-        data = {
-            'id': self.id,
-            'email': self.email,
-            'role': self.role.value,
-            'is_email_verified': self.is_email_verified,
-            'is_active': self.is_active,
-            'full_name': self.full_name,
-            'phone': self.phone,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-        return data
+    # Relationships
+    pets = relationship("Pet", back_populates="owner", lazy='dynamic')
+    consents = relationship("Consent", back_populates="user", lazy='dynamic')
+    dsr_requests = relationship("DSRRequest", back_populates="user", lazy='dynamic')
     
     def __repr__(self):
         return f'<User {self.email}>'
+    
+    @property
+    def full_name(self):
+        """Get user's full name"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.email
+    
+    def has_permission(self, permission):
+        """Check if user has specific permission"""
+        user_permissions = ROLE_PERMISSIONS.get(self.role, [])
+        return permission in user_permissions
+    
+    def has_role(self, role):
+        """Check if user has specific role"""
+        return self.role == role
+    
+    def to_dict(self):
+        """Convert user to dictionary"""
+        return {
+            'id': self.id,
+            'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'phone': self.phone,
+            'role': self.role.value,
+            'is_active': self.is_active,
+            'is_verified': self.is_verified,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login_at': self.last_login_at.isoformat() if self.last_login_at else None
+        }
