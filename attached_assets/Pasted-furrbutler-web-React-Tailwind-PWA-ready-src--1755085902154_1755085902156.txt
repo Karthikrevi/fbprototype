@@ -1,0 +1,48 @@
+furrbutler/
+├── web/                               # React + Tailwind (PWA-ready)
+│   ├── src/
+│   │   ├── app/                       # Routing, layouts, auth guards
+│   │   ├── components/                # Shared UI
+│   │   ├── features/                  # bookings, pets, passport(FurrWings), handlers, isolation, ngo, govt
+│   │   ├── pages/                     # per-role routes: pet-parent, vet, handler, isolation, ngo, govt, admin
+│   │   └── lib/                       # API client, analytics (gated by consent)
+│   ├── public/
+│   ├── vite.config.ts
+│   └── package.json
+│
+├── api/                               # Flask/FastAPI backend
+│   ├── furrbutler/__init__.py         # App factory
+│   ├── config.py                      # Env-based settings
+│   ├── extensions.py                  # db, jwt, mail, limiter, cors, etc
+│   ├── rbac.py                        # Roles & permissions
+│   ├── blueprints/
+│   │   ├── auth/                      # /api/auth/*
+│   │   ├── pets/                      # /api/pets/*
+│   │   ├── vendors/                   # /api/vendors/*
+│   │   ├── bookings/                  # /api/bookings/*
+│   │   ├── passport/                  # /api/passport/* (FurrWings: checklist, QR/PDF, doc uploads)
+│   │   ├── handlers/                  # /api/handlers/* (pickup, transit logs, status → passport)
+│   │   ├── isolation/                 # /api/isolation/* (slotting, stays, daily logs/media)
+│   │   ├── ngo/                       # /api/ngo/* (stray registry, vaccines, expenses, public page)
+│   │   ├── govt/                      # /api/govt/* (read-only aggregates, CSV export)
+│   │   ├── dsr/                       # /api/dsr/* (GDPR requests)
+│   │   ├── consent/                   # /api/consent/*
+│   │   ├── admin/                     # /api/admin/*
+│   │   └── files/                     # signed URLs, uploads
+│   ├── models/                        # SQLAlchemy models by domain
+│   │   ├── user.py, pet.py, vendor.py, booking.py,
+│   │   ├── passport_request.py, handler_task.py, isolation_stay.py, ngo_entity.py
+│   ├── services/
+│   │   ├── f_dsc.py                   # F-DSC placeholder/signing hooks
+│   │   └── rules_engine.py            # Country rules (proto JSON → eval)
+│   ├── jobs/                          # Async tasks (emails, daily logs)
+│   ├── security/                      # crypto helpers, breach log
+│   ├── policies/                      # retention.yaml, purposes.yaml
+│   ├── migrations/  ├── seeds/  ├── tests/  ├── wsgi.py  └── requirements.txt
+│
+├── common/   # OpenAPI contracts, shared constants/utils
+├── infra/    # .env.example, scripts, replit.nix
+├── docs/     # ARCHITECTURE.md, SECURITY.md (GDPR/DPIA), API_GUIDE.md, SOPs/
+├── .github/workflows/ci.yml
+├── README.md
+└── LICENSE
