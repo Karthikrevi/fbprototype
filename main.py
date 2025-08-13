@@ -1,7 +1,14 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort
+import os
+from flask import Flask
+from api.furrbutler import create_app
+
+# Create the Flask application using the factory pattern
+app = create_app()
+
+# Import the main application routes
+from flask import render_template, request, redirect, session, url_for, flash, jsonify, abort
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from replit import db
-import os
 import json
 from werkzeug.utils import secure_filename
 from math import radians, cos, sin, asin, sqrt
