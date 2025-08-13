@@ -1,0 +1,129 @@
+
+# FurrButler Data Retention Policies
+# Defines how long different types of data should be retained
+
+version: "1.0"
+last_updated: "2024-01-01"
+
+# Default retention periods (in days)
+default_retention:
+  personal_data: 2555  # 7 years
+  audit_logs: 2555     # 7 years (compliance requirement)
+  system_logs: 365     # 1 year
+  temporary_files: 30  # 30 days
+
+# Specific data type retention policies
+data_types:
+  # User and account data
+  user_accounts:
+    active_users: 2555      # 7 years after last activity
+    inactive_users: 1095    # 3 years after account deactivation
+    deleted_users: 30       # 30 days grace period before permanent deletion
+    
+  # Pet data
+  pet_profiles:
+    active_pets: 2555       # 7 years after last activity
+    deceased_pets: 3650     # 10 years for historical/medical records
+    
+  # Medical and health data
+  medical_records:
+    vaccination_records: 3650   # 10 years (veterinary requirement)
+    health_certificates: 2555   # 7 years
+    treatment_history: 3650     # 10 years
+    
+  # Travel and passport data
+  passport_requests:
+    completed: 2555         # 7 years
+    cancelled: 1095         # 3 years
+    documents: 2555         # 7 years (legal requirement)
+    
+  # Financial data
+  bookings:
+    completed: 2555         # 7 years (tax requirement)
+    cancelled: 1095         # 3 years
+    
+  invoices: 2555            # 7 years (tax requirement)
+  payment_records: 2555     # 7 years (financial requirement)
+  
+  # Communication logs
+  chat_messages: 1095       # 3 years
+  email_logs: 1095          # 3 years
+  sms_logs: 1095           # 3 years
+  
+  # Analytics and usage data
+  analytics_data: 730       # 2 years
+  usage_metrics: 365        # 1 year
+  performance_logs: 90      # 90 days
+  
+  # Consent and privacy
+  consent_records: 2555     # 7 years (GDPR requirement)
+  dsr_requests: 2555        # 7 years (GDPR requirement)
+  privacy_notices: 2555     # 7 years
+  
+  # Security data
+  security_logs: 2555       # 7 years
+  breach_reports: 2555      # 7 years
+  incident_reports: 2555    # 7 years
+
+# Special retention rules
+special_rules:
+  # Legal hold - data under legal hold is exempt from deletion
+  legal_hold:
+    enabled: true
+    override_retention: true
+    
+  # Regulatory compliance
+  veterinary_compliance:
+    country: "India"
+    minimum_retention: 2555  # 7 years for veterinary records
+    
+  # User-requested deletion (Right to Erasure)
+  user_deletion:
+    grace_period: 30         # 30 days before permanent deletion
+    exceptions:
+      - "legal_obligation"
+      - "legitimate_interest"
+      - "contract_performance"
+
+# Automated cleanup
+cleanup_schedules:
+  daily:
+    - temporary_files
+    - expired_sessions
+    - old_cache_data
+    
+  weekly:
+    - performance_logs
+    - debug_logs
+    
+  monthly:
+    - expired_analytics_data
+    - old_communication_logs
+    
+  quarterly:
+    - compliance_review
+    - retention_policy_audit
+
+# Data archival
+archival:
+  enabled: true
+  archive_after_days: 1095   # Archive data after 3 years
+  archive_storage: "cold_storage"
+  compression: true
+  encryption: true
+
+# Notifications
+notifications:
+  # Notify before deletion
+  deletion_warning_days: 30
+  
+  # Notify data controllers
+  controller_notifications:
+    - retention_expiry
+    - scheduled_deletion
+    - archival_completion
+    
+  # User notifications (where applicable)
+  user_notifications:
+    - account_deletion_warning
+    - data_deletion_completion
