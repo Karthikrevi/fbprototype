@@ -2380,7 +2380,7 @@ def vendor_profile(vendor_id):
     if request.method == "POST":
         # Handle review submission for database vendors
         user_email = session["user"]
-        rating = int(request.form.get("rating"))
+        rating = int(request.form.get("rating", 5))
         review_text = request.form.get("review_text", "")
         service_type = request.form.get("service_type", "Other")
 
@@ -3223,7 +3223,7 @@ def isolation_upload_media():
     conn.commit()
     conn.close()
 
-    flash(f"{media_type.title()} uploaded successfully!")
+    flash(f"{media_type.title() if media_type else 'Media'} uploaded successfully!")
     return redirect(url_for("isolation_dashboard"))
 
 @app.route('/furrwings/dashboard')
@@ -3821,7 +3821,7 @@ def submit_review(vendor_id):
         return redirect(url_for("login"))
 
     user_email = session["user"]
-    rating = int(request.form.get("rating"))
+    rating = int(request.form.get("rating", 5))
     review_text = request.form.get("review_text", "")
     service_type = request.form.get("service_type", "Other")
 
@@ -6421,7 +6421,7 @@ def manage_expenses():
 
     if request.method == "POST":
         category = request.form.get("category")
-        amount = float(request.form.get("amount"))
+        amount = float(request.form.get("amount", 0))
         description = request.form.get("description")
         date = request.form.get("date")
 
@@ -10742,8 +10742,8 @@ def register_stray():
         qr_code = f"QRSTR{secrets.token_hex(6).upper()}"
         
         # Get location data
-        latitude = float(request.form.get("latitude"))
-        longitude = float(request.form.get("longitude"))
+        latitude = float(request.form.get("latitude", 0))
+        longitude = float(request.form.get("longitude", 0))
         location_address = request.form.get("location_address", "")
         
         # Handle photo upload
