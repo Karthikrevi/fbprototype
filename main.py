@@ -5786,8 +5786,8 @@ def manage_employees():
         email_emp = request.form.get("email")
         phone = request.form.get("phone")
         position = request.form.get("position")
-        base_salary = float(request.form.get("salary", 0))
-        hourly_rate = float(request.form.get("hourly_rate", 0))
+        base_salary = float(request.form.get("salary"))
+        hourly_rate = float(request.form.get("hourly_rate"))
         join_date = request.form.get("join_date")
 
         c.execute("""
@@ -7201,7 +7201,7 @@ def update_order_status(order_id):
     conn.commit()
     conn.close()
 
-    flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title() if new_status else 'unknown'}")
+    flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title()}")
     return redirect(url_for("erp_orders"))
 
 @app.route('/marketplace/purchase-history')
@@ -9233,7 +9233,7 @@ def send_message():
         'conversation_id': conversation_id,
         'sender_type': sender_type,
         'message': message_text
-    }, to=f'conversation_{conversation_id}')
+    }, room=f'conversation_{conversation_id}')
     
     return {"success": True}
 
