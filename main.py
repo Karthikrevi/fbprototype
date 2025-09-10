@@ -6,7 +6,7 @@ import json
 from werkzeug.utils import secure_filename
 from math import radians, cos, sin, asin, sqrt
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
@@ -1766,8 +1766,8 @@ app.jinja_env.filters['tojson'] = lambda obj: json.dumps(obj)
 # Register WhatsApp blueprint
 app.register_blueprint(whatsapp_bp)
 
-# FurrVet ERP Integration
-def init_furrvet_db():
+# FurrVet ERP Integration (duplicate function definition removed)
+def init_furrvet_db_old():
     """Initialize FurrVet database with all required tables"""
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
@@ -3501,7 +3501,7 @@ def populate_research_data(cursor):
 
 def calculate_age_group(birthday):
     """Calculate age group from birthday"""
-    from datetime import datetime
+    from datetime import datetime, timedelta
     try:
         birth_date = datetime.strptime(birthday, '%Y-%m-%d')
         age = (datetime.now() - birth_date).days // 365
@@ -3972,7 +3972,7 @@ def my_bookings():
         # Calculate estimated completion time
         if booking[3] and booking[4]:  # If time and duration exist
             try:
-                from datetime import datetime, timedelta
+                from datetime import datetime, timedelta, timedelta
                 start_time = datetime.strptime(booking[3], "%H:%M")
                 end_time = start_time + timedelta(minutes=booking[4])
                 booking_dict['estimated_completion'] = end_time.strftime("%H:%M")
@@ -5998,7 +5998,7 @@ def get_available_slots(vendor_id):
 
 def generate_time_slots(settings, date):
     """Generate time slots based on vendor settings"""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timedelta
     
     # Parse settings
     opening_time = datetime.strptime(settings[2], "%H:%M").time()
@@ -7664,7 +7664,7 @@ def book_handler(handler_id):
         platform_fee = total_amount * 0.1  # 10% platform fee
         
         # Calculate auto-release time (48 hours from now)
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timedelta
         auto_release_time = (datetime.now() + timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S")
         
         # Create booking
@@ -10978,4 +10978,4 @@ def citizen_report():
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False, log_output=True)
