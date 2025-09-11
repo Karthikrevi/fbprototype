@@ -1517,6 +1517,34 @@ def init_erp_db():
     conn.commit()
     conn.close()
 
+# API endpoint for public stats (for index.html)
+@app.route('/v/api/stats')
+def api_public_stats():
+    try:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Get total animals (using stray_dogs table as proxy)
+        c.execute("SELECT COUNT(*) FROM stray_dogs WHERE verification_status = 'verified'")
+        total_animals = c.fetchone()[0] or 0
+        
+        # Get total vaccinations
+        c.execute("SELECT COUNT(*) FROM stray_vaccinations WHERE verification_status = 'verified'")
+        total_vaccinations = c.fetchone()[0] or 0
+        
+        # Mock donation amount for demo
+        total_donations = 50000
+        
+        conn.close()
+        
+        return {
+            "total_animals": total_animals,
+            "total_vaccinations": total_vaccinations,
+            "total_donations": total_donations
+        }
+    except Exception as e:
+        return {"total_animals": 0, "total_vaccinations": 0, "total_donations": 0}
+
 # Utility function to recalculate inventory from batches
 def recalculate_inventory(conn, product_id=None):
     c = conn.cursor()
@@ -2133,7 +2161,14 @@ Verification URL: /verify/document/{signature_info['doc_hash']}
 def home():
     if "user" in session:
         return redirect(url_for('dashboard'))
-    return render_template("index.html")
+    
+    # Check if user wants to go to the registry system
+    registry_mode = request.args.get('registry')
+    if registry_mode == 'true':
+        return render_template("index.html")
+    
+    # Default to main FurrButler login
+    return redirect(url_for('login'))
 
 # Register
 @app.route('/register', methods=["GET", "POST"])
