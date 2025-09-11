@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,6 +38,19 @@
             border-radius: 10px;
             font-weight: 600;
         }
+        .photo-upload {
+            border: 2px dashed #28a745;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
+        }
+        .info-box {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -46,16 +60,39 @@
             <a href="/ngo/dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
         </div>
 
+        <div class="info-box">
+            <h6>📋 Registration Guidelines</h6>
+            <ul class="mb-0">
+                <li>Take a clear photo showing the dog's collar (if any) and visible identifying features</li>
+                <li>Record accurate location information for community tracking</li>
+                <li>Note the dog's temperament for safety purposes</li>
+                <li>All information will be verified before public display</li>
+            </ul>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <form method="POST" enctype="multipart/form-data">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="photo" class="form-label">Stray Photo <span class="text-danger">*</span></label>
-                    <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
-                    <div class="form-text">Clear photo showing the collar and visible tag</div>
+                    <div class="photo-upload">
+                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+                        <div class="form-text mt-2">Clear photo showing the dog and any collar/tags</div>
+                    </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="location_address" class="form-label">Location Address</label>
-                    <textarea class="form-control" id="location_address" name="location_address" rows="3" placeholder="Describe the location where the stray was found"></textarea>
+                    <textarea class="form-control" id="location_address" name="location_address" rows="3" placeholder="Describe the location where the stray was found (e.g., Near City Park, Main Street)"></textarea>
                 </div>
             </div>
 
@@ -75,22 +112,28 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="age_estimation" class="form-label">Age Estimation</label>
-                    <input type="text" class="form-control" id="age_estimation" name="age_estimation" placeholder="e.g., 2-3 years, Puppy">
+                    <select class="form-control" id="age_estimation" name="age_estimation">
+                        <option value="">Select Age Group</option>
+                        <option value="Puppy (0-6 months)">Puppy (0-6 months)</option>
+                        <option value="Young (6 months - 2 years)">Young (6 months - 2 years)</option>
+                        <option value="Adult (2-7 years)">Adult (2-7 years)</option>
+                        <option value="Senior (7+ years)">Senior (7+ years)</option>
+                    </select>
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="fur_color" class="form-label">Fur Color</label>
-                    <input type="text" class="form-control" id="fur_color" name="fur_color" placeholder="e.g., Brown and white, Black">
+                    <input type="text" class="form-control" id="fur_color" name="fur_color" placeholder="e.g., Brown, Black and White, Golden">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="temperament" class="form-label">Temperament</label>
                     <select class="form-control" id="temperament" name="temperament">
                         <option value="">Select Temperament</option>
-                        <option value="Friendly">Friendly (Green Collar)</option>
-                        <option value="Cautious">Cautious (Yellow Collar)</option>
-                        <option value="Aggressive">Aggressive (Red Collar)</option>
+                        <option value="Friendly">Friendly</option>
+                        <option value="Cautious">Cautious</option>
+                        <option value="Aggressive">Aggressive</option>
                         <option value="Unknown">Unknown</option>
                     </select>
                 </div>
@@ -98,33 +141,34 @@
 
             <div class="mb-3">
                 <label for="distinctive_marks" class="form-label">Distinctive Marks</label>
-                <textarea class="form-control" id="distinctive_marks" name="distinctive_marks" rows="3" placeholder="Any unique features, scars, markings that help identify this stray"></textarea>
+                <textarea class="form-control" id="distinctive_marks" name="distinctive_marks" rows="2" placeholder="Any unique markings, scars, collar details, or other identifying features"></textarea>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="location_latitude" class="form-label">Latitude (GPS)</label>
-                    <input type="number" step="any" class="form-control" id="location_latitude" name="location_latitude" placeholder="Auto-filled or manual entry">
+                    <label for="location_latitude" class="form-label">Latitude (Optional)</label>
+                    <input type="number" step="any" class="form-control" id="location_latitude" name="location_latitude" placeholder="e.g., 8.5241">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="location_longitude" class="form-label">Longitude (GPS)</label>
-                    <input type="number" step="any" class="form-control" id="location_longitude" name="location_longitude" placeholder="Auto-filled or manual entry">
+                    <label for="location_longitude" class="form-label">Longitude (Optional)</label>
+                    <input type="number" step="any" class="form-control" id="location_longitude" name="location_longitude" placeholder="e.g., 76.9366">
                 </div>
             </div>
 
-            <div class="text-center">
-                <button type="button" class="btn btn-outline-primary me-2" onclick="getLocation()">📍 Get Current Location</button>
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" onclick="getCurrentLocation()">📍 Get Current Location</button>
                 <button type="submit" class="btn btn-submit">Register Stray Dog</button>
             </div>
         </form>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function getLocation() {
+        function getCurrentLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
-                    document.getElementById('location_latitude').value = position.coords.latitude;
-                    document.getElementById('location_longitude').value = position.coords.longitude;
+                    document.getElementById('location_latitude').value = position.coords.latitude.toFixed(6);
+                    document.getElementById('location_longitude').value = position.coords.longitude.toFixed(6);
                     alert('Location captured successfully!');
                 }, function(error) {
                     alert('Error getting location: ' + error.message);
@@ -134,7 +178,5 @@
             }
         }
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

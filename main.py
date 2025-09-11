@@ -4452,11 +4452,70 @@ def ngo_register_stray():
 
     if request.method == "POST":
         ngo_id = session["ngo_id"]
+        ngo_email = session["ngo"]
+        
+        # Generate unique IDs
+        import secrets, time
+        stray_uid = f"STR{int(time.time())}"
+        qr_code = f"QR{secrets.token_hex(8).upper()}"
+        
+        # Handle photo upload
+        photo_url = ""
+        file = request.files.get("photo")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            photo_url = "/" + filepath
+        
+        # Get form data
+        form_data = {
+            'location_address': request.form.get("location_address"),
+            'breed_type': request.form.get("breed_type"),
+            'gender': request.form.get("gender"),
+            'age_estimation': request.form.get("age_estimation"),
+            'fur_color': request.form.get("fur_color"),
+            'temperament': request.form.get("temperament"),
+            'distinctive_marks': request.form.get("distinctive_marks"),
+            'location_latitude': request.form.get("location_latitude"),
+            'location_longitude': request.form.get("location_longitude")
+        }
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        try:
+            c.execute("""
+                INSERT INTO stray_dogs 
+                (stray_uid, qr_code, ngo_id, registered_by_email, photo_url, location_address,
+                 location_latitude, location_longitude, breed_type, gender, age_estimation,
+                 fur_color, distinctive_marks, temperament)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (stray_uid, qr_code, ngo_id, ngo_email, photo_url,
+                  form_data['location_address'], form_data['location_latitude'], 
+                  form_data['location_longitude'], form_data['breed_type'],
+                  form_data['gender'], form_data['age_estimation'], form_data['fur_color'],
+                  form_data['distinctive_marks'], form_data['temperament']))
+            
+            # Update NGO stats
+            c.execute("UPDATE ngo_partners SET total_strays_registered = total_strays_registered + 1 WHERE id = ?", (ngo_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            flash(f"Stray dog registered successfully! UID: {stray_uid}")
+            return redirect(url_for("ngo_dashboard"))
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            flash(f"Error registering stray: {str(e)}")
 
+    return render_template("register_stray.html")
 
-    # === FURRVET PATIENT MANAGEMENT ===
-    @app.route('/furrvet/patients')
-    def furrvet_patients():
+# === FURRVET PATIENT MANAGEMENT ===
+@app.route('/furrvet/patients')
+def furrvet_patients():
         if 'furrvet_vet_id' not in session:
             return redirect(url_for('furrvet_login'))
 
