@@ -1,0 +1,206 @@
+Pet Parent App × FBRegistry — Build Prompt + API Contract (v1)
+
+Target stack (web-first): Flask API + React (Vite) PWA hosted on Replit. Mobile apps (Flutter/React Native) can reuse the same REST endpoints.
+
+⸻
+
+0) Objectives
+	•	Let pet parents register pets and receive UDIs + QR.
+	•	Show nearby strays with vaccination status (map) and donation entry points.
+	•	Enable donate-to-stray/drive with public ledger + NGO utilization.
+	•	Opt-in to Blood SOS (store blood type; receive notifications for emergency requests).
+	•	View my pet: profile, UDI, microchip, blood type, vaccination history (from FDR entries).
+	•	Scan any QR (stray or pet) to open verification page.
+
+⸻
+
+1) High-Level Architecture
+
+frontend/ (React PWA)
+  src/
+    pages/ (Home, Map, MyPets, Donate, QRScan, Settings)
+    components/ (PetCard, StrayMarker, DonateSheet, UdiCard, QRScanner)
+    api/ (client.ts)
+    store/ (zustand or redux)
+    utils/ (geo, auth, validators)
+backend/ (Flask)
+  fbregistry/ (existing)
+  petapp/ (new blueprint: routes_public_app.py)
+
+Use the existing FBRegistry services for UDI/QR, donations, and verification. Add a petapp blueprint that exposes simplified endpoints for the PWA.
+
+⸻
+
+2) Auth & Accounts
+	•	Login: email/OTP (no password). Endpoint: POST /petapp/auth/otp/request, POST /petapp/auth/otp/verify → JWT (httpOnly cookie)
+	•	Profile: GET /petapp/me → id, name, phone/email, notification tokens
+	•	Push tokens: POST /petapp/me/push (store FCM/APNS web push token)
+
+⸻
+
+3) Pet Registration & UDI
+	•	Create Pet: POST /petapp/pets
+	•	body: { name, species, breed, sex, approx_age, photos[] }
+	•	server: creates Animal(type=‘p’), issues UDI+QR, returns pet card payload
+	•	Get Pet: GET /petapp/pets/:id
+	•	List Pets: GET /petapp/pets
+	•	QR Download: GET /petapp/pets/:id/qr.png
+
+Acceptance: pet shows in app with UDI & QR; scanning QR opens /v/<UDI>.
+
+⸻
+
+4) My Pet Health (from FDR)
+	•	Read-only bridge from FBRegistry:
+	•	GET /petapp/pets/:id/health → { vaccinations[], microchip?, blood_type? }
+	•	Vet writes continue to be through FDR; pet parent sees synced data.
+
+⸻
+
+5) Nearby Strays (Map + List)
+	•	Endpoint: GET /petapp/strays/nearby?lat=..&lng=..&radius_km=..&status=
+	•	returns minimal fields: { udi, short_id, last_status, next_due, aggression, lat, lng, ngo_name }
+	•	Tile/Heatmap: GET /api/map/coverage?... (reuse gov/public map APIs with reduced fields)
+	•	Privacy: never return pet coordinates; only strays.
+
+UI:
+	•	Map with markers (status badge colors); list view with filters (Vaccinated/Due/Overdue/Aggression)
+
+⸻
+
+6) Donations (Drives & UDI)
+	•	Create Donation: POST /petapp/donations
+	•	body: { amount, beneficiary_type: 'UDI'|'Drive'|'NGO', beneficiary_ref, donor_public: bool }
+	•	server: redirects to payment (UPI/card) and handles webhook → success
+	•	View Ledger: GET /petapp/ledger?ngo_id=&udi=&drive_id= (paginates)
+	•	My Donations: GET /petapp/me/donations
+
+Webhook (server-to-server): /payments/webhook → marks Donation payment_ref and sets status; creates ledger row.
+
+Acceptance: donation success page shows receipt; ledger reflects entry; utilization status visible (pending/complete).
+
+⸻
+
+7) Blood SOS (Opt-in + Notifications)
+	•	Opt-in: POST /petapp/me/blood → { pet_id, type_dea, consent: true }
+	•	Alerts: server matches future SOS to opted-in pets and sends push notifications.
+	•	History: GET /petapp/me/blood/requests (responses user gave)
+
+Note: Blood type is written by vet in FDR; if unknown, allow provisional owner input flagged unverified.
+
+⸻
+
+8) QR Scanner (Web)
+	•	Use @zxing/library or html5-qrcode in React to scan; on scan → open /v/<UDI>.
+
+⸻
+
+9) API Contract (Representative JSON)
+
+Create Pet (POST /petapp/pets)
+
+Req:
+
+{
+  "name": "Luna",
+  "species": "canine",
+  "breed": "Indie",
+  "sex": "F",
+  "approx_age": 2,
+  "photos": ["data:image/jpeg;base64,..."]
+}
+
+Res:
+
+{
+  "id": 1029,
+  "udi": "KL-TVM-2025-000123-7",
+  "short_id": "KLTVM000123",
+  "name": "Luna",
+  "qr_png_url": "/petapp/pets/1029/qr.png"
+}
+
+Nearby Strays (GET /petapp/strays/nearby)
+
+Res:
+
+[
+  {
+    "udi": "KL-TVM-2025-000045-2",
+    "short_id": "KLTVM000045",
+    "last_status": "Vaccinated",
+    "next_due": "2026-09-10",
+    "aggression": "Cautious",
+    "lat": 8.5581,
+    "lng": 76.8810,
+    "ngo_name": "Kerala Stray Care"
+  }
+]
+
+Create Donation (POST /petapp/donations)
+
+Req:
+
+{ "amount": 500, "beneficiary_type": "UDI", "beneficiary_ref": "KL-TVM-2025-000045-2", "donor_public": false }
+
+Res:
+
+{ "payment_url": "https://pay.example/txn/ab12" }
+
+Ledger (GET /petapp/ledger)
+
+Res:
+
+{
+  "items": [
+    {"date": "2025-09-11", "amount": 500, "beneficiary": "KLTVM000045", "ngo": "Kerala Stray Care", "status": "paid", "utilization": "pending"}
+  ],
+  "next": null
+}
+
+
+⸻
+
+10) UI Spec (React PWA)
+	•	Home: counters + CTA buttons (Register Pet, View Nearby Strays, Donate, My QR)
+	•	Map: Leaflet map + filter chips; bottom sheet with Stray card → Donate
+	•	My Pets: list of pet cards with QR download and health summary
+	•	Donate: simple flow; beneficiary prefilled from UDI or Drive
+	•	QR Scan: in-app scanner + fallback file upload of QR image
+	•	Settings: notifications opt-in, logout
+
+Design notes: Tailwind; rounded cards; status chips: Vaccinated (green), Due (amber), Overdue (red); aggression chips: Friendly (green), Cautious (yellow), Do Not Approach (red).
+
+⸻
+
+11) Integration with Existing Backend
+	•	Reuse /api routes from FBRegistry; create thin /petapp/* routes that shape responses for the PWA.
+	•	CORS enabled for the PWA origin; JWT cookie is httpOnly + SameSite=Lax.
+	•	Rate-limit public endpoints (/v/<UDI>, /petapp/strays/nearby).
+
+⸻
+
+12) Acceptance Tests
+	•	Register pet → receives UDI + QR; scanning QR opens verification page.
+	•	Map shows strays within 2km; filter works; donate to a stray updates ledger.
+	•	Toggle blood SOS opt-in → receive a test notification (mock) → list shows it.
+	•	My Pet health pulls vet-entered data correctly.
+
+⸻
+
+13) Run Instructions (Replit)
+
+python -m pip install -r requirements.txt
+cd frontend && npm i && npm run build && cd ..
+export FLASK_APP=app.py
+flask db upgrade
+flask run --host=0.0.0.0 --port=8000
+
+
+⸻
+
+14) Open Questions
+	•	Payment provider (Razorpay/PhonePe/PayU)?
+	•	Web Push provider for PWA (FCM keys)?
+	•	Exact map tiles (OSM vs Mapbox)?
+	•	Minimum OS/browser targets for QR scanner support?
