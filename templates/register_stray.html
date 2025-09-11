@@ -138,3 +138,170 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Stray Dog - FurrButler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .register-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .form-section {
+            padding: 30px;
+        }
+        .btn-register {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="register-container">
+            <div class="header">
+                <h2><i class="fas fa-dog"></i> Register New Stray Dog</h2>
+                <p class="mb-0">Help track and care for street animals in your community</p>
+            </div>
+            
+            <div class="form-section">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-info alert-dismissible fade show">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-camera"></i> Photo *</label>
+                            <input type="file" class="form-control" name="photo" accept="image/*" required>
+                            <small class="text-muted">Upload a clear photo of the stray dog</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-map-marker-alt"></i> Location Address *</label>
+                            <input type="text" class="form-control" name="location_address" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><i class="fas fa-paw"></i> Breed Type</label>
+                            <select class="form-select" name="breed_type">
+                                <option value="">Unknown</option>
+                                <option value="Indian Pariah">Indian Pariah</option>
+                                <option value="Mixed Breed">Mixed Breed</option>
+                                <option value="Labrador Mix">Labrador Mix</option>
+                                <option value="German Shepherd Mix">German Shepherd Mix</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select class="form-select" name="gender">
+                                <option value="Unknown">Unknown</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><i class="fas fa-birthday-cake"></i> Age Estimation</label>
+                            <select class="form-select" name="age_estimation">
+                                <option value="">Unknown</option>
+                                <option value="Puppy (0-6 months)">Puppy (0-6 months)</option>
+                                <option value="Young (6-18 months)">Young (6-18 months)</option>
+                                <option value="Adult (1-7 years)">Adult (1-7 years)</option>
+                                <option value="Senior (7+ years)">Senior (7+ years)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-palette"></i> Fur Color</label>
+                            <input type="text" class="form-control" name="fur_color" placeholder="e.g., Brown, Black, White, Mixed">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-heart"></i> Temperament</label>
+                            <select class="form-select" name="temperament">
+                                <option value="Unknown">Unknown</option>
+                                <option value="Friendly">Friendly</option>
+                                <option value="Cautious">Cautious</option>
+                                <option value="Aggressive">Aggressive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-search"></i> Distinctive Marks</label>
+                        <textarea class="form-control" name="distinctive_marks" rows="3" placeholder="Any unique markings, scars, or features that help identify this dog"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-crosshairs"></i> Latitude</label>
+                            <input type="number" class="form-control" name="location_latitude" step="any" placeholder="e.g., 8.5241">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-crosshairs"></i> Longitude</label>
+                            <input type="number" class="form-control" name="location_longitude" step="any" placeholder="e.g., 76.9366">
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-register">
+                            <i class="fas fa-plus-circle"></i> Register Stray Dog
+                        </button>
+                        <a href="/ngo/dashboard" class="btn btn-outline-secondary ms-3">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-get location if supported
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.querySelector('input[name="location_latitude"]').value = position.coords.latitude.toFixed(6);
+                document.querySelector('input[name="location_longitude"]').value = position.coords.longitude.toFixed(6);
+            });
+        }
+    </script>
+</body>
+</html>
