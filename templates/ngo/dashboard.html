@@ -1,0 +1,238 @@
+
+{% extends "base.html" %}
+
+{% block title %}NGO Dashboard - FurrButler Registry{% endblock %}
+
+{% block nav_items %}
+<div class="flex items-center space-x-4">
+    <span class="text-gray-600">{{ user.name }} ({{ user.ngo.name }})</span>
+    <a href="{{ url_for('ngo.logout') }}" class="text-red-600 hover:text-red-800">Logout</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            <i class="fas fa-hands-helping text-primary mr-3"></i>
+            NGO Dashboard
+        </h1>
+        <p class="text-gray-600">{{ user.ngo.name }} - {{ user.role.value.replace('_', ' ').title() }}</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-paw text-primary text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ stats.total_animals }}</h3>
+                    <p class="text-sm text-gray-600">Total Animals</p>
+                    <p class="text-xs text-green-600">+{{ stats.animals_this_month }} this month</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-clock text-accent text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ stats.pending_reviews }}</h3>
+                    <p class="text-sm text-gray-600">Pending Reviews</p>
+                    {% if stats.pending_reviews > 0 %}
+                    <a href="{{ url_for('ngo.review_queue') }}" class="text-xs text-accent hover:underline">Review now →</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-syringe text-secondary text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ stats.due_boosters }}</h3>
+                    <p class="text-sm text-gray-600">Due Boosters</p>
+                    {% if stats.due_boosters > 0 %}
+                    <p class="text-xs text-red-600">Requires attention</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if user.role.value == 'ngo_admin' %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ stats.overdue_utilizations }}</h3>
+                    <p class="text-sm text-gray-600">Overdue Utilizations</p>
+                    {% if stats.overdue_utilizations > 0 %}
+                    <a href="{{ url_for('ngo.donations_list') }}" class="text-xs text-red-600 hover:underline">Update now →</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{{ url_for('ngo.register_animal') }}" 
+               class="bg-primary text-white p-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                <i class="fas fa-plus-circle text-2xl mb-2 block"></i>
+                Register New Animal
+            </a>
+            
+            <a href="{{ url_for('ngo.new_vaccination') }}" 
+               class="bg-secondary text-white p-4 rounded-lg hover:bg-green-700 transition-colors text-center">
+                <i class="fas fa-syringe text-2xl mb-2 block"></i>
+                Record Vaccination
+            </a>
+            
+            <a href="{{ url_for('ngo.animals_list') }}" 
+               class="bg-accent text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors text-center">
+                <i class="fas fa-list text-2xl mb-2 block"></i>
+                View All Animals
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Animals -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Registrations</h2>
+            {% if recent_animals %}
+            <div class="space-y-3">
+                {% for animal in recent_animals %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <h3 class="font-medium">{{ animal.name or 'Unnamed' }}</h3>
+                        <p class="text-sm text-gray-600">{{ animal.udi }} - {{ animal.breed }}</p>
+                        <p class="text-xs text-gray-500">{{ animal.created_at.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                   {% if animal.type.value == 's' %}bg-blue-100 text-blue-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ 'Stray' if animal.type.value == 's' else 'Pet' }}
+                        </span>
+                        <div class="mt-1">
+                            <a href="{{ url_for('ngo.animal_detail', animal_id=animal.id) }}" 
+                               class="text-primary hover:underline text-sm">View →</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">No animals registered yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Vaccinations or Pending Reviews -->
+        {% if user.role.value == 'ngo_admin' and pending_reviews %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                Pending Reviews
+                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full ml-2">
+                    {{ pending_reviews|length }}
+                </span>
+            </h2>
+            <div class="space-y-3">
+                {% for vaccination in pending_reviews[:5] %}
+                <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium">{{ vaccination.animal.name or 'Unnamed' }}</h3>
+                            <p class="text-sm text-gray-600">{{ vaccination.type }} - {{ vaccination.date_time.strftime('%Y-%m-%d') }}</p>
+                            <p class="text-xs text-gray-500">By: {{ vaccination.verifier.name }}</p>
+                        </div>
+                        <div>
+                            <button onclick="reviewVaccination({{ vaccination.id }}, 'approve')" 
+                                    class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 mr-2">
+                                Approve
+                            </button>
+                            <button onclick="reviewVaccination({{ vaccination.id }}, 'reject')" 
+                                    class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if pending_reviews|length > 5 %}
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('ngo.review_queue') }}" class="text-primary hover:underline">
+                    View all {{ pending_reviews|length }} pending reviews →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Vaccinations</h2>
+            {% if recent_vaccinations %}
+            <div class="space-y-3">
+                {% for vaccination in recent_vaccinations %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <h3 class="font-medium">{{ vaccination.animal.name or 'Unnamed' }}</h3>
+                        <p class="text-sm text-gray-600">{{ vaccination.type }} - {{ vaccination.date_time.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                   {% if vaccination.status.value == 'approved' %}bg-green-100 text-green-800{% elif vaccination.status.value == 'pending' %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ vaccination.status.value.title() }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">No vaccinations recorded yet.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function reviewVaccination(vaccinationId, action) {
+    const comments = prompt(`Please add review comments for ${action}:`);
+    if (comments === null) return; // User cancelled
+    
+    fetch(`/ngo/review/${vaccinationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: action,
+            comments: comments
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

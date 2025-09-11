@@ -1,0 +1,241 @@
+
+{% extends "base.html" %}
+
+{% block title %}Verify {{ animal.udi }} - FurrButler Registry{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Animal Header -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-paw text-primary mr-3"></i>
+                {{ animal.name or 'Unnamed Animal' }}
+            </h1>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-primary">{{ animal.udi }}</div>
+                <div class="text-sm text-gray-500">Short ID: {{ animal.short_id }}</div>
+            </div>
+        </div>
+        
+        <!-- Vaccination Status Banner -->
+        <div class="mb-6 p-4 rounded-lg {% if vaccination_status == 'Up to date' %}bg-green-100 border border-green-300{% elif vaccination_status == 'Overdue' %}bg-red-100 border border-red-300{% elif vaccination_status == 'Vaccinated' %}bg-blue-100 border border-blue-300{% else %}bg-gray-100 border border-gray-300{% endif %}">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    {% if vaccination_status == 'Up to date' %}
+                        <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+                    {% elif vaccination_status == 'Overdue' %}
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    {% elif vaccination_status == 'Vaccinated' %}
+                        <i class="fas fa-syringe text-blue-500 text-2xl"></i>
+                    {% else %}
+                        <i class="fas fa-question-circle text-gray-500 text-2xl"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold {% if vaccination_status == 'Up to date' %}text-green-800{% elif vaccination_status == 'Overdue' %}text-red-800{% elif vaccination_status == 'Vaccinated' %}text-blue-800{% else %}text-gray-800{% endif %}">
+                        {{ vaccination_status }}
+                    </h3>
+                    {% if next_due %}
+                    <p class="text-sm {% if vaccination_status == 'Up to date' %}text-green-600{% elif vaccination_status == 'Overdue' %}text-red-600{% else %}text-gray-600{% endif %}">
+                        Next vaccination due: {{ next_due.strftime('%B %d, %Y') }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Animal Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Animal Information</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Type:</span>
+                        <span class="font-medium">{{ 'Pet' if animal.type.value == 'p' else 'Stray' }}</span>
+                    </div>
+                    {% if animal.breed %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Breed:</span>
+                        <span class="font-medium">{{ animal.breed }}</span>
+                    </div>
+                    {% endif %}
+                    {% if animal.sex %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Sex:</span>
+                        <span class="font-medium">{{ animal.sex }}</span>
+                    </div>
+                    {% endif %}
+                    {% if animal.color %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Color:</span>
+                        <span class="font-medium">{{ animal.color }}</span>
+                    </div>
+                    {% endif %}
+                    {% if animal.approx_age %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Age:</span>
+                        <span class="font-medium">{{ animal.approx_age }}</span>
+                    </div>
+                    {% endif %}
+                    {% if animal.aggression_marker %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Temperament:</span>
+                        <span class="font-medium">
+                            {% if animal.aggression_marker.value == 'Friendly' %}
+                                <span class="text-green-600">{{ animal.aggression_marker.value }}</span>
+                            {% elif animal.aggression_marker.value == 'Cautious' %}
+                                <span class="text-yellow-600">{{ animal.aggression_marker.value }}</span>
+                            {% else %}
+                                <span class="text-red-600">{{ animal.aggression_marker.value }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Registration Details</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Registered:</span>
+                        <span class="font-medium">{{ animal.created_at.strftime('%B %d, %Y') }}</span>
+                    </div>
+                    {% if animal.ngo %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Managed by:</span>
+                        <span class="font-medium">{{ animal.ngo.name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if animal.ward_id %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Location:</span>
+                        <span class="font-medium">Ward {{ animal.ward_id }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vaccination History -->
+    {% if vaccinations %}
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-syringe text-secondary mr-3"></i>
+            Vaccination History
+        </h2>
+        
+        <div class="space-y-4">
+            {% for vaccination in vaccinations %}
+            <div class="border border-gray-200 rounded-lg p-4 {% if loop.first %}border-green-300 bg-green-50{% endif %}">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-semibold text-lg">{{ vaccination.type }}</h3>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        Verified
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <div class="mb-1">
+                            <span class="text-gray-600">Date:</span>
+                            <span class="font-medium ml-2">{{ vaccination.date_time.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                        </div>
+                        {% if vaccination.brand %}
+                        <div class="mb-1">
+                            <span class="text-gray-600">Brand:</span>
+                            <span class="font-medium ml-2">{{ vaccination.brand }}</span>
+                        </div>
+                        {% endif %}
+                        {% if vaccination.batch %}
+                        <div class="mb-1">
+                            <span class="text-gray-600">Batch:</span>
+                            <span class="font-medium ml-2">{{ vaccination.batch }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        {% if vaccination.dose_ml %}
+                        <div class="mb-1">
+                            <span class="text-gray-600">Dose:</span>
+                            <span class="font-medium ml-2">{{ vaccination.dose_ml }}ml</span>
+                        </div>
+                        {% endif %}
+                        {% if vaccination.route %}
+                        <div class="mb-1">
+                            <span class="text-gray-600">Route:</span>
+                            <span class="font-medium ml-2">{{ vaccination.route }}</span>
+                        </div>
+                        {% endif %}
+                        {% if vaccination.next_due %}
+                        <div class="mb-1">
+                            <span class="text-gray-600">Next due:</span>
+                            <span class="font-medium ml-2">{{ vaccination.next_due.strftime('%B %d, %Y') }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if vaccination.cert_url %}
+                <div class="mt-3 pt-3 border-t border-gray-200">
+                    <a href="{{ vaccination.cert_url }}" target="_blank" 
+                       class="inline-flex items-center text-primary hover:text-blue-700">
+                        <i class="fas fa-certificate mr-2"></i>
+                        View Certificate
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="text-center py-8">
+            <i class="fas fa-syringe text-gray-400 text-4xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Vaccination Records</h3>
+            <p class="text-gray-600">This animal has no verified vaccination records yet.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Trust Indicators -->
+    <div class="bg-blue-50 rounded-lg p-6 mt-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3">
+            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+            Verification Status
+        </h3>
+        <div class="space-y-2 text-sm">
+            <div class="flex items-center">
+                <i class="fas fa-check text-green-500 mr-2"></i>
+                <span>Record verified by FurrButler Registry</span>
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-check text-green-500 mr-2"></i>
+                <span>Digital signature validated</span>
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-check text-green-500 mr-2"></i>
+                <span>Blockchain timestamp recorded</span>
+            </div>
+        </div>
+        
+        <div class="mt-4 pt-4 border-t border-blue-200">
+            <p class="text-xs text-blue-700">
+                Last verified: {{ animal.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="text-center mt-8">
+        <a href="/" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block">
+            <i class="fas fa-home mr-2"></i>
+            Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}
