@@ -1517,33 +1517,7 @@ def init_erp_db():
     conn.commit()
     conn.close()
 
-# API endpoint for public stats (for index.html)
-@app.route('/v/api/stats')
-def api_public_stats():
-    try:
-        conn = sqlite3.connect('erp.db')
-        c = conn.cursor()
-        
-        # Get total animals (using stray_dogs table as proxy)
-        c.execute("SELECT COUNT(*) FROM stray_dogs WHERE verification_status = 'verified'")
-        total_animals = c.fetchone()[0] or 0
-        
-        # Get total vaccinations
-        c.execute("SELECT COUNT(*) FROM stray_vaccinations WHERE verification_status = 'verified'")
-        total_vaccinations = c.fetchone()[0] or 0
-        
-        # Mock donation amount for demo
-        total_donations = 50000
-        
-        conn.close()
-        
-        return {
-            "total_animals": total_animals,
-            "total_vaccinations": total_vaccinations,
-            "total_donations": total_donations
-        }
-    except Exception as e:
-        return {"total_animals": 0, "total_vaccinations": 0, "total_donations": 0}
+
 
 # Utility function to recalculate inventory from batches
 def recalculate_inventory(conn, product_id=None):
@@ -1778,6 +1752,34 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Setup error handlers
 setup_error_handlers(app)
+
+# API endpoint for public stats (for index.html)
+@app.route('/v/api/stats')
+def api_public_stats():
+    try:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Get total animals (using stray_dogs table as proxy)
+        c.execute("SELECT COUNT(*) FROM stray_dogs WHERE verification_status = 'verified'")
+        total_animals = c.fetchone()[0] or 0
+        
+        # Get total vaccinations
+        c.execute("SELECT COUNT(*) FROM stray_vaccinations WHERE verification_status = 'verified'")
+        total_vaccinations = c.fetchone()[0] or 0
+        
+        # Mock donation amount for demo
+        total_donations = 50000
+        
+        conn.close()
+        
+        return {
+            "total_animals": total_animals,
+            "total_vaccinations": total_vaccinations,
+            "total_donations": total_donations
+        }
+    except Exception as e:
+        return {"total_animals": 0, "total_vaccinations": 0, "total_donations": 0}
 
 # Register i18n functions with Jinja2
 app.jinja_env.globals.update(
