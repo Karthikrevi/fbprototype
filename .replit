@@ -18,9 +18,6 @@ publicDir = "static"
 localPort = 5000
 externalPort = 5000
 
-[[ports]]
-localPort = 5000
-
 [workflows]
 runButton = "Project"
 
@@ -31,10 +28,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start App"
+args = "Start application"
 
 [[workflows.workflow]]
-name = "Start App"
+name = "Start application"
 author = "agent"
 
 [[workflows.workflow.tasks]]
