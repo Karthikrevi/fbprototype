@@ -22,16 +22,29 @@ externalPort = 5000
 localPort = 5000
 
 [workflows]
-runButton = "Start App"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start App"
-author = 34675581
+author = "agent"
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start App"
 
 [agent]
 expertMode = true
