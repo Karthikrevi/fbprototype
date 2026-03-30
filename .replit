@@ -15,12 +15,11 @@ deploymentTarget = "static"
 publicDir = "static"
 
 [[ports]]
-localPort = 81
-externalPort = 80
+localPort = 5000
+externalPort = 5000
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
 
 [workflows]
 runButton = "Start App"
