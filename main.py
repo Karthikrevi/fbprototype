@@ -6,7 +6,7 @@ import json
 from werkzeug.utils import secure_filename
 from math import radians, cos, sin, asin, sqrt
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
@@ -1517,8 +1517,6 @@ def init_erp_db():
     conn.commit()
     conn.close()
 
-
-
 # Utility function to recalculate inventory from batches
 def recalculate_inventory(conn, product_id=None):
     c = conn.cursor()
@@ -1753,34 +1751,6 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Setup error handlers
 setup_error_handlers(app)
 
-# API endpoint for public stats (for index.html)
-@app.route('/v/api/stats')
-def api_public_stats():
-    try:
-        conn = sqlite3.connect('erp.db')
-        c = conn.cursor()
-        
-        # Get total animals (using stray_dogs table as proxy)
-        c.execute("SELECT COUNT(*) FROM stray_dogs WHERE verification_status = 'verified'")
-        total_animals = c.fetchone()[0] or 0
-        
-        # Get total vaccinations
-        c.execute("SELECT COUNT(*) FROM stray_vaccinations WHERE verification_status = 'verified'")
-        total_vaccinations = c.fetchone()[0] or 0
-        
-        # Mock donation amount for demo
-        total_donations = 50000
-        
-        conn.close()
-        
-        return {
-            "total_animals": total_animals,
-            "total_vaccinations": total_vaccinations,
-            "total_donations": total_donations
-        }
-    except Exception as e:
-        return {"total_animals": 0, "total_vaccinations": 0, "total_donations": 0}
-
 # Register i18n functions with Jinja2
 app.jinja_env.globals.update(
     t=t,
@@ -1796,8 +1766,8 @@ app.jinja_env.filters['tojson'] = lambda obj: json.dumps(obj)
 # Register WhatsApp blueprint
 app.register_blueprint(whatsapp_bp)
 
-# FurrVet ERP Integration
-def init_furrvet_db():
+# FurrVet ERP Integration (duplicate function definition removed)
+def init_furrvet_db_old():
     """Initialize FurrVet database with all required tables"""
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
@@ -2163,14 +2133,7 @@ Verification URL: /verify/document/{signature_info['doc_hash']}
 def home():
     if "user" in session:
         return redirect(url_for('dashboard'))
-    
-    # Check if user wants to go to the registry system
-    registry_mode = request.args.get('registry')
-    if registry_mode == 'true':
-        return render_template("index.html")
-    
-    # Default to main FurrButler login
-    return redirect(url_for('login'))
+    return render_template("index.html")
 
 # Register
 @app.route('/register', methods=["GET", "POST"])
@@ -2417,7 +2380,7 @@ def vendor_profile(vendor_id):
     if request.method == "POST":
         # Handle review submission for database vendors
         user_email = session["user"]
-        rating = int(request.form.get("rating"))
+        rating = int(request.form.get("rating", 5))
         review_text = request.form.get("review_text", "")
         service_type = request.form.get("service_type", "Other")
 
@@ -3260,7 +3223,7 @@ def isolation_upload_media():
     conn.commit()
     conn.close()
 
-    flash(f"{media_type.title()} uploaded successfully!")
+    flash(f"{media_type.title() if media_type else 'Media'} uploaded successfully!")
     return redirect(url_for("isolation_dashboard"))
 
 @app.route('/furrwings/dashboard')
@@ -3538,7 +3501,7 @@ def populate_research_data(cursor):
 
 def calculate_age_group(birthday):
     """Calculate age group from birthday"""
-    from datetime import datetime
+    from datetime import datetime, timedelta
     try:
         birth_date = datetime.strptime(birthday, '%Y-%m-%d')
         age = (datetime.now() - birth_date).days // 365
@@ -3858,7 +3821,7 @@ def submit_review(vendor_id):
         return redirect(url_for("login"))
 
     user_email = session["user"]
-    rating = int(request.form.get("rating"))
+    rating = int(request.form.get("rating", 5))
     review_text = request.form.get("review_text", "")
     service_type = request.form.get("service_type", "Other")
 
@@ -4009,7 +3972,7 @@ def my_bookings():
         # Calculate estimated completion time
         if booking[3] and booking[4]:  # If time and duration exist
             try:
-                from datetime import datetime, timedelta
+                from datetime import datetime, timedelta, timedelta
                 start_time = datetime.strptime(booking[3], "%H:%M")
                 end_time = start_time + timedelta(minutes=booking[4])
                 booking_dict['estimated_completion'] = end_time.strftime("%H:%M")
@@ -5823,8 +5786,8 @@ def manage_employees():
         email_emp = request.form.get("email")
         phone = request.form.get("phone")
         position = request.form.get("position")
-        base_salary = float(request.form.get("salary"))
-        hourly_rate = float(request.form.get("hourly_rate"))
+        base_salary = float(request.form.get("salary", 0))
+        hourly_rate = float(request.form.get("hourly_rate", 0))
         join_date = request.form.get("join_date")
 
         c.execute("""
@@ -6035,7 +5998,7 @@ def get_available_slots(vendor_id):
 
 def generate_time_slots(settings, date):
     """Generate time slots based on vendor settings"""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timedelta
     
     # Parse settings
     opening_time = datetime.strptime(settings[2], "%H:%M").time()
@@ -6458,7 +6421,7 @@ def manage_expenses():
 
     if request.method == "POST":
         category = request.form.get("category")
-        amount = float(request.form.get("amount"))
+        amount = float(request.form.get("amount", 0))
         description = request.form.get("description")
         date = request.form.get("date")
 
@@ -7238,7 +7201,7 @@ def update_order_status(order_id):
     conn.commit()
     conn.close()
 
-    flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title()}")
+    flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title() if new_status else 'unknown'}")
     return redirect(url_for("erp_orders"))
 
 @app.route('/marketplace/purchase-history')
@@ -7701,7 +7664,7 @@ def book_handler(handler_id):
         platform_fee = total_amount * 0.1  # 10% platform fee
         
         # Calculate auto-release time (48 hours from now)
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timedelta
         auto_release_time = (datetime.now() + timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S")
         
         # Create booking
@@ -9270,7 +9233,7 @@ def send_message():
         'conversation_id': conversation_id,
         'sender_type': sender_type,
         'message': message_text
-    }, room=f'conversation_{conversation_id}')
+    }, to=f'conversation_{conversation_id}')
     
     return {"success": True}
 
@@ -10779,8 +10742,8 @@ def register_stray():
         qr_code = f"QRSTR{secrets.token_hex(6).upper()}"
         
         # Get location data
-        latitude = float(request.form.get("latitude"))
-        longitude = float(request.form.get("longitude"))
+        latitude = float(request.form.get("latitude", 0))
+        longitude = float(request.form.get("longitude", 0))
         location_address = request.form.get("location_address", "")
         
         # Handle photo upload
@@ -11015,4 +10978,4 @@ def citizen_report():
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False, log_output=True)

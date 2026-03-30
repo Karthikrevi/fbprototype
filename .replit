@@ -15,11 +15,24 @@ deploymentTarget = "static"
 publicDir = "static"
 
 [[ports]]
+localPort = 81
+externalPort = 80
+
+[[ports]]
 localPort = 5000
-externalPort = 5000
+externalPort = 80
 
 [workflows]
 runButton = "Project"
+
+[[workflows.workflow]]
+name = "Start App"
+author = 34675581
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
 
 [[workflows.workflow]]
 name = "Project"
@@ -28,10 +41,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
+args = "FurrButler Server"
 
 [[workflows.workflow]]
-name = "Start application"
+name = "FurrButler Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]

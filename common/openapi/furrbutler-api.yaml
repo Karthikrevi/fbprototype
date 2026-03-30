@@ -1,0 +1,1110 @@
+
+openapi: 3.0.3
+info:
+  title: FurrButler API
+  description: Pet services ERP & marketplace platform with international travel passport system
+  version: 1.0.0
+  contact:
+    email: api@furrbutler.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://furrbutler.replit.app/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                role:
+                  $ref: '#/components/schemas/UserRole'
+                full_name:
+                  type: string
+                phone:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      responses:
+        '200':
+          description: Logout successful
+
+  # Pet endpoints
+  /pets:
+    get:
+      tags:
+        - Pets
+      summary: Get user's pets
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of pets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  per_page:
+                    type: integer
+
+    post:
+      tags:
+        - Pets
+      summary: Create a new pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetCreate'
+      responses:
+        '201':
+          description: Pet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+  /pets/{pet_id}:
+    get:
+      tags:
+        - Pets
+      summary: Get pet by ID
+      parameters:
+        - name: pet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pet details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Pets
+      summary: Update pet
+      parameters:
+        - name: pet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetUpdate'
+      responses:
+        '200':
+          description: Pet updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+    delete:
+      tags:
+        - Pets
+      summary: Delete pet
+      parameters:
+        - name: pet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Pet deleted successfully
+
+  # Vendor endpoints
+  /vendors:
+    get:
+      tags:
+        - Vendors
+      summary: Get vendors
+      parameters:
+        - name: service_type
+          in: query
+          schema:
+            type: string
+            enum: [grooming, boarding, veterinary, training]
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vendors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vendor'
+
+    post:
+      tags:
+        - Vendors
+      summary: Create vendor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorCreate'
+      responses:
+        '201':
+          description: Vendor created successfully
+
+  /vendors/{vendor_id}:
+    get:
+      tags:
+        - Vendors
+      summary: Get vendor by ID
+      parameters:
+        - name: vendor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vendor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+
+  # Booking endpoints
+  /bookings:
+    get:
+      tags:
+        - Bookings
+      summary: Get user bookings
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, in_progress, completed, cancelled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+
+    post:
+      tags:
+        - Bookings
+      summary: Create a new booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreate'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+  /bookings/{booking_id}:
+    get:
+      tags:
+        - Bookings
+      summary: Get booking by ID
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+    put:
+      tags:
+        - Bookings
+      summary: Update booking
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingUpdate'
+      responses:
+        '200':
+          description: Booking updated successfully
+
+  # Passport endpoints
+  /passport/requests:
+    get:
+      tags:
+        - Passport
+      summary: Get passport requests
+      responses:
+        '200':
+          description: List of passport requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PassportRequest'
+
+    post:
+      tags:
+        - Passport
+      summary: Create passport request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassportRequestCreate'
+      responses:
+        '201':
+          description: Passport request created
+
+  /passport/requests/{request_id}:
+    get:
+      tags:
+        - Passport
+      summary: Get passport request by ID
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Passport request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassportRequest'
+
+  # Handler endpoints
+  /handlers:
+    get:
+      tags:
+        - Handlers
+      summary: Get available handlers
+      parameters:
+        - name: origin_country
+          in: query
+          schema:
+            type: string
+        - name: destination_country
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of handlers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Handler'
+
+  /handlers/{handler_id}/tasks:
+    get:
+      tags:
+        - Handlers
+      summary: Get handler tasks
+      parameters:
+        - name: handler_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of handler tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HandlerTask'
+
+  # Isolation endpoints
+  /isolation/stays:
+    get:
+      tags:
+        - Isolation
+      summary: Get isolation stays
+      responses:
+        '200':
+          description: List of isolation stays
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IsolationStay'
+
+    post:
+      tags:
+        - Isolation
+      summary: Create isolation stay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IsolationStayCreate'
+      responses:
+        '201':
+          description: Isolation stay created
+
+  # Consent endpoints
+  /consent:
+    get:
+      tags:
+        - Consent
+      summary: Get user consent preferences
+      responses:
+        '200':
+          description: User consent settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consent'
+
+    post:
+      tags:
+        - Consent
+      summary: Update consent preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentUpdate'
+      responses:
+        '200':
+          description: Consent updated successfully
+
+  # DSR endpoints
+  /dsr/requests:
+    get:
+      tags:
+        - Data Subject Rights
+      summary: Get DSR requests
+      responses:
+        '200':
+          description: List of DSR requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DSRRequest'
+
+    post:
+      tags:
+        - Data Subject Rights
+      summary: Create DSR request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DSRRequestCreate'
+      responses:
+        '201':
+          description: DSR request created
+
+  # File upload endpoints
+  /files/upload:
+    post:
+      tags:
+        - Files
+      summary: Upload file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                purpose:
+                  type: string
+                  enum: [document, photo, medical_record]
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+
+  /files/{document_id}/download:
+    get:
+      tags:
+        - Files
+      summary: Download file
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: File download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRole:
+      type: string
+      enum:
+        - pet_parent
+        - vendor
+        - vet
+        - handler
+        - isolation_center
+        - ngo
+        - government
+        - admin
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        phone:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        breed:
+          type: string
+        species:
+          type: string
+          enum: [dog, cat, bird, rabbit, other]
+        age:
+          type: integer
+        weight:
+          type: number
+        gender:
+          type: string
+          enum: [male, female]
+        microchip_id:
+          type: string
+        photo_url:
+          type: string
+        medical_conditions:
+          type: string
+        owner_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    PetCreate:
+      type: object
+      required:
+        - name
+        - breed
+        - species
+      properties:
+        name:
+          type: string
+        breed:
+          type: string
+        species:
+          type: string
+          enum: [dog, cat, bird, rabbit, other]
+        age:
+          type: integer
+        weight:
+          type: number
+        gender:
+          type: string
+          enum: [male, female]
+        microchip_id:
+          type: string
+        medical_conditions:
+          type: string
+
+    PetUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        breed:
+          type: string
+        age:
+          type: integer
+        weight:
+          type: number
+        medical_conditions:
+          type: string
+
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: integer
+        business_name:
+          type: string
+        service_type:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        rating:
+          type: number
+        is_verified:
+          type: boolean
+        owner_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    VendorCreate:
+      type: object
+      required:
+        - business_name
+        - service_type
+        - address
+        - phone
+      properties:
+        business_name:
+          type: string
+        service_type:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        service_type:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, in_progress, completed, cancelled]
+        scheduled_date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        total_amount:
+          type: number
+        notes:
+          type: string
+        pet_id:
+          type: integer
+        vendor_id:
+          type: integer
+        customer_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    BookingCreate:
+      type: object
+      required:
+        - service_type
+        - scheduled_date
+        - pet_id
+        - vendor_id
+      properties:
+        service_type:
+          type: string
+        scheduled_date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        notes:
+          type: string
+        pet_id:
+          type: integer
+        vendor_id:
+          type: integer
+
+    BookingUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, in_progress, completed, cancelled]
+        scheduled_date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+
+    PassportRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        pet_id:
+          type: integer
+        destination_country:
+          type: string
+        departure_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [draft, submitted, in_review, approved, rejected]
+        requirements:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    PassportRequestCreate:
+      type: object
+      required:
+        - pet_id
+        - destination_country
+        - departure_date
+      properties:
+        pet_id:
+          type: integer
+        destination_country:
+          type: string
+        departure_date:
+          type: string
+          format: date
+
+    Handler:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        specialization:
+          type: string
+        countries_covered:
+          type: array
+          items:
+            type: string
+        rating:
+          type: number
+        is_available:
+          type: boolean
+
+    HandlerTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_type:
+          type: string
+          enum: [pickup, transport, documentation]
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        scheduled_date:
+          type: string
+          format: date-time
+        handler_id:
+          type: integer
+        passport_request_id:
+          type: integer
+
+    IsolationStay:
+      type: object
+      properties:
+        id:
+          type: integer
+        pet_id:
+          type: integer
+        facility_name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [scheduled, active, completed]
+        daily_rate:
+          type: number
+
+    IsolationStayCreate:
+      type: object
+      required:
+        - pet_id
+        - start_date
+        - end_date
+      properties:
+        pet_id:
+          type: integer
+        facility_name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    Consent:
+      type: object
+      properties:
+        id:
+          type: integer
+        analytics_consent:
+          type: boolean
+        marketing_consent:
+          type: boolean
+        functional_consent:
+          type: boolean
+        user_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    ConsentUpdate:
+      type: object
+      properties:
+        analytics_consent:
+          type: boolean
+        marketing_consent:
+          type: boolean
+        functional_consent:
+          type: boolean
+
+    DSRRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        request_type:
+          type: string
+          enum: [access, rectification, erasure, portability, restriction]
+        status:
+          type: string
+          enum: [pending, in_progress, completed, rejected]
+        description:
+          type: string
+        user_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    DSRRequestCreate:
+      type: object
+      required:
+        - request_type
+        - description
+      properties:
+        request_type:
+          type: string
+          enum: [access, rectification, erasure, portability, restriction]
+        description:
+          type: string
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+        file_path:
+          type: string
+        file_type:
+          type: string
+        file_size:
+          type: integer
+        upload_date:
+          type: string
+          format: date-time
+        user_id:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Pets
+    description: Pet management
+  - name: Vendors
+    description: Vendor and service provider management
+  - name: Bookings
+    description: Service booking management
+  - name: Passport
+    description: FurrWings passport system
+  - name: Handlers
+    description: International transport handlers
+  - name: Isolation
+    description: Isolation center management
+  - name: Consent
+    description: GDPR consent management
+  - name: Data Subject Rights
+    description: GDPR data subject rights requests
+  - name: Files
+    description: File upload and management
