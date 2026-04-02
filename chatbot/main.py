@@ -385,6 +385,15 @@ What would you like to know? 🐾"""
             
             return response
 
+        elif intent == 'restock_needed':
+            if data.get('products'):
+                response = "⚠️ **Products Needing Restock**\n"
+                for product in data['products']:
+                    response += f"• {product['name']} - Only {product['stock']} left\n"
+                return response
+            else:
+                return "✅ All products have adequate stock levels! No restocking needed."
+
         elif intent in ['safety_stock_check', 'ideal_order_quantity', 'general_business']:
             return data.get('message', 'Analysis completed.')
 

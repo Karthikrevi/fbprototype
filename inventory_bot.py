@@ -110,22 +110,25 @@ What would you like to know? 🐾"""
 
     def process_query(self, query, vendor_email):
         """Process query using smart bot or enhanced fallback"""
-        # First, check for casual conversation
         casual_response = self.handle_casual_conversation(query)
         if casual_response:
-            return casual_response
+            return {
+                'response': casual_response,
+                'intent': 'casual_conversation',
+                'confidence': 1.0,
+                'session_id': 'default',
+                'log_id': None,
+                'data': {}
+            }
 
-        # Try to use smart bot if available
         if self.has_smart_bot:
             try:
                 result = smart_bot.process_query(query, vendor_email)
-                return result.get('response', 'I encountered an error processing your request.')
+                return result
             except Exception as e:
                 print(f"Smart bot error: {e}")
-                # Fall back to enhanced basic bot
                 return self.enhanced_basic_processing(query, vendor_email)
         else:
-            # Use enhanced basic bot
             return self.enhanced_basic_processing(query, vendor_email)
 
     def enhanced_basic_processing(self, query, vendor_email):
@@ -314,7 +317,8 @@ What would you like to know? 🐾"""
                 """, (vendor_id,))
                 
                 sales_data = c.fetchone()
-                orders, revenue = sales_data if sales_data else (0, 0)
+                orders = (sales_data[0] or 0) if sales_data else 0
+                revenue = (sales_data[1] or 0) if sales_data else 0
                 
                 c.execute("""
                     SELECT COUNT(*) as total_products, 
@@ -323,7 +327,8 @@ What would you like to know? 🐾"""
                 """, (vendor_id,))
                 
                 inventory_data = c.fetchone()
-                total_products, low_stock_count = inventory_data if inventory_data else (0, 0)
+                total_products = (inventory_data[0] or 0) if inventory_data else 0
+                low_stock_count = (inventory_data[1] or 0) if inventory_data else 0
                 
                 conn.close()
                 
@@ -332,13 +337,13 @@ What would you like to know? 🐾"""
                 return f"""🏢 **Business Overview (Last 30 Days):**
 
 📊 **Sales Performance:**
-• Orders: {orders or 0}
-• Revenue: ₹{revenue or 0:.2f}
+• Orders: {orders}
+• Revenue: ₹{revenue:.2f}
 • Business Health: {business_health}
 
 📦 **Inventory Status:**
-• Total Products: {total_products or 0}
-• Low Stock Items: {low_stock_count or 0}
+• Total Products: {total_products}
+• Low Stock Items: {low_stock_count}
 • Inventory Health: {'✅ Good' if low_stock_count < 5 else '⚠️ Needs Attention'}
 
 💡 **Quick Insights:**

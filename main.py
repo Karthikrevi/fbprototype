@@ -8605,17 +8605,25 @@ def inventory_bot_query():
         return {"error": "Query is required"}, 400
     
     try:
-        # Process query through inventory bot (handles both smart and basic modes)
-        response = inventory_bot.process_query(query, vendor_email)
+        result = inventory_bot.process_query(query, vendor_email)
         
-        # Return response in expected format
-        return {
-            "response": response,
-            "intent": "processed",
-            "confidence": 0.8,
-            "session_id": session_id or "default",
-            "log_id": None
-        }
+        if isinstance(result, dict):
+            return {
+                "response": result.get('response', 'No response generated.'),
+                "intent": result.get('intent', 'processed'),
+                "confidence": result.get('confidence', 0.8),
+                "session_id": result.get('session_id', session_id or "default"),
+                "log_id": result.get('log_id'),
+                "data": result.get('data', {})
+            }
+        else:
+            return {
+                "response": str(result),
+                "intent": "processed",
+                "confidence": 0.8,
+                "session_id": session_id or "default",
+                "log_id": None
+            }
     except Exception as e:
         print(f"Inventory bot error: {e}")
         return {"error": str(e)}, 500
