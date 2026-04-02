@@ -21,10 +21,10 @@ The system uses **SQLite** for development and is designed to support **PostgreS
 A sophisticated RBAC system defines roles and permissions for different user types. JWT-based authentication provides secure token management with configurable expiration times. The system includes session management utilities and user preference tracking with multi-language support for Indian and international languages.
 
 ## Business Logic Modules
-The platform includes specialized modules for inventory management with advanced analytics (EOQ, turnover ratios, safety stock calculations), comprehensive financial accounting with automated ledger entries, CRM functionality for customer relationship management, and the FurrWings pet passport system for international travel documentation.
+The platform includes specialized modules for inventory management with advanced analytics covering all 14 standard inventory formulas: EOQ, Reorder Point (ROP), Safety Stock, Inventory Turnover Ratio, Days Sales of Inventory (DSI), GMROI, ABC Analysis, Fill Rate, Inventory to Sales Ratio, Stock Cover Duration, Dead Stock Detection, Clearance Strategy, and comprehensive financial accounting with automated ledger entries, CRM functionality, and the FurrWings pet passport system.
 
 ## AI & Analytics Components
-An advanced chatbot system uses machine learning for intent classification and business analytics. It includes TF-IDF vectorization with logistic regression for query understanding, semantic similarity matching for fallback responses, and conversation logging with feedback-driven retraining capabilities. The analytics engine provides sophisticated business intelligence including inventory formulas, profit analysis, and operational insights.
+An advanced chatbot system uses machine learning for intent classification and business analytics. It includes TF-IDF vectorization with LogisticRegression (ngram_range 1-3, C=5.0) for query understanding, regex-based NLP pattern matching with priority-ordered intent resolution, semantic similarity matching for fallback responses, and conversation logging with feedback-driven retraining. The analytics engine (`chatbot/analytics_engine.py`) provides all 14 inventory management formulas with real-time database queries. NLP patterns (`chatbot/nlp_processor.py`) use priority ordering to resolve ambiguous queries (e.g., clearance vs restock). The classifier trains automatically on startup if no model exists.
 
 # External Dependencies
 

@@ -15,14 +15,14 @@ class BusinessQueryProcessor:
                 r'why.*sales.*low', r'sales.*problem', r'revenue.*drop'
             ],
             'restock_needed': [
-                r'need.*restock', r'should.*reorder', r'low.*stock', r'out.*stock',
-                r'inventory.*low', r'need.*order', r'stock.*running.*low',
+                r'need.*restock', r'low.*stock(?!.*clear|.*slow)', r'out.*stock(?!.*clear)',
+                r'inventory.*low', r'stock.*running.*low',
                 r'do i need to restock', r'do i need to reorder', r'restock anything',
                 r'reorder anything', r'running out of', r'running low on',
                 r'items running low', r'any items low', r'what.*restock',
-                r'what.*reorder', r'need to buy more', r'replenish',
-                r'need more stock', r'stock levels', r'stock check',
-                r'what should i order', r'place.*order', r'items.*need.*ordering'
+                r'need to buy more', r'replenish',
+                r'need more stock', r'stock levels(?!.*ratio)', r'stock check(?!.*clear)',
+                r'items.*need.*ordering'
             ],
             'profit_per_item': [
                 r'profit.*per.*item', r'average.*profit', r'profit.*margin.*product',
@@ -30,7 +30,8 @@ class BusinessQueryProcessor:
             ],
             'inventory_turnover': [
                 r'turnover.*stock', r'how.*often.*turning', r'inventory.*turnover',
-                r'stock.*rotation', r'inventory.*velocity'
+                r'stock.*rotation', r'inventory.*velocity', r'inventory.*turning',
+                r'how.*fast.*inventory', r'turnover.*ratio', r'stock.*turnover'
             ],
             'safety_stock_check': [
                 r'enough.*safety.*stock', r'safety.*stock.*for', r'buffer.*stock',
@@ -56,9 +57,51 @@ class BusinessQueryProcessor:
                 r'dead.*stock', r'stagnant.*inventory', r'slow.*moving',
                 r'not.*selling', r'inventory.*not.*moving'
             ],
+            'expense_analysis': [
+                r'expense', r'spending', r'cost.*breakdown', r'what.*am.*i.*spending',
+                r'operational.*cost', r'outgoing', r'where.*money.*going'
+            ],
             'clearance_strategy': [
                 r'clearance.*strategy', r'how.*clear.*stock', r'liquidation',
-                r'get.*rid.*of.*inventory', r'move.*slow.*stock'
+                r'get.*rid.*of.*inventory', r'move.*slow.*stock',
+                r'clear.*slow.*stock', r'clear.*old.*stock', r'sell.*off.*stock',
+                r'reduce.*excess.*stock', r'dispose.*stock'
+            ],
+            'reorder_point': [
+                r'reorder.*point', r'when.*should.*reorder', r'when.*to.*reorder',
+                r'at.*what.*level.*reorder', r'reorder.*level', r'rop\b',
+                r'when.*place.*order', r'trigger.*point.*reorder', r'reorder.*threshold'
+            ],
+            'days_sales_inventory': [
+                r'days.*sales.*inventory', r'dsi\b', r'how.*many.*days.*sell',
+                r'days.*to.*sell.*inventory', r'inventory.*days', r'how.*long.*sell.*stock',
+                r'average.*days.*sell', r'days.*of.*inventory'
+            ],
+            'gmroi': [
+                r'gmroi', r'gross.*margin.*return', r'return.*on.*inventory.*investment',
+                r'profit.*per.*inventory.*dollar', r'inventory.*roi', r'roi.*inventory',
+                r'return.*inventory', r'how.*much.*earn.*per.*dollar.*inventory'
+            ],
+            'abc_analysis': [
+                r'abc.*analysis', r'abc.*classification', r'categorize.*inventory',
+                r'classify.*products', r'product.*classification', r'inventory.*categories',
+                r'a.*b.*c.*items', r'high.*value.*items', r'pareto.*inventory',
+                r'which.*products.*most.*important'
+            ],
+            'inventory_to_sales_ratio': [
+                r'inventory.*to.*sales.*ratio', r'inventory.*sales.*ratio',
+                r'stock.*to.*sales', r'how.*much.*inventory.*per.*sale',
+                r'inventory.*vs.*sales', r'inventory.*compared.*sales'
+            ],
+            'fill_rate': [
+                r'fill.*rate', r'order.*fulfillment.*rate', r'fulfillment.*percentage',
+                r'how.*many.*orders.*fulfilled', r'order.*completion.*rate',
+                r'customer.*order.*fill', r'shipped.*orders.*percentage'
+            ],
+            'stock_cover': [
+                r'stock.*cover', r'how.*long.*stock.*last', r'days.*of.*cover',
+                r'how.*many.*days.*stock', r'inventory.*duration', r'stock.*duration',
+                r'when.*will.*stock.*run.*out', r'stock.*will.*last'
             ]
         }
 
@@ -100,21 +143,42 @@ class BusinessQueryProcessor:
 
     def _extract_business_intent(self, query: str) -> str:
         """Extract business intent from query"""
-        for intent, patterns in self.business_patterns.items():
+        priority_intents = ['clearance_strategy', 'reorder_point', 'days_sales_inventory',
+                            'gmroi', 'abc_analysis', 'fill_rate', 'inventory_to_sales_ratio',
+                            'stock_cover', 'inventory_turnover', 'safety_stock_check',
+                            'ideal_order_quantity', 'dead_stock_analysis', 'sales_problems',
+                            'profit_per_item', 'product_margin', 'product_demand',
+                            'best_selling_product', 'monthly_performance', 'restock_needed']
+        
+        for intent in priority_intents:
+            patterns = self.business_patterns.get(intent, [])
             for pattern in patterns:
                 if re.search(pattern, query):
                     return intent
         
-        # Check for specific analytics requests
-        if any(word in query for word in ['turnover', 'ratio']):
+        if 'reorder point' in query or 'rop' in query.split():
+            return 'reorder_point'
+        elif 'gmroi' in query or 'gross margin return' in query:
+            return 'gmroi'
+        elif 'abc' in query.split() and ('analysis' in query or 'classif' in query or 'categor' in query):
+            return 'abc_analysis'
+        elif 'dsi' in query.split() or 'days sales of inventory' in query:
+            return 'days_sales_inventory'
+        elif 'fill rate' in query or 'fulfillment rate' in query:
+            return 'fill_rate'
+        elif 'inventory to sales' in query or 'stock to sales' in query:
+            return 'inventory_to_sales_ratio'
+        elif 'clearance' in query or 'liquidat' in query or ('clear' in query and 'stock' in query):
+            return 'clearance_strategy'
+        elif any(word in query for word in ['turnover']) and 'ratio' in query:
             return 'inventory_turnover'
-        elif any(word in query for word in ['eoq', 'economic', 'optimal']):
+        elif any(word in query for word in ['eoq', 'economic order']):
             return 'ideal_order_quantity'
-        elif any(word in query for word in ['safety', 'buffer', 'minimum']):
+        elif any(word in query for word in ['safety stock', 'buffer stock']):
             return 'safety_stock_check'
-        elif any(word in query for word in ['dead', 'stagnant', 'slow']):
+        elif any(word in query for word in ['dead stock', 'stagnant']):
             return 'dead_stock_analysis'
-        elif any(word in query for word in ['margin', 'profit']):
+        elif 'margin' in query and 'product' in query:
             return 'product_margin'
         elif any(word in query for word in ['performance', 'summary']):
             return 'monthly_performance'

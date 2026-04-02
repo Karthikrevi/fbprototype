@@ -92,7 +92,17 @@ class SmartInventoryBot:
             'best_selling_product': self.handle_best_sellers,
             'restock_needed': self.get_low_stock_products,
             'sales_problems': self.handle_sales_analysis,
-            'general_business': self.handle_general_business
+            'general_business': self.handle_general_business,
+            'reorder_point': self.handle_reorder_point,
+            'days_sales_inventory': self.handle_dsi,
+            'gmroi': self.handle_gmroi,
+            'abc_analysis': self.handle_abc_analysis,
+            'inventory_to_sales_ratio': self.handle_inventory_to_sales_ratio,
+            'fill_rate': self.handle_fill_rate,
+            'stock_cover': self.handle_stock_cover,
+            'clearance_strategy': self.handle_clearance_strategy,
+            'profit_per_item': self.handle_product_margin,
+            'product_demand': self.handle_best_sellers
         }
 
         # Initialize if needed
@@ -110,7 +120,10 @@ class SmartInventoryBot:
         business_keywords = ['stock', 'restock', 'inventory', 'product', 'sell', 'revenue',
                              'profit', 'order', 'reorder', 'expense', 'analytics', 'report',
                              'performance', 'turnover', 'dead', 'margin', 'sales', 'running low',
-                             'running out', 'need to']
+                             'running out', 'need to', 'eoq', 'rop', 'dsi', 'gmroi', 'abc',
+                             'fill rate', 'safety stock', 'reorder point', 'clearance',
+                             'demand', 'cover', 'ratio', 'fulfillment', 'categorize', 'classify',
+                             'roi', 'buffer', 'liquidat']
         if any(kw in user_input_lower for kw in business_keywords):
             return None
         
@@ -405,6 +418,111 @@ What would you like to know? 🐾"""
             else:
                 return "✅ All products have adequate stock levels! No restocking needed."
 
+        elif intent == 'reorder_point':
+            products = data.get('products', [])
+            if products:
+                response = f"📦 **Reorder Point Analysis** (Lead Time: {data.get('lead_time_assumption', '10 days')})\n"
+                response += f"Formula: {data.get('formula', 'ROP = d × L')}\n\n"
+                for p in products:
+                    icon = '🔴' if 'Reorder Now' in p['status'] else '🟢'
+                    response += f"{icon} **{p['product_name']}**\n"
+                    response += f"  Stock: {p['current_stock']} | ROP: {p['reorder_point']} units | Avg Demand: {p['avg_daily_demand']}/day\n"
+                    response += f"  Status: {p['status']}\n\n"
+                return response
+            return "No products found for reorder point analysis."
+
+        elif intent == 'days_sales_inventory':
+            dsi = data.get('dsi', 'N/A')
+            return f"""📊 **Days Sales of Inventory (DSI)**
+Formula: {data.get('formula', 'DSI = (Avg Inventory / COGS) × 365')}
+
+• DSI: {dsi} days
+• Average Inventory Value: ₹{data.get('avg_inventory_value', 0)}
+• Cost of Goods Sold: ₹{data.get('cogs', 0)}
+• Assessment: {data.get('interpretation', 'N/A')}
+
+💡 Lower DSI means faster inventory turnover. Aim for industry-appropriate DSI."""
+
+        elif intent == 'gmroi':
+            return f"""💰 **Gross Margin Return on Investment (GMROI)**
+Formula: {data.get('formula', 'GMROI = Gross Profit / Avg Inventory Cost')}
+
+• GMROI: {data.get('gmroi', 0)}x
+• Revenue: ₹{data.get('revenue', 0)}
+• COGS: ₹{data.get('cogs', 0)}
+• Gross Profit: ₹{data.get('gross_profit', 0)}
+• Average Inventory Cost: ₹{data.get('avg_inventory_cost', 0)}
+• Assessment: {data.get('interpretation', 'N/A')}
+
+💡 GMROI > 1 means you earn more than you invest in inventory. Higher is better."""
+
+        elif intent == 'abc_analysis':
+            summary = data.get('summary', {})
+            response = f"""📊 **ABC Inventory Analysis**
+{data.get('description', '')}
+
+**Summary:**
+• Category A: {summary.get('A_count', 0)} items ({summary.get('A_pct', 0)}% of revenue) - High priority
+• Category B: {summary.get('B_count', 0)} items ({summary.get('B_pct', 0)}% of revenue) - Medium priority
+• Category C: {summary.get('C_count', 0)} items ({summary.get('C_pct', 0)}% of revenue) - Low priority\n\n"""
+            for cat_key, cat_label in [('category_A', 'A'), ('category_B', 'B'), ('category_C', 'C')]:
+                items = data.get(cat_key, [])
+                if items:
+                    response += f"**Category {cat_label}:**\n"
+                    for item in items[:5]:
+                        response += f"  • {item['product_name']} - ₹{item['sales_value']} ({item['pct_of_total']}%)\n"
+                    response += "\n"
+            return response
+
+        elif intent == 'inventory_to_sales_ratio':
+            return f"""📊 **Inventory to Sales Ratio**
+Formula: {data.get('formula', 'Inventory / Sales')}
+
+• Ratio: {data.get('ratio', 'N/A')}
+• Inventory Value: ₹{data.get('inventory_value', 0)}
+• Sales ({data.get('period_days', 30)} days): ₹{data.get('sales_value', 0)}
+• Assessment: {data.get('interpretation', 'N/A')}
+
+💡 A lower ratio means efficient inventory management. Typical healthy range: 0.15–0.30."""
+
+        elif intent == 'fill_rate':
+            return f"""📦 **Order Fill Rate**
+Formula: (Fulfilled Orders / Total Orders) × 100
+
+• Fill Rate: {data.get('fill_rate', 0)}%
+• Total Orders: {data.get('total_orders', 0)}
+• Fulfilled Orders: {data.get('fulfilled_orders', 0)}
+• Period: Last {data.get('period_days', 30)} days
+• Status: {data.get('status', 'N/A')}
+
+💡 Aim for 95%+ fill rate to maintain customer satisfaction."""
+
+        elif intent == 'stock_cover':
+            cover_data = data.get('stock_cover_data', [])
+            if cover_data:
+                response = "📦 **Stock Cover Duration Analysis**\n\n"
+                for item in cover_data:
+                    days_cover = item.get('days_cover', 'Infinite')
+                    icon = '🔴' if isinstance(days_cover, (int, float)) and days_cover < 14 else '🟢'
+                    name = item.get('product_name', 'Unknown')
+                    response += f"{icon} **{name}**\n"
+                    response += f"  Stock: {item.get('current_stock', 0)} | Avg Daily Sales: {item.get('avg_daily_sales', 0)}\n"
+                    response += f"  Days of Cover: {days_cover}\n\n"
+                return response
+            return "No stock cover data available."
+
+        elif intent == 'clearance_strategy':
+            dead_stock_data = data.get('dead_stock_items', [])
+            if dead_stock_data:
+                response = f"🏷️ **Clearance Strategy Recommendations**\n"
+                response += f"Found {data.get('total_items', 0)} slow-moving items (₹{data.get('total_tied_capital', 0)} tied up)\n\n"
+                for item in dead_stock_data[:5]:
+                    response += f"• **{item['product_name']}** ({item['quantity']} units, ₹{item['tied_capital']})\n"
+                    response += f"  Strategy: {item['recommended_action']}\n\n"
+                response += "💡 **General Strategies:** Bundle deals, flash sales, loyalty rewards, or return to supplier."
+                return response
+            return "✅ No slow-moving inventory found! All products are selling well."
+
         elif intent in ['safety_stock_check', 'ideal_order_quantity', 'general_business']:
             return data.get('message', 'Analysis completed.')
 
@@ -417,22 +535,40 @@ What would you like to know? 🐾"""
         # Check for specific keywords and provide helpful suggestions
         if any(word in query_lower for word in ['help', 'what can you do']):
             return f"""Woof! I'm {BOT_NAME}, and I can help you with:
-🐕 **Business Analytics:**
-• Sales summaries and revenue analysis
-• Top selling products
-• Low stock alerts and reorder recommendations
-• Inventory performance analysis
-• Profit margin insights
-• Expense tracking
+
+🐕 **Sales & Revenue:**
+• Sales summaries, revenue reports, profit analysis
+• Top selling products, best sellers by volume/revenue/margin
+• Monthly performance reports
+
+📦 **Inventory Management:**
+• Low stock alerts & restock recommendations
+• Reorder Point (ROP) analysis
+• Safety stock calculations
+• Economic Order Quantity (EOQ)
+• Stock cover duration
+• Dead stock detection
+
+📊 **Advanced Analytics:**
+• ABC Analysis (product classification by value)
+• Inventory Turnover Ratio
+• Days Sales of Inventory (DSI)
+• GMROI (Gross Margin Return on Investment)
+• Inventory to Sales Ratio
+• Fill Rate (order fulfillment)
+• Product margin analysis
+• Clearance strategy recommendations
 
 🐾 **Try asking:**
-• "Show me my top selling products"
-• "Which products are low in stock?"
-• "What's my revenue this month?"
-• "Analyze my inventory performance"
-• "What are my expenses?"
+• "What is my reorder point?"
+• "Calculate GMROI"
+• "Show ABC analysis"
+• "What is my DSI?"
+• "How long will my stock last?"
+• "What is my fill rate?"
+• "Show me clearance strategies"
 
-What would you like to fetch for you? 🦴"""
+What would you like me to fetch for you? 🦴"""
 
         else:
             return BOT_PERSONALITY['fallback']
@@ -695,6 +831,32 @@ What would you like to fetch for you? 🦴"""
             'top_performers': top_performers,
             'analysis_type': 'sales_problems'
         }
+
+    def handle_reorder_point(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.calculate_reorder_point(vendor_email)
+
+    def handle_dsi(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.calculate_days_sales_inventory(vendor_email)
+
+    def handle_gmroi(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.calculate_gmroi(vendor_email)
+
+    def handle_abc_analysis(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.perform_abc_analysis(vendor_email)
+
+    def handle_inventory_to_sales_ratio(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.calculate_inventory_to_sales_ratio(vendor_email)
+
+    def handle_fill_rate(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.calculate_fill_rate(vendor_email)
+
+    def handle_stock_cover(self, vendor_email: str) -> Dict:
+        return self.analytics_engine.calculate_stock_cover_duration(vendor_email)
+
+    def handle_clearance_strategy(self, vendor_email: str) -> Dict:
+        dead = self.analytics_engine.detect_dead_stock(vendor_email, stagnation_days=60)
+        dead['analysis_type'] = 'clearance'
+        return dead
 
     def handle_general_business(self, vendor_email: str) -> Dict:
         """Handle general business queries"""

@@ -496,6 +496,272 @@ class AdvancedAnalyticsEngine:
             }
         }
 
+    def calculate_reorder_point(self, vendor_email: str, product_name: str = None) -> Dict:
+        """Calculate ROP = Average Daily Demand × Lead Time"""
+        vendor_id = self.get_vendor_id(vendor_email)
+        if not vendor_id:
+            return {'error': 'Vendor not found'}
+
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        if product_name:
+            c.execute("""
+                SELECT p.name, p.quantity,
+                       COALESCE(AVG(daily_sales.daily_qty), 0) as avg_daily_demand
+                FROM products p
+                LEFT JOIN (
+                    SELECT product_id, sale_date, SUM(quantity) as daily_qty
+                    FROM sales_log
+                    WHERE vendor_id = ? AND sale_date >= date('now', '-30 days')
+                    GROUP BY product_id, sale_date
+                ) daily_sales ON p.id = daily_sales.product_id
+                WHERE p.vendor_id = ? AND p.name LIKE ?
+                GROUP BY p.id, p.name, p.quantity
+            """, (vendor_id, vendor_id, f"%{product_name}%"))
+        else:
+            c.execute("""
+                SELECT p.name, p.quantity,
+                       COALESCE(AVG(daily_sales.daily_qty), 0) as avg_daily_demand
+                FROM products p
+                LEFT JOIN (
+                    SELECT product_id, sale_date, SUM(quantity) as daily_qty
+                    FROM sales_log
+                    WHERE vendor_id = ? AND sale_date >= date('now', '-30 days')
+                    GROUP BY product_id, sale_date
+                ) daily_sales ON p.id = daily_sales.product_id
+                WHERE p.vendor_id = ?
+                GROUP BY p.id, p.name, p.quantity
+                ORDER BY p.name
+            """, (vendor_id, vendor_id))
+
+        results = c.fetchall()
+        conn.close()
+
+        lead_time = 10
+        products = []
+        for name, current_stock, avg_daily_demand in results:
+            rop = avg_daily_demand * lead_time
+            status = 'Below ROP - Reorder Now!' if current_stock <= rop else 'Above ROP - Stock OK'
+            products.append({
+                'product_name': name,
+                'current_stock': current_stock,
+                'avg_daily_demand': round(avg_daily_demand, 2),
+                'lead_time_days': lead_time,
+                'reorder_point': round(rop, 0),
+                'status': status
+            })
+
+        return {
+            'products': products,
+            'lead_time_assumption': f"{lead_time} days",
+            'formula': 'ROP = Average Daily Demand × Lead Time'
+        }
+
+    def calculate_days_sales_inventory(self, vendor_email: str, days: int = 365) -> Dict:
+        """Calculate DSI = (Average Inventory / COGS) × 365"""
+        vendor_id = self.get_vendor_id(vendor_email)
+        if not vendor_id:
+            return {'error': 'Vendor not found'}
+
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT SUM(sl.quantity * p.buy_price) as cogs
+            FROM sales_log sl
+            JOIN products p ON sl.product_id = p.id
+            WHERE sl.vendor_id = ? AND sl.sale_date >= date('now', '-{} days')
+        """.format(days), (vendor_id,))
+        cogs = (c.fetchone()[0] or 0)
+
+        c.execute("""
+            SELECT SUM(p.quantity * p.buy_price) as inventory_value
+            FROM products p WHERE p.vendor_id = ?
+        """, (vendor_id,))
+        avg_inventory = (c.fetchone()[0] or 0)
+
+        conn.close()
+
+        dsi = (avg_inventory / cogs * 365) if cogs > 0 else float('inf')
+
+        return {
+            'dsi': round(dsi, 1) if dsi != float('inf') else 'N/A (no sales)',
+            'avg_inventory_value': round(avg_inventory, 2),
+            'cogs': round(cogs, 2),
+            'interpretation': self._interpret_dsi(dsi if dsi != float('inf') else 999),
+            'formula': 'DSI = (Average Inventory / COGS) × 365'
+        }
+
+    def calculate_gmroi(self, vendor_email: str, days: int = 365) -> Dict:
+        """Calculate GMROI = Gross Profit / Average Inventory Cost"""
+        vendor_id = self.get_vendor_id(vendor_email)
+        if not vendor_id:
+            return {'error': 'Vendor not found'}
+
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT COALESCE(SUM(sl.total_amount), 0) as revenue,
+                   COALESCE(SUM(sl.quantity * p.buy_price), 0) as cogs
+            FROM sales_log sl
+            JOIN products p ON sl.product_id = p.id
+            WHERE sl.vendor_id = ? AND sl.sale_date >= date('now', '-{} days')
+        """.format(days), (vendor_id,))
+        result = c.fetchone()
+        revenue = result[0] or 0
+        cogs = result[1] or 0
+        gross_profit = revenue - cogs
+
+        c.execute("""
+            SELECT SUM(p.quantity * p.buy_price) as inventory_cost
+            FROM products p WHERE p.vendor_id = ?
+        """, (vendor_id,))
+        avg_inventory_cost = (c.fetchone()[0] or 1)
+
+        conn.close()
+
+        gmroi = gross_profit / avg_inventory_cost if avg_inventory_cost > 0 else 0
+
+        return {
+            'gmroi': round(gmroi, 2),
+            'gross_profit': round(gross_profit, 2),
+            'revenue': round(revenue, 2),
+            'cogs': round(cogs, 2),
+            'avg_inventory_cost': round(avg_inventory_cost, 2),
+            'interpretation': self._interpret_gmroi(gmroi),
+            'formula': 'GMROI = Gross Profit / Average Inventory Cost'
+        }
+
+    def perform_abc_analysis(self, vendor_email: str, days: int = 365) -> Dict:
+        """ABC Analysis: categorize products by sales value contribution"""
+        vendor_id = self.get_vendor_id(vendor_email)
+        if not vendor_id:
+            return {'error': 'Vendor not found'}
+
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT p.name, COALESCE(SUM(sl.total_amount), 0) as total_sales
+            FROM products p
+            LEFT JOIN sales_log sl ON p.id = sl.product_id
+                AND sl.sale_date >= date('now', '-{} days')
+            WHERE p.vendor_id = ?
+            GROUP BY p.id, p.name
+            ORDER BY total_sales DESC
+        """.format(days), (vendor_id,))
+
+        results = c.fetchall()
+        conn.close()
+
+        total_sales_value = sum(r[1] for r in results) or 1
+        cumulative = 0
+        categories = {'A': [], 'B': [], 'C': []}
+
+        for name, sales_value in results:
+            cumulative += sales_value
+            pct_of_total = (sales_value / total_sales_value) * 100
+            cum_pct = (cumulative / total_sales_value) * 100
+
+            if cum_pct <= 80:
+                cat = 'A'
+            elif cum_pct <= 95:
+                cat = 'B'
+            else:
+                cat = 'C'
+
+            categories[cat].append({
+                'product_name': name,
+                'sales_value': round(sales_value, 2),
+                'pct_of_total': round(pct_of_total, 2)
+            })
+
+        return {
+            'category_A': categories['A'],
+            'category_B': categories['B'],
+            'category_C': categories['C'],
+            'summary': {
+                'A_count': len(categories['A']),
+                'B_count': len(categories['B']),
+                'C_count': len(categories['C']),
+                'A_pct': round(sum(p['pct_of_total'] for p in categories['A']), 1),
+                'B_pct': round(sum(p['pct_of_total'] for p in categories['B']), 1),
+                'C_pct': round(sum(p['pct_of_total'] for p in categories['C']), 1),
+            },
+            'description': 'A = High-value (top 80% revenue), B = Medium (next 15%), C = Low-value (remaining 5%)'
+        }
+
+    def calculate_inventory_to_sales_ratio(self, vendor_email: str, days: int = 30) -> Dict:
+        """Calculate Inventory to Sales Ratio = Inventory Value / Sales Value"""
+        vendor_id = self.get_vendor_id(vendor_email)
+        if not vendor_id:
+            return {'error': 'Vendor not found'}
+
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT SUM(p.quantity * p.sale_price) as inventory_value
+            FROM products p WHERE p.vendor_id = ?
+        """, (vendor_id,))
+        inventory_value = (c.fetchone()[0] or 0)
+
+        c.execute("""
+            SELECT COALESCE(SUM(total_amount), 0) as sales
+            FROM sales_log
+            WHERE vendor_id = ? AND sale_date >= date('now', '-{} days')
+        """.format(days), (vendor_id,))
+        sales_value = (c.fetchone()[0] or 1)
+
+        conn.close()
+
+        ratio = inventory_value / sales_value if sales_value > 0 else float('inf')
+
+        return {
+            'ratio': round(ratio, 2) if ratio != float('inf') else 'N/A (no sales)',
+            'inventory_value': round(inventory_value, 2),
+            'sales_value': round(sales_value, 2),
+            'period_days': days,
+            'interpretation': self._interpret_inv_to_sales(ratio if ratio != float('inf') else 999),
+            'formula': 'Inventory to Sales Ratio = Inventory Value / Sales Value'
+        }
+
+    def _interpret_dsi(self, dsi: float) -> str:
+        if dsi <= 30:
+            return "Excellent - Very fast inventory turnover"
+        elif dsi <= 60:
+            return "Good - Healthy inventory movement"
+        elif dsi <= 90:
+            return "Average - Consider optimizing stock levels"
+        elif dsi <= 180:
+            return "Slow - Inventory taking too long to sell"
+        else:
+            return "Critical - Inventory stagnating, review purchasing"
+
+    def _interpret_gmroi(self, gmroi: float) -> str:
+        if gmroi >= 3:
+            return "Excellent - High return on inventory investment"
+        elif gmroi >= 2:
+            return "Good - Healthy profitability per inventory dollar"
+        elif gmroi >= 1:
+            return "Average - Breaking even on inventory investment"
+        else:
+            return "Poor - Losing money on inventory, review pricing/costs"
+
+    def _interpret_inv_to_sales(self, ratio: float) -> str:
+        if ratio <= 0.15:
+            return "Lean inventory - Risk of stockouts"
+        elif ratio <= 0.3:
+            return "Excellent - Well-balanced inventory to sales"
+        elif ratio <= 0.5:
+            return "Good - Adequate inventory levels"
+        elif ratio <= 1.0:
+            return "High - Consider reducing excess inventory"
+        else:
+            return "Very High - Overstocked, capital tied up in inventory"
+
     # Helper methods
     def _interpret_turnover_ratio(self, ratio: float) -> str:
         if ratio >= 12:
