@@ -3042,7 +3042,8 @@ def handler_dashboard():
         })
 
     conn.close()
-    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"])
+    from datetime import date
+    return render_template("handler_dashboard.html", pets=pets, handler_name=session["handler_name"], date=date)
 
 @app.route('/handler/upload', methods=["POST"])
 def handler_upload_document():
@@ -3149,7 +3150,8 @@ def isolation_dashboard():
         })
 
     conn.close()
-    return render_template("isolation_dashboard.html", bookings=bookings, center_name=session["isolation_name"])
+    from datetime import date
+    return render_template("isolation_dashboard.html", bookings=bookings, center_name=session["isolation_name"], date=date)
 
 @app.route('/isolation/update-booking', methods=["POST"])
 def isolation_update_booking():
@@ -3972,7 +3974,7 @@ def my_bookings():
         # Calculate estimated completion time
         if booking[3] and booking[4]:  # If time and duration exist
             try:
-                from datetime import datetime, timedelta, timedelta
+                from datetime import datetime, timedelta
                 start_time = datetime.strptime(booking[3], "%H:%M")
                 end_time = start_time + timedelta(minutes=booking[4])
                 booking_dict['estimated_completion'] = end_time.strftime("%H:%M")

@@ -166,41 +166,40 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h5 class="mb-1">
-                <i class="fas fa-cut"></i> {{ booking[1] }}
+                <i class="fas fa-cut"></i> {{ booking.service }}
               </h5>
-              <small class="opacity-75">Booking #{{ booking[0] }} • {{ booking[5] }}</small>
+              <small class="opacity-75">Booking #{{ booking.id }} • {{ booking.vendor_name }}</small>
             </div>
-            <span class="status-badge status-{{ booking[4] }}">
-              {% if booking[4] == 'pending' %}
+            <span class="status-badge status-{{ booking.status }}">
+              {% if booking.status == 'pending' %}
                 <i class="fas fa-clock"></i> Pending Confirmation
-              {% elif booking[4] == 'confirmed' %}
+              {% elif booking.status == 'confirmed' %}
                 <i class="fas fa-check-circle"></i> Confirmed
-              {% elif booking[4] == 'waiting' %}
+              {% elif booking.status == 'waiting' %}
                 <i class="fas fa-hourglass-half"></i> Waiting
-              {% elif booking[4] == 'grooming' %}
+              {% elif booking.status == 'grooming' %}
                 <i class="fas fa-scissors"></i> In Progress
-              {% elif booking[4] == 'almost-done' %}
+              {% elif booking.status == 'almost-done' %}
                 <i class="fas fa-medal"></i> Almost Done
-              {% elif booking[4] == 'ready' %}
+              {% elif booking.status == 'ready' %}
                 <i class="fas fa-gift"></i> Ready for Pickup
-              {% elif booking[4] == 'completed' %}
+              {% elif booking.status == 'completed' %}
                 <i class="fas fa-check-double"></i> Completed
-              {% elif booking[4] == 'cancelled' %}
+              {% elif booking.status == 'cancelled' %}
                 <i class="fas fa-times-circle"></i> Cancelled
               {% else %}
-                {{ booking[4].title() }}
+                {{ booking.status|title }}
               {% endif %}
             </span>
           </div>
         </div>
 
         <div class="booking-body">
-          <!-- Progress Indicator -->
           <div class="progress-indicator">
             <div class="progress-bar" style="width: 
-              {% if booking[4] == 'pending' %}20%{% elif booking[4] == 'confirmed' %}40%{% elif booking[4] == 'waiting' %}60%{% elif booking[4] == 'grooming' %}80%{% elif booking[4] == 'ready' or booking[4] == 'completed' %}100%{% else %}0%{% endif %}; 
+              {% if booking.status == 'pending' %}20%{% elif booking.status == 'confirmed' %}40%{% elif booking.status == 'waiting' %}60%{% elif booking.status == 'grooming' %}80%{% elif booking.status == 'ready' or booking.status == 'completed' %}100%{% else %}0%{% endif %}; 
               background: 
-              {% if booking[4] == 'completed' %}#28a745{% elif booking[4] == 'ready' %}#17a2b8{% elif booking[4] == 'grooming' %}#ffc107{% else %}#667eea{% endif %};"></div>
+              {% if booking.status == 'completed' %}#28a745{% elif booking.status == 'ready' %}#17a2b8{% elif booking.status == 'grooming' %}#ffc107{% else %}#667eea{% endif %};"></div>
           </div>
 
           <div class="booking-info-grid">
@@ -209,8 +208,8 @@
                 <i class="fas fa-paw"></i>
               </div>
               <div class="info-label">Pet Details</div>
-              <div class="info-value">{{ booking[7] or 'Not specified' }}</div>
-              <small class="text-muted">{{ booking[8] or 'Pet Parent' }}</small>
+              <div class="info-value">{{ booking.pet_name or 'Not specified' }}</div>
+              <small class="text-muted">{{ booking.pet_parent_name or 'Pet Parent' }}</small>
             </div>
             
             <div class="info-card">
@@ -218,8 +217,8 @@
                 <i class="fas fa-calendar-alt"></i>
               </div>
               <div class="info-label">Appointment</div>
-              <div class="info-value">{{ booking[2] }}</div>
-              <small class="text-muted">{{ booking[3] }}</small>
+              <div class="info-value">{{ booking.date }}</div>
+              <small class="text-muted">{{ booking.time }}</small>
             </div>
             
             <div class="info-card">
@@ -227,8 +226,8 @@
                 <i class="fas fa-store"></i>
               </div>
               <div class="info-label">Service Provider</div>
-              <div class="info-value">{{ booking[5] }}</div>
-              <small class="text-muted">{{ booking[6] or 'Contact available on request' }}</small>
+              <div class="info-value">{{ booking.vendor_name }}</div>
+              <small class="text-muted">{{ booking.vendor_phone or 'Contact available on request' }}</small>
             </div>
             
             <div class="info-card">
@@ -236,44 +235,43 @@
                 <i class="fas fa-phone"></i>
               </div>
               <div class="info-label">Your Contact</div>
-              <div class="info-value">{{ booking[9] or 'Not provided' }}</div>
+              <div class="info-value">{{ booking.pet_parent_phone or 'Not provided' }}</div>
               <small class="text-muted">Contact number</small>
             </div>
           </div>
 
-          <!-- Status-specific messages -->
-          {% if booking[4] in ['waiting', 'grooming', 'almost-done'] %}
+          {% if booking.status in ['waiting', 'grooming', 'almost-done'] %}
           <div class="alert alert-info mt-4">
             <div class="d-flex align-items-center">
               <i class="fas fa-info-circle me-3" style="font-size: 1.5rem;"></i>
               <div>
                 <strong>Service Update:</strong>
-                {% if booking[4] == 'waiting' %}
+                {% if booking.status == 'waiting' %}
                   Your pet is comfortably waiting. Our groomer will begin the service shortly.
-                {% elif booking[4] == 'grooming' %}
+                {% elif booking.status == 'grooming' %}
                   Your pet is currently receiving professional grooming care with attention to detail.
-                {% elif booking[4] == 'almost-done' %}
+                {% elif booking.status == 'almost-done' %}
                   Excellent! Your pet's grooming session is nearly complete. Just a few finishing touches left.
                 {% endif %}
               </div>
             </div>
           </div>
-          {% elif booking[4] == 'ready' %}
+          {% elif booking.status == 'ready' %}
           <div class="alert alert-success mt-4">
             <div class="d-flex align-items-center">
               <i class="fas fa-star me-3" style="font-size: 1.5rem;"></i>
               <div>
-                <strong>Ready for Pickup! 🎉</strong><br>
+                <strong>Ready for Pickup!</strong><br>
                 Your pet is all groomed and looking fantastic! Please come collect your furry friend at your earliest convenience.
               </div>
             </div>
           </div>
-          {% elif booking[4] == 'completed' %}
+          {% elif booking.status == 'completed' %}
           <div class="alert alert-success mt-4">
             <div class="d-flex align-items-center">
               <i class="fas fa-heart me-3" style="font-size: 1.5rem;"></i>
               <div>
-                <strong>Service Completed ✨</strong><br>
+                <strong>Service Completed</strong><br>
                 Thank you for choosing our services! We hope you and your pet are happy with the results.
               </div>
             </div>
