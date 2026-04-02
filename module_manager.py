@@ -256,46 +256,8 @@ class ModuleManager:
         conn.close()
     
     def is_module_enabled(self, vendor_id, module_name):
-        """Check if a module is enabled for a vendor"""
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        
-        # Check if it's a core module
-        c.execute("SELECT is_core FROM modules WHERE module_name = ?", (module_name,))
-        module = c.fetchone()
-        if module and module[0]:  # is_core = True
-            conn.close()
-            return True
-        
-        # Check vendor subscription
-        c.execute('''
-            SELECT status, expires_at, trial_ends_at 
-            FROM vendor_module_subscriptions 
-            WHERE vendor_id = ? AND module_name = ?
-        ''', (vendor_id, module_name))
-        
-        subscription = c.fetchone()
-        conn.close()
-        
-        if not subscription:
-            return False
-        
-        status, expires_at, trial_ends_at = subscription
-        
-        if status == 'disabled':
-            return False
-        
-        if status == 'trial' and trial_ends_at:
-            from datetime import datetime
-            if datetime.now() > datetime.fromisoformat(trial_ends_at):
-                return False
-        
-        if status in ['enabled', 'premium'] and expires_at:
-            from datetime import datetime
-            if datetime.now() > datetime.fromisoformat(expires_at):
-                return False
-        
-        return status in ['enabled', 'trial', 'premium']
+        """Check if a module is enabled for a vendor — all modules are currently free and accessible"""
+        return True
     
     def enable_module(self, vendor_id, module_name, subscription_type='free', duration_days=None):
         """Enable a module for a vendor"""
