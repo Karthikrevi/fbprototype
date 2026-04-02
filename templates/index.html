@@ -48,16 +48,35 @@
       background-color: #ff6b6b;
       color: white;
       border: none;
-      padding: 15px 30px;
+      padding: 12px 24px;
       border-radius: 10px;
-      margin: 10px;
-      font-size: 1rem;
+      margin: 6px;
+      font-size: 0.95rem;
       text-decoration: none;
       display: inline-block;
-      transition: background-color 0.2s ease;
+      transition: background-color 0.2s ease, transform 0.15s ease;
     }
     .btn-pet:hover {
       background-color: #ff8787;
+      color: white;
+      transform: translateY(-2px);
+    }
+    .section-label {
+      font-size: 0.85rem;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .section-label:first-of-type {
+      margin-top: 30px;
+    }
+    hr.divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 20px 0 5px;
     }
   </style>
 </head>
@@ -66,9 +85,26 @@
     <h1>🐶 {{ t('welcome_to') }} {{ t('app_name') }} 🐱</h1>
     <p>{{ t('app_tagline') }}</p>
     <div class="btn-container">
-      <a href="/login" class="btn-pet">{{ t('login') }}</a>
-      <a href="/register" class="btn-pet">{{ t('register') }}</a>
-      <a href="/erp/login" class="btn-pet" style="background-color: #667eea;">🏢 ERP Login</a>
+      <p class="section-label">Pet Parents</p>
+      <a href="/login" class="btn-pet">🐾 Login</a>
+      <a href="/register" class="btn-pet">📝 Register</a>
+
+      <hr class="divider">
+      <p class="section-label">Vendors</p>
+      <a href="/erp/login" class="btn-pet" style="background-color: #667eea;">🏢 Vendor ERP</a>
+
+      <hr class="divider">
+      <p class="section-label">FurrWings — Pet Travel</p>
+      <a href="/vet/login" class="btn-pet" style="background-color: #3b82f6;">🩺 Vet Portal</a>
+      <a href="/handler/login" class="btn-pet" style="background-color: #8b5cf6;">✈️ Handler Portal</a>
+      <a href="/isolation/login" class="btn-pet" style="background-color: #6366f1;">🏥 Isolation Center</a>
+
+      <hr class="divider">
+      <p class="section-label">Veterinary ERP</p>
+      <a href="/furrvet/login" class="btn-pet" style="background-color: #0891b2;">🐕‍🦺 FurrVet ERP</a>
+
+      <hr class="divider">
+      <p class="section-label">NGO / Stray Tracker</p>
       <a href="/ngo/login" class="btn-pet" style="background-color: #28a745;">🐕 NGO Portal</a>
     </div>
   </div>
