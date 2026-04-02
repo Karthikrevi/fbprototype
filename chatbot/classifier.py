@@ -21,18 +21,32 @@ class IntentClassifier:
         self.load_model()
 
     def load_model(self):
-        """Load trained model if it exists"""
+        """Load trained model if it exists, otherwise train from scratch"""
         if os.path.exists(self.model_path):
             try:
                 with open(self.model_path, 'rb') as f:
                     self.pipeline = pickle.load(f)
                 print(f"Model loaded from {self.model_path}")
             except Exception as e:
-                print(f"Error loading model: {e}")
-                self.pipeline = None
+                print(f"Error loading model: {e}. Retraining...")
+                self._train_fresh()
         else:
-            print("No model found. Training required.")
-            self.pipeline = None
+            print("No model found. Training from scratch...")
+            self._train_fresh()
+
+    def _train_fresh(self):
+        """Train a fresh model using all training data"""
+        queries, intents = self.get_training_data()
+        texts = [self.preprocess_text(q) for q in queries]
+
+        self.pipeline = Pipeline([
+            ('tfidf', TfidfVectorizer(max_features=2000, ngram_range=(1, 3))),
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000, C=5.0))
+        ])
+
+        self.pipeline.fit(texts, intents)
+        self.save_model()
+        print(f"Model trained with {len(texts)} samples")
 
     def save_model(self):
         """Save trained model"""
@@ -64,8 +78,18 @@ class IntentClassifier:
             ("top moving products", "top_selling_products"),
             ("fast moving products", "top_selling_products"),
             ("high demand products", "top_selling_products"),
+            ("what sells the most", "top_selling_products"),
+            ("show best sellers", "top_selling_products"),
+            ("my top items", "top_selling_products"),
+            ("highest selling products", "top_selling_products"),
+            ("what products are doing well", "top_selling_products"),
+            ("show me my top selling products", "top_selling_products"),
+            ("what are my top sellers", "top_selling_products"),
+            ("which items are popular", "top_selling_products"),
+            ("what products have highest sales", "top_selling_products"),
+            ("top 5 products by sales", "top_selling_products"),
 
-            # Low stock alerts
+            # Low stock alerts / restock
             ("low stock products", "low_stock_alerts"),
             ("which products are running low", "low_stock_alerts"),
             ("show me low inventory", "low_stock_alerts"),
@@ -76,6 +100,29 @@ class IntentClassifier:
             ("products to reorder", "low_stock_alerts"),
             ("stock levels", "low_stock_alerts"),
             ("inventory status", "low_stock_alerts"),
+            ("do i need to restock anything", "low_stock_alerts"),
+            ("do i need to reorder", "low_stock_alerts"),
+            ("should i restock", "low_stock_alerts"),
+            ("what needs restocking", "low_stock_alerts"),
+            ("any items running low", "low_stock_alerts"),
+            ("am i running out of anything", "low_stock_alerts"),
+            ("what products need reordering", "low_stock_alerts"),
+            ("show me low stock alerts", "low_stock_alerts"),
+            ("what items are out of stock", "low_stock_alerts"),
+            ("which items need to be reordered", "low_stock_alerts"),
+            ("restock alerts", "low_stock_alerts"),
+            ("restock recommendations", "low_stock_alerts"),
+            ("what should i restock", "low_stock_alerts"),
+            ("what should i reorder", "low_stock_alerts"),
+            ("need to restock", "low_stock_alerts"),
+            ("need to reorder", "low_stock_alerts"),
+            ("items out of stock", "low_stock_alerts"),
+            ("products out of stock", "low_stock_alerts"),
+            ("running low on stock", "low_stock_alerts"),
+            ("low inventory items", "low_stock_alerts"),
+            ("what is low in stock", "low_stock_alerts"),
+            ("check stock levels", "low_stock_alerts"),
+            ("which products are low", "low_stock_alerts"),
 
             # Revenue and sales
             ("show me revenue", "revenue_report"),
@@ -88,6 +135,16 @@ class IntentClassifier:
             ("revenue analysis", "revenue_report"),
             ("sales performance", "revenue_report"),
             ("earnings", "revenue_report"),
+            ("give me a revenue report", "revenue_report"),
+            ("monthly sales report", "revenue_report"),
+            ("what is my total revenue", "revenue_report"),
+            ("how are my sales doing", "revenue_report"),
+            ("show sales data", "revenue_report"),
+            ("revenue this month", "revenue_report"),
+            ("how much revenue did i make", "revenue_report"),
+            ("what is my revenue", "revenue_report"),
+            ("sales figures", "revenue_report"),
+            ("show me sales numbers", "revenue_report"),
 
             # Profit analysis
             ("profit margin", "profit_summary"),
@@ -98,6 +155,16 @@ class IntentClassifier:
             ("net profit", "profit_summary"),
             ("profit report", "profit_summary"),
             ("profit and loss", "profit_summary"),
+            ("what is my profit", "profit_summary"),
+            ("show me profit summary", "profit_summary"),
+            ("what is my profit margin", "profit_summary"),
+            ("how profitable am i", "profit_summary"),
+            ("am i making profit", "profit_summary"),
+            ("profit breakdown", "profit_summary"),
+            ("what is my profit summary", "profit_summary"),
+            ("show profit analysis", "profit_summary"),
+            ("how much money am i making", "profit_summary"),
+            ("what are my margins", "profit_summary"),
 
             # Inventory performance
             ("inventory analysis", "inventory_performance"),
@@ -108,6 +175,14 @@ class IntentClassifier:
             ("stock performance", "inventory_performance"),
             ("inventory metrics", "inventory_performance"),
             ("stock velocity", "inventory_performance"),
+            ("show inventory performance", "inventory_performance"),
+            ("how is my inventory performing", "inventory_performance"),
+            ("analyze my inventory", "inventory_performance"),
+            ("inventory health", "inventory_performance"),
+            ("how is my stock doing", "inventory_performance"),
+            ("inventory overview", "inventory_performance"),
+            ("stock movement analysis", "inventory_performance"),
+            ("inventory efficiency", "inventory_performance"),
 
             # Expenses
             ("show expenses", "expense_analysis"),
@@ -116,15 +191,79 @@ class IntentClassifier:
             ("cost analysis", "expense_analysis"),
             ("spending report", "expense_analysis"),
             ("operational costs", "expense_analysis"),
-            ("expense summary", "expense_summary"),
+            ("expense summary", "expense_analysis"),
+            ("what are my expenses", "expense_analysis"),
+            ("how much am i spending", "expense_analysis"),
+            ("show me my costs", "expense_analysis"),
+            ("expense breakdown", "expense_analysis"),
+            ("where is my money going", "expense_analysis"),
+            ("cost breakdown", "expense_analysis"),
+            ("total expenses", "expense_analysis"),
+            ("show spending", "expense_analysis"),
+
+            # Dead stock
+            ("dead stock", "dead_stock_analysis"),
+            ("show me dead stock", "dead_stock_analysis"),
+            ("stagnant inventory", "dead_stock_analysis"),
+            ("products not selling", "dead_stock_analysis"),
+            ("slow moving items", "dead_stock_analysis"),
+            ("items not moving", "dead_stock_analysis"),
+            ("what is not selling", "dead_stock_analysis"),
+            ("inventory not moving", "dead_stock_analysis"),
+            ("stuck inventory", "dead_stock_analysis"),
+            ("unsold products", "dead_stock_analysis"),
+
+            # Inventory turnover
+            ("inventory turnover ratio", "inventory_turnover"),
+            ("what is my turnover ratio", "inventory_turnover"),
+            ("how fast is my inventory turning", "inventory_turnover"),
+            ("stock rotation rate", "inventory_turnover"),
+            ("what is my inventory turnover ratio", "inventory_turnover"),
+            ("inventory velocity", "inventory_turnover"),
+            ("how quickly does stock move", "inventory_turnover"),
+            ("turnover analysis", "inventory_turnover"),
+
+            # EOQ
+            ("calculate eoq", "ideal_order_quantity"),
+            ("economic order quantity", "ideal_order_quantity"),
+            ("ideal order quantity", "ideal_order_quantity"),
+            ("optimal order quantity", "ideal_order_quantity"),
+            ("how much should i order", "ideal_order_quantity"),
+            ("calculate eoq for my products", "ideal_order_quantity"),
+            ("what is the best quantity to order", "ideal_order_quantity"),
+            ("order quantity calculation", "ideal_order_quantity"),
+
+            # Monthly performance
+            ("monthly performance", "monthly_performance"),
+            ("how did i do this month", "monthly_performance"),
+            ("this month summary", "monthly_performance"),
+            ("monthly summary", "monthly_performance"),
+            ("how am i doing this month", "monthly_performance"),
+            ("performance this month", "monthly_performance"),
+            ("monthly business report", "monthly_performance"),
+            ("month end report", "monthly_performance"),
+
+            # Product margins
+            ("product margins", "product_margin"),
+            ("margin analysis", "product_margin"),
+            ("profit margin per product", "product_margin"),
+            ("which products are most profitable", "product_margin"),
+            ("product profitability", "product_margin"),
+            ("margin breakdown", "product_margin"),
+            ("show product margins", "product_margin"),
+            ("product cost analysis", "product_margin"),
 
             # Unknown/general queries
             ("hello", "unknown"),
-            ("hi", "unknown"),
-            ("help", "unknown"),
+            ("hi there", "unknown"),
+            ("help me", "unknown"),
             ("what can you do", "unknown"),
-            ("thanks", "unknown"),
-            ("thank you", "unknown"),
+            ("thanks a lot", "unknown"),
+            ("thank you very much", "unknown"),
+            ("good morning", "unknown"),
+            ("how are you", "unknown"),
+            ("who are you", "unknown"),
+            ("goodbye", "unknown"),
         ]
 
         queries = [self.preprocess_text(query) for query, _ in training_data]
@@ -241,130 +380,3 @@ class IntentClassifier:
             "training_samples": len(queries),
             "test_samples": len(X_test)
         }
-import pickle
-import os
-from typing import Tuple, Optional
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-import numpy as np
-
-class IntentClassifier:
-    def __init__(self):
-        self.pipeline = None
-        self.model_path = os.path.join(os.path.dirname(__file__), 'models', 'intent_classifier.pkl')
-        self.load_model()
-    
-    def load_model(self):
-        """Load the trained model if it exists"""
-        try:
-            if os.path.exists(self.model_path):
-                with open(self.model_path, 'rb') as f:
-                    self.pipeline = pickle.load(f)
-                print(f"Model loaded from {self.model_path}")
-            else:
-                print("No trained model found. Creating basic model...")
-                self._create_basic_model()
-        except Exception as e:
-            print(f"Error loading model: {e}")
-            self._create_basic_model()
-    
-    def _create_basic_model(self):
-        """Create a basic model with sample training data"""
-        # Sample training data for basic functionality
-        training_data = [
-            ("show me top products", "top_selling_products"),
-            ("what are my best selling items", "top_selling_products"),
-            ("top selling products", "top_selling_products"),
-            ("best products", "top_selling_products"),
-            ("popular products", "top_selling_products"),
-            
-            ("low stock products", "low_stock_alerts"),
-            ("which products are low", "low_stock_alerts"),
-            ("inventory alerts", "low_stock_alerts"),
-            ("products running out", "low_stock_alerts"),
-            ("reorder needed", "low_stock_alerts"),
-            
-            ("revenue report", "revenue_report"),
-            ("sales summary", "revenue_report"),
-            ("how much money did I make", "revenue_report"),
-            ("sales report", "revenue_report"),
-            ("monthly sales", "revenue_report"),
-            
-            ("profit analysis", "profit_summary"),
-            ("profit margin", "profit_summary"),
-            ("how much profit", "profit_summary"),
-            ("profit report", "profit_summary"),
-            
-            ("inventory performance", "inventory_performance"),
-            ("product performance", "inventory_performance"),
-            ("inventory analytics", "inventory_performance"),
-            ("turnover rate", "inventory_performance"),
-            
-            ("expense report", "expense_analysis"),
-            ("expenses", "expense_analysis"),
-            ("costs", "expense_analysis"),
-            ("spending", "expense_analysis"),
-        ]
-        
-        texts = [item[0] for item in training_data]
-        labels = [item[1] for item in training_data]
-        
-        # Create and train the pipeline
-        self.pipeline = Pipeline([
-            ('tfidf', TfidfVectorizer(max_features=1000, lowercase=True)),
-            ('classifier', MultinomialNB())
-        ])
-        
-        self.pipeline.fit(texts, labels)
-        
-        # Save the model
-        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
-        with open(self.model_path, 'wb') as f:
-            pickle.dump(self.pipeline, f)
-        print(f"Basic model created and saved to {self.model_path}")
-    
-    def predict(self, text: str) -> Tuple[str, float]:
-        """Predict intent and confidence for given text"""
-        if not self.pipeline:
-            return "unknown", 0.0
-        
-        try:
-            # Get prediction probabilities
-            probabilities = self.pipeline.predict_proba([text])[0]
-            max_prob_index = np.argmax(probabilities)
-            confidence = probabilities[max_prob_index]
-            
-            # Get the predicted class
-            predicted_intent = self.pipeline.classes_[max_prob_index]
-            
-            return predicted_intent, confidence
-        except Exception as e:
-            print(f"Error predicting intent: {e}")
-            return "unknown", 0.0
-    
-    def retrain(self, training_data: list) -> bool:
-        """Retrain the model with new data"""
-        try:
-            if not training_data:
-                return False
-            
-            texts = [item[0] for item in training_data]
-            labels = [item[1] for item in training_data]
-            
-            # Create new pipeline
-            self.pipeline = Pipeline([
-                ('tfidf', TfidfVectorizer(max_features=1000, lowercase=True)),
-                ('classifier', MultinomialNB())
-            ])
-            
-            self.pipeline.fit(texts, labels)
-            
-            # Save the updated model
-            with open(self.model_path, 'wb') as f:
-                pickle.dump(self.pipeline, f)
-            
-            return True
-        except Exception as e:
-            print(f"Error retraining model: {e}")
-            return False

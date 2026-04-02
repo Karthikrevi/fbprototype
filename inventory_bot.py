@@ -63,12 +63,23 @@ class InventoryBot:
         self.db_path = 'erp.db'
         self.has_smart_bot = smart_bot_available
 
+    def _is_word_match(self, text, keyword):
+        """Check if keyword appears as a whole word in text"""
+        import re
+        return bool(re.search(r'\b' + re.escape(keyword) + r'\b', text))
+
     def handle_casual_conversation(self, user_input):
         """Handle casual conversation and greetings"""
         user_input_lower = user_input.lower().strip()
         
-        # Handle greetings
-        if any(greeting in user_input_lower for greeting in BOT_PERSONALITY['greeting_keywords']):
+        business_keywords = ['stock', 'restock', 'inventory', 'product', 'sell', 'revenue',
+                             'profit', 'order', 'reorder', 'expense', 'analytics', 'report',
+                             'performance', 'turnover', 'dead', 'margin', 'sales', 'running low',
+                             'running out', 'need to']
+        if any(kw in user_input_lower for kw in business_keywords):
+            return None
+        
+        if any(self._is_word_match(user_input_lower, greeting) for greeting in BOT_PERSONALITY['greeting_keywords']):
             return random.choice(BOT_PERSONALITY['casual_responses'])
         
         # Handle name questions

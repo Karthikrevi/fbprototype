@@ -1,0 +1,148 @@
+1. Economic Order Quantity (EOQ)
+The Economic Order Quantity (EOQ) is a crucial concept in inventory management. It identifies the optimal number of units to order, minimizing the combined costs of ordering and holding inventory. Ensure that inventory levels are sufficient to meet demand without incurring excessive storage costs or frequent ordering expenses.
+
+This method helps maintain an inventory balance, reducing waste and avoiding stockouts. Implementing EOQ leads to more efficient inventory control, better cash flow management, and overall cost savings. Regularly reviewing and adjusting your EOQ can adapt to changing demand and market conditions, keeping your operations running smoothly.
+
+EOQ= √(2(DXS)/H)
+
+D: Demand in units (annual)
+S: Ordering cost per order
+H: Holding cost per unit (annual)
+Example: Suppose you have an annual demand of 10,000 units, an ordering cost or cost of inventory is $50 per order, and a holding cost of $2 per unit per year. Your EOQ would be:
+
+√(2×10,000×50)/2=√(1,000,000/2)=√500,000=707 units
+
+You should order 707 units each time to minimize total costs.
+
+2. Reorder Point (ROP)
+The Reorder Point (ROP) in inventory management is a critical threshold that indicates when it's time to replenish stock to prevent running out of inventory, known as a stockout. It takes into account two primary factors: lead time and average demand. Lead time refers to the duration between placing an order and receiving the stock, which can vary based on supplier capabilities, shipping times, and other logistical factors. Average demand represents the typical rate at which inventory is consumed or sold over a given day in the period.
+
+By calculating and monitoring the Reorder Point, businesses can ensure they have enough inventory on hand to meet ongoing customer demands without interruptions. Falling below the Reorder Point could lead to delays in fulfilling orders, potentially disappointing customers and harming the business's reputation for reliability. Here's how you can calculate:
+
+ROP = d X L
+
+d: Average demand per period
+L: Lead time in periods
+Example: If your average daily demand is 50 units and your supplier's lead time is 10 days, your
+
+50 X 10 = 500 units
+
+When your inventory drops to 500 units, it's time to reorder.
+
+3. Safety Stock
+Safety stock is a fundamental component of effective inventory management, acting as a protective buffer against unpredictability in both customer demand and supplier reliability. Its primary purpose is to provide a cushion of additional inventory beyond what is expected to be needed based on regular sales forecasts. This extra stock serves as insurance against sudden spikes in demand, unexpected delays in supply chains, or other unforeseen disruptions that could otherwise lead to stockouts.
+
+By maintaining safety stock, businesses can significantly reduce the risk of not being able to fulfill customer orders promptly. This proactive approach not only enhances customer satisfaction by ensuring products are available when needed but also preserves the company's reputation for reliability. Imagine a scenario where a sudden surge in customer demand occurs due to a seasonal event or a marketing campaign. Without safety stock, businesses might struggle to replenish inventory quickly enough, potentially losing sales opportunities and customer loyalty. Here's how you can calculate:
+
+Safety Stock = Z X Standard deviation of demand X √L
+
+Z: Service level factor (number of standard deviations corresponding to desired service level)
+L: Lead time
+Example: Suppose you want a 95% service level, which corresponds to a Z-value of 1.65. If your demand's standard deviation is 20 units, and your lead time is 10 days, your safety stock would be:
+
+1.65 X 20 X √10 = 1.65 X 20 X 3.16 = 104.28 units
+
+Keep 104 units as safety stock to maintain a 95% service level.
+
+4. High Inventory Turnover Ratio
+The Inventory Turnover Ratio reveals how frequently you sell and replenish your inventory within a specific period. A higher ratio signifies effective inventory management, indicating strong sales and efficient stock control. Monitoring this ratio helps optimize inventory levels and improve overall business performance.Here's how you can calculate:
+
+Inventory Turnover Rate = Cost of Goods Sold by the Average Inventory
+
+COGS:
+Average Inventory: (Beginning Inventory + Inventory at the End) / 2
+Example: If your COGS is $500,000 and your average inventory is $100,000, your high inventory turnover ratio would be:
+
+500,000/100,000 = 5
+
+You turn over your inventory five times a year.
+
+5. Days Sales of Inventory
+DSI indicates the average number of days it takes to sell your inventory. It refers to quicker inventory turnover, reflecting efficient stock management and strong sales performance. Monitoring DSI helps you assess inventory liquidity and make informed decisions to optimize inventory levels. Here's how you can calculate:
+
+DSI = Average Inventory/COGS X 365
+
+COGS: Cost of Goods Sold
+Example: With an average inventory of $100,000 and of $500,000, your DSI would be:
+
+100,000/500,00 X 365 = 73 Days
+
+It takes you 73 days to sell your inventory on average.
+
+6. Gross Margin Return on Investment (GMROI)
+Gross Margin Return on Investment (GMROI) is a key metric that evaluates the profitability of your inventory. It indicates how much gross profit you generate for every dollar invested in inventory. By assessing GMROI, you gain insights into the effectiveness of your inventory investments. A higher GMROI signifies that your inventory management strategies are yielding significant returns, maximizing your profits. Regularly tracking GMROI helps you identify which products are most profitable and allows you to make informed decisions on stock levels and purchasing. This ensures that your investment in inventory contributes positively to your overall financial performance. Here's how you can calculate:
+
+GMROI = Gross Profit/Average Inventory Cost
+
+Gross Profit: Sales - COGS
+COGS: Cost of Goods Sold
+Average Inventory Cost: (Beginning Inventory Cost + Ending Inventory Cost)/2
+Example: If your gross profit is $200,000 and your average inventory cost is $100,000, your GMROI would be:
+
+200,000/100,00 = 2
+
+You earn $2 in gross profit for every dollar invested in inventory.
+
+7. ABC Analysis
+ABC Analysis categorizes inventory into three groups based on the monetary value of your inventory and its importance to business operations. Category A includes high-value items that contribute significantly to revenue, though they may represent a smaller portion of the total inventory. Category B comprises moderate-value items that are essential but not as critical as Category A. Category C includes low-value items that constitute a large portion of inventory but contribute less to overall revenue. By classifying inventory this way, businesses can prioritize resources and focus on managing high-value items more closely, ensuring efficient stock control and maximizing profitability across their inventory portfolio.
+
+Example: If you have 100 SKUs, you might classify them as follows:
+
+A Items: Top 10 SKUs (70-80% of sales value)
+
+B Items: Next 20 SKUs (15-25% of sales value)
+
+C Items: Remaining 70 SKUs (5-10% of sales value)
+
+8. Just-In-Time (JIT) Inventory Formula
+JIT Inventory minimizes holding costs by receiving goods only when needed. This approach reduces excess inventory and increases efficiency. Implementing JIT requires strong supplier relationships and accurate demand forecasting.
+
+Example: If you manufacture electronics, you might arrange for components to arrive just as your production schedule requires them. This minimizes storage costs and reduces waste.
+
+9. Vendor Managed Inventory(VMI)
+VMI involves suppliers managing your inventory levels. Suppliers monitor your sales data and replenish stock as needed. This reduces your workload and ensures optimal inventory levels.
+
+Example: In a VMI agreement with your supplier, they automatically restock your shelves based on real-time sales data. This ensures you always have the right products without overstocking.
+
+10. Perpetual Inventory System
+A Perpetual Inventory System continuously tracks inventory levels. It updates inventory records with each transaction, providing real-time data. This system improves accuracy and helps you make informed decisions.
+
+Example: Using barcode scanners and inventory management software, you track inventory movements in real time. This allows you to quickly identify discrepancies and maintain accurate stock levels.
+
+11. Cycle Counting
+Cycle Counting involves regularly counting a portion of your inventory. This method ensures ongoing accuracy without the need for a full inventory count. Schedule counts for high-value items more frequently.
+
+Example: If you have 1,000 SKUs, you might count 10 SKUs each day. This ensures you count all items over a set period, maintaining inventory accuracy without disrupting operations.
+
+12. Inventory Accuracy Rate
+Inventory Accuracy Rate is a critical metric that reflects the reliability of your inventory records. It measures how closely your recorded inventory levels match the actual physical inventory on hand. A high accuracy rate ensures that you have trustworthy data to make informed decisions about purchasing, stocking, and fulfilling customer orders. Accurate inventory records reduce the risk of stockouts, overstocking, and operational disruptions. Regularly monitoring and maintaining a high accuracy rate enables businesses to optimize inventory levels, streamline operations, and enhance overall efficiency. It is an essential aspect of effective inventory management, ensuring that inventory data reflects the true state of your stock at any given time.
+
+IAR = (Accurate Count/Total Count) X 100
+
+Example: If you count 100 items and find 95 match your records, your accuracy rate is:
+
+(95/100) X 100 = 95%
+
+Aim for an accuracy rate of 95% or higher to ensure reliable inventory data.
+
+13. Fill Rate
+Fill Rate is a vital metric that quantifies the percentage of customer orders that are successfully fulfilled from available inventory. A high fill rate signifies effective inventory management, ensuring that customers receive their orders promptly and in full. It directly correlates with customer satisfaction, as timely order fulfillment enhances the overall shopping experience and encourages repeat business.
+
+Fill Rate = (Shipped Order/Total Order) X 100
+
+Example: If you receive 1,000 orders and ship 950 from stock, your fill rate is:
+
+(950/1000) X 100 = 95
+
+Aim for a fill rate of 95% or higher to meet customer expectations.
+
+14. Inventory to Sales Ratio
+The inventory-to-sales ratio reveals how well your inventory levels align with sales volume. A lower ratio indicates that you are efficiently managing inventory turnover, minimizing excess stock and potential obsolescence. This metric helps businesses optimize inventory levels to meet demand without tying up capital unnecessarily, contributing to improved profitability and operational efficiency.
+
+Inventory to Sales Ratio = Inventory/Sales
+
+Example: If your inventory is $200,000 and your sales are $1,000,000, your ratio is:
+
+200,000/1,000,000 = 0.2
+
+This means you have $0.20 of inventory for every dollar of sales.

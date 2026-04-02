@@ -16,7 +16,13 @@ class BusinessQueryProcessor:
             ],
             'restock_needed': [
                 r'need.*restock', r'should.*reorder', r'low.*stock', r'out.*stock',
-                r'inventory.*low', r'need.*order', r'stock.*running.*low'
+                r'inventory.*low', r'need.*order', r'stock.*running.*low',
+                r'do i need to restock', r'do i need to reorder', r'restock anything',
+                r'reorder anything', r'running out of', r'running low on',
+                r'items running low', r'any items low', r'what.*restock',
+                r'what.*reorder', r'need to buy more', r'replenish',
+                r'need more stock', r'stock levels', r'stock check',
+                r'what should i order', r'place.*order', r'items.*need.*ordering'
             ],
             'profit_per_item': [
                 r'profit.*per.*item', r'average.*profit', r'profit.*margin.*product',
