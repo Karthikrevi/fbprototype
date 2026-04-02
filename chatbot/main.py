@@ -873,9 +873,9 @@ What would you like me to fetch for you? 🦴"""
             print(f"Error submitting feedback: {e}")
             return False
 
-    def get_analytics_dashboard(self) -> Dict:
-        """Get analytics data for dashboard"""
-        return self.db.get_analytics_data()
+    def get_analytics_dashboard(self, vendor_email: str = None) -> Dict:
+        """Get analytics data for dashboard, scoped to vendor"""
+        return self.logger.get_analytics_data(vendor_email=vendor_email)
 
     def retrain_model(self) -> Dict:
         """Manually trigger model retraining"""

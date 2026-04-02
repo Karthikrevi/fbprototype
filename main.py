@@ -8633,17 +8633,18 @@ def inventory_bot_feedback():
     if "vendor" not in session:
         return {"error": "Unauthorized"}, 401
     
+    vendor_email = session["vendor"]
     data = request.get_json()
     log_id = data.get("log_id")
-    feedback = data.get("feedback")  # 1 for helpful, 0 for not helpful
+    feedback = data.get("feedback")
     
     if log_id is None or feedback is None:
         return {"error": "log_id and feedback are required"}, 400
     
     try:
         if hasattr(inventory_bot, 'smart_bot'):
-            success = inventory_bot.smart_bot.submit_feedback(log_id, feedback)
-            return {"success": success}
+            inventory_bot.smart_bot.logger.update_feedback(log_id, feedback, vendor_email=vendor_email)
+            return {"success": True}
         else:
             return {"success": False, "error": "Smart bot not available"}
     except Exception as e:
@@ -8654,9 +8655,10 @@ def inventory_bot_analytics():
     if "vendor" not in session:
         return redirect(url_for("erp_login"))
     
+    vendor_email = session["vendor"]
     try:
         if hasattr(inventory_bot, 'smart_bot'):
-            analytics = inventory_bot.smart_bot.get_analytics_dashboard()
+            analytics = inventory_bot.smart_bot.get_analytics_dashboard(vendor_email=vendor_email)
             return render_template("bot_analytics.html", analytics=analytics)
         else:
             return "Analytics not available", 404
