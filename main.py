@@ -190,6 +190,30 @@ def get_vendor_currency(vendor_id):
     return "₹"
 
 
+def haversine(lat1, lon1, lat2, lon2):
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    return 6371 * 2 * asin(sqrt(a))
+
+
+def geocode_location(query):
+    import urllib.request
+    import urllib.parse
+    try:
+        encoded = urllib.parse.quote(query)
+        url = f"https://nominatim.openstreetmap.org/search?q={encoded}&format=json&limit=1"
+        req = urllib.request.Request(url, headers={"User-Agent": "FurrButler/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            if data:
+                return float(data[0]["lat"]), float(data[0]["lon"]), data[0].get("display_name", query)
+    except Exception:
+        pass
+    return None, None, None
+
+
 # Initialize ERP database if not exists
 def init_erp_db():
     conn = sqlite3.connect('erp.db')
@@ -256,7 +280,17 @@ def init_erp_db():
     try:
         c.execute("ALTER TABLE vendors ADD COLUMN pincode TEXT")
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        pass
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN booking_radius_km REAL DEFAULT 10.0")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE vendors ADD COLUMN delivery_radius_km REAL DEFAULT 5.0")
+    except sqlite3.OperationalError:
+        pass
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS products (
@@ -2245,59 +2279,72 @@ def dashboard():
     return render_template("dashboard.html", email=email, pets=pets)
 
 # Groomers & Vendors
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371.0
-    if None in [lat1, lon1, lat2, lon2]:
-        return float('inf')
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    return R * 2 * asin(sqrt(a))
-
 @app.route('/groomers')
 @app.route('/services/groomers')
 def groomers():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    user_city = "Trivandrum"  # Hardcoded for now
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
+    search_lat = None
+    search_lon = None
+    location_name = None
 
-    # Get all vendors that provide grooming/boarding services
-    # Removed strict city matching and online requirements for testing
-    c.execute("""
-        SELECT id, name, email, password, category, city, phone, bio, image_url, latitude, longitude, is_online, account_status, break_start_date, break_end_date, break_reason, address, state, pincode
-        FROM vendors 
-        WHERE (account_status IS NULL OR account_status = 'active')
-        ORDER BY name
-    """)
-    db_vendors = c.fetchall()
-    
-    
-    conn.close()
+    location_query = request.args.get("location") or request.args.get("city")
+    if location_query:
+        lat, lon, display = geocode_location(location_query)
+        if lat is not None and lon is not None:
+            search_lat, search_lon = lat, lon
+            location_name = location_query
+    elif session.get("location"):
+        loc = session["location"]
+        search_lat = loc.get("lat")
+        search_lon = loc.get("lon")
+        location_name = loc.get("name", "Your location")
 
     vendors = []
-    for vendor in db_vendors:
-        vendor_data = {
-            "id": vendor[0],
-            "name": vendor[1],
-            "description": vendor[7] or "Professional pet grooming services.",
-            "image": vendor[8] or "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
-            "rating": 5,
-            "level": 10,
-            "xp": 1500,
-            "city": vendor[5] or "Unknown",
-            "latitude": vendor[9] or 8.5241,  # Default to Trivandrum coordinates
-            "longitude": vendor[10] or 76.9366,
-            "is_online": vendor[11],
-            "address": vendor[16] or "",
-            "state": vendor[17] or "",
-            "pincode": vendor[18] or ""
-        }
-        vendors.append(vendor_data)
+    if search_lat is not None and search_lon is not None:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""
+            SELECT id, name, email, password, category, city, phone, bio, image_url,
+                   latitude, longitude, is_online, account_status, break_start_date,
+                   break_end_date, break_reason, address, state, pincode, booking_radius_km
+            FROM vendors
+            WHERE (account_status IS NULL OR account_status = 'active')
+        """)
+        db_vendors = c.fetchall()
+        conn.close()
 
-    return render_template("groomers.html", vendors=vendors)
+        for vendor in db_vendors:
+            v_lat = vendor[9]
+            v_lon = vendor[10]
+            if v_lat is None or v_lon is None:
+                continue
+            radius = vendor[19] or 10.0
+            dist = haversine(search_lat, search_lon, v_lat, v_lon)
+            if dist <= radius:
+                vendors.append({
+                    "id": vendor[0],
+                    "name": vendor[1],
+                    "description": vendor[7] or "Professional pet grooming services.",
+                    "image": vendor[8] or "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
+                    "rating": 5,
+                    "level": 10,
+                    "xp": 1500,
+                    "city": vendor[5] or "Unknown",
+                    "latitude": v_lat,
+                    "longitude": v_lon,
+                    "is_online": vendor[11],
+                    "address": vendor[16] or "",
+                    "state": vendor[17] or "",
+                    "pincode": vendor[18] or "",
+                    "distance": round(dist, 1)
+                })
+        vendors.sort(key=lambda v: v["distance"])
+
+    return render_template("groomers.html", vendors=vendors,
+                           location_name=location_name,
+                           has_searched=bool(location_query or session.get("location")))
 
 # Vendor Profile
 @app.route('/vendor/<vendor_id>', methods=["GET", "POST"])
@@ -3596,8 +3643,19 @@ def passport_upload():
 def set_location():
     lat = request.args.get("lat", type=float)
     lon = request.args.get("lon", type=float)
-    if lat and lon:
-        session["location"] = {"lat": lat, "lon": lon}
+    if lat is not None and lon is not None:
+        import urllib.request
+        location_name = "Your location"
+        try:
+            url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
+            req = urllib.request.Request(url, headers={"User-Agent": "FurrButler/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode())
+                addr = data.get("address", {})
+                location_name = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("suburb") or addr.get("county") or "Your location"
+        except Exception:
+            pass
+        session["location"] = {"lat": lat, "lon": lon, "name": location_name}
     return '', 204
 
 # Booking route for vendor services
@@ -4938,7 +4996,7 @@ def erp_profile():
     c = conn.cursor()
 
     # Get vendor details
-    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category, account_status, break_start_date, break_reason, address, state, pincode FROM vendors WHERE email=?", (email,))
+    c.execute("SELECT id, name, email, phone, bio, image_url, city, latitude, longitude, category, account_status, break_start_date, break_reason, address, state, pincode, booking_radius_km, delivery_radius_km FROM vendors WHERE email=?", (email,))
     vendor_data = c.fetchone()
 
     if vendor_data:
@@ -5006,12 +5064,23 @@ def edit_vendor_profile():
         latitude = request.form.get("latitude")
         longitude = request.form.get("longitude")
 
-        # Convert coordinates to float if provided
         try:
             lat = float(latitude) if latitude else None
             lng = float(longitude) if longitude else None
         except (ValueError, TypeError):
             lat = lng = None
+
+        try:
+            booking_radius = float(request.form.get("booking_radius_km", 10.0))
+            booking_radius = max(1, min(500, booking_radius))
+        except (ValueError, TypeError):
+            booking_radius = 10.0
+
+        try:
+            delivery_radius = float(request.form.get("delivery_radius_km", 5.0))
+            delivery_radius = max(1, min(500, delivery_radius))
+        except (ValueError, TypeError):
+            delivery_radius = 5.0
 
         image_url = ""
         file = request.files.get("image")
@@ -5027,19 +5096,19 @@ def edit_vendor_profile():
 
         c.execute('''
             UPDATE vendors 
-            SET name=?, phone=?, bio=?, image_url=?, address=?, city=?, state=?, pincode=?, category=?, latitude=?, longitude=?
+            SET name=?, phone=?, bio=?, image_url=?, address=?, city=?, state=?, pincode=?, category=?, latitude=?, longitude=?, booking_radius_km=?, delivery_radius_km=?
             WHERE email=?
-        ''', (name, phone, bio, image_url, address, city, state, pincode, category, lat, lng, email))
+        ''', (name, phone, bio, image_url, address, city, state, pincode, category, lat, lng, booking_radius, delivery_radius, email))
 
         conn.commit()
         conn.close()
         return redirect(url_for("erp_profile"))
 
-    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category FROM vendors WHERE email=?", (email,))
+    c.execute("SELECT name, email, phone, bio, image_url, city, latitude, longitude, category, booking_radius_km, delivery_radius_km FROM vendors WHERE email=?", (email,))
     vendor = c.fetchone()
     conn.close()
 
-    return render_template("erp_profiles.html", vendor=vendor or ("", email, "", "", "", "", "", "", ""))
+    return render_template("erp_profiles.html", vendor=vendor or ("", email, "", "", "", "", "", "", "", 10.0, 5.0))
 
 # ERP Products Management
 @app.route('/erp/products')
@@ -6572,50 +6641,74 @@ def marketplace():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    user_city = "Trivandrum"  # Hardcoded for now
+    search_lat = None
+    search_lon = None
+    location_name = None
 
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("""
-        SELECT DISTINCT v.id, v.name, v.email, v.password, v.category, v.city, v.phone, v.bio, v.image_url, 
-               v.latitude, v.longitude, v.is_online, v.account_status, v.break_start_date, v.break_end_date, 
-               v.break_reason, v.address, v.state, v.pincode,
-               (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
-        FROM vendors v 
-        WHERE LOWER(v.city) = LOWER(?)
-        AND EXISTS (
-            SELECT 1 FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0
-        )
-        AND (
-            v.is_online = 1 
-            OR NOT (LOWER(v.category) LIKE '%groom%' OR LOWER(v.category) LIKE '%salon%' OR LOWER(v.category) LIKE '%spa%' OR LOWER(v.category) LIKE '%boarding%')
-        )
-        AND (v.account_status IS NULL OR v.account_status = 'active')
-    """, (user_city,))
-    online_vendors = c.fetchall()
+    location_query = request.args.get("location") or request.args.get("city")
+    if location_query:
+        lat, lon, display = geocode_location(location_query)
+        if lat is not None and lon is not None:
+            search_lat, search_lon = lat, lon
+            location_name = location_query
+    elif session.get("location"):
+        loc = session["location"]
+        search_lat = loc.get("lat")
+        search_lon = loc.get("lon")
+        location_name = loc.get("name", "Your location")
 
     vendors = []
-    for vendor in online_vendors:
-        vendor_data = {
-            "id": vendor[0],
-            "name": vendor[1],
-            "email": vendor[2],
-            "category": vendor[4],
-            "city": vendor[5],
-            "bio": vendor[7],
-            "image_url": vendor[8] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400&h=400&fit=crop&crop=face",
-            "latitude": vendor[9],
-            "longitude": vendor[10],
-            "product_count": vendor[19],
-            "is_online": vendor[11],
-            "address": vendor[16] or "",
-            "state": vendor[17] or "",
-            "pincode": vendor[18] or ""
-        }
-        vendors.append(vendor_data)
+    if search_lat is not None and search_lon is not None:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT v.id, v.name, v.email, v.password, v.category, v.city, v.phone, v.bio, v.image_url,
+                   v.latitude, v.longitude, v.is_online, v.account_status, v.break_start_date, v.break_end_date,
+                   v.break_reason, v.address, v.state, v.pincode, v.delivery_radius_km,
+                   (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
+            FROM vendors v
+            WHERE EXISTS (
+                SELECT 1 FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0
+            )
+            AND (
+                v.is_online = 1
+                OR NOT (LOWER(v.category) LIKE '%groom%' OR LOWER(v.category) LIKE '%salon%' OR LOWER(v.category) LIKE '%spa%' OR LOWER(v.category) LIKE '%boarding%')
+            )
+            AND (v.account_status IS NULL OR v.account_status = 'active')
+        """)
+        online_vendors = c.fetchall()
+        conn.close()
 
-    conn.close()
-    return render_template("marketplace.html", vendors=vendors)
+        for vendor in online_vendors:
+            v_lat = vendor[9]
+            v_lon = vendor[10]
+            if v_lat is None or v_lon is None:
+                continue
+            radius = vendor[19] or 5.0
+            dist = haversine(search_lat, search_lon, v_lat, v_lon)
+            if dist <= radius:
+                vendors.append({
+                    "id": vendor[0],
+                    "name": vendor[1],
+                    "email": vendor[2],
+                    "category": vendor[4],
+                    "city": vendor[5],
+                    "bio": vendor[7],
+                    "image_url": vendor[8] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400&h=400&fit=crop&crop=face",
+                    "latitude": v_lat,
+                    "longitude": v_lon,
+                    "product_count": vendor[20],
+                    "is_online": vendor[11],
+                    "address": vendor[16] or "",
+                    "state": vendor[17] or "",
+                    "pincode": vendor[18] or "",
+                    "distance": round(dist, 1)
+                })
+        vendors.sort(key=lambda v: v["distance"])
+
+    return render_template("marketplace.html", vendors=vendors,
+                           location_name=location_name,
+                           has_searched=bool(location_query or session.get("location")))
 
 @app.route('/marketplace/vendor/<int:vendor_id>')
 def marketplace_vendor_products(vendor_id):

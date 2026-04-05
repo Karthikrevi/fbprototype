@@ -3,6 +3,7 @@
 <head>
   <title>Marketplace - FurrButler</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body {
       background-color: #fffaf4;
@@ -15,13 +16,86 @@
     h1 {
       color: #ffa94d;
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 10px;
     }
+
+    .location-search-bar {
+      background: white;
+      border-radius: 16px;
+      padding: 20px 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+    }
+
+    .location-search-bar h5 {
+      margin: 0 0 12px 0;
+      color: #ff7e5f;
+      font-size: 1rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: border-color 0.3s;
+    }
+
+    .search-row input:focus {
+      outline: none;
+      border-color: #ffa94d;
+    }
+
+    .search-row button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .btn-search {
+      background-color: #ffa94d;
+      color: white;
+    }
+
+    .btn-search:hover {
+      background-color: #ff922b;
+    }
+
+    .btn-gps {
+      background-color: #4dabf7;
+      color: white;
+    }
+
+    .btn-gps:hover {
+      background-color: #339af0;
+    }
+
+    .location-label {
+      background: linear-gradient(135deg, #ffa94d20, #ff922b20);
+      border-left: 4px solid #ffa94d;
+      padding: 10px 16px;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      color: #333;
+    }
+
     .vendor-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 25px;
-      margin-top: 30px;
+      margin-top: 20px;
     }
     .vendor-card {
       background: white;
@@ -64,6 +138,16 @@
     .vendor-location {
       color: #666;
       font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .distance-badge {
+      display: inline-block;
+      background-color: #d4edda;
+      color: #155724;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
       margin-bottom: 10px;
     }
     .product-count {
@@ -98,29 +182,19 @@
       background-color: #5fa082;
       color: white;
     }
-    .no-vendors {
+    .no-results-box {
       text-align: center;
       padding: 60px 20px;
       background: white;
       border-radius: 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .btn-shop:hover {
-      background-color: #57a3f3;
+    .no-results-box h3 {
+      color: #ff7e5f;
+      margin-bottom: 10px;
     }
-
-    .status-badge {
-      margin-bottom: 8px;
-      text-align: right;
-    }
-
-    .online-badge {
-      background-color: #d4edda;
-      color: #155724;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: bold;
+    .no-results-box p {
+      color: #666;
     }
   </style>
 </head>
@@ -132,7 +206,22 @@
     </div>
 
     <h1>🛍️ Pet Products Marketplace</h1>
-    <p class="text-center text-muted">Discover products from verified vendors near you</p>
+    <p class="text-center text-muted mb-4">Discover products from verified vendors near you</p>
+
+    <div class="location-search-bar">
+      <h5><i class="fas fa-map-marker-alt"></i> Find stores near you</h5>
+      <form class="search-row" method="GET" action="/marketplace">
+        <input type="text" name="location" placeholder="Search by city, area or pincode" value="{{ request.args.get('location', '') }}">
+        <button type="submit" class="btn-search"><i class="fas fa-search"></i> Search</button>
+        <button type="button" class="btn-gps" onclick="useMyLocation()"><i class="fas fa-crosshairs"></i> Use my location</button>
+      </form>
+    </div>
+
+    {% if location_name %}
+    <div class="location-label">
+      📍 Showing delivery available near <strong>{{ location_name }}</strong>
+    </div>
+    {% endif %}
 
     {% if vendors %}
     <div class="vendor-grid">
@@ -157,7 +246,7 @@
           {% endif %}
 
           <div class="vendor-location">📍 {{ vendor.address or vendor.city or 'Location not specified' }}</div>
-          <div class="vendor-distance" id="distance-{{ vendor.id }}">📏 Calculating distance...</div>
+          <div><span class="distance-badge">📏 {{ vendor.distance }} km away</span></div>
 
           {% if vendor.bio %}
           <p class="text-muted" style="font-size: 0.9rem;">{{ vendor.bio[:80] }}{% if vendor.bio|length > 80 %}...{% endif %}</p>
@@ -171,120 +260,35 @@
       </a>
       {% endfor %}
     </div>
+    {% elif has_searched %}
+    <div class="no-results-box">
+      <h3>🔍 No vendors found near {{ location_name or 'this location' }}</h3>
+      <p>Try expanding your search area or search a different location.</p>
+    </div>
     {% else %}
-    <div class="no-vendors">
-      <h3>🚫 No vendors currently live in your area</h3>
-      <p class="text-muted">Please check back later or try expanding your search radius.</p>
-      <small>💡 Tip: Make sure location access is enabled for better results</small>
+    <div class="no-results-box">
+      <h3>📍 Enter a location to find pet products near you</h3>
+      <p>Use the search bar above to search by city, area or pincode, or click "Use my location" to find stores nearby.</p>
     </div>
     {% endif %}
   </div>
 
   <script>
-    // Search functionality
-    function searchVendors() {
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const vendorCards = document.querySelectorAll('.vendor-card');
-
-      vendorCards.forEach(card => {
-        const vendorName = card.querySelector('.vendor-name').textContent.toLowerCase();
-        const vendorCategory = card.querySelector('.vendor-category').textContent.toLowerCase();
-
-        if (vendorName.includes(searchTerm) || vendorCategory.includes(searchTerm)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    }
-
-    // Geolocation and distance calculation
-    let userLocation = null;
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Radius of the Earth in kilometers
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-      return distance;
-    }
-
-    function updateVendorDistances() {
-      if (!userLocation) return;
-
-      const vendors = [
-        {% for vendor in vendors %}
-        {
-          id: {{ vendor.id }},
-          lat: {{ vendor.latitude or 0 }},
-          lng: {{ vendor.longitude or 0 }},
-          name: "{{ vendor.name }}"
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      ];
-
-      vendors.forEach(vendor => {
-        if (vendor.lat && vendor.lng) {
-          const distance = calculateDistance(
-            userLocation.lat, userLocation.lng,
-            vendor.lat, vendor.lng
-          );
-
-          const distanceElement = document.getElementById(`distance-${vendor.id}`);
-          if (distanceElement) {
-            if (distance < 1) {
-              distanceElement.textContent = `📏 ${Math.round(distance * 1000)}m away`;
-            } else {
-              distanceElement.textContent = `📏 ${distance.toFixed(1)}km away`;
-            }
-            distanceElement.style.color = distance < 5 ? '#28a745' : '#6c757d';
-          }
-        } else {
-          const distanceElement = document.getElementById(`distance-${vendor.id}`);
-          if (distanceElement) {
-            distanceElement.textContent = '📏 Location not available';
-            distanceElement.style.color = '#6c757d';
-          }
-        }
-      });
-    }
-
-    // Get user location
-    function getUserLocation() {
+    function useMyLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           function(position) {
-            userLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            updateVendorDistances();
+            fetch('/set-location?lat=' + position.coords.latitude + '&lon=' + position.coords.longitude)
+              .then(function() { location.href = '/marketplace'; })
           },
           function(error) {
-            console.error("Geolocation error:", error);
-            // Update all distance elements to show location not available
-            document.querySelectorAll('[id^="distance-"]').forEach(element => {
-              element.textContent = '📏 Enable location for distances';
-              element.style.color = '#6c757d';
-            });
+            alert('Could not get your location. Please allow location access or search manually.');
           }
         );
       } else {
-        document.querySelectorAll('[id^="distance-"]').forEach(element => {
-          element.textContent = '📏 Location not supported';
-          element.style.color = '#6c757d';
-        });
+        alert('Geolocation is not supported by your browser. Please search manually.');
       }
     }
-
-    // Initialize on page load
-    window.addEventListener('load', function() {
-      getUserLocation();
-    });
   </script>
 </body>
 </html>

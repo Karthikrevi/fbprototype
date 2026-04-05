@@ -1,0 +1,119 @@
+In main.py only, find every instance of:
+user_city = "Trivandrum"
+
+Replace the logic in both the groomers route 
+and marketplace route as follows:
+
+LOCATION DETECTION:
+1. Check if session contains location data
+   using session.get("location")
+
+2. If search query provided in URL params
+   as ?location=Chennai or ?city=Trivandrum
+   geocode that location using:
+   https://nominatim.openstreetmap.org/search
+   ?q={search_term}&format=json&limit=1
+   Extract lat/lon from response
+   Use that as the search center point
+
+3. If no search and no session location:
+   Show empty results with a message:
+   "Enter a location to find pet services 
+   near you"
+   Do not show any vendors
+
+FILTERING BY RADIUS:
+In groomers route:
+Only show vendors where haversine distance 
+from search point is within vendor's 
+booking_radius_km field
+Sort by distance ascending
+Show distance next to each vendor: "2.3 km away"
+
+In marketplace route:
+Only show vendors where haversine distance 
+from search point is within vendor's 
+delivery_radius_km field
+Sort by distance ascending
+Show distance next to each vendor: "2.3 km away"
+
+SEARCH BAR:
+In groomers.html and marketplace.html
+add a location search bar at the top 
+of the page above the vendor list:
+
+- Text input: "Search by city, area or pincode"
+- Search button
+- "Use my current location" button
+  that triggers GPS via navigator.geolocation
+  and sends coordinates to /set-location
+  then reloads the page
+
+When GPS button is clicked:
+   if (navigator.geolocation) {
+     navigator.geolocation.getCurrentPosition(
+       function(position) {
+         fetch('/set-location?lat=' + 
+           position.coords.latitude + 
+           '&lon=' + position.coords.longitude)
+         .then(() => location.reload())
+       }
+     )
+   }
+
+When text search is submitted:
+Send ?location={search_term} in URL
+Backend geocodes it via Nominatim
+Results show vendors within radius of 
+that searched location
+
+Show currently searched location name 
+above results:
+"Showing groomers near Trivandrum"
+"Showing delivery available near Chennai"
+
+VENDOR RADIUS SETTINGS:
+In main.py in init_erp_db() function
+add these columns to vendors table
+if they do not already exist:
+
+ALTER TABLE vendors 
+ADD COLUMN booking_radius_km REAL DEFAULT 10.0;
+
+ALTER TABLE vendors 
+ADD COLUMN delivery_radius_km REAL DEFAULT 5.0;
+
+In erp_profile_view.html and erp_profiles.html
+add a Service Radius section with two fields:
+
+Booking Radius:
+Label: "Booking service radius (km)"
+Input: number, min 1, max 500
+Default: 10
+Help text: "Customers must be within this 
+distance to book your services"
+
+Delivery Radius:
+Label: "Product delivery radius (km)"
+Input: number, min 1, max 500  
+Default: 5
+Help text: "You will only deliver products 
+within this distance"
+
+Save both to vendors table on profile update.
+
+NO RESULTS STATE:
+If user has searched a location but no 
+vendors are within radius show:
+"No groomers found near {location}.
+Try expanding your search area or 
+search a different location."
+
+Do not show a list of all vendors as fallback.
+Do not modify any other routes.
+Do not modify any other templates 
+except groomers.html, marketplace.html,
+erp_profile_view.html and erp_profiles.html.
+Do not modify any database tables other 
+than adding the two radius columns to vendors.
+Do not delete any accounts or data.

@@ -209,13 +209,20 @@
 
         {% if vendor[6] and vendor[7] %}
         <div class="info-bubble location-info">
-          <strong>📍 Location:</strong> {{ "%.4f"|format(vendor[6]) }}, {{ "%.4f"|format(vendor[7]) }}
+          <strong>📍 Location:</strong> {{ "%.4f"|format(vendor[6]|float) }}, {{ "%.4f"|format(vendor[7]|float) }}
         </div>
         {% else %}
         <div class="info-bubble location-info" style="opacity: 0.6;">
           <strong>📍 Location:</strong> Auto-detected from device
         </div>
         {% endif %}
+
+        <div class="info-bubble">
+          <strong>📐 Booking Radius:</strong> {{ vendor[16] or 10.0 }} km
+        </div>
+        <div class="info-bubble">
+          <strong>🚚 Delivery Radius:</strong> {{ vendor[17] or 5.0 }} km
+        </div>
       </div>
 
       <div class="stats-section">

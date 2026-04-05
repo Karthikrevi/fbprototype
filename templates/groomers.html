@@ -2,6 +2,8 @@
 <html>
 <head>
   <title>Groomers & Vendors - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body {
       background-color: #fffbe6;
@@ -12,6 +14,78 @@
     .vendor-list {
       max-width: 900px;
       margin: auto;
+    }
+
+    .location-search-bar {
+      background: white;
+      border-radius: 16px;
+      padding: 20px 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+    }
+
+    .location-search-bar h5 {
+      margin: 0 0 12px 0;
+      color: #ff7e5f;
+      font-size: 1rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: border-color 0.3s;
+    }
+
+    .search-row input:focus {
+      outline: none;
+      border-color: #74c69d;
+    }
+
+    .search-row button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .btn-search {
+      background-color: #74c69d;
+      color: white;
+    }
+
+    .btn-search:hover {
+      background-color: #52b788;
+    }
+
+    .btn-gps {
+      background-color: #4dabf7;
+      color: white;
+    }
+
+    .btn-gps:hover {
+      background-color: #339af0;
+    }
+
+    .location-label {
+      background: linear-gradient(135deg, #74c69d20, #52b78820);
+      border-left: 4px solid #74c69d;
+      padding: 10px 16px;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      color: #333;
     }
 
     .vendor-card {
@@ -53,6 +127,16 @@
       margin-bottom: 8px;
     }
 
+    .distance-badge {
+      display: inline-block;
+      background-color: #d4edda;
+      color: #155724;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
     .rating-stars {
       color: #f4c430;
       font-weight: bold;
@@ -84,10 +168,6 @@
 
     .profile-link:hover {
       background-color: #52b788;
-    }
-
-    .btn-view:hover {
-      background-color: #57a3f3;
     }
 
     .status-badge {
@@ -128,6 +208,25 @@
       cursor: not-allowed;
       display: inline-block;
     }
+
+    .no-results-box {
+      text-align: center;
+      margin: 40px 0;
+      padding: 40px 20px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .no-results-box h3 {
+      color: #ff7e5f;
+      margin-bottom: 10px;
+    }
+
+    .no-results-box p {
+      color: #666;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -137,28 +236,23 @@
     </div>
     <h2>🐶 Groomers & Vendors</h2>
 
-    <!-- Always visible demo vendor -->
-    <div class="vendor-card">
-      <img src="https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400" alt="Fluffy Paws Grooming" class="vendor-image">
-      <div class="vendor-details">
-        <h3>Fluffy Paws Grooming</h3>
-        <div class="vendor-meta">Expert grooming services for dogs and cats.</div>
-        <div class="rating-stars">⭐ 5 | Level 15 | XP 2850</div>
-        <div class="xp-bar">
-          <div class="xp-fill" style="width: 57%;"></div>
-        </div>
-        <a href="/vendor/fluffy-paws" class="profile-link">View Profile</a>
-      </div>
+    <div class="location-search-bar">
+      <h5><i class="fas fa-map-marker-alt"></i> Find groomers near you</h5>
+      <form class="search-row" method="GET" action="/groomers">
+        <input type="text" name="location" placeholder="Search by city, area or pincode" value="{{ request.args.get('location', '') }}">
+        <button type="submit" class="btn-search"><i class="fas fa-search"></i> Search</button>
+        <button type="button" class="btn-gps" onclick="useMyLocation()"><i class="fas fa-crosshairs"></i> Use my location</button>
+      </form>
     </div>
 
-    <!-- Debug info -->
-    <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9em;">
-      <strong>Debug:</strong> Found {{ vendors|length }} vendors total
+    {% if location_name %}
+    <div class="location-label">
+      📍 Showing groomers near <strong>{{ location_name }}</strong>
     </div>
+    {% endif %}
 
     {% if vendors %}
       {% for vendor in vendors %}
-      {% if vendor.id != 'fluffy-paws' %}
       <div class="vendor-card">
         <img src="{{ vendor.image }}" alt="{{ vendor.name }} photo" class="vendor-image">
         <div class="vendor-details">
@@ -172,7 +266,7 @@
           <h3>{{ vendor.name }}</h3>
           <div class="vendor-meta">{{ vendor.description }}</div>
           <div class="vendor-meta">📍 {{ vendor.address or vendor.city or 'Location not specified' }}</div>
-          <div class="vendor-meta" id="distance-{{ vendor.id }}" style="color: #28a745;">📏 Calculating distance...</div>
+          <div class="vendor-meta"><span class="distance-badge">📏 {{ vendor.distance }} km away</span></div>
           <div class="rating-stars">⭐ {{ vendor.rating }} | Level {{ vendor.level }} | XP {{ vendor.xp }}</div>
           <div class="xp-bar">
             <div class="xp-fill" style="width: {{ (vendor.xp / 50) if vendor.xp < 5000 else 100 }}%;"></div>
@@ -180,94 +274,34 @@
           <a href="/vendor/{{ vendor.id }}" class="profile-link">Book Service</a>
         </div>
       </div>
-      {% endif %}
       {% endfor %}
+    {% elif has_searched %}
+      <div class="no-results-box">
+        <h3>🔍 No groomers found near {{ location_name or 'this location' }}</h3>
+        <p>Try expanding your search area or search a different location.</p>
+      </div>
     {% else %}
-      <div style="text-align: center; margin: 40px; padding: 20px; background: #fff; border-radius: 12px;">
-        <h3>🔍 No vendors found</h3>
-        <p>No vendors are currently registered in the system.</p>
-        <p><small>Vendors need to register through the ERP system to appear here.</small></p>
+      <div class="no-results-box">
+        <h3>📍 Enter a location to find pet services near you</h3>
+        <p>Use the search bar above to search by city, area or pincode, or click "Use my location" to find groomers nearby.</p>
       </div>
     {% endif %}
   </div>
 
   <script>
-    // Distance calculation function
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Radius of the Earth in kilometers
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-      return distance;
-    }
-
-    // Update distance for all vendors
-    function updateVendorDistances(userLat, userLng) {
-      const vendors = [
-        {% for vendor in vendors %}
-        {
-          id: {{ vendor.id }},
-          lat: {{ vendor.latitude or 8.5241 }},
-          lng: {{ vendor.longitude or 76.9366 }},
-          name: "{{ vendor.name|replace('"', '\\"') }}"
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      ];
-
-      vendors.forEach(vendor => {
-        const distanceElement = document.getElementById(`distance-${vendor.id}`);
-        if (distanceElement && vendor.lat && vendor.lng && userLat && userLng) {
-          const distance = calculateDistance(userLat, userLng, vendor.lat, vendor.lng);
-          
-          if (distance < 1) {
-            distanceElement.textContent = `📏 ${Math.round(distance * 1000)}m away`;
-          } else {
-            distanceElement.textContent = `📏 ${distance.toFixed(1)}km away`;
-          }
-          distanceElement.style.color = distance < 5 ? '#28a745' : '#6c757d';
-        } else if (distanceElement) {
-          distanceElement.textContent = '📏 Location not available';
-          distanceElement.style.color = '#6c757d';
-        }
-      });
-    }
-
-    window.onload = function () {
+    function useMyLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          function (position) {
-            const userLat = position.coords.latitude;
-            const userLng = position.coords.longitude;
-            
-            // Update distances
-            updateVendorDistances(userLat, userLng);
-            
-            // Set location in session if not already set
-            if (!sessionStorage.getItem('locationSet')) {
-              fetch(`/set-location?lat=${userLat}&lon=${userLng}`)
-                .then(() => {
-                  sessionStorage.setItem('locationSet', 'true');
-                });
-            }
+          function(position) {
+            fetch('/set-location?lat=' + position.coords.latitude + '&lon=' + position.coords.longitude)
+              .then(function() { location.href = '/groomers'; })
           },
           function(error) {
-            console.error("Geolocation error:", error);
-            // Update all distance elements to show location not available
-            document.querySelectorAll('[id^="distance-"]').forEach(element => {
-              element.textContent = '📏 Enable location for distances';
-              element.style.color = '#6c757d';
-            });
+            alert('Could not get your location. Please allow location access or search manually.');
           }
         );
       } else {
-        document.querySelectorAll('[id^="distance-"]').forEach(element => {
-          element.textContent = '📏 Location not supported';
-          element.style.color = '#6c757d';
-        });
+        alert('Geolocation is not supported by your browser. Please search manually.');
       }
     }
   </script>

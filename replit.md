@@ -73,6 +73,19 @@ An advanced chatbot system uses machine learning for intent classification and b
 - Server-side validation: invalid/blank currency codes fall back to INR
 - accounting_settings route uses `sqlite3.Row` for named column access (not numeric indices)
 
+## Location-Based Filtering
+- `haversine(lat1, lon1, lat2, lon2)`: calculates distance in km between two lat/lon points
+- `geocode_location(query)`: uses Nominatim API to convert city/area/pincode to lat/lon
+- `/set-location` route: stores GPS coordinates + reverse-geocoded city name in session
+- `/groomers` route: filters vendors by `booking_radius_km` using haversine distance from search point
+- `/marketplace` route: filters vendors by `delivery_radius_km` using haversine distance from search point
+- Both routes support `?location=CityName` or `?city=CityName` URL params for text search
+- Both routes fall back to `session["location"]` if no URL param provided
+- Empty state shown when no location set; "no results" state when location set but no vendors in range
+- `vendors` table has `booking_radius_km` (default 10.0) and `delivery_radius_km` (default 5.0) columns
+- `edit_vendor_profile` route saves both radius fields; profile view displays them
+- All coordinate checks use `is not None` guards (not truthiness) to handle 0.0 coordinates correctly
+
 # FurrVet Module
 
 ## Templates (templates/furrvet/)
