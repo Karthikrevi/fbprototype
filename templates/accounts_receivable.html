@@ -1,205 +1,242 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <title>Accounts Receivable - FurrButler ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      background-color: #f8f9fa;
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    
-    .ar-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    
-    .ar-header {
-      background: #28a745;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-    
-    .summary-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      padding: 20px;
-      background: #f8f9fa;
-    }
-    
-    .summary-card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .summary-value {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #28a745;
-    }
-    
+    body { background-color: #f8f9fa; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #667eea; font-size: 2.2rem; }
     .back-btn {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: #667eea;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 25px;
-      text-decoration: none;
-      font-weight: bold;
+      position: fixed; top: 20px; left: 20px; background: #667eea; color: white;
+      padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; z-index: 1000;
     }
-    
-    .aging-analysis {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 15px;
-      margin: 20px;
+    .back-btn:hover { background: #5a67d8; color: white; }
+    .summary-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px; max-width: 1100px; margin: 0 auto 30px auto;
     }
-    
-    .aging-bucket {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
+    .summary-card {
+      background: white; padding: 25px; border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center;
       border-left: 4px solid #28a745;
     }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .summary-card .value { font-size: 1.7rem; font-weight: bold; margin-bottom: 5px; }
+    .summary-card .label { color: #666; font-size: 0.85rem; }
+    .positive { color: #28a745; }
+    .warning-color { color: #ffc107; }
+    .neutral { color: #667eea; }
+    .content-section {
+      max-width: 1100px; margin: 0 auto 30px auto; background: white;
+      border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden;
     }
-    
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 25px; background: #f8f9fa; border-bottom: 1px solid #eee;
     }
-    
-    th {
-      background: #f8f9fa;
-      font-weight: bold;
+    .section-header h4 { margin: 0; color: #333; }
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #28a745, #20c997); color: white;
+      border: none; padding: 10px 22px; border-radius: 8px; font-weight: bold; cursor: pointer;
+      font-size: 0.9rem;
     }
-    
-    .status-badge {
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: bold;
+    .btn-primary-custom:hover { opacity: 0.9; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 13px 15px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #28a745; color: white; font-size: 0.85rem; }
+    tr:hover { background: #f8f9fa; }
+    .badge-unpaid { background: #f8d7da; color: #721c24; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .badge-partial { background: #fff3cd; color: #856404; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .badge-paid { background: #d4edda; color: #155724; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .amount { font-family: monospace; font-weight: bold; }
+    .btn-pay {
+      background: #667eea; color: white; border: none; padding: 5px 14px;
+      border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold;
     }
-    
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-paid { background: #d4edda; color: #155724; }
-    .status-overdue { background: #f8d7da; color: #721c24; }
+    .btn-pay:hover { background: #5a67d8; }
+    .pay-form {
+      display: none; background: #f8f9fa; padding: 15px 20px;
+      border-top: 2px solid #28a745;
+    }
+    .pay-form.active { display: block; }
+    .pay-form .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .pay-form .form-group { flex: 1; min-width: 140px; }
+    .pay-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 3px; }
+    .pay-form input, .pay-form select {
+      width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem;
+    }
+    .btn-save-pay {
+      background: #28a745; color: white; border: none; padding: 8px 20px;
+      border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem;
+    }
+    .btn-save-pay:hover { opacity: 0.9; }
+    .btn-cancel { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .add-form {
+      display: none; padding: 25px; border-bottom: 2px solid #28a745;
+    }
+    .add-form.active { display: block; }
+    .add-form .form-row { display: flex; gap: 15px; flex-wrap: wrap; }
+    .add-form .form-group { flex: 1; min-width: 180px; margin-bottom: 12px; }
+    .add-form label { display: block; font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .add-form input, .add-form select {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem;
+    }
+    .overdue { color: #dc3545; font-weight: bold; }
   </style>
 </head>
 <body>
-  <a href="/erp/reports" class="back-btn">← Back to Financial Management</a>
-  
+  <a href="/erp/reports" class="back-btn">← Back to Finance</a>
+
   <div class="header">
     <h1>💰 Accounts Receivable</h1>
-    <p>Track customer payments and outstanding invoices</p>
+    <p>Track customer invoices, payments, and outstanding receivables</p>
   </div>
 
-  <div class="ar-container">
-    <div class="ar-header">
-      <h3 style="margin: 0;">Accounts Receivable Summary</h3>
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="value positive">{{ vendor_currency }}{{ "%.2f"|format(ar_summary['total_outstanding'] if ar_summary else 0) }}</div>
+      <div class="label">Total Outstanding</div>
     </div>
-    
-    <div class="summary-cards">
-      <div class="summary-card">
-        <div class="summary-value">{{ vendor_currency }}{{ "%.2f"|format(ar_summary[0] or 0) }}</div>
-        <div>Total Outstanding</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-value">{{ vendor_currency }}{{ "%.2f"|format(ar_summary[1] or 0) }}</div>
-        <div>Total Collected</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-value">{{ ar_summary[2] or 0 }}</div>
-        <div>Pending Invoices</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-value">{{ "%.1f"|format(((ar_summary[1] or 0) / ((ar_summary[0] or 0) + (ar_summary[1] or 0)) * 100) if ((ar_summary[0] or 0) + (ar_summary[1] or 0)) > 0 else 0) }}%</div>
-        <div>Collection Rate</div>
-      </div>
+    <div class="summary-card">
+      <div class="value neutral">{{ ar_summary['unpaid_count'] if ar_summary else 0 }}</div>
+      <div class="label">Unpaid Entries</div>
+    </div>
+    <div class="summary-card">
+      <div class="value warning-color">{{ ar_summary['overdue_count'] if ar_summary else 0 }}</div>
+      <div class="label">Overdue</div>
+    </div>
+  </div>
+
+  <div class="content-section">
+    <div class="section-header">
+      <h4>💰 Receivable Entries</h4>
+      <button class="btn-primary-custom" onclick="toggleAddForm()">➕ Add New Receivable</button>
     </div>
 
-    <div style="background: #f8f9fa; padding: 20px;">
-      <h5 style="color: #333; margin-bottom: 15px;">📊 Aging Analysis</h5>
-      <div class="aging-analysis">
-        <div class="aging-bucket">
-          <div style="font-weight: bold; color: #28a745;">Current</div>
-          <div style="font-size: 0.9rem; color: #666;">0-30 days</div>
-          <div style="font-weight: bold; margin-top: 5px;">{{ vendor_currency }}0.00</div>
+    <div class="add-form" id="addForm">
+      <form method="POST">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Payer Name</label>
+            <input type="text" name="payer_name" required placeholder="Customer or client name">
+          </div>
+          <div class="form-group">
+            <label>Payer Email (optional)</label>
+            <input type="email" name="payer_email" placeholder="email@example.com">
+          </div>
+          <div class="form-group">
+            <label>Amount ({{ vendor_currency }})</label>
+            <input type="number" name="amount" step="0.01" min="0.01" required>
+          </div>
         </div>
-        <div class="aging-bucket" style="border-left-color: #ffc107;">
-          <div style="font-weight: bold; color: #ffc107;">31-60 Days</div>
-          <div style="font-size: 0.9rem; color: #666;">Overdue</div>
-          <div style="font-weight: bold; margin-top: 5px;">{{ vendor_currency }}0.00</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" name="description" placeholder="Invoice or service description">
+          </div>
+          <div class="form-group">
+            <label>Due Date</label>
+            <input type="date" name="due_date" required>
+          </div>
+          <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-save-pay">💾 Save Receivable</button>
+            <button type="button" class="btn-cancel" onclick="toggleAddForm()">Cancel</button>
+          </div>
         </div>
-        <div class="aging-bucket" style="border-left-color: #dc3545;">
-          <div style="font-weight: bold; color: #dc3545;">60+ Days</div>
-          <div style="font-size: 0.9rem; color: #666;">Critical</div>
-          <div style="font-weight: bold; margin-top: 5px;">{{ vendor_currency }}0.00</div>
-        </div>
-      </div>
+      </form>
     </div>
-    
+
     <table>
       <thead>
         <tr>
-          <th>Invoice #</th>
-          <th>Customer</th>
+          <th>From</th>
+          <th>Description</th>
           <th>Amount</th>
-          <th>Date</th>
-          <th>Days Outstanding</th>
+          <th>Received</th>
+          <th>Balance</th>
+          <th>Due Date</th>
           <th>Status</th>
-          <th>Actions</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        {% for receivable in receivables %}
+        {% for entry in receivables %}
         <tr>
-          <td>INV-{{ receivable[0] }}</td>
-          <td>{{ receivable[1] }}</td>
-          <td>{{ vendor_currency }}{{ "%.2f"|format(receivable[2]) }}</td>
-          <td>{{ receivable[3][:10] }}</td>
-          <td>{{ receivable[6]|int }} days</td>
           <td>
-            <span class="status-badge {% if receivable[5] == 'Paid' %}status-paid{% elif receivable[6] > 30 %}status-overdue{% else %}status-pending{% endif %}">
-              {{ receivable[5] }}
-            </span>
+            <strong>{{ entry['payer_name'] }}</strong>
+            {% if entry['payer_email'] %}<br><span style="font-size:0.75rem; color:#888;">{{ entry['payer_email'] }}</span>{% endif %}
           </td>
+          <td>{{ entry['description'] or '-' }}</td>
+          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(entry['amount']) }}</td>
+          <td class="amount" style="color:#28a745;">{{ vendor_currency }}{{ "%.2f"|format(entry['amount_received'] or 0) }}</td>
+          <td class="amount" style="color:#dc3545;">{{ vendor_currency }}{{ "%.2f"|format(entry['balance_due'] or 0) }}</td>
           <td>
-            <button style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
-              Send Reminder
-            </button>
+            {% if entry['due_date'] and entry['due_date'] < now_date and entry['status'] != 'paid' %}
+            <span class="overdue">{{ entry['due_date'] }} ⚠️</span>
+            {% else %}
+            {{ entry['due_date'] or '-' }}
+            {% endif %}
+          </td>
+          <td><span class="badge-{{ entry['status'] }}">{{ entry['status']|capitalize }}</span></td>
+          <td>
+            {% if entry['status'] != 'paid' %}
+            <button class="btn-pay" onclick="togglePayForm('pay-{{ entry['id'] }}')">💳 Record Payment</button>
+            {% else %}
+            <span style="color:#28a745; font-size:0.8rem;">✓ Settled</span>
+            {% endif %}
           </td>
         </tr>
+        {% if entry['status'] != 'paid' %}
+        <tr>
+          <td colspan="8" style="padding:0;">
+            <div class="pay-form" id="pay-{{ entry['id'] }}">
+              <form method="POST" action="/erp/finance/receivable/pay/{{ entry['id'] }}">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Amount Received ({{ vendor_currency }})</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" max="{{ entry['balance_due'] }}" value="{{ entry['balance_due'] }}" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Payment Method</label>
+                    <select name="payment_method">
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Card">Card</option>
+                      <option value="Credit Note">Credit Note</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Payment Date</label>
+                    <input type="date" name="payment_date" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Reference #</label>
+                    <input type="text" name="reference_number" placeholder="Optional">
+                  </div>
+                </div>
+                <div class="form-row" style="margin-top: 8px;">
+                  <div class="form-group" style="flex: 2;">
+                    <label>Notes</label>
+                    <input type="text" name="notes" placeholder="Optional notes">
+                  </div>
+                  <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+                    <button type="submit" class="btn-save-pay">💾 Save Payment</button>
+                    <button type="button" class="btn-cancel" onclick="togglePayForm('pay-{{ entry['id'] }}')">Cancel</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
         {% endfor %}
-        
         {% if not receivables %}
         <tr>
-          <td colspan="7" style="text-align: center; color: #666; padding: 40px;">
-            No receivables found. All payments are up to date!
+          <td colspan="8" style="text-align: center; color: #666; padding: 40px;">
+            No receivable entries yet. Click "Add New Receivable" to create one.
           </td>
         </tr>
         {% endif %}
@@ -207,13 +244,49 @@
     </table>
   </div>
 
-  <div style="margin-top: 30px; text-align: center;">
-    <button style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
-      📧 Send Payment Reminders
-    </button>
-    <button style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; margin: 0 10px;">
-      📊 Generate AR Report
-    </button>
+  {% if payments %}
+  <div class="content-section">
+    <div class="section-header">
+      <h4>💳 Payment History</h4>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>From</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>{{ p['payment_date'] }}</td>
+          <td>{{ p['payer_name'] or '-' }}</td>
+          <td class="amount" style="color:#28a745;">{{ vendor_currency }}{{ "%.2f"|format(p['amount']) }}</td>
+          <td><span style="background:#e9ecef; padding:2px 8px; border-radius:8px; font-size:0.8rem;">{{ p['payment_method'] }}</span></td>
+          <td>{{ p['reference_number'] or '-' }}</td>
+          <td>{{ p['notes'] or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+  {% endif %}
+
+  <script>
+    function toggleAddForm() {
+      document.getElementById('addForm').classList.toggle('active');
+    }
+    function togglePayForm(id) {
+      var el = document.getElementById(id);
+      document.querySelectorAll('.pay-form.active').forEach(function(f) {
+        if (f.id !== id) f.classList.remove('active');
+      });
+      el.classList.toggle('active');
+    }
+  </script>
 </body>
 </html>

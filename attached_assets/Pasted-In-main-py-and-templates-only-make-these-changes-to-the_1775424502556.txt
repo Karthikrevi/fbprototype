@@ -1,0 +1,195 @@
+In main.py and templates only, make these
+changes to the accounts receivable and
+accounts payable modules.
+Do not modify any other routes or templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — New database tables:
+
+Add to init_erp_db() using 
+ALTER TABLE IF NOT EXISTS pattern:
+
+CREATE TABLE IF NOT EXISTS payable_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    payee_name TEXT NOT NULL,
+    description TEXT,
+    amount REAL NOT NULL,
+    amount_paid REAL DEFAULT 0,
+    balance_due REAL,
+    due_date TEXT,
+    category TEXT,
+    status TEXT DEFAULT 'unpaid'
+        CHECK(status IN ('unpaid','partial','paid')),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+CREATE TABLE IF NOT EXISTS receivable_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    payer_name TEXT,
+    payer_email TEXT,
+    description TEXT,
+    amount REAL NOT NULL,
+    amount_received REAL DEFAULT 0,
+    balance_due REAL,
+    due_date TEXT,
+    status TEXT DEFAULT 'unpaid'
+        CHECK(status IN ('unpaid','partial','paid')),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+CREATE TABLE IF NOT EXISTS payment_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    entry_type TEXT CHECK(entry_type IN 
+        ('payable','receivable')),
+    entry_id INTEGER,
+    amount REAL NOT NULL,
+    payment_method TEXT NOT NULL
+        CHECK(payment_method IN (
+        'Cash','Bank Transfer','UPI',
+        'Cheque','Card','Credit Note','Other')),
+    payment_date TEXT NOT NULL,
+    reference_number TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+PART 2 — Update accounts_payable route:
+
+Rewrite the accounts_payable route to:
+
+1. Pull from payable_entries table instead
+   of expenses table
+   
+2. On POST — add new payable entry:
+   payee_name, description, amount,
+   due_date, category
+   Set balance_due = amount on creation
+   Auto-add to ledger_entries as debit
+   to Accounts Payable account
+
+3. Show summary:
+   Total outstanding from payable_entries
+   where status != paid
+   Count of unpaid entries
+   Overdue count where due_date < today
+
+4. Show entries table with columns:
+   Payee, Description, Amount, Paid, 
+   Balance, Due Date, Status
+   
+5. Each row has a Record Payment button
+   that opens a form — no page reload,
+   use a modal or inline form — with:
+   - Amount being paid number field
+   - Payment method dropdown:
+     Cash, Bank Transfer, UPI, 
+     Cheque, Card, Credit Note, Other
+   - Payment date date picker
+   - Reference number optional text field
+   - Notes optional text field
+   - Save Payment button POSTs to
+     /erp/finance/payable/pay/<entry_id>
+
+6. /erp/finance/payable/pay/<entry_id> POST:
+   Insert into payment_records table
+   Update payable_entries amount_paid 
+   and balance_due
+   If balance_due = 0 set status = paid
+   If balance_due > 0 set status = partial
+   Add to ledger_entries:
+   Debit: Accounts Payable (reducing liability)
+   Credit: payment method account (Cash or Bank)
+
+7. Add New Payable button at top that shows
+   an inline form or modal with:
+   - Payee name text input
+   - Description text input
+   - Amount number input
+   - Due date date picker
+   - Category dropdown:
+     Supplier, Rent, Utilities, Salaries,
+     Equipment, Services, Other
+   POSTs to /erp/finance/accounts-payable
+
+PART 3 — Update accounts_receivable route:
+
+Rewrite the accounts_receivable route to:
+
+1. Pull from receivable_entries table instead
+   of orders table
+   
+2. On POST — add new receivable entry:
+   payer_name, payer_email, description,
+   amount, due_date
+   Set balance_due = amount on creation
+   Auto-add to ledger_entries as credit
+   to Accounts Receivable account
+
+3. Show summary:
+   Total outstanding
+   Count of unpaid entries
+   Overdue count
+
+4. Show entries table with columns:
+   From, Description, Amount, Received,
+   Balance, Due Date, Status
+
+5. Each row has Record Payment button
+   Same modal/inline form as payables with:
+   - Amount received number field
+   - Payment method dropdown
+   - Payment date date picker
+   - Reference number optional
+   - Notes optional
+   POSTs to /erp/finance/receivable/pay/<entry_id>
+
+6. /erp/finance/receivable/pay/<entry_id> POST:
+   Insert into payment_records
+   Update receivable_entries amount_received
+   and balance_due
+   Update status to partial or paid
+   Add to ledger_entries:
+   Debit: payment method account (Cash or Bank)
+   Credit: Accounts Receivable (reducing asset)
+
+7. Add New Receivable button at top with form:
+   - Payer name text input
+   - Payer email text input optional
+   - Description text input
+   - Amount number input
+   - Due date date picker
+   POSTs to /erp/finance/accounts-receivable
+
+PART 4 — Create templates:
+
+Create accounts_payable.html with:
+- Add New Payable button and form at top
+- Summary cards: total outstanding,
+  unpaid count, overdue count
+- Entries table with Record Payment
+  inline form per row
+- Payment history section below
+- Same purple gradient styling
+- Back button to /erp/reports
+
+Create accounts_receivable.html with:
+- Add New Receivable button and form at top
+- Summary cards: total outstanding,
+  unpaid count, overdue count  
+- Entries table with Record Payment
+  inline form per row
+- Payment history section below
+- Same purple gradient styling
+- Back button to /erp/reports
+
+Do not modify any other routes.
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

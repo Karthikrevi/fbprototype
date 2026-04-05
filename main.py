@@ -460,6 +460,59 @@ def init_erp_db():
     ''')
 
     c.execute('''
+        CREATE TABLE IF NOT EXISTS payable_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            payee_name TEXT NOT NULL,
+            description TEXT,
+            amount REAL NOT NULL,
+            amount_paid REAL DEFAULT 0,
+            balance_due REAL,
+            due_date TEXT,
+            category TEXT,
+            status TEXT DEFAULT 'unpaid'
+                CHECK(status IN ('unpaid','partial','paid')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS receivable_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            payer_name TEXT,
+            payer_email TEXT,
+            description TEXT,
+            amount REAL NOT NULL,
+            amount_received REAL DEFAULT 0,
+            balance_due REAL,
+            due_date TEXT,
+            status TEXT DEFAULT 'unpaid'
+                CHECK(status IN ('unpaid','partial','paid')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS payment_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            entry_type TEXT CHECK(entry_type IN ('payable','receivable')),
+            entry_id INTEGER,
+            amount REAL NOT NULL,
+            payment_method TEXT NOT NULL
+                CHECK(payment_method IN ('Cash','Bank Transfer','UPI','Cheque','Card','Credit Note','Other')),
+            payment_date TEXT NOT NULL,
+            reference_number TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             vendor_id INTEGER,
@@ -2054,11 +2107,12 @@ app.jinja_env.globals.update(
 
 @app.context_processor
 def inject_vendor_currency():
+    now_date = datetime.now().strftime("%Y-%m-%d")
     if 'vendor' in session:
         vid = get_vendor_id_from_email(session['vendor'])
         if vid:
-            return {'vendor_currency': get_vendor_currency(vid), 'vendor_id': vid}
-    return {'vendor_currency': '₹'}
+            return {'vendor_currency': get_vendor_currency(vid), 'vendor_id': vid, 'now_date': now_date}
+    return {'vendor_currency': '₹', 'now_date': now_date}
 
 # Register JSON filter for templates
 import json
@@ -10137,103 +10191,252 @@ def on_leave(data):
 
 # ---- ENHANCED FINANCIAL MANAGEMENT ROUTES ----
 
-@app.route('/erp/finance/accounts-receivable')
+@app.route('/erp/finance/accounts-receivable', methods=["GET", "POST"])
 def accounts_receivable():
     if "vendor" not in session:
         return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
     result = c.fetchone()
     if not result:
         conn.close()
-        return render_template("accounts_receivable.html", receivables=[])
+        return render_template("accounts_receivable.html", receivables=[], ar_summary={}, payments=[])
 
-    vendor_id = result[0]
+    vendor_id = result["id"]
 
-    # Get outstanding customer payments (from marketplace orders)
-    c.execute("""
-        SELECT o.id, o.user_email, o.total_amount, o.order_date, o.status,
-               CASE 
-                 WHEN o.status = 'confirmed' THEN 'Pending Payment'
-                 WHEN o.status = 'paid' THEN 'Paid'
-                 WHEN o.status = 'shipped' THEN 'Invoice Sent'
-                 ELSE 'Under Review'
-               END as ar_status,
-               julianday('now') - julianday(o.order_date) as days_outstanding
-        FROM orders o
-        WHERE o.vendor_id = ? AND o.status != 'cancelled'
-        ORDER BY o.order_date DESC
-    """, (vendor_id,))
-    
+    if request.method == "POST":
+        payer_name = request.form.get("payer_name", "")
+        payer_email = request.form.get("payer_email", "")
+        description = request.form.get("description", "")
+        amount = float(request.form.get("amount", 0))
+        due_date = request.form.get("due_date", "")
+
+        if payer_name and amount > 0:
+            c.execute("""
+                INSERT INTO receivable_entries (vendor_id, payer_name, payer_email, description, amount, balance_due, due_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (vendor_id, payer_name, payer_email, description, amount, amount, due_date))
+
+            c.execute("""
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+                VALUES (?, 'debit', 'Accounts Receivable', ?, ?, 'Invoice', 'auto', ?)
+            """, (vendor_id, amount, f"AR: {payer_name} - {description}", due_date or datetime.now().strftime("%Y-%m-%d")))
+
+            conn.commit()
+        return redirect(url_for("accounts_receivable"))
+
+    c.execute("SELECT * FROM receivable_entries WHERE vendor_id=? ORDER BY created_at DESC", (vendor_id,))
     receivables = c.fetchall()
-    
-    # Calculate AR summary
-    c.execute("""
-        SELECT 
-            SUM(CASE WHEN status != 'paid' THEN total_amount ELSE 0 END) as total_outstanding,
-            SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END) as total_collected,
-            COUNT(CASE WHEN status != 'paid' THEN 1 END) as pending_count
-        FROM orders WHERE vendor_id = ?
-    """, (vendor_id,))
-    
-    ar_summary = c.fetchone()
-    
-    conn.close()
-    return render_template("accounts_receivable.html", 
-                         receivables=receivables, 
-                         ar_summary=ar_summary)
 
-@app.route('/erp/finance/accounts-payable')
-def accounts_payable():
+    c.execute("""
+        SELECT
+            COALESCE(SUM(CASE WHEN status != 'paid' THEN balance_due ELSE 0 END), 0) as total_outstanding,
+            COUNT(CASE WHEN status != 'paid' THEN 1 END) as unpaid_count,
+            COUNT(CASE WHEN status != 'paid' AND due_date < date('now') AND due_date != '' THEN 1 END) as overdue_count
+        FROM receivable_entries WHERE vendor_id=?
+    """, (vendor_id,))
+    ar_summary = c.fetchone()
+
+    c.execute("""
+        SELECT pr.*, re.payer_name FROM payment_records pr
+        LEFT JOIN receivable_entries re ON pr.entry_id = re.id
+        WHERE pr.vendor_id=? AND pr.entry_type='receivable'
+        ORDER BY pr.created_at DESC LIMIT 20
+    """, (vendor_id,))
+    payments = c.fetchall()
+
+    conn.close()
+    return render_template("accounts_receivable.html",
+                         receivables=receivables,
+                         ar_summary=ar_summary,
+                         payments=payments)
+
+
+@app.route('/erp/finance/receivable/pay/<int:entry_id>', methods=["POST"])
+def receivable_pay(entry_id):
     if "vendor" not in session:
         return redirect(url_for("vendor_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-
-    # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
     result = c.fetchone()
     if not result:
         conn.close()
-        return render_template("accounts_payable.html", payables=[])
-
+        return redirect(url_for("accounts_receivable"))
     vendor_id = result[0]
 
-    # Get unpaid expenses (representing vendor bills)
+    c.execute("SELECT amount, amount_received, balance_due FROM receivable_entries WHERE id=? AND vendor_id=?", (entry_id, vendor_id))
+    entry = c.fetchone()
+    if not entry:
+        conn.close()
+        return redirect(url_for("accounts_receivable"))
+
+    pay_amount = float(request.form.get("amount", 0))
+    payment_method = request.form.get("payment_method", "Cash")
+    payment_date = request.form.get("payment_date", datetime.now().strftime("%Y-%m-%d"))
+    reference_number = request.form.get("reference_number", "")
+    notes = request.form.get("notes", "")
+
+    if pay_amount <= 0:
+        conn.close()
+        return redirect(url_for("accounts_receivable"))
+
+    new_received = (entry[1] or 0) + pay_amount
+    new_balance = entry[0] - new_received
+    if new_balance < 0:
+        new_balance = 0
+    new_status = "paid" if new_balance == 0 else "partial"
+
+    c.execute("INSERT INTO payment_records (vendor_id, entry_type, entry_id, amount, payment_method, payment_date, reference_number, notes) VALUES (?, 'receivable', ?, ?, ?, ?, ?, ?)",
+              (vendor_id, entry_id, pay_amount, payment_method, payment_date, reference_number, notes))
+
+    c.execute("UPDATE receivable_entries SET amount_received=?, balance_due=?, status=? WHERE id=? AND vendor_id=?",
+              (new_received, new_balance, new_status, entry_id, vendor_id))
+
+    cash_account = "Bank" if payment_method in ("Bank Transfer", "Cheque") else "Cash"
     c.execute("""
-        SELECT e.id, e.category, e.amount, e.description, e.date,
-               'Unpaid' as status,
-               julianday('now') - julianday(e.date) as days_outstanding,
-               e.date as due_date
-        FROM expenses e
-        WHERE e.vendor_id = ?
-        ORDER BY e.date DESC
-    """, (vendor_id,))
-    
-    payables = c.fetchall()
-    
-    # Calculate AP summary
+        INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+        VALUES (?, 'debit', ?, ?, ?, 'Payment Received', 'auto', ?)
+    """, (vendor_id, cash_account, pay_amount, f"Payment received via {payment_method} [Ref: {reference_number}]", payment_date))
     c.execute("""
-        SELECT 
-            SUM(amount) as total_outstanding,
-            COUNT(*) as bill_count,
-            AVG(amount) as avg_bill_amount
-        FROM expenses WHERE vendor_id = ?
-    """, (vendor_id,))
-    
-    ap_summary = c.fetchone()
-    
+        INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+        VALUES (?, 'credit', 'Accounts Receivable', ?, ?, 'Payment Received', 'auto', ?)
+    """, (vendor_id, pay_amount, f"AR payment received via {payment_method} [Ref: {reference_number}]", payment_date))
+
+    conn.commit()
     conn.close()
-    return render_template("accounts_payable.html", 
-                         payables=payables, 
-                         ap_summary=ap_summary)
+    return redirect(url_for("accounts_receivable"))
+
+
+@app.route('/erp/finance/accounts-payable', methods=["GET", "POST"])
+def accounts_payable():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("accounts_payable.html", payables=[], ap_summary={}, payments=[])
+
+    vendor_id = result["id"]
+
+    if request.method == "POST":
+        payee_name = request.form.get("payee_name", "")
+        description = request.form.get("description", "")
+        amount = float(request.form.get("amount", 0))
+        due_date = request.form.get("due_date", "")
+        category = request.form.get("category", "Other")
+
+        if payee_name and amount > 0:
+            c.execute("""
+                INSERT INTO payable_entries (vendor_id, payee_name, description, amount, balance_due, due_date, category)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (vendor_id, payee_name, description, amount, amount, due_date, category))
+
+            c.execute("""
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+                VALUES (?, 'debit', 'Accounts Payable', ?, ?, 'Bill', 'auto', ?)
+            """, (vendor_id, amount, f"AP: {payee_name} - {description}", due_date or datetime.now().strftime("%Y-%m-%d")))
+
+            conn.commit()
+        return redirect(url_for("accounts_payable"))
+
+    c.execute("SELECT * FROM payable_entries WHERE vendor_id=? ORDER BY created_at DESC", (vendor_id,))
+    payables = c.fetchall()
+
+    c.execute("""
+        SELECT
+            COALESCE(SUM(CASE WHEN status != 'paid' THEN balance_due ELSE 0 END), 0) as total_outstanding,
+            COUNT(CASE WHEN status != 'paid' THEN 1 END) as unpaid_count,
+            COUNT(CASE WHEN status != 'paid' AND due_date < date('now') AND due_date != '' THEN 1 END) as overdue_count
+        FROM payable_entries WHERE vendor_id=?
+    """, (vendor_id,))
+    ap_summary = c.fetchone()
+
+    c.execute("""
+        SELECT pr.*, pe.payee_name FROM payment_records pr
+        LEFT JOIN payable_entries pe ON pr.entry_id = pe.id
+        WHERE pr.vendor_id=? AND pr.entry_type='payable'
+        ORDER BY pr.created_at DESC LIMIT 20
+    """, (vendor_id,))
+    payments = c.fetchall()
+
+    conn.close()
+    return render_template("accounts_payable.html",
+                         payables=payables,
+                         ap_summary=ap_summary,
+                         payments=payments)
+
+
+@app.route('/erp/finance/payable/pay/<int:entry_id>', methods=["POST"])
+def payable_pay(entry_id):
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return redirect(url_for("accounts_payable"))
+    vendor_id = result[0]
+
+    c.execute("SELECT amount, amount_paid, balance_due FROM payable_entries WHERE id=? AND vendor_id=?", (entry_id, vendor_id))
+    entry = c.fetchone()
+    if not entry:
+        conn.close()
+        return redirect(url_for("accounts_payable"))
+
+    pay_amount = float(request.form.get("amount", 0))
+    payment_method = request.form.get("payment_method", "Cash")
+    payment_date = request.form.get("payment_date", datetime.now().strftime("%Y-%m-%d"))
+    reference_number = request.form.get("reference_number", "")
+    notes = request.form.get("notes", "")
+
+    if pay_amount <= 0:
+        conn.close()
+        return redirect(url_for("accounts_payable"))
+
+    new_paid = (entry[1] or 0) + pay_amount
+    new_balance = entry[0] - new_paid
+    if new_balance < 0:
+        new_balance = 0
+    new_status = "paid" if new_balance == 0 else "partial"
+
+    c.execute("INSERT INTO payment_records (vendor_id, entry_type, entry_id, amount, payment_method, payment_date, reference_number, notes) VALUES (?, 'payable', ?, ?, ?, ?, ?, ?)",
+              (vendor_id, entry_id, pay_amount, payment_method, payment_date, reference_number, notes))
+
+    c.execute("UPDATE payable_entries SET amount_paid=?, balance_due=?, status=? WHERE id=? AND vendor_id=?",
+              (new_paid, new_balance, new_status, entry_id, vendor_id))
+
+    cash_account = "Bank" if payment_method in ("Bank Transfer", "Cheque") else "Cash"
+    c.execute("""
+        INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+        VALUES (?, 'debit', 'Accounts Payable', ?, ?, 'Payment Made', 'auto', ?)
+    """, (vendor_id, pay_amount, f"AP payment via {payment_method} [Ref: {reference_number}]", payment_date))
+    c.execute("""
+        INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+        VALUES (?, 'credit', ?, ?, ?, 'Payment Made', 'auto', ?)
+    """, (vendor_id, cash_account, pay_amount, f"Payment to payable via {payment_method} [Ref: {reference_number}]", payment_date))
+
+    conn.commit()
+    conn.close()
+    return redirect(url_for("accounts_payable"))
 
 @app.route('/erp/finance/balance-sheet')
 def balance_sheet():

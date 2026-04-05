@@ -94,8 +94,11 @@ An advanced chatbot system uses machine learning for intent classification and b
 - **Balance Sheet** (`/erp/finance/balance-sheet`): Fixed assets from `fixed_assets` table, liabilities from ledger AP entries, owner's equity from `capital_accounts` table (no more hardcoded values)
 - **Cash Flow** (`/erp/finance/cash-flow`): Investing from `fixed_assets` purchases, financing from `capital_accounts`, beginning cash calculated from historical data
 - **Quick Actions**: 6 gradient action buttons on accounting dashboard linking to Journal Entry, Add Expense, Create Invoice, GST Summary, Balance Sheet, Cash Flow
-- **New DB tables**: `expense_budgets`, `fixed_assets`, `capital_accounts`
+- **Accounts Payable** (`/erp/finance/accounts-payable`): CRUD for payable entries with `payable_entries` table; inline payment recording via `/erp/finance/payable/pay/<id>`; double-entry ledger (debit AP, credit Cash/Bank); payment history from `payment_records` table; categories: Supplier, Rent, Utilities, Salaries, Equipment, Services, Other
+- **Accounts Receivable** (`/erp/finance/accounts-receivable`): CRUD for receivable entries with `receivable_entries` table; inline payment recording via `/erp/finance/receivable/pay/<id>`; double-entry ledger (debit Cash/Bank, credit AR); payment history; overdue detection
+- **New DB tables**: `expense_budgets`, `fixed_assets`, `capital_accounts`, `payable_entries`, `receivable_entries`, `payment_records`
 - **New columns**: `ledger_entries.entry_source`, `expenses.receipt_url`
+- **Context processor**: `now_date` injected into all templates for date comparisons
 
 ## Dynamic Vendor Currency
 - `get_vendor_currency(vendor_id)` and `get_vendor_id_from_email(email)` registered as Jinja2 globals
