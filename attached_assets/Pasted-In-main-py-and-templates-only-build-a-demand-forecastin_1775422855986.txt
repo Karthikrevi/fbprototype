@@ -1,0 +1,89 @@
+In main.py and templates only, build a 
+demand forecasting system for the vendor 
+inventory module.
+
+WHAT IT NEEDS TO DO:
+
+Create a function called forecast_demand 
+that takes vendor_id and product_id.
+
+It must:
+- Pull last 12 months of monthly sales 
+  from sales_log for that product
+- Use numpy linear regression to calculate
+  trend and forecast for 30, 60 and 90 days
+- Detect seasonality by comparing current 
+  month sales to the same month last year
+  and applying a seasonal adjustment factor
+- Calculate days until stockout based on 
+  current stock and average daily sales
+- Suggest a reorder quantity to cover 
+  60 days of forecasted demand
+- Classify trend as growing, stable or declining
+- Classify confidence as high, medium or low
+  based on how many months of data exist
+- Flag dead stock if no sales in last 60 days
+- Flag seasonal warning if this month 
+  historically runs significantly higher 
+  or lower than average
+- Return insufficient_data if less than 
+  2 months of sales history exists
+
+Create a route /erp/inventory/forecast that:
+- Runs forecast_demand for every product 
+  belonging to the logged in vendor
+- Sorts results by urgency — products 
+  running out soonest shown first
+- Separates products into groups:
+  needs reorder now, dead stock, 
+  no data available, everything else
+- Passes all results to the template
+
+Create template inventory_forecast.html that:
+- Shows a summary at the top with stat cards:
+  total products, needs reorder count,
+  dead stock count, no data count
+- Shows a prominent red panel for any 
+  products that will run out within 30 days
+- Shows a card per product with:
+  current stock, trend badge, confidence badge,
+  seasonal warning badge if applicable,
+  dead stock warning if applicable,
+  forecast for 30/60/90 days with 
+  upper and lower bounds,
+  days until stockout,
+  suggested reorder quantity
+- Shows a small Chart.js line chart per product
+  with last 12 months actual sales as a solid line
+  and the 30 day forecast as a dashed point
+- Shows dead stock panel for products 
+  with no recent sales
+- Shows no data panel for products with 
+  insufficient history
+- Has a prominent disclaimer box that says:
+  "These forecasts are generated using 
+  historical sales data and statistical models.
+  Actual demand may vary due to market conditions,
+  seasonality, promotions or other factors.
+  FurrButler provides these forecasts as a 
+  planning aid only and is not responsible 
+  for business decisions made based on 
+  this information. Always apply your own 
+  judgement."
+  Style it as a neutral grey info box
+  Place it at the bottom of the page
+- Back button links explicitly to /erp/inventory
+  Do not use history.back()
+
+In inventory_management.html only:
+Update the Forecast button in each table row
+and the Demand Forecast button at the top
+to both link to /erp/inventory/forecast
+
+Do not modify any other routes.
+Do not modify any other templates
+except inventory_management.html 
+for the button links only.
+Do not modify any database tables.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

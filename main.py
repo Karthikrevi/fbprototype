@@ -8695,6 +8695,184 @@ def add_inventory_stock(product_id):
         flash(f"Error adding inventory: {str(e)}")
         return redirect(url_for("view_product", product_id=product_id))
 
+def forecast_demand(vendor_id, product_id, conn):
+    import numpy as np
+    c = conn.cursor()
+
+    c.execute("SELECT name, quantity FROM products WHERE id=? AND vendor_id=?", (product_id, vendor_id))
+    prod = c.fetchone()
+    if not prod:
+        return None
+    product_name = prod[0]
+    current_stock = prod[1] or 0
+
+    c.execute("""
+        SELECT strftime('%Y-%m', sale_date) as month,
+               SUM(quantity) as units,
+               SUM(total_amount) as revenue
+        FROM sales_log
+        WHERE vendor_id=? AND product_id=?
+        AND sale_date >= date('now', '-12 months')
+        GROUP BY strftime('%Y-%m', sale_date)
+        ORDER BY month ASC
+    """, (vendor_id, product_id))
+    monthly_data = c.fetchall()
+
+    result = {
+        "product_id": product_id,
+        "product_name": product_name,
+        "current_stock": current_stock,
+        "monthly_sales": [],
+    }
+
+    if len(monthly_data) < 2:
+        result["status"] = "insufficient_data"
+        return result
+
+    months = [row[0] for row in monthly_data]
+    units = [row[1] or 0 for row in monthly_data]
+    revenue = [row[2] or 0 for row in monthly_data]
+
+    result["monthly_sales"] = [{"month": m, "units": u, "revenue": r} for m, u, r in zip(months, units, revenue)]
+
+    x = np.arange(len(units), dtype=float)
+    y = np.array(units, dtype=float)
+    coeffs = np.polyfit(x, y, 1)
+    slope = coeffs[0]
+    intercept = coeffs[1]
+
+    residuals = y - (slope * x + intercept)
+    std_err = float(np.std(residuals)) if len(residuals) > 0 else 0
+
+    current_month_num = datetime.now().month
+    seasonal_factor = 1.0
+    seasonal_warning = None
+
+    same_month_sales = []
+    for row in monthly_data:
+        m_num = int(row[0].split("-")[1])
+        if m_num == current_month_num:
+            same_month_sales.append(row[1] or 0)
+
+    avg_monthly = float(np.mean(y))
+    if same_month_sales and avg_monthly > 0:
+        same_month_avg = float(np.mean(same_month_sales))
+        seasonal_factor = same_month_avg / avg_monthly if avg_monthly > 0 else 1.0
+        if seasonal_factor > 1.3:
+            seasonal_warning = "high"
+        elif seasonal_factor < 0.7:
+            seasonal_warning = "low"
+
+    n = len(units)
+    forecasts = {}
+    for days, label in [(30, "30_day"), (60, "60_day"), (90, "90_day")]:
+        future_months = days / 30.0
+        future_x = n - 1 + future_months
+        predicted = max(0, (slope * future_x + intercept) * seasonal_factor)
+        upper = max(0, predicted + 1.5 * std_err)
+        lower = max(0, predicted - 1.5 * std_err)
+        forecasts[label] = {
+            "predicted": round(predicted, 1),
+            "upper": round(upper, 1),
+            "lower": round(lower, 1)
+        }
+
+    avg_daily_sales = avg_monthly / 30.0 if avg_monthly > 0 else 0
+    days_until_stockout = round(current_stock / avg_daily_sales, 1) if avg_daily_sales > 0 else 999
+
+    reorder_qty = max(0, round(forecasts["60_day"]["predicted"] * 2 - current_stock))
+
+    if slope > 0.5:
+        trend = "growing"
+    elif slope < -0.5:
+        trend = "declining"
+    else:
+        trend = "stable"
+
+    if n >= 6:
+        confidence = "high"
+    elif n >= 3:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    c.execute("""
+        SELECT COALESCE(SUM(quantity), 0) FROM sales_log
+        WHERE vendor_id=? AND product_id=?
+        AND sale_date >= date('now', '-60 days')
+    """, (vendor_id, product_id))
+    recent_sales = c.fetchone()[0] or 0
+    is_dead_stock = recent_sales == 0
+
+    result.update({
+        "status": "ok",
+        "forecasts": forecasts,
+        "days_until_stockout": days_until_stockout,
+        "reorder_qty": reorder_qty,
+        "trend": trend,
+        "confidence": confidence,
+        "is_dead_stock": is_dead_stock,
+        "seasonal_warning": seasonal_warning,
+        "seasonal_factor": round(seasonal_factor, 2),
+        "avg_daily_sales": round(avg_daily_sales, 2),
+        "avg_monthly_sales": round(avg_monthly, 1),
+        "slope": round(slope, 3),
+    })
+    return result
+
+
+@app.route('/erp/inventory/forecast')
+def inventory_forecast():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("inventory_management"))
+    vendor_id = vendor_result[0]
+
+    c.execute("SELECT id FROM products WHERE vendor_id=? ORDER BY name", (vendor_id,))
+    product_ids = [row[0] for row in c.fetchall()]
+
+    needs_reorder = []
+    dead_stock = []
+    no_data = []
+    healthy = []
+
+    for pid in product_ids:
+        forecast = forecast_demand(vendor_id, pid, conn)
+        if not forecast:
+            continue
+        if forecast.get("status") == "insufficient_data":
+            no_data.append(forecast)
+        elif forecast.get("is_dead_stock"):
+            dead_stock.append(forecast)
+        elif forecast.get("days_until_stockout", 999) <= 30:
+            needs_reorder.append(forecast)
+        else:
+            healthy.append(forecast)
+
+    needs_reorder.sort(key=lambda x: x.get("days_until_stockout", 999))
+    healthy.sort(key=lambda x: x.get("days_until_stockout", 999))
+
+    conn.close()
+    return render_template("inventory_forecast.html",
+                         needs_reorder=needs_reorder,
+                         dead_stock=dead_stock,
+                         no_data=no_data,
+                         healthy=healthy,
+                         total_products=len(product_ids),
+                         reorder_count=len(needs_reorder),
+                         dead_count=len(dead_stock),
+                         nodata_count=len(no_data))
+
+
 # Add alias route for inventory analytics
 @app.route('/erp/inventory/analytics')
 def inventory_analytics_alias():

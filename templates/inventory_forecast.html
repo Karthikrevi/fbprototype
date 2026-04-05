@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demand Forecast - FurrButler ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .stat-card.danger { background: linear-gradient(135deg, #dc3545, #e74c3c); }
+        .stat-card.warning { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #333; }
+        .stat-card.muted { background: linear-gradient(135deg, #6c757d, #95a5a6); }
+        .stat-value { font-size: 2rem; font-weight: bold; }
+        .stat-label { font-size: 0.85rem; opacity: 0.9; }
+        .urgent-panel {
+            background: #fff5f5;
+            border: 2px solid #dc3545;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .urgent-panel h4 { color: #dc3545; }
+        .product-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+        }
+        .badge-trend {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .trend-growing { background: #d4edda; color: #155724; }
+        .trend-stable { background: #cce5ff; color: #004085; }
+        .trend-declining { background: #f8d7da; color: #721c24; }
+        .badge-confidence {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .conf-high { background: #d4edda; color: #155724; }
+        .conf-medium { background: #fff3cd; color: #856404; }
+        .conf-low { background: #f8d7da; color: #721c24; }
+        .forecast-table {
+            font-size: 0.9rem;
+        }
+        .forecast-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .dead-stock-card {
+            border-left: 4px solid #ffc107;
+        }
+        .nodata-card {
+            border-left: 4px solid #6c757d;
+            background: #f8f9fa;
+        }
+        .mini-chart-container {
+            height: 120px;
+            margin-top: 10px;
+        }
+        .stockout-danger { color: #dc3545; font-weight: bold; }
+        .stockout-warning { color: #fd7e14; font-weight: bold; }
+        .stockout-ok { color: #28a745; }
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .disclaimer-box {
+            background: #f0f0f0;
+            border: 1px solid #d0d0d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            color: #555;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .disclaimer-box h6 { color: #666; }
+        .seasonal-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .seasonal-high { background: #fff3cd; color: #856404; }
+        .seasonal-low { background: #cce5ff; color: #004085; }
+    </style>
+</head>
+<body>
+    <a href="/erp/inventory" class="back-btn ms-3 mt-3">
+        <i class="fas fa-arrow-left"></i> Back to Inventory
+    </a>
+
+    <div class="container main-container">
+        <div class="text-center mb-4">
+            <h1 class="display-5">
+                <i class="fas fa-chart-line"></i> Demand Forecast
+            </h1>
+            <p class="lead">AI-powered demand predictions and reorder recommendations</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_products }}</div>
+                    <div class="stat-label">Total Products</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card danger">
+                    <div class="stat-value">{{ reorder_count }}</div>
+                    <div class="stat-label">Needs Reorder</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="stat-value">{{ dead_count }}</div>
+                    <div class="stat-label">Dead Stock</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card muted">
+                    <div class="stat-value">{{ nodata_count }}</div>
+                    <div class="stat-label">No Data</div>
+                </div>
+            </div>
+        </div>
+
+        {% if needs_reorder %}
+        <div class="urgent-panel">
+            <h4><i class="fas fa-exclamation-triangle"></i> Urgent — Products Running Out Within 30 Days</h4>
+            <p class="text-muted mb-3">These products need immediate restocking to avoid stockouts.</p>
+            {% for item in needs_reorder %}
+            <div class="product-card" style="border-left: 4px solid #dc3545;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>{{ item.product_name }}</h5>
+                        <div class="mb-2">
+                            <span class="badge-trend trend-{{ item.trend }}">
+                                <i class="fas fa-{% if item.trend == 'growing' %}arrow-up{% elif item.trend == 'declining' %}arrow-down{% else %}minus{% endif %}"></i>
+                                {{ item.trend|capitalize }}
+                            </span>
+                            <span class="badge-confidence conf-{{ item.confidence }}">
+                                {{ item.confidence|capitalize }} Confidence
+                            </span>
+                            {% if item.seasonal_warning %}
+                            <span class="seasonal-badge seasonal-{{ item.seasonal_warning }}">
+                                <i class="fas fa-{% if item.seasonal_warning == 'high' %}fire{% else %}snowflake{% endif %}"></i>
+                                Seasonal {{ item.seasonal_warning|capitalize }}
+                            </span>
+                            {% endif %}
+                            {% if item.is_dead_stock %}
+                            <span class="badge bg-warning text-dark"><i class="fas fa-ban"></i> Dead Stock</span>
+                            {% endif %}
+                        </div>
+                        <p class="mb-1">
+                            <strong>Current Stock:</strong> {{ item.current_stock }} units
+                            <span class="ms-3 stockout-danger">
+                                <i class="fas fa-clock"></i> ~{{ item.days_until_stockout }} days until stockout
+                            </span>
+                        </p>
+                        <p class="mb-1"><strong>Avg Daily Sales:</strong> {{ item.avg_daily_sales }} units</p>
+                        <p class="mb-0 text-success"><strong>Suggested Reorder:</strong> {{ item.reorder_qty }} units</p>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm forecast-table mb-2">
+                            <thead>
+                                <tr><th>Period</th><th>Forecast</th><th>Range</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>30 Days</td>
+                                    <td>{{ item.forecasts['30_day'].predicted }} units</td>
+                                    <td>{{ item.forecasts['30_day'].lower }} – {{ item.forecasts['30_day'].upper }}</td>
+                                </tr>
+                                <tr>
+                                    <td>60 Days</td>
+                                    <td>{{ item.forecasts['60_day'].predicted }} units</td>
+                                    <td>{{ item.forecasts['60_day'].lower }} – {{ item.forecasts['60_day'].upper }}</td>
+                                </tr>
+                                <tr>
+                                    <td>90 Days</td>
+                                    <td>{{ item.forecasts['90_day'].predicted }} units</td>
+                                    <td>{{ item.forecasts['90_day'].lower }} – {{ item.forecasts['90_day'].upper }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="mini-chart-container">
+                            <canvas id="chart-urgent-{{ item.product_id }}"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if healthy %}
+        <h4 class="mb-3"><i class="fas fa-check-circle text-success"></i> Active Products</h4>
+        {% for item in healthy %}
+        <div class="product-card">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>{{ item.product_name }}</h5>
+                    <div class="mb-2">
+                        <span class="badge-trend trend-{{ item.trend }}">
+                            <i class="fas fa-{% if item.trend == 'growing' %}arrow-up{% elif item.trend == 'declining' %}arrow-down{% else %}minus{% endif %}"></i>
+                            {{ item.trend|capitalize }}
+                        </span>
+                        <span class="badge-confidence conf-{{ item.confidence }}">
+                            {{ item.confidence|capitalize }} Confidence
+                        </span>
+                        {% if item.seasonal_warning %}
+                        <span class="seasonal-badge seasonal-{{ item.seasonal_warning }}">
+                            <i class="fas fa-{% if item.seasonal_warning == 'high' %}fire{% else %}snowflake{% endif %}"></i>
+                            Seasonal {{ item.seasonal_warning|capitalize }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="mb-1">
+                        <strong>Current Stock:</strong> {{ item.current_stock }} units
+                        <span class="ms-3 {% if item.days_until_stockout <= 60 %}stockout-warning{% else %}stockout-ok{% endif %}">
+                            <i class="fas fa-clock"></i>
+                            {% if item.days_until_stockout >= 999 %}
+                            Stock level healthy
+                            {% else %}
+                            ~{{ item.days_until_stockout }} days until stockout
+                            {% endif %}
+                        </span>
+                    </p>
+                    <p class="mb-1"><strong>Avg Daily Sales:</strong> {{ item.avg_daily_sales }} units</p>
+                    <p class="mb-0"><strong>Suggested Reorder:</strong>
+                        {% if item.reorder_qty > 0 %}
+                        <span class="text-primary">{{ item.reorder_qty }} units</span>
+                        {% else %}
+                        <span class="text-success">No reorder needed</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm forecast-table mb-2">
+                        <thead>
+                            <tr><th>Period</th><th>Forecast</th><th>Range</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>30 Days</td>
+                                <td>{{ item.forecasts['30_day'].predicted }} units</td>
+                                <td>{{ item.forecasts['30_day'].lower }} – {{ item.forecasts['30_day'].upper }}</td>
+                            </tr>
+                            <tr>
+                                <td>60 Days</td>
+                                <td>{{ item.forecasts['60_day'].predicted }} units</td>
+                                <td>{{ item.forecasts['60_day'].lower }} – {{ item.forecasts['60_day'].upper }}</td>
+                            </tr>
+                            <tr>
+                                <td>90 Days</td>
+                                <td>{{ item.forecasts['90_day'].predicted }} units</td>
+                                <td>{{ item.forecasts['90_day'].lower }} – {{ item.forecasts['90_day'].upper }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="mini-chart-container">
+                        <canvas id="chart-healthy-{{ item.product_id }}"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if dead_stock %}
+        <h4 class="mb-3 mt-4"><i class="fas fa-ban text-warning"></i> Dead Stock — No Sales in 60+ Days</h4>
+        {% for item in dead_stock %}
+        <div class="product-card dead-stock-card">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>{{ item.product_name }} <span class="badge bg-warning text-dark"><i class="fas fa-ban"></i> Dead Stock</span></h5>
+                    <p class="mb-1"><strong>Current Stock:</strong> {{ item.current_stock }} units</p>
+                    <p class="mb-1"><strong>Avg Monthly (Historical):</strong> {{ item.avg_monthly_sales }} units</p>
+                    <p class="text-muted mb-0">No sales recorded in the last 60 days. Consider running a promotion, bundling, or marking down this product.</p>
+                </div>
+                <div class="col-md-6">
+                    {% if item.monthly_sales %}
+                    <div class="mini-chart-container">
+                        <canvas id="chart-dead-{{ item.product_id }}"></canvas>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if no_data %}
+        <h4 class="mb-3 mt-4"><i class="fas fa-database text-muted"></i> Insufficient Data</h4>
+        <p class="text-muted">These products have less than 2 months of sales history. Forecasts will become available as more data is collected.</p>
+        <div class="row">
+            {% for item in no_data %}
+            <div class="col-md-4 mb-3">
+                <div class="product-card nodata-card">
+                    <h6>{{ item.product_name }}</h6>
+                    <p class="mb-0 text-muted">
+                        <strong>Stock:</strong> {{ item.current_stock }} units<br>
+                        <small><i class="fas fa-info-circle"></i> Not enough sales history for forecasting</small>
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not needs_reorder and not healthy and not dead_stock and not no_data %}
+        <div class="text-center py-5">
+            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No Products Found</h4>
+            <p class="text-muted">Add products to your inventory to start seeing demand forecasts.</p>
+        </div>
+        {% endif %}
+
+        <div class="disclaimer-box">
+            <h6><i class="fas fa-info-circle"></i> Disclaimer</h6>
+            <p class="mb-0">
+                These forecasts are generated using historical sales data and statistical models.
+                Actual demand may vary due to market conditions, seasonality, promotions or other factors.
+                FurrButler provides these forecasts as a planning aid only and is not responsible
+                for business decisions made based on this information. Always apply your own judgement.
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function renderMiniChart(canvasId, salesData, forecast30) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const labels = salesData.map(d => d.month);
+            const values = salesData.map(d => d.units);
+
+            if (forecast30 !== null && forecast30 !== undefined) {
+                labels.push('Forecast');
+                values.push(null);
+            }
+
+            const datasets = [{
+                label: 'Monthly Sales',
+                data: values,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.3,
+                pointRadius: 3,
+                fill: true
+            }];
+
+            if (forecast30 !== null && forecast30 !== undefined) {
+                const forecastData = new Array(salesData.length).fill(null);
+                if (salesData.length > 0) {
+                    forecastData[salesData.length - 1] = values[salesData.length - 1];
+                }
+                forecastData.push(forecast30);
+                datasets.push({
+                    label: '30-Day Forecast',
+                    data: forecastData,
+                    borderColor: '#dc3545',
+                    borderDash: [5, 5],
+                    pointStyle: 'triangle',
+                    pointRadius: 6,
+                    pointBackgroundColor: '#dc3545',
+                    fill: false,
+                    tension: 0
+                });
+            }
+
+            new Chart(canvas, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { display: true, ticks: { font: { size: 9 }, maxRotation: 45 } },
+                        y: { display: true, beginAtZero: true, ticks: { font: { size: 9 } } }
+                    }
+                }
+            });
+        }
+
+        {% for item in needs_reorder %}
+        renderMiniChart('chart-urgent-{{ item.product_id }}',
+            {{ item.monthly_sales|tojson }},
+            {{ item.forecasts['30_day'].predicted }});
+        {% endfor %}
+
+        {% for item in healthy %}
+        renderMiniChart('chart-healthy-{{ item.product_id }}',
+            {{ item.monthly_sales|tojson }},
+            {{ item.forecasts['30_day'].predicted }});
+        {% endfor %}
+
+        {% for item in dead_stock %}
+        {% if item.monthly_sales %}
+        renderMiniChart('chart-dead-{{ item.product_id }}',
+            {{ item.monthly_sales|tojson }},
+            null);
+        {% endif %}
+        {% endfor %}
+    </script>
+</body>
+</html>
