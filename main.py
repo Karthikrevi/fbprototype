@@ -20,7 +20,175 @@ from database_utils import db_connection, get_vendor_id, is_user_logged_in, get_
 from error_handlers import setup_error_handlers, log_error, handle_database_error
 from vendor_services import VendorServiceManager
 
-# FurrVet runs as a separate application
+ISO_4217_CURRENCIES = {
+    "AED": {"symbol": "د.إ", "name": "UAE Dirham"},
+    "AFN": {"symbol": "؋", "name": "Afghan Afghani"},
+    "ALL": {"symbol": "L", "name": "Albanian Lek"},
+    "AMD": {"symbol": "֏", "name": "Armenian Dram"},
+    "ANG": {"symbol": "ƒ", "name": "Netherlands Antillean Guilder"},
+    "AOA": {"symbol": "Kz", "name": "Angolan Kwanza"},
+    "ARS": {"symbol": "$", "name": "Argentine Peso"},
+    "AUD": {"symbol": "A$", "name": "Australian Dollar"},
+    "AWG": {"symbol": "ƒ", "name": "Aruban Florin"},
+    "AZN": {"symbol": "₼", "name": "Azerbaijani Manat"},
+    "BAM": {"symbol": "KM", "name": "Bosnia-Herzegovina Convertible Mark"},
+    "BBD": {"symbol": "Bds$", "name": "Barbadian Dollar"},
+    "BDT": {"symbol": "৳", "name": "Bangladeshi Taka"},
+    "BGN": {"symbol": "лв", "name": "Bulgarian Lev"},
+    "BHD": {"symbol": ".د.ب", "name": "Bahraini Dinar"},
+    "BIF": {"symbol": "FBu", "name": "Burundian Franc"},
+    "BMD": {"symbol": "$", "name": "Bermudian Dollar"},
+    "BND": {"symbol": "B$", "name": "Brunei Dollar"},
+    "BOB": {"symbol": "Bs.", "name": "Bolivian Boliviano"},
+    "BRL": {"symbol": "R$", "name": "Brazilian Real"},
+    "BSD": {"symbol": "$", "name": "Bahamian Dollar"},
+    "BTN": {"symbol": "Nu.", "name": "Bhutanese Ngultrum"},
+    "BWP": {"symbol": "P", "name": "Botswanan Pula"},
+    "BYN": {"symbol": "Br", "name": "Belarusian Ruble"},
+    "BZD": {"symbol": "BZ$", "name": "Belize Dollar"},
+    "CAD": {"symbol": "C$", "name": "Canadian Dollar"},
+    "CDF": {"symbol": "FC", "name": "Congolese Franc"},
+    "CHF": {"symbol": "CHF", "name": "Swiss Franc"},
+    "CLP": {"symbol": "$", "name": "Chilean Peso"},
+    "CNY": {"symbol": "¥", "name": "Chinese Yuan"},
+    "COP": {"symbol": "$", "name": "Colombian Peso"},
+    "CRC": {"symbol": "₡", "name": "Costa Rican Colón"},
+    "CUP": {"symbol": "₱", "name": "Cuban Peso"},
+    "CVE": {"symbol": "$", "name": "Cape Verdean Escudo"},
+    "CZK": {"symbol": "Kč", "name": "Czech Koruna"},
+    "DJF": {"symbol": "Fdj", "name": "Djiboutian Franc"},
+    "DKK": {"symbol": "kr", "name": "Danish Krone"},
+    "DOP": {"symbol": "RD$", "name": "Dominican Peso"},
+    "DZD": {"symbol": "د.ج", "name": "Algerian Dinar"},
+    "EGP": {"symbol": "E£", "name": "Egyptian Pound"},
+    "ERN": {"symbol": "Nfk", "name": "Eritrean Nakfa"},
+    "ETB": {"symbol": "Br", "name": "Ethiopian Birr"},
+    "EUR": {"symbol": "€", "name": "Euro"},
+    "FJD": {"symbol": "FJ$", "name": "Fijian Dollar"},
+    "FKP": {"symbol": "£", "name": "Falkland Islands Pound"},
+    "GBP": {"symbol": "£", "name": "British Pound Sterling"},
+    "GEL": {"symbol": "₾", "name": "Georgian Lari"},
+    "GHS": {"symbol": "GH₵", "name": "Ghanaian Cedi"},
+    "GIP": {"symbol": "£", "name": "Gibraltar Pound"},
+    "GMD": {"symbol": "D", "name": "Gambian Dalasi"},
+    "GNF": {"symbol": "FG", "name": "Guinean Franc"},
+    "GTQ": {"symbol": "Q", "name": "Guatemalan Quetzal"},
+    "GYD": {"symbol": "GY$", "name": "Guyanaese Dollar"},
+    "HKD": {"symbol": "HK$", "name": "Hong Kong Dollar"},
+    "HNL": {"symbol": "L", "name": "Honduran Lempira"},
+    "HRK": {"symbol": "kn", "name": "Croatian Kuna"},
+    "HTG": {"symbol": "G", "name": "Haitian Gourde"},
+    "HUF": {"symbol": "Ft", "name": "Hungarian Forint"},
+    "IDR": {"symbol": "Rp", "name": "Indonesian Rupiah"},
+    "ILS": {"symbol": "₪", "name": "Israeli New Shekel"},
+    "INR": {"symbol": "₹", "name": "Indian Rupee"},
+    "IQD": {"symbol": "ع.د", "name": "Iraqi Dinar"},
+    "IRR": {"symbol": "﷼", "name": "Iranian Rial"},
+    "ISK": {"symbol": "kr", "name": "Icelandic Króna"},
+    "JMD": {"symbol": "J$", "name": "Jamaican Dollar"},
+    "JOD": {"symbol": "JD", "name": "Jordanian Dinar"},
+    "JPY": {"symbol": "¥", "name": "Japanese Yen"},
+    "KES": {"symbol": "KSh", "name": "Kenyan Shilling"},
+    "KGS": {"symbol": "лв", "name": "Kyrgystani Som"},
+    "KHR": {"symbol": "៛", "name": "Cambodian Riel"},
+    "KMF": {"symbol": "CF", "name": "Comorian Franc"},
+    "KPW": {"symbol": "₩", "name": "North Korean Won"},
+    "KRW": {"symbol": "₩", "name": "South Korean Won"},
+    "KWD": {"symbol": "د.ك", "name": "Kuwaiti Dinar"},
+    "KYD": {"symbol": "CI$", "name": "Cayman Islands Dollar"},
+    "KZT": {"symbol": "₸", "name": "Kazakhstani Tenge"},
+    "LAK": {"symbol": "₭", "name": "Laotian Kip"},
+    "LBP": {"symbol": "L£", "name": "Lebanese Pound"},
+    "LKR": {"symbol": "Rs", "name": "Sri Lankan Rupee"},
+    "LRD": {"symbol": "L$", "name": "Liberian Dollar"},
+    "LSL": {"symbol": "L", "name": "Lesotho Loti"},
+    "LYD": {"symbol": "ل.د", "name": "Libyan Dinar"},
+    "MAD": {"symbol": "MAD", "name": "Moroccan Dirham"},
+    "MDL": {"symbol": "L", "name": "Moldovan Leu"},
+    "MGA": {"symbol": "Ar", "name": "Malagasy Ariary"},
+    "MKD": {"symbol": "ден", "name": "Macedonian Denar"},
+    "MMK": {"symbol": "K", "name": "Myanmar Kyat"},
+    "MNT": {"symbol": "₮", "name": "Mongolian Tugrik"},
+    "MOP": {"symbol": "MOP$", "name": "Macanese Pataca"},
+    "MRU": {"symbol": "UM", "name": "Mauritanian Ouguiya"},
+    "MUR": {"symbol": "₨", "name": "Mauritian Rupee"},
+    "MVR": {"symbol": "Rf", "name": "Maldivian Rufiyaa"},
+    "MWK": {"symbol": "MK", "name": "Malawian Kwacha"},
+    "MXN": {"symbol": "Mex$", "name": "Mexican Peso"},
+    "MYR": {"symbol": "RM", "name": "Malaysian Ringgit"},
+    "MZN": {"symbol": "MT", "name": "Mozambican Metical"},
+    "NAD": {"symbol": "N$", "name": "Namibian Dollar"},
+    "NGN": {"symbol": "₦", "name": "Nigerian Naira"},
+    "NIO": {"symbol": "C$", "name": "Nicaraguan Córdoba"},
+    "NOK": {"symbol": "kr", "name": "Norwegian Krone"},
+    "NPR": {"symbol": "₨", "name": "Nepalese Rupee"},
+    "NZD": {"symbol": "NZ$", "name": "New Zealand Dollar"},
+    "OMR": {"symbol": "ر.ع.", "name": "Omani Rial"},
+    "PAB": {"symbol": "B/.", "name": "Panamanian Balboa"},
+    "PEN": {"symbol": "S/.", "name": "Peruvian Sol"},
+    "PGK": {"symbol": "K", "name": "Papua New Guinean Kina"},
+    "PHP": {"symbol": "₱", "name": "Philippine Peso"},
+    "PKR": {"symbol": "₨", "name": "Pakistani Rupee"},
+    "PLN": {"symbol": "zł", "name": "Polish Zloty"},
+    "PYG": {"symbol": "₲", "name": "Paraguayan Guarani"},
+    "QAR": {"symbol": "ر.ق", "name": "Qatari Rial"},
+    "RON": {"symbol": "lei", "name": "Romanian Leu"},
+    "RSD": {"symbol": "din.", "name": "Serbian Dinar"},
+    "RUB": {"symbol": "₽", "name": "Russian Ruble"},
+    "RWF": {"symbol": "RF", "name": "Rwandan Franc"},
+    "SAR": {"symbol": "ر.س", "name": "Saudi Riyal"},
+    "SBD": {"symbol": "SI$", "name": "Solomon Islands Dollar"},
+    "SCR": {"symbol": "₨", "name": "Seychellois Rupee"},
+    "SDG": {"symbol": "ج.س.", "name": "Sudanese Pound"},
+    "SEK": {"symbol": "kr", "name": "Swedish Krona"},
+    "SGD": {"symbol": "S$", "name": "Singapore Dollar"},
+    "SHP": {"symbol": "£", "name": "Saint Helena Pound"},
+    "SLE": {"symbol": "Le", "name": "Sierra Leonean Leone"},
+    "SOS": {"symbol": "Sh", "name": "Somali Shilling"},
+    "SRD": {"symbol": "Sr$", "name": "Surinamese Dollar"},
+    "SSP": {"symbol": "£", "name": "South Sudanese Pound"},
+    "STN": {"symbol": "Db", "name": "São Tomé and Príncipe Dobra"},
+    "SYP": {"symbol": "£S", "name": "Syrian Pound"},
+    "SZL": {"symbol": "E", "name": "Swazi Lilangeni"},
+    "THB": {"symbol": "฿", "name": "Thai Baht"},
+    "TJS": {"symbol": "SM", "name": "Tajikistani Somoni"},
+    "TMT": {"symbol": "T", "name": "Turkmenistani Manat"},
+    "TND": {"symbol": "د.ت", "name": "Tunisian Dinar"},
+    "TOP": {"symbol": "T$", "name": "Tongan Paʻanga"},
+    "TRY": {"symbol": "₺", "name": "Turkish Lira"},
+    "TTD": {"symbol": "TT$", "name": "Trinidad & Tobago Dollar"},
+    "TWD": {"symbol": "NT$", "name": "New Taiwan Dollar"},
+    "TZS": {"symbol": "TSh", "name": "Tanzanian Shilling"},
+    "UAH": {"symbol": "₴", "name": "Ukrainian Hryvnia"},
+    "UGX": {"symbol": "USh", "name": "Ugandan Shilling"},
+    "USD": {"symbol": "$", "name": "US Dollar"},
+    "UYU": {"symbol": "$U", "name": "Uruguayan Peso"},
+    "UZS": {"symbol": "soʻm", "name": "Uzbekistani Som"},
+    "VES": {"symbol": "Bs.S", "name": "Venezuelan Bolívar Soberano"},
+    "VND": {"symbol": "₫", "name": "Vietnamese Dong"},
+    "VUV": {"symbol": "VT", "name": "Vanuatu Vatu"},
+    "WST": {"symbol": "WS$", "name": "Samoan Tala"},
+    "XAF": {"symbol": "FCFA", "name": "Central African CFA Franc"},
+    "XCD": {"symbol": "EC$", "name": "East Caribbean Dollar"},
+    "XOF": {"symbol": "CFA", "name": "West African CFA Franc"},
+    "XPF": {"symbol": "₣", "name": "CFP Franc"},
+    "YER": {"symbol": "﷼", "name": "Yemeni Rial"},
+    "ZAR": {"symbol": "R", "name": "South African Rand"},
+    "ZMW": {"symbol": "ZK", "name": "Zambian Kwacha"},
+    "ZWL": {"symbol": "Z$", "name": "Zimbabwean Dollar"},
+}
+
+
+def get_vendor_currency(vendor_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT currency_symbol FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    result = c.fetchone()
+    conn.close()
+    if result and result[0]:
+        return result[0]
+    return "₹"
+
 
 # Initialize ERP database if not exists
 def init_erp_db():
@@ -278,6 +446,21 @@ def init_erp_db():
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
     ''')
+
+    c.execute("PRAGMA table_info(settings_vendor)")
+    sv_columns = [col[1] for col in c.fetchall()]
+    if 'standard_delivery_price' not in sv_columns:
+        c.execute("ALTER TABLE settings_vendor ADD COLUMN standard_delivery_price REAL DEFAULT 2.99")
+    if 'express_delivery_price' not in sv_columns:
+        c.execute("ALTER TABLE settings_vendor ADD COLUMN express_delivery_price REAL DEFAULT 5.99")
+    if 'same_day_delivery_price' not in sv_columns:
+        c.execute("ALTER TABLE settings_vendor ADD COLUMN same_day_delivery_price REAL DEFAULT 12.99")
+    if 'free_delivery_threshold' not in sv_columns:
+        c.execute("ALTER TABLE settings_vendor ADD COLUMN free_delivery_threshold REAL DEFAULT 50.00")
+    if 'currency' not in sv_columns:
+        c.execute("ALTER TABLE settings_vendor ADD COLUMN currency TEXT DEFAULT 'INR'")
+    if 'currency_symbol' not in sv_columns:
+        c.execute("ALTER TABLE settings_vendor ADD COLUMN currency_symbol TEXT DEFAULT '₹'")
 
     # Create master settings table for platform-wide settings
     c.execute('''
@@ -6087,14 +6270,13 @@ def accounting_settings():
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # Get vendor ID
     c.execute("SELECT id FROM vendors WHERE email=?", (email,))
     result = c.fetchone()
 
     if result is None:
-        # Show settings page with default values if vendor not found
         conn.close()
         return render_template("accounting_settings.html", settings=None)
 
@@ -6106,31 +6288,34 @@ def accounting_settings():
         cod_enabled = 1 if request.form.get("cod_enabled") else 0
         auto_reports = 1 if request.form.get("auto_reports") else 0
 
-        # Delivery pricing settings
         standard_delivery = float(request.form.get("standard_delivery_price", 2.99))
         express_delivery = float(request.form.get("express_delivery_price", 5.99))
         same_day_delivery = float(request.form.get("same_day_delivery_price", 12.99))
         free_delivery_threshold = float(request.form.get("free_delivery_threshold", 50.00))
 
-        # Get current platform commission from master settings (not editable by vendor)
+        currency_code = (request.form.get("currency") or "INR").upper().strip()
+        if currency_code not in ISO_4217_CURRENCIES:
+            currency_code = "INR"
+        currency_symbol = ISO_4217_CURRENCIES[currency_code]["symbol"]
+
         c.execute("SELECT setting_value FROM master_settings WHERE setting_name = 'platform_commission_rate'")
         platform_fee_result = c.fetchone()
         platform_fee = platform_fee_result[0] if platform_fee_result else 10.0
 
-        # Insert or update settings
         c.execute("""
             INSERT OR REPLACE INTO settings_vendor 
             (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports, 
-             standard_delivery_price, express_delivery_price, same_day_delivery_price, free_delivery_threshold)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             standard_delivery_price, express_delivery_price, same_day_delivery_price, free_delivery_threshold,
+             currency, currency_symbol)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports,
-              standard_delivery, express_delivery, same_day_delivery, free_delivery_threshold))
+              standard_delivery, express_delivery, same_day_delivery, free_delivery_threshold,
+              currency_code, currency_symbol))
 
         conn.commit()
         flash("Settings updated successfully!")
         return redirect(url_for("accounting_settings"))
 
-    # Get current settings
     c.execute("SELECT * FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
     settings = c.fetchone()
 

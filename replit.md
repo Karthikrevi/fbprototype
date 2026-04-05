@@ -62,11 +62,16 @@ An advanced chatbot system uses machine learning for intent classification and b
 - Comprehensive test suite infrastructure for chatbot and business logic
 
 ## Currency
-- All HTML templates use ₹ (Indian Rupee) — not $ (USD)
+- All HTML templates use ₹ (Indian Rupee) as default — not $ (USD)
 - Font Awesome icons use `fa-rupee-sign` (not `fa-dollar-sign`)
 - JS template literals in checkout/booking/POS use `₹${value}` format
 - Exception: `business_analysis.html` retains USD for GPT API pricing references
-- Python backend files are untouched (currency formatting happens in templates)
+- `ISO_4217_CURRENCIES` dict in main.py: ~160 currencies mapped to {symbol, name}
+- `get_vendor_currency(vendor_id)`: returns vendor's currency symbol from settings_vendor; defaults to ₹
+- `settings_vendor` table columns: id, vendor_id, gst_rate, platform_fee, razorpay_enabled, cod_enabled, auto_reports, currency, currency_symbol, standard_delivery_price, express_delivery_price, same_day_delivery_price, free_delivery_threshold
+- Currency settings UI: Select2 searchable dropdown in accounting_settings.html with live preview
+- Server-side validation: invalid/blank currency codes fall back to INR
+- accounting_settings route uses `sqlite3.Row` for named column access (not numeric indices)
 
 # FurrVet Module
 

@@ -3,6 +3,7 @@
 <head>
   <title>Accounting Settings - FurrButler ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
   <style>
     body {
       background-color: #f8f9fa;
@@ -113,6 +114,47 @@
       color: #155724;
       border: 1px solid #c3e6cb;
     }
+
+    .select2-container--default .select2-selection--single {
+      height: 46px;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 44px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 28px;
+    }
+
+    .select2-dropdown {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .select2-results__option--highlighted[aria-selected] {
+      background-color: #667eea !important;
+    }
+
+    .currency-preview {
+      margin-top: 10px;
+      padding: 12px 16px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #444;
+    }
+
+    .currency-preview .symbol {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #667eea;
+    }
   </style>
 </head>
 <body>
@@ -136,19 +178,35 @@
 
     <form method="POST">
       <div class="settings-section">
+        <div class="section-title">🌍 Currency Settings</div>
+
+        <div class="form-group">
+          <label class="form-label">Business Currency</label>
+          <select id="currency-select" name="currency" class="form-control" style="width: 100%;">
+            <option value=""></option>
+          </select>
+          <small class="form-text text-muted">Select the currency for your business transactions</small>
+          <div class="currency-preview" id="currency-preview">
+            Currently using: <span class="symbol" id="preview-symbol">{{ settings['currency_symbol'] if settings and settings['currency_symbol'] else '₹' }}</span>
+            <span id="preview-name">{{ settings['currency'] if settings and settings['currency'] else 'INR' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <div class="section-title">💰 Tax & Financial Settings</div>
 
         <div class="form-group">
           <label>GST Rate (%)</label>
           <input type="number" name="gst_rate" step="0.01" 
-                 value="{{ settings[2] if settings else 18.0 }}" required>
+                 value="{{ settings['gst_rate'] if settings else 18.0 }}" required>
           <small>Standard GST rate for your services and products</small>
         </div>
 
         <div class="form-group">
           <label class="form-label">Platform Commission (%)</label>
           <input type="number" class="form-control" name="platform_fee" 
-                 value="{{ settings[3] if settings else 10.0 }}" step="0.1" min="0" max="50" readonly>
+                 value="{{ settings['platform_fee'] if settings else 10.0 }}" step="0.1" min="0" max="50" readonly>
           <small class="form-text text-muted">Commission charged by the platform (Set by FurrButler Admin)</small>
         </div>
 
@@ -160,7 +218,7 @@
             <div class="form-group">
               <label class="form-label">Standard Delivery Price (₹)</label>
               <input type="number" class="form-control" name="standard_delivery_price" 
-                     value="{{ settings[7] if settings and settings[7] else 2.99 }}" step="0.01" min="0">
+                     value="{{ settings['standard_delivery_price'] if settings and settings['standard_delivery_price'] else 2.99 }}" step="0.01" min="0">
               <small class="form-text text-muted">3-5 business days</small>
             </div>
           </div>
@@ -168,7 +226,7 @@
             <div class="form-group">
               <label class="form-label">Express Delivery Price (₹)</label>
               <input type="number" class="form-control" name="express_delivery_price" 
-                     value="{{ settings[8] if settings and settings[8] else 5.99 }}" step="0.01" min="0">
+                     value="{{ settings['express_delivery_price'] if settings and settings['express_delivery_price'] else 5.99 }}" step="0.01" min="0">
               <small class="form-text text-muted">1-2 business days</small>
             </div>
           </div>
@@ -179,7 +237,7 @@
             <div class="form-group">
               <label class="form-label">Same Day Delivery Price (₹)</label>
               <input type="number" class="form-control" name="same_day_delivery_price" 
-                     value="{{ settings[9] if settings and settings[9] else 12.99 }}" step="0.01" min="0">
+                     value="{{ settings['same_day_delivery_price'] if settings and settings['same_day_delivery_price'] else 12.99 }}" step="0.01" min="0">
               <small class="form-text text-muted">Within 6 hours</small>
             </div>
           </div>
@@ -187,7 +245,7 @@
             <div class="form-group">
               <label class="form-label">Free Delivery Threshold (₹)</label>
               <input type="number" class="form-control" name="free_delivery_threshold" 
-                     value="{{ settings[10] if settings and settings[10] else 50.00 }}" step="0.01" min="0">
+                     value="{{ settings['free_delivery_threshold'] if settings and settings['free_delivery_threshold'] else 50.00 }}" step="0.01" min="0">
               <small class="form-text text-muted">Order amount for free standard delivery</small>
             </div>
           </div>
@@ -199,13 +257,13 @@
 
         <div class="checkbox-group">
           <input type="checkbox" name="razorpay_enabled" 
-                 {{ 'checked' if not settings or settings[4] }}>
+                 {{ 'checked' if not settings or settings['razorpay_enabled'] }}>
           <label>Enable Razorpay Online Payments</label>
         </div>
 
         <div class="checkbox-group">
           <input type="checkbox" name="cod_enabled" 
-                 {{ 'checked' if not settings or settings[5] }}>
+                 {{ 'checked' if not settings or settings['cod_enabled'] }}>
           <label>Enable Cash on Delivery</label>
         </div>
       </div>
@@ -215,7 +273,7 @@
 
         <div class="checkbox-group">
           <input type="checkbox" name="auto_reports" 
-                 {{ 'checked' if settings and settings[6] }}>
+                 {{ 'checked' if settings and settings['auto_reports'] }}>
           <label>Send monthly financial reports via email</label>
         </div>
       </div>
@@ -233,5 +291,195 @@
       <li>Email reports are sent on the 1st of each month</li>
     </ul>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    var worldCurrencies = [
+      {id: 'AED', text: 'AED د.إ — UAE Dirham'},
+      {id: 'AFN', text: 'AFN ؋ — Afghan Afghani'},
+      {id: 'ALL', text: 'ALL L — Albanian Lek'},
+      {id: 'AMD', text: 'AMD ֏ — Armenian Dram'},
+      {id: 'ANG', text: 'ANG ƒ — Netherlands Antillean Guilder'},
+      {id: 'AOA', text: 'AOA Kz — Angolan Kwanza'},
+      {id: 'ARS', text: 'ARS $ — Argentine Peso'},
+      {id: 'AUD', text: 'AUD A$ — Australian Dollar'},
+      {id: 'AWG', text: 'AWG ƒ — Aruban Florin'},
+      {id: 'AZN', text: 'AZN ₼ — Azerbaijani Manat'},
+      {id: 'BAM', text: 'BAM KM — Bosnia-Herzegovina Convertible Mark'},
+      {id: 'BBD', text: 'BBD Bds$ — Barbadian Dollar'},
+      {id: 'BDT', text: 'BDT ৳ — Bangladeshi Taka'},
+      {id: 'BGN', text: 'BGN лв — Bulgarian Lev'},
+      {id: 'BHD', text: 'BHD .د.ب — Bahraini Dinar'},
+      {id: 'BIF', text: 'BIF FBu — Burundian Franc'},
+      {id: 'BMD', text: 'BMD $ — Bermudian Dollar'},
+      {id: 'BND', text: 'BND B$ — Brunei Dollar'},
+      {id: 'BOB', text: 'BOB Bs. — Bolivian Boliviano'},
+      {id: 'BRL', text: 'BRL R$ — Brazilian Real'},
+      {id: 'BSD', text: 'BSD $ — Bahamian Dollar'},
+      {id: 'BTN', text: 'BTN Nu. — Bhutanese Ngultrum'},
+      {id: 'BWP', text: 'BWP P — Botswanan Pula'},
+      {id: 'BYN', text: 'BYN Br — Belarusian Ruble'},
+      {id: 'BZD', text: 'BZD BZ$ — Belize Dollar'},
+      {id: 'CAD', text: 'CAD C$ — Canadian Dollar'},
+      {id: 'CDF', text: 'CDF FC — Congolese Franc'},
+      {id: 'CHF', text: 'CHF CHF — Swiss Franc'},
+      {id: 'CLP', text: 'CLP $ — Chilean Peso'},
+      {id: 'CNY', text: 'CNY ¥ — Chinese Yuan'},
+      {id: 'COP', text: 'COP $ — Colombian Peso'},
+      {id: 'CRC', text: 'CRC ₡ — Costa Rican Colón'},
+      {id: 'CUP', text: 'CUP ₱ — Cuban Peso'},
+      {id: 'CVE', text: 'CVE $ — Cape Verdean Escudo'},
+      {id: 'CZK', text: 'CZK Kč — Czech Koruna'},
+      {id: 'DJF', text: 'DJF Fdj — Djiboutian Franc'},
+      {id: 'DKK', text: 'DKK kr — Danish Krone'},
+      {id: 'DOP', text: 'DOP RD$ — Dominican Peso'},
+      {id: 'DZD', text: 'DZD د.ج — Algerian Dinar'},
+      {id: 'EGP', text: 'EGP E£ — Egyptian Pound'},
+      {id: 'ERN', text: 'ERN Nfk — Eritrean Nakfa'},
+      {id: 'ETB', text: 'ETB Br — Ethiopian Birr'},
+      {id: 'EUR', text: 'EUR € — Euro'},
+      {id: 'FJD', text: 'FJD FJ$ — Fijian Dollar'},
+      {id: 'FKP', text: 'FKP £ — Falkland Islands Pound'},
+      {id: 'GBP', text: 'GBP £ — British Pound Sterling'},
+      {id: 'GEL', text: 'GEL ₾ — Georgian Lari'},
+      {id: 'GHS', text: 'GHS GH₵ — Ghanaian Cedi'},
+      {id: 'GIP', text: 'GIP £ — Gibraltar Pound'},
+      {id: 'GMD', text: 'GMD D — Gambian Dalasi'},
+      {id: 'GNF', text: 'GNF FG — Guinean Franc'},
+      {id: 'GTQ', text: 'GTQ Q — Guatemalan Quetzal'},
+      {id: 'GYD', text: 'GYD GY$ — Guyanaese Dollar'},
+      {id: 'HKD', text: 'HKD HK$ — Hong Kong Dollar'},
+      {id: 'HNL', text: 'HNL L — Honduran Lempira'},
+      {id: 'HRK', text: 'HRK kn — Croatian Kuna'},
+      {id: 'HTG', text: 'HTG G — Haitian Gourde'},
+      {id: 'HUF', text: 'HUF Ft — Hungarian Forint'},
+      {id: 'IDR', text: 'IDR Rp — Indonesian Rupiah'},
+      {id: 'ILS', text: 'ILS ₪ — Israeli New Shekel'},
+      {id: 'INR', text: 'INR ₹ — Indian Rupee'},
+      {id: 'IQD', text: 'IQD ع.د — Iraqi Dinar'},
+      {id: 'IRR', text: 'IRR ﷼ — Iranian Rial'},
+      {id: 'ISK', text: 'ISK kr — Icelandic Króna'},
+      {id: 'JMD', text: 'JMD J$ — Jamaican Dollar'},
+      {id: 'JOD', text: 'JOD JD — Jordanian Dinar'},
+      {id: 'JPY', text: 'JPY ¥ — Japanese Yen'},
+      {id: 'KES', text: 'KES KSh — Kenyan Shilling'},
+      {id: 'KGS', text: 'KGS лв — Kyrgystani Som'},
+      {id: 'KHR', text: 'KHR ៛ — Cambodian Riel'},
+      {id: 'KMF', text: 'KMF CF — Comorian Franc'},
+      {id: 'KPW', text: 'KPW ₩ — North Korean Won'},
+      {id: 'KRW', text: 'KRW ₩ — South Korean Won'},
+      {id: 'KWD', text: 'KWD د.ك — Kuwaiti Dinar'},
+      {id: 'KYD', text: 'KYD CI$ — Cayman Islands Dollar'},
+      {id: 'KZT', text: 'KZT ₸ — Kazakhstani Tenge'},
+      {id: 'LAK', text: 'LAK ₭ — Laotian Kip'},
+      {id: 'LBP', text: 'LBP L£ — Lebanese Pound'},
+      {id: 'LKR', text: 'LKR Rs — Sri Lankan Rupee'},
+      {id: 'LRD', text: 'LRD L$ — Liberian Dollar'},
+      {id: 'LSL', text: 'LSL L — Lesotho Loti'},
+      {id: 'LYD', text: 'LYD ل.د — Libyan Dinar'},
+      {id: 'MAD', text: 'MAD MAD — Moroccan Dirham'},
+      {id: 'MDL', text: 'MDL L — Moldovan Leu'},
+      {id: 'MGA', text: 'MGA Ar — Malagasy Ariary'},
+      {id: 'MKD', text: 'MKD ден — Macedonian Denar'},
+      {id: 'MMK', text: 'MMK K — Myanmar Kyat'},
+      {id: 'MNT', text: 'MNT ₮ — Mongolian Tugrik'},
+      {id: 'MOP', text: 'MOP MOP$ — Macanese Pataca'},
+      {id: 'MRU', text: 'MRU UM — Mauritanian Ouguiya'},
+      {id: 'MUR', text: 'MUR ₨ — Mauritian Rupee'},
+      {id: 'MVR', text: 'MVR Rf — Maldivian Rufiyaa'},
+      {id: 'MWK', text: 'MWK MK — Malawian Kwacha'},
+      {id: 'MXN', text: 'MXN Mex$ — Mexican Peso'},
+      {id: 'MYR', text: 'MYR RM — Malaysian Ringgit'},
+      {id: 'MZN', text: 'MZN MT — Mozambican Metical'},
+      {id: 'NAD', text: 'NAD N$ — Namibian Dollar'},
+      {id: 'NGN', text: 'NGN ₦ — Nigerian Naira'},
+      {id: 'NIO', text: 'NIO C$ — Nicaraguan Córdoba'},
+      {id: 'NOK', text: 'NOK kr — Norwegian Krone'},
+      {id: 'NPR', text: 'NPR ₨ — Nepalese Rupee'},
+      {id: 'NZD', text: 'NZD NZ$ — New Zealand Dollar'},
+      {id: 'OMR', text: 'OMR ر.ع. — Omani Rial'},
+      {id: 'PAB', text: 'PAB B/. — Panamanian Balboa'},
+      {id: 'PEN', text: 'PEN S/. — Peruvian Sol'},
+      {id: 'PGK', text: 'PGK K — Papua New Guinean Kina'},
+      {id: 'PHP', text: 'PHP ₱ — Philippine Peso'},
+      {id: 'PKR', text: 'PKR ₨ — Pakistani Rupee'},
+      {id: 'PLN', text: 'PLN zł — Polish Zloty'},
+      {id: 'PYG', text: 'PYG ₲ — Paraguayan Guarani'},
+      {id: 'QAR', text: 'QAR ر.ق — Qatari Rial'},
+      {id: 'RON', text: 'RON lei — Romanian Leu'},
+      {id: 'RSD', text: 'RSD din. — Serbian Dinar'},
+      {id: 'RUB', text: 'RUB ₽ — Russian Ruble'},
+      {id: 'RWF', text: 'RWF RF — Rwandan Franc'},
+      {id: 'SAR', text: 'SAR ر.س — Saudi Riyal'},
+      {id: 'SBD', text: 'SBD SI$ — Solomon Islands Dollar'},
+      {id: 'SCR', text: 'SCR ₨ — Seychellois Rupee'},
+      {id: 'SDG', text: 'SDG ج.س. — Sudanese Pound'},
+      {id: 'SEK', text: 'SEK kr — Swedish Krona'},
+      {id: 'SGD', text: 'SGD S$ — Singapore Dollar'},
+      {id: 'SHP', text: 'SHP £ — Saint Helena Pound'},
+      {id: 'SLE', text: 'SLE Le — Sierra Leonean Leone'},
+      {id: 'SOS', text: 'SOS Sh — Somali Shilling'},
+      {id: 'SRD', text: 'SRD Sr$ — Surinamese Dollar'},
+      {id: 'SSP', text: 'SSP £ — South Sudanese Pound'},
+      {id: 'STN', text: 'STN Db — São Tomé and Príncipe Dobra'},
+      {id: 'SYP', text: 'SYP £S — Syrian Pound'},
+      {id: 'SZL', text: 'SZL E — Swazi Lilangeni'},
+      {id: 'THB', text: 'THB ฿ — Thai Baht'},
+      {id: 'TJS', text: 'TJS SM — Tajikistani Somoni'},
+      {id: 'TMT', text: 'TMT T — Turkmenistani Manat'},
+      {id: 'TND', text: 'TND د.ت — Tunisian Dinar'},
+      {id: 'TOP', text: 'TOP T$ — Tongan Paʻanga'},
+      {id: 'TRY', text: 'TRY ₺ — Turkish Lira'},
+      {id: 'TTD', text: 'TTD TT$ — Trinidad & Tobago Dollar'},
+      {id: 'TWD', text: 'TWD NT$ — New Taiwan Dollar'},
+      {id: 'TZS', text: 'TZS TSh — Tanzanian Shilling'},
+      {id: 'UAH', text: 'UAH ₴ — Ukrainian Hryvnia'},
+      {id: 'UGX', text: 'UGX USh — Ugandan Shilling'},
+      {id: 'USD', text: 'USD $ — US Dollar'},
+      {id: 'UYU', text: 'UYU $U — Uruguayan Peso'},
+      {id: 'UZS', text: 'UZS soʻm — Uzbekistani Som'},
+      {id: 'VES', text: 'VES Bs.S — Venezuelan Bolívar Soberano'},
+      {id: 'VND', text: 'VND ₫ — Vietnamese Dong'},
+      {id: 'VUV', text: 'VUV VT — Vanuatu Vatu'},
+      {id: 'WST', text: 'WST WS$ — Samoan Tala'},
+      {id: 'XAF', text: 'XAF FCFA — Central African CFA Franc'},
+      {id: 'XCD', text: 'XCD EC$ — East Caribbean Dollar'},
+      {id: 'XOF', text: 'XOF CFA — West African CFA Franc'},
+      {id: 'XPF', text: 'XPF ₣ — CFP Franc'},
+      {id: 'YER', text: 'YER ﷼ — Yemeni Rial'},
+      {id: 'ZAR', text: 'ZAR R — South African Rand'},
+      {id: 'ZMW', text: 'ZMW ZK — Zambian Kwacha'},
+      {id: 'ZWL', text: 'ZWL Z$ — Zimbabwean Dollar'}
+    ];
+
+    var savedCurrency = '{{ settings["currency"] if settings and settings["currency"] else "INR" }}';
+
+    $(document).ready(function() {
+      var $select = $('#currency-select');
+
+      worldCurrencies.forEach(function(cur) {
+        var option = new Option(cur.text, cur.id, false, cur.id === savedCurrency);
+        $select.append(option);
+      });
+
+      $select.select2({
+        placeholder: 'Search for a currency...',
+        allowClear: false,
+        width: '100%'
+      });
+
+      $select.on('change', function() {
+        var selectedId = $(this).val();
+        var selected = worldCurrencies.find(function(c) { return c.id === selectedId; });
+        if (selected) {
+          var parts = selected.text.split(' — ');
+          var codeParts = parts[0].split(' ');
+          document.getElementById('preview-symbol').textContent = codeParts[1] || codeParts[0];
+          document.getElementById('preview-name').textContent = selectedId;
+        }
+      });
+    });
+  </script>
 </body>
 </html>
