@@ -340,7 +340,7 @@
             <small class="text-muted">Placed on {{ order[7] }}</small>
           </div>
           <div class="text-end">
-            <div class="order-amount">${{ "%.2f"|format(order[2]) }}</div>
+            <div class="order-amount">₹{{ "%.2f"|format(order[2]) }}</div>
             <span class="status-badge status-{{ order[3] }}">{{ order[3]|title }}</span>
           </div>
         </div>
@@ -398,11 +398,11 @@
           <!-- Mock items - in real implementation, get from order_items table -->
           <div class="item-row">
             <span>Premium Dog Food (2 units)</span>
-            <span class="fw-bold">${{ "%.2f"|format(order[2] * 0.6) }}</span>
+            <span class="fw-bold">₹{{ "%.2f"|format(order[2] * 0.6) }}</span>
           </div>
           <div class="item-row">
             <span>Pet Toy Bundle (1 unit)</span>
-            <span class="fw-bold">${{ "%.2f"|format(order[2] * 0.4) }}</span>
+            <span class="fw-bold">₹{{ "%.2f"|format(order[2] * 0.4) }}</span>
           </div>
         </div>
 
@@ -413,17 +413,17 @@
             <div class="fulfillment-option selected" data-option="store">
               <i class="fas fa-store"></i>
               <div><strong>Store Pickup</strong></div>
-              <small>Cost: $0.00</small>
+              <small>Cost: ₹0.00</small>
             </div>
             <div class="fulfillment-option" data-option="warehouse">
               <i class="fas fa-warehouse"></i>
               <div><strong>Warehouse</strong></div>
-              <small>Cost: ${{ order[4] == 'express' and '8.99' or '4.99' }}</small>
+              <small>Cost: ₹{{ order[4] == 'express' and '8.99' or '4.99' }}</small>
             </div>
             <div class="fulfillment-option" data-option="partner">
               <i class="fas fa-handshake"></i>
               <div><strong>3rd Party</strong></div>
-              <small>Cost: ${{ order[4] == 'same_day' and '15.99' or '6.99' }}</small>
+              <small>Cost: ₹{{ order[4] == 'same_day' and '15.99' or '6.99' }}</small>
             </div>
           </div>
           <small class="text-muted">

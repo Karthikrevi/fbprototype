@@ -96,16 +96,16 @@
             <div class="fee-breakdown">
               <div class="d-flex justify-content-between mb-2">
                 <span>Handler Fee (90%)</span>
-                <span class="fw-bold">${{ "%.2f"|format(handler.base_price * 0.9) }}</span>
+                <span class="fw-bold">₹{{ "%.2f"|format(handler.base_price * 0.9) }}</span>
               </div>
               <div class="d-flex justify-content-between mb-2">
                 <span>Handler Liaison & Escrow Management (10%)</span>
-                <span class="fw-bold">${{ "%.2f"|format(handler.base_price * 0.1) }}</span>
+                <span class="fw-bold">₹{{ "%.2f"|format(handler.base_price * 0.1) }}</span>
               </div>
               <hr>
               <div class="d-flex justify-content-between">
                 <span class="fw-bold">Total Amount</span>
-                <span class="fw-bold text-primary">${{ "%.2f"|format(handler.base_price) }}</span>
+                <span class="fw-bold text-primary">₹{{ "%.2f"|format(handler.base_price) }}</span>
               </div>
             </div>
 

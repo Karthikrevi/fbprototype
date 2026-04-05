@@ -62,10 +62,10 @@
 
             <div class="row">
               <div class="col-6">
-                <strong>Buy Price:</strong> ${{ product[5] or 0 }}
+                <strong>Buy Price:</strong> ₹{{ product[5] or 0 }}
               </div>
               <div class="col-6">
-                <span class="price-tag">Sale: ${{ product[6] }}</span>
+                <span class="price-tag">Sale: ₹{{ product[6] }}</span>
               </div>
             </div>
 
@@ -94,7 +94,7 @@
                   <div class="col-8">
                     <strong>{{ batch[2] }}</strong><br>
                     <small>Quantity: {{ batch[3] }} units</small><br>
-                    <small>Cost Price: ${{ batch[4] }}</small>
+                    <small>Cost Price: ₹{{ batch[4] }}</small>
                   </div>
                   <div class="col-4 text-end">
                     <small class="text-muted">{{ batch[5] }}</small>
@@ -124,7 +124,7 @@
             <input type="number" name="quantity" min="1" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
           </div>
           <div>
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Unit Cost ($)</label>
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Unit Cost (₹)</label>
             <input type="number" name="unit_cost" step="0.01" min="0.01" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
           </div>
           <div>

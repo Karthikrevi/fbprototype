@@ -277,7 +277,7 @@
                   <strong>Express Delivery</strong>
                   <div class="text-muted">1-2 business days</div>
                 </div>
-                <div class="text-success font-weight-bold">$5.99</div>
+                <div class="text-success font-weight-bold">₹5.99</div>
               </div>
             </div>
             <div class="delivery-option" data-delivery="same-day">
@@ -286,7 +286,7 @@
                   <strong>Same Day Delivery</strong>
                   <div class="text-muted">Within 6 hours</div>
                 </div>
-                <div class="text-success font-weight-bold">$12.99</div>
+                <div class="text-success font-weight-bold">₹12.99</div>
               </div>
             </div>
           </div>
@@ -398,27 +398,27 @@
           <div class="order-summary">
             <div class="summary-row">
               <span>Subtotal:</span>
-              <span id="subtotal">$0.00</span>
+              <span id="subtotal">₹0.00</span>
             </div>
             <div class="summary-row">
               <span>Delivery Fee:</span>
-              <span id="delivery-fee">$0.00</span>
+              <span id="delivery-fee">₹0.00</span>
             </div>
             <div class="summary-row">
               <span>Platform Fee:</span>
-              <span id="platform-fee">$0.00</span>
+              <span id="platform-fee">₹0.00</span>
             </div>
             <div class="summary-row">
               <span>Taxes:</span>
-              <span id="taxes">$0.00</span>
+              <span id="taxes">₹0.00</span>
             </div>
             <div class="summary-row">
               <span>Discount:</span>
-              <span id="discount" class="text-success">-$0.00</span>
+              <span id="discount" class="text-success">-₹0.00</span>
             </div>
             <div class="summary-row summary-total">
               <span>Total:</span>
-              <span id="total">$0.00</span>
+              <span id="total">₹0.00</span>
             </div>
           </div>
           <button class="place-order-btn mt-3" onclick="placeOrder()">
@@ -459,7 +459,7 @@
           <div class="item-details">
             <div class="item-name">${item.name}</div>
             <div class="item-vendor">from ${item.vendor || 'Unknown Vendor'}</div>
-            <div class="item-price">$${item.price.toFixed(2)}</div>
+            <div class="item-price">₹${item.price.toFixed(2)}</div>
             <div class="quantity-controls">
               <button class="quantity-btn" onclick="updateQuantity(${index}, -1)">-</button>
               <span class="quantity-display">${item.quantity}</span>
@@ -508,15 +508,15 @@
           vendorDeliveryPrices = prices;
 
           // Update delivery option prices in UI
-          document.querySelector('[data-delivery="standard"] .text-success').textContent = `$${prices.standard}`;
-          document.querySelector('[data-delivery="express"] .text-success').textContent = `$${prices.express}`;
-          document.querySelector('[data-delivery="same-day"] .text-success').textContent = `$${prices.same_day}`;
+          document.querySelector('[data-delivery="standard"] .text-success').textContent = `₹${prices.standard}`;
+          document.querySelector('[data-delivery="express"] .text-success').textContent = `₹${prices.express}`;
+          document.querySelector('[data-delivery="same-day"] .text-success').textContent = `₹${prices.same_day}`;
 
           // Check if order qualifies for free delivery
           const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           if (subtotal >= prices.free_threshold) {
             document.querySelector('[data-delivery="standard"] .text-success').innerHTML = 
-              `<span style="text-decoration: line-through;">$${prices.standard}</span> <strong>FREE</strong>`;
+              `<span style="text-decoration: line-through;">₹${prices.standard}</span> <strong>FREE</strong>`;
           }
         })
         .catch(error => {
@@ -575,12 +575,12 @@
       const discount = 0; // No discount for now
       const total = subtotal + deliveryFee + platformFee + taxes - discount;
 
-      document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-      document.getElementById('delivery-fee').textContent = `$${deliveryFee.toFixed(2)}`;
-      document.getElementById('platform-fee').textContent = `$${platformFee.toFixed(2)}`;
-      document.getElementById('taxes').textContent = `$${taxes.toFixed(2)}`;
-      document.getElementById('discount').textContent = `-$${discount.toFixed(2)}`;
-      document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+      document.getElementById('delivery-fee').textContent = `₹${deliveryFee.toFixed(2)}`;
+      document.getElementById('platform-fee').textContent = `₹${platformFee.toFixed(2)}`;
+      document.getElementById('taxes').textContent = `₹${taxes.toFixed(2)}`;
+      document.getElementById('discount').textContent = `-₹${discount.toFixed(2)}`;
+      document.getElementById('total').textContent = `₹${total.toFixed(2)}`;
     }
 
     function placeOrder() {
@@ -618,7 +618,7 @@
       const total = subtotal + deliveryFee + (subtotal * 0.1) + (subtotal * 0.08);
 
       // Show order confirmation
-      alert(`Order placed successfully!\n\nOrder Total: $${total.toFixed(2)}\nPayment Method: ${selectedPayment.toUpperCase()}\n\nThank you for your purchase!`);
+      alert(`Order placed successfully!\n\nOrder Total: ₹${total.toFixed(2)}\nPayment Method: ${selectedPayment.toUpperCase()}\n\nThank you for your purchase!`);
 
       // Store purchase in localStorage for history
       const purchase = {

@@ -61,6 +61,13 @@ An advanced chatbot system uses machine learning for intent classification and b
 - Custom service worker for PWA functionality
 - Comprehensive test suite infrastructure for chatbot and business logic
 
+## Currency
+- All HTML templates use ₹ (Indian Rupee) — not $ (USD)
+- Font Awesome icons use `fa-rupee-sign` (not `fa-dollar-sign`)
+- JS template literals in checkout/booking/POS use `₹${value}` format
+- Exception: `business_analysis.html` retains USD for GPT API pricing references
+- Python backend files are untouched (currency formatting happens in templates)
+
 # FurrVet Module
 
 ## Templates (templates/furrvet/)

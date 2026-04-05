@@ -125,15 +125,15 @@
             <tbody>
               <tr>
                 <td>Handler Fee (90%)</td>
-                <td class="text-end">${{ "%.2f"|format(booking.handler_fee) }}</td>
+                <td class="text-end">₹{{ "%.2f"|format(booking.handler_fee) }}</td>
               </tr>
               <tr>
                 <td>Handler Liaison & Escrow Management Fee (10%)</td>
-                <td class="text-end">${{ "%.2f"|format(booking.platform_fee) }}</td>
+                <td class="text-end">₹{{ "%.2f"|format(booking.platform_fee) }}</td>
               </tr>
               <tr class="table-primary">
                 <td><strong>Total Amount</strong></td>
-                <td class="text-end"><strong>${{ "%.2f"|format(booking.total_amount) }}</strong></td>
+                <td class="text-end"><strong>₹{{ "%.2f"|format(booking.total_amount) }}</strong></td>
               </tr>
             </tbody>
           </table>
