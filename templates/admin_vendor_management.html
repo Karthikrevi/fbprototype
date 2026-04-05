@@ -193,7 +193,7 @@
       <div class="col-md-3">
         <div class="vendor-card">
           <div class="text-center">
-            <h4>${{ "%.2f"|format(vendor_stats|sum(attribute='total_sales')) }}</h4>
+            <h4>₹{{ "%.2f"|format(vendor_stats|sum(attribute='total_sales')) }}</h4>
             <p class="mb-0">Total Sales</p>
           </div>
         </div>
@@ -269,7 +269,7 @@
                   <div class="stat-label">Products</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-value">${{ stat.total_sales }}</div>
+                  <div class="stat-value">₹{{ stat.total_sales }}</div>
                   <div class="stat-label">Sales</div>
                 </div>
                 <div class="stat-item">

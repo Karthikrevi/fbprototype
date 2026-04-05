@@ -116,7 +116,7 @@
             <p class="text-muted">{{ (product[2] or '')[:100] }}{% if product[2] and product[2]|length > 100 %}...{% endif %}</p>
             
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="price-badge">${{ "%.2f"|format(product[3] or 0) }}</span>
+              <span class="price-badge">₹{{ "%.2f"|format(product[3] or 0) }}</span>
               <span class="stock-badge">{{ product[4] or 0 }} in stock</span>
             </div>
             
@@ -124,7 +124,7 @@
             <small class="text-muted">SKU: {{ product[6] }}</small><br>
             {% endif %}
             {% if product[7] %}
-            <small class="text-muted">Cost: ${{ "%.2f"|format(product[7]) }}</small>
+            <small class="text-muted">Cost: ₹{{ "%.2f"|format(product[7]) }}</small>
             {% endif %}
             
             <div class="action-buttons">

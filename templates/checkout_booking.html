@@ -132,16 +132,16 @@
         <div class="total-section">
           <div class="d-flex justify-content-between mb-2">
             <span>Subtotal:</span>
-            <span id="subtotalAmount">$0.00</span>
+            <span id="subtotalAmount">₹0.00</span>
           </div>
           <div class="d-flex justify-content-between mb-2">
             <span>Service Fee:</span>
-            <span id="serviceFee">$2.99</span>
+            <span id="serviceFee">₹2.99</span>
           </div>
           <hr>
           <div class="d-flex justify-content-between mb-3">
             <strong>Total:</strong>
-            <strong id="totalAmount">$0.00</strong>
+            <strong id="totalAmount">₹0.00</strong>
           </div>
           
           <button class="btn-book-now" onclick="confirmBookings()">
@@ -219,7 +219,7 @@
                     <i class="fas fa-clock"></i> ${booking.duration} minutes
                   </div>
                 </div>
-                <div class="text-success fw-bold">$${booking.price.toFixed(2)}</div>
+                <div class="text-success fw-bold">₹${booking.price.toFixed(2)}</div>
               </div>
               <div class="text-muted small">
                 <i class="fas fa-calendar"></i> ${formatDate(booking.date)} at ${booking.time}
@@ -233,7 +233,7 @@
       orderSummary.innerHTML = bookingCart.map(booking => `
         <div class="d-flex justify-content-between mb-2">
           <span class="small">${booking.service} (${booking.pet.name})</span>
-          <span class="small">$${booking.price.toFixed(2)}</span>
+          <span class="small">₹${booking.price.toFixed(2)}</span>
         </div>
       `).join('');
     }
@@ -243,9 +243,9 @@
       const serviceFee = 2.99;
       const total = subtotal + serviceFee;
 
-      document.getElementById('subtotalAmount').textContent = `$${subtotal.toFixed(2)}`;
-      document.getElementById('serviceFee').textContent = `$${serviceFee.toFixed(2)}`;
-      document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+      document.getElementById('serviceFee').textContent = `₹${serviceFee.toFixed(2)}`;
+      document.getElementById('totalAmount').textContent = `₹${total.toFixed(2)}`;
     }
 
     function formatDate(dateString) {
@@ -452,12 +452,12 @@
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span>Service Fee:</span>
-                    <span id="service-fee">$0.00</span>
+                    <span id="service-fee">₹0.00</span>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between">
                     <span class="total-amount">Total Amount:</span>
-                    <span class="total-amount" id="total-amount">$0.00</span>
+                    <span class="total-amount" id="total-amount">₹0.00</span>
                 </div>
             </div>
 
@@ -539,7 +539,7 @@
                                     <p class="mb-0"><strong>⏱️ Duration:</strong> ${booking.duration} minutes</p>
                                 </div>
                                 <div class="col-md-4 text-end">
-                                    <div class="h4 text-success">$${booking.price.toFixed(2)}</div>
+                                    <div class="h4 text-success">₹${booking.price.toFixed(2)}</div>
                                     <button class="btn btn-sm btn-outline-danger" onclick="removeBooking(${index})">
                                         🗑️ Remove
                                     </button>
@@ -553,8 +553,8 @@
             bookingItemsDiv.innerHTML = bookingsHTML;
             
             document.getElementById('total-services').textContent = bookingCart.length;
-            document.getElementById('service-fee').textContent = `$${totalAmount.toFixed(2)}`;
-            document.getElementById('total-amount').textContent = `$${totalAmount.toFixed(2)}`;
+            document.getElementById('service-fee').textContent = `₹${totalAmount.toFixed(2)}`;
+            document.getElementById('total-amount').textContent = `₹${totalAmount.toFixed(2)}`;
         }
 
         function getPetInfo(petName) {
