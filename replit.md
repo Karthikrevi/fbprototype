@@ -114,6 +114,17 @@ An advanced chatbot system uses machine learning for intent classification and b
 - `accounting_settings.html` Jinja2 default fallback ('₹') and JS currency list entries kept as-is
 - Default currency is ₹ (INR) when no vendor setting exists
 
+## HRM & Groomer System
+- **DB tables**: `employee_reviews` (multi-criteria ratings), `certified_groomers` (certification records), `groomer_of_month` (monthly awards)
+- **Employee columns added**: `avg_overall_rating`, `total_reviews`, `is_certified`, `is_groomer_of_month` on `employees` table; `employee_id` on `bookings` table
+- **Routes (vendor-auth)**: `/erp/hr/employees/<id>` (detail), `/erp/hr/employees/<id>/edit` (edit), `/erp/hr/leaves` (leave management), `/erp/hr/timesheets` + `/save` + `/mark-attendance`, `/erp/hr/payroll` + `/pay/<id>` + `/generate-payslips`, `/erp/hr/performance/add`, `/erp/bookings/done/<id>`, `/erp/bookings/extend/<id>`, `/erp/bookings/assign-staff/<id>`, `/erp/certifications/check`, `/erp/hr/groomer-of-month/calculate`
+- **Routes (public/customer)**: `/vendor/<id>/groomers` (groomer listing), `/groomer/<id>` (groomer profile), `/booking/<id>/review` (customer rating)
+- **Templates**: `employee_detail.html`, `employee_edit.html`, `employee_leaves.html`, `manage_timesheets.html`, `manage_payroll.html`, `payslips.html`, `performance_review_form.html`, `booking_review.html`, `groomer_listing.html`, `groomer_profile.html`
+- **Certification criteria**: 50+ reviews, avg rating >= 4.8, >= 85% would_book_again, >= 180 days tenure
+- **GOTM calculation**: weighted score (review_count * 0.4 + avg_rating * 0.6 * 10) for current month
+- **Security**: All employee-modifying POST routes verify employee belongs to current vendor (ownership check); Socket.IO events scoped to customer email rooms (not broadcast)
+- **Auto-CRM**: `auto_crm_collection()` populates CRM on booking completion; `update_employee_review_stats()` syncs rating/certification status
+
 # FurrVet Module
 
 ## Templates (templates/furrvet/)

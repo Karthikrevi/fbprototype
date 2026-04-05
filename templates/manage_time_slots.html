@@ -176,9 +176,12 @@
                 <div class="hr-card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4><i class="fas fa-users text-primary"></i> Employee Management</h4>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
-                            <i class="fas fa-plus"></i> Add Employee
-                        </button>
+                        <div>
+                            <a href="/erp/hr/leaves" class="btn btn-outline-info me-2"><i class="fas fa-calendar-check"></i> Leave Management</a>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                                <i class="fas fa-plus"></i> Add Employee
+                            </button>
+                        </div>
                     </div>
 
                     <div class="row" id="employeesList">
@@ -356,7 +359,15 @@
             <!-- Performance Tab -->
             <div class="tab-pane fade" id="performance" role="tabpanel">
                 <div class="hr-card">
-                    <h4><i class="fas fa-chart-bar text-info"></i> Employee Performance</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-chart-bar text-info"></i> Employee Performance</h4>
+                        <div>
+                            <a href="/erp/hr/performance/add" class="btn btn-primary"><i class="fas fa-plus"></i> Add Review</a>
+                            <form method="POST" action="/erp/hr/groomer-of-month/calculate" class="d-inline ms-2">
+                                <button type="submit" class="btn btn-outline-warning"><i class="fas fa-trophy"></i> Calculate GOTM</button>
+                            </form>
+                        </div>
+                    </div>
 
                     <div class="row">
                         <div class="col-md-6">
@@ -649,11 +660,11 @@
 
         // HR Management Functions
         function viewEmployee(id) {
-            window.location.href = '/erp/hr/employees';
+            window.location.href = '/erp/hr/employees/' + id;
         }
 
         function editEmployee(id) {
-            window.location.href = '/erp/hr/employees';
+            window.location.href = '/erp/hr/employees/' + id + '/edit';
         }
 
         function markAttendance() {
@@ -663,14 +674,16 @@
         function saveEmployee() {
             const form = document.getElementById('addEmployeeForm');
             const formData = new FormData(form);
-
-            // Here you would typically send the data to the server
-            alert('Employee saved successfully!');
-
-            // Close modal and refresh employee list
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
-            modal.hide();
-            form.reset();
+            fetch('/erp/hr/employees', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error saving employee');
+                }
+            }).catch(err => alert('Error: ' + err));
         }
 
         // Initialize on page load

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; font-family: 'Poppins', sans-serif; }
+    .container { max-width: 1200px; padding: 20px; margin-top: 20px; }
+    .card-section { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 25px; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+    .back-btn:hover { background: rgba(255,255,255,0.3); color: white; }
+    .summary-card { background: linear-gradient(135deg, #28a745, #20c997); color: white; border-radius: 15px; padding: 25px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/time-slots" class="back-btn"><i class="fas fa-arrow-left"></i> Back to HR Management</a>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}{% for msg in messages %}
+    <div class="alert alert-success alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card-section">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="fas fa-money-bill-wave text-success"></i> Payroll Management</h3>
+            <div class="d-flex gap-2">
+              <input type="month" class="form-control" id="monthPicker" value="{{ current_month }}" onchange="changeMonth()">
+              <form method="POST" action="/erp/hr/payroll/generate-payslips" id="payslipForm">
+                <input type="hidden" name="month" id="payslipMonth" value="{{ current_month }}">
+                <button type="submit" class="btn btn-primary text-nowrap"><i class="fas fa-file-invoice"></i> Generate Payslips</button>
+              </form>
+            </div>
+          </div>
+
+          {% if payroll_data %}
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr><th>Employee</th><th>Base Salary</th><th>OT Hours</th><th>OT Pay</th><th>Bonus</th><th>Deductions</th><th>Total</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                {% for emp in payroll_data %}
+                <tr>
+                  <td><strong>{{ emp[1] }}</strong><br><small class="text-muted">{{ emp[2] }}</small></td>
+                  <td>{{ vendor_currency }}{{ "%.0f"|format(emp[3]) }}</td>
+                  <td>{{ "%.1f"|format(emp[6]) }}</td>
+                  <td>{{ vendor_currency }}{{ "%.0f"|format(emp[6] * emp[4] * 1.5) }}</td>
+                  <td>
+                    <form method="POST" action="/erp/hr/payroll/pay/{{ emp[0] }}" class="d-inline pay-form" id="payForm{{ emp[0] }}">
+                      <input type="hidden" name="month" value="{{ current_month }}">
+                      <input type="number" class="form-control form-control-sm" name="bonus" value="0" style="width:80px;display:inline" 
+                        onchange="calcTotal({{ emp[0] }}, {{ emp[3] }}, {{ emp[6] * emp[4] * 1.5 }})">
+                  </td>
+                  <td>
+                      <input type="number" class="form-control form-control-sm" name="deductions" value="0" style="width:80px;display:inline"
+                        onchange="calcTotal({{ emp[0] }}, {{ emp[3] }}, {{ emp[6] * emp[4] * 1.5 }})">
+                  </td>
+                  <td class="fw-bold" id="total{{ emp[0] }}">{{ vendor_currency }}{{ "%.0f"|format(emp[3] + emp[6]*emp[4]*1.5) }}</td>
+                  <td>
+                      <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-money-bill"></i> Pay</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-money-bill fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No employees found.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="summary-card">
+          <h5><i class="fas fa-calculator"></i> Payroll Summary</h5>
+          <div class="mt-3">
+            <div class="d-flex justify-content-between mb-2"><span>Base Salaries:</span><strong>{{ vendor_currency }}{{ "%.0f"|format(payroll_summary.total_base_salaries) }}</strong></div>
+            <div class="d-flex justify-content-between mb-2"><span>Overtime Pay:</span><strong>{{ vendor_currency }}{{ "%.0f"|format(payroll_summary.total_overtime) }}</strong></div>
+            <hr>
+            <div class="d-flex justify-content-between"><strong>Total:</strong><strong>{{ vendor_currency }}{{ "%.0f"|format(payroll_summary.total_payroll) }}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function changeMonth() {
+      const m = document.getElementById('monthPicker').value;
+      document.getElementById('payslipMonth').value = m;
+      window.location.href = '/erp/hr/payroll?month=' + m;
+    }
+    function calcTotal(empId, base, otPay) {
+      const form = document.getElementById('payForm' + empId);
+      const bonus = parseFloat(form.querySelector('[name="bonus"]').value) || 0;
+      const ded = parseFloat(form.querySelector('[name="deductions"]').value) || 0;
+      const total = base + otPay + bonus - ded;
+      document.getElementById('total' + empId).textContent = '{{ vendor_currency }}' + Math.round(total);
+    }
+  </script>
+</body>
+</html>

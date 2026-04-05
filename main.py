@@ -1858,6 +1858,69 @@ def init_erp_db():
                     VALUES (?, ?, ?, ?, ?)
                 ''', (product_id[0], f"BATCH-{product[7]}-001", product[5], product[3], datetime.now().strftime("%Y-%m-%d")))
 
+    # Add employee_id column to bookings table
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN employee_id INTEGER REFERENCES employees(id)")
+    except:
+        pass
+
+    # Add rating/certification columns to employees table
+    for col_sql in [
+        "ALTER TABLE employees ADD COLUMN avg_overall_rating REAL DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN total_reviews INTEGER DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN is_certified BOOLEAN DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN is_groomer_of_month BOOLEAN DEFAULT 0",
+    ]:
+        try:
+            c.execute(col_sql)
+        except:
+            pass
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS employee_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            booking_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            reviewer_email TEXT NOT NULL,
+            overall_rating INTEGER CHECK(overall_rating >= 1 AND overall_rating <= 5),
+            service_quality INTEGER CHECK(service_quality >= 1 AND service_quality <= 5),
+            punctuality INTEGER CHECK(punctuality >= 1 AND punctuality <= 5),
+            handling_of_pet INTEGER CHECK(handling_of_pet >= 1 AND handling_of_pet <= 5),
+            review_text TEXT,
+            would_book_again BOOLEAN,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id),
+            FOREIGN KEY (booking_id) REFERENCES bookings(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS certified_groomers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER UNIQUE NOT NULL,
+            certified_date TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            suspended_date TEXT,
+            suspension_reason TEXT,
+            FOREIGN KEY (employee_id) REFERENCES employees(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS groomer_of_month (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            vendor_id INTEGER NOT NULL,
+            month TEXT NOT NULL,
+            total_reviews INTEGER,
+            avg_rating REAL,
+            would_book_again_pct REAL,
+            FOREIGN KEY (employee_id) REFERENCES employees(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -2545,7 +2608,7 @@ def vendor_profile(vendor_id):
             ("3", "fluffy-paws", 5, "Best grooming service in town!", "Grooming", "happy@example.com", "2024-01-05")
         ]
 
-        return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
+        return render_template("vendor_profile.html", vendor=vendor, reviews=reviews, groomers=[])
 
     if request.method == "POST":
         # Handle review submission for database vendors
@@ -2710,8 +2773,19 @@ def vendor_profile(vendor_id):
             """, (vendor_id_db,))
             reviews = c.fetchall()
 
+            groomers = []
+            try:
+                c2 = conn.cursor()
+                c2.execute("""SELECT id, name, position, avg_overall_rating, total_reviews, is_certified, is_groomer_of_month
+                    FROM employees WHERE vendor_id=? AND status='active' AND total_reviews > 0 ORDER BY avg_overall_rating DESC""", (vendor_id_db,))
+                for g in c2.fetchall():
+                    groomers.append({'id': g[0], 'name': g[1], 'position': g[2], 'avg_rating': g[3] or 0, 
+                        'total_reviews': g[4] or 0, 'is_certified': g[5], 'is_groomer_of_month': g[6]})
+            except:
+                pass
+
             conn.close()
-            return render_template("vendor_profile.html", vendor=vendor, reviews=reviews)
+            return render_template("vendor_profile.html", vendor=vendor, reviews=reviews, groomers=groomers)
         else:
             conn.close()
             return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
@@ -5492,11 +5566,16 @@ def erp_bookings():
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    vendor_id = v[0] if v else 0
     c.execute("SELECT b.* FROM bookings b JOIN vendors v ON b.vendor_id = v.id WHERE v.email=?", (email,))
     bookings = c.fetchall()
+    c.execute("SELECT id, name FROM employees WHERE vendor_id=? AND status='active' ORDER BY name", (vendor_id,))
+    active_employees = c.fetchall()
     conn.close()
 
-    return render_template("erp_booking.html", bookings=bookings)
+    return render_template("erp_booking.html", bookings=bookings, active_employees=active_employees)
 
 @app.route('/erp/toggle-online', methods=["POST"])
 def toggle_vendor_online():
@@ -5881,7 +5960,7 @@ def manage_timesheets():
     today = datetime.now().strftime("%Y-%m-%d")
     c.execute("""
         SELECT e.name, e.position, ts.check_in_time, ts.check_out_time, 
-               ts.total_hours, ts.status, e.hourly_rate
+               ts.total_hours, ts.status, e.hourly_rate, e.id
         FROM employees e
         LEFT JOIN employee_timesheets ts ON e.id = ts.employee_id AND ts.work_date = ?
         WHERE e.vendor_id = ? AND e.status = 'active'
@@ -5945,6 +6024,726 @@ def manage_payroll():
                          payroll_data=payroll_data,
                          payroll_summary=payroll_summary,
                          current_month=current_month)
+
+@app.route('/erp/hr/employees/<int:employee_id>')
+def employee_detail(employee_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = vendor_result[0]
+    c.execute("SELECT * FROM employees WHERE id=? AND vendor_id=?", (employee_id, vendor_id))
+    emp = c.fetchone()
+    if not emp:
+        conn.close()
+        flash("Employee not found")
+        return redirect(url_for("manage_employees"))
+    col_names = [desc[0] for desc in c.description]
+    employee = dict(zip(col_names, emp))
+    c.execute("""SELECT leave_type, SUM(days_count) as total FROM employee_leaves 
+        WHERE employee_id=? AND status='approved' AND strftime('%Y', start_date)=strftime('%Y','now')
+        GROUP BY leave_type""", (employee_id,))
+    leave_balance = c.fetchall()
+    c.execute("""SELECT work_date, check_in_time, check_out_time, total_hours, status 
+        FROM employee_timesheets WHERE employee_id=? AND strftime('%Y-%m', work_date)=strftime('%Y-%m','now')
+        ORDER BY work_date DESC""", (employee_id,))
+    attendance = c.fetchall()
+    c.execute("""SELECT performance_month, services_completed, revenue_generated, customer_rating, 
+        attendance_rate, productivity_score, bonus_earned, feedback
+        FROM employee_performance WHERE employee_id=? ORDER BY performance_month DESC LIMIT 3""", (employee_id,))
+    performance = c.fetchall()
+    c.execute("""SELECT COALESCE(AVG(overall_rating),0), COUNT(*) FROM employee_reviews WHERE employee_id=?""", (employee_id,))
+    review_stats = c.fetchone()
+    conn.close()
+    return render_template("employee_detail.html", employee=employee, leave_balance=leave_balance,
+        attendance=attendance, performance=performance, avg_rating=review_stats[0], total_reviews=review_stats[1])
+
+@app.route('/erp/hr/employees/<int:employee_id>/edit', methods=["GET","POST"])
+def employee_edit(employee_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = vendor_result[0]
+    if request.method == "POST":
+        c.execute("""UPDATE employees SET name=?, email=?, phone=?, position=?, base_salary=?, hourly_rate=?,
+            join_date=?, emergency_contact=?, address=?, skills=?, certifications=?, updated_at=?
+            WHERE id=? AND vendor_id=?""",
+            (request.form.get("name"), request.form.get("email"), request.form.get("phone"),
+             request.form.get("position"), float(request.form.get("base_salary",0)),
+             float(request.form.get("hourly_rate",0)), request.form.get("join_date"),
+             request.form.get("emergency_contact"), request.form.get("address"),
+             request.form.get("skills"), request.form.get("certifications"),
+             datetime.now().strftime("%Y-%m-%d %H:%M:%S"), employee_id, vendor_id))
+        conn.commit()
+        conn.close()
+        flash("Employee updated successfully!")
+        return redirect(url_for("employee_detail", employee_id=employee_id))
+    c.execute("SELECT * FROM employees WHERE id=? AND vendor_id=?", (employee_id, vendor_id))
+    emp = c.fetchone()
+    if not emp:
+        conn.close()
+        flash("Employee not found")
+        return redirect(url_for("manage_employees"))
+    col_names = [desc[0] for desc in c.description]
+    employee = dict(zip(col_names, emp))
+    conn.close()
+    return render_template("employee_edit.html", employee=employee)
+
+@app.route('/erp/hr/leaves', methods=["GET","POST"])
+def manage_leaves():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = vendor_result[0]
+    if request.method == "POST":
+        emp_id = request.form.get("employee_id")
+        c.execute("SELECT id FROM employees WHERE id=? AND vendor_id=?", (emp_id, vendor_id))
+        if not c.fetchone():
+            conn.close()
+            flash("Invalid employee.")
+            return redirect(url_for("manage_leaves"))
+        leave_type = request.form.get("leave_type")
+        start_date = request.form.get("start_date")
+        end_date = request.form.get("end_date")
+        reason = request.form.get("reason")
+        try:
+            d1 = datetime.strptime(start_date, "%Y-%m-%d")
+            d2 = datetime.strptime(end_date, "%Y-%m-%d")
+            days_count = (d2 - d1).days + 1
+        except (ValueError, TypeError):
+            conn.close()
+            flash("Invalid date format.")
+            return redirect(url_for("manage_leaves"))
+        c.execute("""INSERT INTO employee_leaves (employee_id, vendor_id, leave_type, start_date, end_date, days_count, reason)
+            VALUES (?,?,?,?,?,?,?)""", (emp_id, vendor_id, leave_type, start_date, end_date, days_count, reason))
+        conn.commit()
+        flash("Leave request submitted!")
+        return redirect(url_for("manage_leaves"))
+    c.execute("SELECT id, name FROM employees WHERE vendor_id=? AND status='active' ORDER BY name", (vendor_id,))
+    employees = c.fetchall()
+    c.execute("""SELECT el.id, e.name, el.leave_type, el.start_date, el.end_date, el.days_count, el.reason, el.status
+        FROM employee_leaves el JOIN employees e ON el.employee_id=e.id
+        WHERE el.vendor_id=? AND el.status='pending' ORDER BY el.created_at DESC""", (vendor_id,))
+    pending = c.fetchall()
+    c.execute("""SELECT el.id, e.name, el.leave_type, el.start_date, el.end_date, el.days_count, el.reason, el.status, el.approval_date
+        FROM employee_leaves el JOIN employees e ON el.employee_id=e.id
+        WHERE el.vendor_id=? AND el.status!='pending' ORDER BY el.created_at DESC LIMIT 50""", (vendor_id,))
+    history = c.fetchall()
+    conn.close()
+    return render_template("employee_leaves.html", employees=employees, pending=pending, history=history)
+
+@app.route('/erp/hr/leaves/<int:leave_id>/approve', methods=["POST"])
+def approve_leave(leave_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (session["vendor"],))
+    v = c.fetchone()
+    if v:
+        c.execute("UPDATE employee_leaves SET status='approved', approval_date=? WHERE id=? AND vendor_id=?",
+            (datetime.now().strftime("%Y-%m-%d"), leave_id, v[0]))
+        conn.commit()
+        flash("Leave approved!")
+    conn.close()
+    return redirect(url_for("manage_leaves"))
+
+@app.route('/erp/hr/leaves/<int:leave_id>/reject', methods=["POST"])
+def reject_leave(leave_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (session["vendor"],))
+    v = c.fetchone()
+    if v:
+        c.execute("UPDATE employee_leaves SET status='rejected', approval_date=? WHERE id=? AND vendor_id=?",
+            (datetime.now().strftime("%Y-%m-%d"), leave_id, v[0]))
+        conn.commit()
+        flash("Leave rejected.")
+    conn.close()
+    return redirect(url_for("manage_leaves"))
+
+@app.route('/erp/hr/timesheets/save', methods=["POST"])
+def save_timesheet():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    employee_id = request.form.get("employee_id")
+    c.execute("SELECT id FROM employees WHERE id=? AND vendor_id=?", (employee_id, vendor_id))
+    if not c.fetchone():
+        conn.close()
+        flash("Invalid employee.")
+        return redirect(url_for("manage_timesheets"))
+    work_date = request.form.get("work_date")
+    check_in = request.form.get("check_in_time")
+    check_out = request.form.get("check_out_time")
+    total_hours = 0
+    try:
+        if check_in and check_out:
+            ci = datetime.strptime(check_in, "%H:%M")
+            co = datetime.strptime(check_out, "%H:%M")
+            total_hours = round((co - ci).total_seconds() / 3600, 2)
+    except ValueError:
+        conn.close()
+        flash("Invalid time format.")
+        return redirect(url_for("manage_timesheets"))
+    c.execute("""INSERT OR REPLACE INTO employee_timesheets 
+        (employee_id, vendor_id, work_date, check_in_time, check_out_time, total_hours)
+        VALUES (?,?,?,?,?,?)""", (employee_id, vendor_id, work_date, check_in, check_out, total_hours))
+    conn.commit()
+    conn.close()
+    flash("Timesheet saved!")
+    return redirect(url_for("manage_timesheets"))
+
+@app.route('/erp/hr/timesheets/mark-attendance', methods=["POST"])
+def mark_all_attendance():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    today = datetime.now().strftime("%Y-%m-%d")
+    now_time = datetime.now().strftime("%H:%M")
+    c.execute("SELECT id FROM employees WHERE vendor_id=? AND status='active'", (vendor_id,))
+    emps = c.fetchall()
+    for emp in emps:
+        c.execute("SELECT id FROM employee_timesheets WHERE employee_id=? AND work_date=?", (emp[0], today))
+        if not c.fetchone():
+            c.execute("""INSERT INTO employee_timesheets (employee_id, vendor_id, work_date, check_in_time, status)
+                VALUES (?,?,?,?,'present')""", (emp[0], vendor_id, today, now_time))
+    conn.commit()
+    conn.close()
+    flash("Attendance marked for all employees!")
+    return redirect(url_for("manage_timesheets"))
+
+@app.route('/erp/hr/payroll/pay/<int:employee_id>', methods=["POST"])
+def pay_employee(employee_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    month = request.form.get("month", datetime.now().strftime("%Y-%m"))
+    bonus = float(request.form.get("bonus", 0))
+    deductions = float(request.form.get("deductions", 0))
+    c.execute("SELECT base_salary, hourly_rate FROM employees WHERE id=? AND vendor_id=?", (employee_id, vendor_id))
+    emp = c.fetchone()
+    if not emp:
+        conn.close()
+        flash("Employee not found")
+        return redirect(url_for("manage_payroll"))
+    base_salary = emp[0]
+    c.execute("""SELECT COALESCE(SUM(overtime_hours),0) FROM employee_timesheets 
+        WHERE employee_id=? AND strftime('%Y-%m', work_date)=?""", (employee_id, month))
+    overtime = c.fetchone()[0]
+    overtime_pay = overtime * emp[1] * 1.5
+    total_pay = base_salary + overtime_pay + bonus - deductions
+    pay_start = f"{month}-01"
+    import calendar
+    y, m = int(month.split('-')[0]), int(month.split('-')[1])
+    pay_end = f"{month}-{calendar.monthrange(y, m)[1]}"
+    c.execute("""INSERT INTO employee_payroll (employee_id, vendor_id, pay_period_start, pay_period_end,
+        base_pay, overtime_pay, bonus, deductions, total_pay, payment_status, payment_date)
+        VALUES (?,?,?,?,?,?,?,?,?,'paid',?)""",
+        (employee_id, vendor_id, pay_start, pay_end, base_salary, overtime_pay, bonus, deductions, total_pay,
+         datetime.now().strftime("%Y-%m-%d")))
+    try:
+        c.execute("""INSERT INTO general_ledger (vendor_id, date, account_name, account_type, debit, credit, description)
+            VALUES (?,?,?,?,?,?,?)""", (vendor_id, datetime.now().strftime("%Y-%m-%d"), "Salaries Expense", "Expense", total_pay, 0, f"Salary payment for employee #{employee_id}"))
+        c.execute("""INSERT INTO general_ledger (vendor_id, date, account_name, account_type, debit, credit, description)
+            VALUES (?,?,?,?,?,?,?)""", (vendor_id, datetime.now().strftime("%Y-%m-%d"), "Cash/Bank", "Asset", 0, total_pay, f"Salary payment for employee #{employee_id}"))
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    flash("Employee paid successfully!")
+    return redirect(url_for("manage_payroll"))
+
+@app.route('/erp/hr/payroll/generate-payslips', methods=["POST"])
+def generate_payslips():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    vendor_name = v[1]
+    month = request.form.get("month", datetime.now().strftime("%Y-%m"))
+    import calendar
+    y, m_val = int(month.split('-')[0]), int(month.split('-')[1])
+    pay_start = f"{month}-01"
+    pay_end = f"{month}-{calendar.monthrange(y, m_val)[1]}"
+    c.execute("""SELECT e.id, e.name, e.position, e.base_salary, e.hourly_rate,
+        COALESCE(SUM(ts.overtime_hours),0) as ot_hours
+        FROM employees e LEFT JOIN employee_timesheets ts ON e.id=ts.employee_id AND strftime('%Y-%m', ts.work_date)=?
+        WHERE e.vendor_id=? AND e.status='active' GROUP BY e.id""", (month, vendor_id))
+    employees = c.fetchall()
+    payslips = []
+    for emp in employees:
+        ot_pay = emp[5] * emp[4] * 1.5
+        c.execute("SELECT bonus, deductions FROM employee_payroll WHERE employee_id=? AND pay_period_start=? ORDER BY id DESC LIMIT 1",
+            (emp[0], pay_start))
+        existing = c.fetchone()
+        bonus = existing[0] if existing else 0
+        deductions = existing[1] if existing else 0
+        total = emp[3] + ot_pay + bonus - deductions
+        if not existing:
+            c.execute("""INSERT INTO employee_payroll (employee_id, vendor_id, pay_period_start, pay_period_end,
+                base_pay, overtime_pay, bonus, deductions, total_pay, payment_status)
+                VALUES (?,?,?,?,?,?,?,?,?,'pending')""",
+                (emp[0], vendor_id, pay_start, pay_end, emp[3], ot_pay, bonus, deductions, total))
+        payslips.append({
+            'name': emp[1], 'position': emp[2], 'base_salary': emp[3],
+            'overtime_hours': emp[5], 'overtime_pay': ot_pay,
+            'bonus': bonus, 'deductions': deductions, 'total_pay': total,
+            'pay_period': f"{pay_start} to {pay_end}"
+        })
+    conn.commit()
+    conn.close()
+    return render_template("payslips.html", payslips=payslips, vendor_name=vendor_name, month=month)
+
+@app.route('/erp/hr/performance/add', methods=["GET","POST"])
+def add_performance_review():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    if request.method == "POST":
+        emp_id = request.form.get("employee_id")
+        c.execute("SELECT id FROM employees WHERE id=? AND vendor_id=?", (emp_id, vendor_id))
+        if not c.fetchone():
+            conn.close()
+            flash("Invalid employee.")
+            return redirect(url_for("add_performance_review"))
+        perf_month = request.form.get("performance_month")
+        try:
+            services = int(request.form.get("services_completed", 0))
+            revenue = float(request.form.get("revenue_generated", 0))
+            rating = float(request.form.get("customer_rating", 0))
+            attendance = float(request.form.get("attendance_rate", 0))
+            bonus = float(request.form.get("bonus_earned", 0))
+        except (ValueError, TypeError):
+            conn.close()
+            flash("Invalid numeric input.")
+            return redirect(url_for("add_performance_review"))
+        feedback = request.form.get("feedback", "")
+        norm_services = min(services / 50 * 100, 100) if services > 0 else 0
+        norm_revenue = min(revenue / 10000 * 100, 100) if revenue > 0 else 0
+        norm_rating = rating * 20
+        values = [norm_services, norm_revenue, norm_rating, attendance]
+        productivity_score = round(sum(values) / len(values), 1)
+        c.execute("""INSERT INTO employee_performance (employee_id, vendor_id, performance_month, services_completed,
+            revenue_generated, customer_rating, attendance_rate, productivity_score, bonus_earned, feedback, review_date)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (emp_id, vendor_id, perf_month, services, revenue, rating, attendance, productivity_score, bonus, feedback,
+             datetime.now().strftime("%Y-%m-%d")))
+        conn.commit()
+        conn.close()
+        flash("Performance review added!")
+        return redirect(url_for("manage_time_slots"))
+    c.execute("SELECT id, name FROM employees WHERE vendor_id=? AND status='active' ORDER BY name", (vendor_id,))
+    employees = c.fetchall()
+    conn.close()
+    return render_template("performance_review_form.html", employees=employees)
+
+def check_groomer_certification(employee_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT COALESCE(AVG(overall_rating),0), COUNT(*) FROM employee_reviews WHERE employee_id=?", (employee_id,))
+    avg_rating, total = c.fetchone()
+    if total < 50 or avg_rating < 4.8:
+        conn.close()
+        return False
+    c.execute("SELECT COUNT(*) FROM employee_reviews WHERE employee_id=? AND would_book_again=1", (employee_id,))
+    book_again = c.fetchone()[0]
+    pct = (book_again / total * 100) if total > 0 else 0
+    if pct < 85:
+        conn.close()
+        return False
+    c.execute("SELECT join_date FROM employees WHERE id=?", (employee_id,))
+    jd = c.fetchone()
+    if jd and jd[0]:
+        join_dt = datetime.strptime(jd[0], "%Y-%m-%d")
+        if (datetime.now() - join_dt).days < 180:
+            conn.close()
+            return False
+    conn.close()
+    return True
+
+def update_employee_review_stats(employee_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT COALESCE(AVG(overall_rating),0), COUNT(*) FROM employee_reviews WHERE employee_id=?", (employee_id,))
+    avg_r, total_r = c.fetchone()
+    is_cert = 1 if check_groomer_certification(employee_id) else 0
+    c.execute("UPDATE employees SET avg_overall_rating=?, total_reviews=?, is_certified=? WHERE id=?",
+        (round(avg_r, 2), total_r, is_cert, employee_id))
+    if is_cert:
+        c.execute("SELECT id FROM certified_groomers WHERE employee_id=?", (employee_id,))
+        if not c.fetchone():
+            c.execute("INSERT INTO certified_groomers (employee_id, certified_date, is_active) VALUES (?,?,1)",
+                (employee_id, datetime.now().strftime("%Y-%m-%d")))
+    else:
+        c.execute("UPDATE certified_groomers SET is_active=0, suspended_date=? WHERE employee_id=? AND is_active=1",
+            (datetime.now().strftime("%Y-%m-%d"), employee_id))
+    conn.commit()
+    conn.close()
+
+def auto_crm_collection(vendor_id, booking):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    user_email = booking.get('user_email', '')
+    pet_parent_name = booking.get('pet_parent_name', '')
+    if not user_email:
+        conn.close()
+        return
+    c.execute("SELECT id, total_orders FROM crm_customers WHERE vendor_id=? AND user_email=?", (vendor_id, user_email))
+    existing = c.fetchone()
+    if existing:
+        c.execute("UPDATE crm_customers SET last_contact_date=?, total_orders=?, updated_at=? WHERE id=?",
+            (datetime.now().strftime("%Y-%m-%d"), existing[1]+1, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), existing[0]))
+    else:
+        first_name = pet_parent_name.split()[0] if pet_parent_name else user_email.split('@')[0]
+        c.execute("""INSERT INTO crm_customers (vendor_id, customer_type, user_email, first_name, customer_source, 
+            lifecycle_stage, last_contact_date) VALUES (?,?,?,?,?,?,?)""",
+            (vendor_id, 'online', user_email, first_name, 'booking', 'customer', datetime.now().strftime("%Y-%m-%d")))
+    conn.commit()
+    conn.close()
+
+@app.route('/erp/bookings/done/<int:booking_id>', methods=["POST"])
+def mark_booking_done(booking_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    vendor_name = v[1]
+    c.execute("SELECT * FROM bookings WHERE id=? AND vendor_id=?", (booking_id, vendor_id))
+    booking = c.fetchone()
+    if not booking:
+        conn.close()
+        flash("Booking not found")
+        return redirect(url_for("erp_bookings"))
+    col_names = [desc[0] for desc in c.description]
+    booking_dict = dict(zip(col_names, booking))
+    c.execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
+    conn.commit()
+    conn.close()
+    try:
+        customer_email = booking_dict.get('user_email', '')
+        socketio.emit('booking_done', {
+            'booking_id': booking_id,
+            'message': f"Your pet is ready for pickup! {booking_dict.get('pet_name','')} has completed their {booking_dict.get('service','')} at {vendor_name}. Please come to collect them."
+        }, room=customer_email)
+        socketio.emit('review_prompt', {
+            'booking_id': booking_id,
+            'message': "How was your session? Rate your groomer!"
+        }, room=customer_email)
+    except:
+        pass
+    auto_crm_collection(vendor_id, booking_dict)
+    flash("Booking marked as completed!")
+    return redirect(url_for("erp_bookings"))
+
+@app.route('/erp/bookings/extend/<int:booking_id>', methods=["POST"])
+def extend_booking(booking_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    additional_time = int(request.form.get("additional_time", 30))
+    c.execute("UPDATE bookings SET duration=COALESCE(duration,60)+? WHERE id=? AND vendor_id=?",
+        (additional_time, booking_id, vendor_id))
+    conn.commit()
+    conn.close()
+    try:
+        note = request.form.get("note", "")
+        conn2 = sqlite3.connect('erp.db')
+        c2 = conn2.cursor()
+        c2.execute("SELECT user_email FROM bookings WHERE id=?", (booking_id,))
+        brow = c2.fetchone()
+        conn2.close()
+        customer_room = brow[0] if brow else ''
+        socketio.emit('booking_extended', {
+            'booking_id': booking_id,
+            'message': f"Your booking has been extended by {additional_time} minutes. {note}"
+        }, room=customer_room)
+    except:
+        pass
+    flash("Booking extended!")
+    return redirect(url_for("erp_bookings"))
+
+@app.route('/erp/bookings/assign-staff/<int:booking_id>', methods=["POST"])
+def assign_staff(booking_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    emp_id = request.form.get("employee_id")
+    if emp_id:
+        c.execute("SELECT id FROM employees WHERE id=? AND vendor_id=?", (emp_id, vendor_id))
+        if not c.fetchone():
+            conn.close()
+            flash("Invalid employee.")
+            return redirect(url_for("erp_bookings"))
+    c.execute("UPDATE bookings SET employee_id=? WHERE id=? AND vendor_id=?", (emp_id, booking_id, vendor_id))
+    conn.commit()
+    conn.close()
+    flash("Staff assigned!")
+    return redirect(url_for("erp_bookings"))
+
+@app.route('/booking/<int:booking_id>/review', methods=["GET","POST"])
+def booking_review(booking_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user_email = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM bookings WHERE id=?", (booking_id,))
+    booking = c.fetchone()
+    if not booking:
+        conn.close()
+        flash("Booking not found")
+        return redirect(url_for("my_bookings"))
+    col_names = [desc[0] for desc in c.description]
+    booking_dict = dict(zip(col_names, booking))
+    if booking_dict.get('status') != 'completed':
+        conn.close()
+        flash("Reviews can only be submitted for completed bookings")
+        return redirect(url_for("my_bookings"))
+    if booking_dict.get('user_email') != user_email:
+        conn.close()
+        flash("You can only review your own bookings")
+        return redirect(url_for("my_bookings"))
+    c.execute("SELECT id FROM employee_reviews WHERE booking_id=?", (booking_id,))
+    if c.fetchone():
+        conn.close()
+        flash("You have already reviewed this booking")
+        return redirect(url_for("my_bookings"))
+    if request.method == "POST":
+        employee_id = booking_dict.get('employee_id')
+        vendor_id = booking_dict.get('vendor_id')
+        if not employee_id:
+            conn.close()
+            flash("No groomer was assigned to this booking")
+            return redirect(url_for("my_bookings"))
+        overall = int(request.form.get("overall_rating", 5))
+        quality = int(request.form.get("service_quality", 5))
+        punctuality = int(request.form.get("punctuality", 5))
+        handling = int(request.form.get("handling_of_pet", 5))
+        review_text = request.form.get("review_text", "")
+        would_book = 1 if request.form.get("would_book_again") == "yes" else 0
+        c.execute("""INSERT INTO employee_reviews (employee_id, booking_id, vendor_id, reviewer_email,
+            overall_rating, service_quality, punctuality, handling_of_pet, review_text, would_book_again)
+            VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (employee_id, booking_id, vendor_id, user_email, overall, quality, punctuality, handling, review_text, would_book))
+        try:
+            c.execute("INSERT INTO reviews (vendor_id, user_email, rating, review_text, service_type) VALUES (?,?,?,?,?)",
+                (vendor_id, user_email, overall, review_text, "Grooming"))
+        except:
+            pass
+        conn.commit()
+        conn.close()
+        update_employee_review_stats(employee_id)
+        flash("Thank you for your review!")
+        return redirect(url_for("my_bookings"))
+    conn.close()
+    return render_template("booking_review.html", booking=booking_dict)
+
+@app.route('/vendor/<int:vendor_id>/groomers')
+def groomer_listing(vendor_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name, category, city FROM vendors WHERE id=?", (vendor_id,))
+    vendor = c.fetchone()
+    if not vendor:
+        conn.close()
+        return "Vendor not found", 404
+    c.execute("""SELECT e.id, e.name, e.position, e.avg_overall_rating, e.total_reviews, e.is_certified, e.is_groomer_of_month,
+        e.profile_image
+        FROM employees e WHERE e.vendor_id=? AND e.status='active' ORDER BY e.avg_overall_rating DESC""", (vendor_id,))
+    groomers_raw = c.fetchall()
+    groomers = []
+    for g in groomers_raw:
+        c.execute("SELECT COALESCE(AVG(handling_of_pet),0) FROM employee_reviews WHERE employee_id=?", (g[0],))
+        handling = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM employee_reviews WHERE employee_id=? AND would_book_again=1", (g[0],))
+        book_again = c.fetchone()[0]
+        pct = round(book_again / g[4] * 100, 1) if g[4] > 0 else 0
+        c.execute("SELECT review_text FROM employee_reviews WHERE employee_id=? ORDER BY created_at DESC LIMIT 1", (g[0],))
+        latest = c.fetchone()
+        groomers.append({
+            'id': g[0], 'name': g[1], 'position': g[2], 'avg_rating': g[3], 'total_reviews': g[4],
+            'is_certified': g[5], 'is_groomer_of_month': g[6], 'handling_rating': round(handling, 1),
+            'would_book_again_pct': pct, 'latest_review': latest[0] if latest else '',
+            'profile_image': g[7]
+        })
+    conn.close()
+    vendor_dict = {'id': vendor[0], 'name': vendor[1], 'category': vendor[2], 'city': vendor[3]}
+    return render_template("groomer_listing.html", groomers=groomers, vendor=vendor_dict)
+
+@app.route('/groomer/<int:employee_id>')
+def groomer_profile(employee_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT e.*, v.name as vendor_name, v.city as vendor_city, v.id as vendor_id
+        FROM employees e JOIN vendors v ON e.vendor_id=v.id WHERE e.id=?""", (employee_id,))
+    emp = c.fetchone()
+    if not emp:
+        conn.close()
+        return "Groomer not found", 404
+    col_names = [desc[0] for desc in c.description]
+    groomer = dict(zip(col_names, emp))
+    c.execute("SELECT COALESCE(AVG(overall_rating),0), COALESCE(AVG(service_quality),0), COALESCE(AVG(punctuality),0), COALESCE(AVG(handling_of_pet),0), COUNT(*) FROM employee_reviews WHERE employee_id=?", (employee_id,))
+    stats = c.fetchone()
+    c.execute("SELECT COUNT(*) FROM employee_reviews WHERE employee_id=? AND would_book_again=1", (employee_id,))
+    book_again = c.fetchone()[0]
+    pct = round(book_again / stats[4] * 100, 1) if stats[4] > 0 else 0
+    c.execute("SELECT overall_rating, review_text, created_at, would_book_again, reviewer_email FROM employee_reviews WHERE employee_id=? ORDER BY created_at DESC", (employee_id,))
+    reviews = c.fetchall()
+    c.execute("SELECT id FROM groomer_of_month WHERE employee_id=? AND month=?",
+        (employee_id, datetime.now().strftime("%Y-%m")))
+    is_gotm = c.fetchone() is not None
+    conn.close()
+    return render_template("groomer_profile.html", groomer=groomer, 
+        avg_overall=round(stats[0],1), avg_quality=round(stats[1],1), avg_punctuality=round(stats[2],1),
+        avg_handling=round(stats[3],1), total_reviews=stats[4], would_book_again_pct=pct,
+        reviews=reviews, is_gotm=is_gotm)
+
+@app.route('/erp/certifications/check', methods=["POST"])
+def check_certification():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    employee_id = request.form.get("employee_id")
+    if employee_id:
+        c.execute("SELECT id FROM employees WHERE id=? AND vendor_id=?", (employee_id, vendor_id))
+        if c.fetchone():
+            update_employee_review_stats(int(employee_id))
+            flash("Certification check completed!")
+        else:
+            flash("Invalid employee.")
+    conn.close()
+    return redirect(url_for("manage_time_slots"))
+
+@app.route('/erp/hr/groomer-of-month/calculate', methods=["POST"])
+def calculate_groomer_of_month():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    v = c.fetchone()
+    if not v:
+        conn.close()
+        return redirect(url_for("erp_login"))
+    vendor_id = v[0]
+    current_month = datetime.now().strftime("%Y-%m")
+    c.execute("UPDATE employees SET is_groomer_of_month=0 WHERE vendor_id=?", (vendor_id,))
+    c.execute("""SELECT e.id, e.name, COUNT(er.id) as review_count, COALESCE(AVG(er.overall_rating),0) as avg_r
+        FROM employees e LEFT JOIN employee_reviews er ON e.id=er.employee_id 
+        AND strftime('%Y-%m', er.created_at)=?
+        WHERE e.vendor_id=? AND e.status='active' GROUP BY e.id HAVING review_count > 0
+        ORDER BY (review_count * 0.4 + avg_r * 0.6 * 10) DESC LIMIT 1""", (current_month, vendor_id))
+    winner = c.fetchone()
+    if winner:
+        c.execute("SELECT COUNT(*) FROM employee_reviews WHERE employee_id=? AND would_book_again=1 AND strftime('%Y-%m',created_at)=?", (winner[0], current_month))
+        ba = c.fetchone()[0]
+        pct = round(ba / winner[2] * 100, 1) if winner[2] > 0 else 0
+        c.execute("DELETE FROM groomer_of_month WHERE vendor_id=? AND month=?", (vendor_id, current_month))
+        c.execute("INSERT INTO groomer_of_month (employee_id, vendor_id, month, total_reviews, avg_rating, would_book_again_pct) VALUES (?,?,?,?,?,?)",
+            (winner[0], vendor_id, current_month, winner[2], winner[3], pct))
+        c.execute("UPDATE employees SET is_groomer_of_month=1 WHERE id=?", (winner[0],))
+        try:
+            socketio.emit('groomer_of_month', {'employee_name': winner[1], 'month': current_month})
+        except:
+            pass
+    conn.commit()
+    conn.close()
+    flash("Groomer of the Month calculated!")
+    return redirect(url_for("manage_time_slots"))
 
 @app.route('/api/hr-metrics')
 def api_get_hr_metrics():

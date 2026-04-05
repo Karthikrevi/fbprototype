@@ -257,23 +257,30 @@
             </div>
           </div>
           {% elif booking.status == 'ready' %}
-          <div class="alert alert-success mt-4">
-            <div class="d-flex align-items-center">
-              <i class="fas fa-star me-3" style="font-size: 1.5rem;"></i>
-              <div>
-                <strong>Ready for Pickup!</strong><br>
-                Your pet is all groomed and looking fantastic! Please come collect your furry friend at your earliest convenience.
+          <div class="alert alert-success mt-4" id="pickup-{{ booking.id }}">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-star me-3" style="font-size: 1.5rem;"></i>
+                <div>
+                  <strong>Ready for Pickup!</strong><br>
+                  Your pet is all groomed and looking fantastic! Please come collect your furry friend at your earliest convenience.
+                </div>
               </div>
             </div>
           </div>
           {% elif booking.status == 'completed' %}
           <div class="alert alert-success mt-4">
-            <div class="d-flex align-items-center">
-              <i class="fas fa-heart me-3" style="font-size: 1.5rem;"></i>
-              <div>
-                <strong>Service Completed</strong><br>
-                Thank you for choosing our services! We hope you and your pet are happy with the results.
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-heart me-3" style="font-size: 1.5rem;"></i>
+                <div>
+                  <strong>Service Completed</strong><br>
+                  Thank you for choosing our services! We hope you and your pet are happy with the results.
+                </div>
               </div>
+              <a href="/booking/{{ booking.id }}/review" class="btn btn-warning btn-sm ms-3 text-nowrap">
+                <i class="fas fa-star"></i> Rate Your Groomer
+              </a>
             </div>
           </div>
           {% endif %}
@@ -293,5 +300,28 @@
       </div>
     {% endif %}
   </div>
+  <div id="pickupBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#28a745,#20c997);color:white;padding:20px;text-align:center;font-size:1.2rem;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+    <i class="fas fa-paw"></i> <span id="pickupMessage"></span>
+    <a id="pickupReviewLink" href="#" class="btn btn-warning btn-sm ms-3"><i class="fas fa-star"></i> Rate Your Groomer</a>
+    <button onclick="document.getElementById('pickupBanner').style.display='none'" class="btn btn-sm btn-outline-light ms-2"><i class="fas fa-times"></i></button>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    try {
+      const socket = io();
+      socket.on('booking_done', function(data) {
+        const banner = document.getElementById('pickupBanner');
+        document.getElementById('pickupMessage').textContent = data.message || 'Your pet is ready for pickup!';
+        document.getElementById('pickupReviewLink').href = '/booking/' + data.booking_id + '/review';
+        banner.style.display = 'block';
+      });
+      socket.on('review_prompt', function(data) {
+        const banner = document.getElementById('pickupBanner');
+        document.getElementById('pickupMessage').textContent = data.message || 'Rate your groomer!';
+        document.getElementById('pickupReviewLink').href = '/booking/' + data.booking_id + '/review';
+        banner.style.display = 'block';
+      });
+    } catch(e) { console.log('SocketIO not available'); }
+  </script>
 </body>
 </html>

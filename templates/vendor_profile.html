@@ -188,6 +188,35 @@
       </div>
     </div>
 
+    {% if groomers %}
+    <div class="services-section">
+      <h3><i class="fas fa-users"></i> Meet Our Groomers</h3>
+      <div class="row">
+        {% for g in groomers %}
+        <div class="col-md-6 mb-3">
+          <div class="service-card">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h5 class="mb-1"><a href="/groomer/{{ g.id }}" class="text-decoration-none text-dark">{{ g.name }}</a></h5>
+                <span class="badge bg-primary">{{ g.position }}</span>
+                {% if g.is_certified %}<span class="badge bg-warning text-dark"><i class="fas fa-star"></i> FurrButler Certified</span>{% endif %}
+                {% if g.is_groomer_of_month %}<span class="badge" style="background:#6f42c1;color:white;"><i class="fas fa-trophy"></i> GOTM</span>{% endif %}
+              </div>
+              <div class="text-end">
+                <div style="color:#ffc107;">{% for i in range(g.avg_rating|int) %}<i class="fas fa-star"></i>{% endfor %}</div>
+                <small class="text-muted">{{ "%.1f"|format(g.avg_rating) }} ({{ g.total_reviews }})</small>
+              </div>
+            </div>
+            <a href="/vendor/{{ vendor.id }}/book?employee_id={{ g.id }}" class="btn btn-sm btn-primary mt-2"><i class="fas fa-calendar-plus"></i> Book</a>
+            <a href="/groomer/{{ g.id }}" class="btn btn-sm btn-outline-primary mt-2"><i class="fas fa-user"></i> Profile</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <a href="/vendor/{{ vendor.id }}/groomers" class="btn btn-outline-primary mt-2"><i class="fas fa-users"></i> View All Groomers</a>
+    </div>
+    {% endif %}
+
     {% if vendor.services %}
     <div class="services-section">
       <h3>🛠️ Available Services</h3>

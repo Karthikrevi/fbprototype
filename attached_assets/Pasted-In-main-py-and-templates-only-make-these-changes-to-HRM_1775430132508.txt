@@ -1,0 +1,321 @@
+In main.py and templates only, make these
+changes to HRM and the groomer booking system.
+Do not modify any other routes or templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Employee Management:
+
+Add route /erp/hr/employees/<int:employee_id>
+GET: Show full employee detail page with:
+- All employee fields displayed
+- Employment history
+- Leave balance summary
+- This month attendance summary
+- Performance history last 3 months
+- Their average rating from employee_reviews
+
+Add route /erp/hr/employees/<int:employee_id>/edit
+GET and POST:
+Show pre-filled edit form with all fields:
+name, email, phone, position, base_salary,
+hourly_rate, join_date, emergency_contact,
+address, skills, certifications
+POST saves changes and redirects to detail page
+
+Add route /erp/hr/leaves GET and POST:
+GET: Show leave management page with:
+- Leave application form:
+  employee dropdown
+  leave_type dropdown:
+  sick/vacation/personal/emergency/
+  maternity/paternity
+  start_date, end_date
+  auto-calculated days_count
+  reason textarea
+- Pending leave requests table with
+  Approve and Reject buttons
+  Each button POSTs to
+  /erp/hr/leaves/<id>/approve
+  /erp/hr/leaves/<id>/reject
+  Updates status in employee_leaves table
+- Leave history table
+
+In manage_time_slots.html only:
+Wire up view button to
+/erp/hr/employees/{{ employee.id }}
+Wire up edit button to
+/erp/hr/employees/{{ employee.id }}/edit
+Add Leave Management button linking
+to /erp/hr/leaves
+
+PART 2 — Timesheets:
+
+In manage_timesheets route and template:
+Make each employee row editable inline:
+- Check in time input field
+- Check out time input field
+- Pre-filled if record exists for selected date
+- Save button per row POSTs to
+  /erp/hr/timesheets/save
+  with employee_id, work_date,
+  check_in_time, check_out_time
+- Auto-calculate total_hours on save
+
+Mark Attendance button should:
+Mark all employees with no timesheet
+entry for today as present with
+current time as check in
+Not overwrite existing entries
+
+PART 3 — Payroll:
+
+In manage_payroll route and template:
+Add month picker defaulting to current month
+
+Each employee row must have:
+- Editable bonus input field
+- Editable deductions input field
+- Total pay auto-calculated in JavaScript:
+  base_salary + overtime_pay + bonus - deductions
+
+Pay button per employee POSTs to
+/erp/hr/payroll/pay/<employee_id>
+Records payment in employee_payroll table
+Updates payment_status to paid
+Creates ledger entry:
+  Debit: Salaries expense
+  Credit: Cash or Bank
+
+Generate Payslips button POSTs to
+/erp/hr/payroll/generate-payslips
+Creates employee_payroll records for
+all employees for selected month
+Generates printable payslip page
+for each employee showing:
+  Employee name and position
+  Pay period
+  Base salary
+  Overtime hours and pay
+  Bonus
+  Deductions
+  Total pay
+  Payment method
+  Employer name and signature line
+
+Add Download All Payslips button
+that generates all payslips in one
+printable page
+
+PART 4 — Performance Reviews:
+
+Add route /erp/hr/performance/add
+GET and POST:
+Show performance review form with:
+- Employee dropdown
+- Month picker
+- Services completed number
+- Revenue generated number
+- Customer rating 1-5
+- Attendance rate percentage
+- Feedback textarea
+- Bonus earned number
+- Auto-calculate productivity_score as
+  average of all numeric fields
+  normalised to 100
+
+POST saves to employee_performance table
+Redirects back to performance tab
+
+In manage_time_slots.html performance tab:
+Add + Add Review button linking to
+/erp/hr/performance/add
+Show last 3 months per employee
+as expandable rows
+
+PART 5 — Groomer Rating System:
+
+Database changes in init_erp_db():
+
+Add employee_id column to bookings table:
+ALTER TABLE bookings
+ADD COLUMN employee_id INTEGER
+REFERENCES employees(id)
+
+Create employee_reviews table:
+CREATE TABLE IF NOT EXISTS employee_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    booking_id INTEGER NOT NULL,
+    vendor_id INTEGER NOT NULL,
+    reviewer_email TEXT NOT NULL,
+    overall_rating INTEGER
+        CHECK(overall_rating >= 1
+        AND overall_rating <= 5),
+    service_quality INTEGER
+        CHECK(service_quality >= 1
+        AND service_quality <= 5),
+    punctuality INTEGER
+        CHECK(punctuality >= 1
+        AND punctuality <= 5),
+    handling_of_pet INTEGER
+        CHECK(handling_of_pet >= 1
+        AND handling_of_pet <= 5),
+    review_text TEXT,
+    would_book_again BOOLEAN,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id)
+        REFERENCES employees(id),
+    FOREIGN KEY (booking_id)
+        REFERENCES bookings(id),
+    FOREIGN KEY (vendor_id)
+        REFERENCES vendors(id)
+)
+
+Staff assignment on booking confirmation:
+In erp_bookings route and erp_booking.html,
+when vendor updates booking status
+to confirmed show employee dropdown
+to assign staff member.
+Only show active employees for this vendor.
+Save employee_id to the booking record.
+
+Review form on booking completion:
+Add route /booking/<int:booking_id>/review
+GET: Show review form only if:
+  - booking status is completed
+  - session user email matches booking
+    user_email
+  - no existing review for this booking_id
+Form fields:
+  Overall rating 1-5 stars
+  Service quality 1-5 stars
+  Punctuality 1-5 stars
+  Handling of pet 1-5 stars
+  Review text textarea
+  Would you book this groomer again
+  yes or no
+POST: Save to employee_reviews table
+Also update reviews table with
+overall_rating for vendor level rating
+
+When booking status changes to completed
+in update_booking_status route:
+
+1. Emit SocketIO event to user:
+{
+  event: review_prompt,
+  booking_id: booking_id,
+  message: "How was your session?
+            Rate your groomer!"
+}
+
+2. Auto-add or update customer in
+vendor CRM:
+Check if user_email exists in
+crm_customers for this vendor
+If not exists insert new record with:
+  first_name from booking pet_parent_name
+  user_email from booking
+  customer_type = online
+  customer_source = booking
+  lifecycle_stage = customer
+If exists update last_contact_date
+and total_orders count
+Never store phone for marketing purposes
+
+PART 6 — Done Button for Groomers
+and Boarding:
+
+In erp_bookings route and erp_booking.html:
+Add a Done button for bookings with
+status = confirmed or in_progress
+
+Done button POSTs to
+/erp/bookings/done/<int:booking_id>
+
+/erp/bookings/done/<int:booking_id> POST:
+1. Update booking status to completed
+2. Send SocketIO notification to pet parent:
+   event: booking_done
+   message: "Your pet is ready for pickup!
+             [Pet name] has completed their
+             [service] at [vendor name].
+             Please come to collect them."
+3. Trigger CRM auto-collection as above
+4. Trigger review prompt as above
+
+In my_bookings.html:
+When pet parent receives booking_done
+SocketIO event show a prominent
+notification banner:
+"🐾 [Pet name] is ready for pickup!"
+With a Rate Your Groomer button
+linking to /booking/[id]/review
+
+Add Extend Booking option:
+In erp_bookings for confirmed bookings
+add an Extend button that shows a form:
+- Additional time dropdown:
+  30 mins, 1 hour, 2 hours
+- Additional cost field
+- Note to pet parent field
+POSTs to /erp/bookings/extend/<id>
+Updates booking duration and
+sends notification to pet parent
+
+PART 7 — Groomer Listing Page:
+
+Add route /vendor/<int:vendor_id>/groomers
+GET: Show all active employees for
+this vendor with ratings from
+employee_reviews table
+For each employee show:
+  name, position
+  average overall_rating
+  average handling_of_pet rating
+  total_reviews count
+  most recent review excerpt
+  Book This Groomer button
+
+Book This Groomer button links to:
+/vendor/{{ vendor_id }}/book?employee_id=
+{{ employee.id }}
+
+In book_vendor_service route:
+If employee_id is in URL params
+pre-select that employee
+Show their name and rating prominently
+Save employee_id to the booking
+
+In vendor_profile.html only:
+Add Meet Our Groomers section
+above services section
+Show employee cards with name,
+rating and Book This Groomer button
+if vendor has employees with reviews
+Show vendor overall rating as average
+of all employee overall ratings
+
+Create templates/groomer_listing.html
+for /vendor/<vendor_id>/groomers
+showing all groomers with ratings
+review excerpts and booking buttons
+Same purple gradient styling
+Back button to vendor profile
+
+Create templates/booking_review.html
+for /booking/<booking_id>/review
+Simple clean form with star rating
+inputs for all four categories
+Thank you message after submission
+Back button to my bookings
+
+Do not modify any other routes.
+Do not modify any other templates
+except erp_booking.html for staff
+assignment and done button,
+vendor_profile.html for groomer section,
+and my_bookings.html for pickup notification.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

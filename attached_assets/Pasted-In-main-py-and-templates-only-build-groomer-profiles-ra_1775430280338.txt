@@ -1,0 +1,211 @@
+In main.py and templates only, build
+groomer profiles, ratings badges and
+the FurrButler Certified system.
+Do not modify any existing routes
+except where specified.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Individual Groomer Profiles:
+
+Add route /groomer/<int:employee_id>
+GET: Public facing groomer profile page
+showing:
+- Groomer name and position
+- Vendor shop name and city
+- Profile photo if available
+- Overall rating (average from
+  employee_reviews)
+- Individual ratings breakdown:
+  Service Quality average
+  Punctuality average
+  Handling of Pet average
+- Total reviews count
+- Would Book Again percentage
+- FurrButler Certified badge if eligible
+- Groomer of the Month badge if applicable
+- All verified reviews with:
+  Star rating display
+  Review text
+  Date
+  Would book again indicator
+- Book This Groomer button linking to
+  /vendor/{{ vendor_id }}/book?
+  employee_id={{ employee_id }}
+- Back button to vendor profile
+
+Create templates/groomer_profile.html
+with purple gradient styling matching
+rest of app
+
+PART 2 — FurrButler Certified Badge:
+
+Add certification check function
+in main.py:
+
+def check_groomer_certification(employee_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    Check these criteria:
+    1. Average overall_rating >= 4.8
+       from employee_reviews
+    2. Total reviews count >= 50
+    3. Would book again percentage >= 85%
+       (count where would_book_again = 1
+       divided by total reviews)
+    4. No unresolved citizen reports
+       linked to this employee's bookings
+    5. Employee join_date at least
+       180 days ago
+
+    Returns True if all criteria met
+    Returns False otherwise
+
+    conn.close()
+
+Add certified_groomers table:
+CREATE TABLE IF NOT EXISTS
+certified_groomers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER UNIQUE NOT NULL,
+    certified_date TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    suspended_date TEXT,
+    suspension_reason TEXT,
+    FOREIGN KEY (employee_id)
+        REFERENCES employees(id)
+)
+
+Add route /erp/certifications/check
+POST: Called automatically when a new
+review is submitted
+Runs check_groomer_certification()
+for the reviewed employee
+If certified and not already in
+certified_groomers table:
+  Insert record
+  Send SocketIO notification to vendor:
+  "🏆 Congratulations! [Groomer name]
+   has earned FurrButler Certified status!"
+
+If previously certified but criteria
+no longer met:
+  Set is_active = 0
+  Set suspended_date = today
+  Notify vendor
+
+Show FurrButler Certified badge
+wherever groomer is displayed:
+- groomer_profile.html
+- groomer_listing.html
+- vendor_profile.html groomer section
+- booking confirmation page
+
+Badge styling:
+Gold star icon with text
+"FurrButler Certified ✓"
+Tooltip on hover:
+"This groomer has 50+ verified reviews
+with an average rating of 4.8 or above
+and an 85%+ would book again rate"
+
+PART 3 — Groomer of the Month:
+
+Add groomer_of_month table:
+CREATE TABLE IF NOT EXISTS
+groomer_of_month (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    vendor_id INTEGER NOT NULL,
+    month TEXT NOT NULL,
+    total_reviews INTEGER,
+    avg_rating REAL,
+    would_book_again_pct REAL,
+    FOREIGN KEY (employee_id)
+        REFERENCES employees(id)
+)
+
+Add route /erp/hr/groomer-of-month/calculate
+POST: Calculate Groomer of the Month
+for current month per vendor
+
+For each vendor:
+Find the employee with highest combination
+of reviews received this month AND
+highest average rating this month
+weighted score = (reviews_this_month * 0.4)
+              + (avg_rating * 0.6 * 10)
+
+Insert or update groomer_of_month
+for current month
+
+This route should be called:
+- Manually from vendor HRM dashboard
+- Automatically on 1st of each month
+  via a scheduled check when any vendor
+  logs in
+
+Show Groomer of the Month badge:
+Purple ribbon icon
+"⭐ Groomer of the Month"
+Show on groomer profile page
+Show on vendor profile groomer section
+Show on groomer listing page
+
+Add a Groomer of the Month section
+to vendor HRM dashboard showing:
+Current month winner with their stats
+Last 3 months winners
+
+PART 4 — Update booking review route:
+
+In /booking/<int:booking_id>/review POST:
+After saving the review call
+/erp/certifications/check internally
+to check if groomer now qualifies
+for certification
+
+Also update groomer average ratings
+in a summary — add these columns to
+employees table using ALTER TABLE:
+ALTER TABLE employees
+ADD COLUMN avg_overall_rating REAL
+DEFAULT 0;
+ALTER TABLE employees
+ADD COLUMN total_reviews INTEGER
+DEFAULT 0;
+ALTER TABLE employees
+ADD COLUMN is_certified BOOLEAN
+DEFAULT 0;
+ALTER TABLE employees
+ADD COLUMN is_groomer_of_month BOOLEAN
+DEFAULT 0;
+
+Update these columns whenever a new
+review is submitted for efficiency
+rather than recalculating every time
+
+PART 5 — Update groomer listing page:
+
+In groomer_listing.html update each
+groomer card to show:
+- FurrButler Certified badge if
+  employee.is_certified is True
+- Groomer of the Month badge if
+  employee.is_groomer_of_month is True
+- Rating with total review count
+- Would book again percentage
+- Link to full groomer profile:
+  /groomer/{{ employee.id }}
+- Book This Groomer button
+
+In vendor_profile.html groomer section:
+Same badges and profile links
+
+Do not modify any other routes.
+Do not modify any other templates
+except groomer_listing.html and
+vendor_profile.html groomer section.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

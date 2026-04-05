@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Your Groomer - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; font-family: 'Poppins', sans-serif; }
+    .container { max-width: 600px; padding: 20px; margin-top: 30px; }
+    .review-card { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 25px; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+    .back-btn:hover { background: rgba(255,255,255,0.3); color: white; }
+    .star-input { display: flex; gap: 5px; direction: rtl; justify-content: flex-end; }
+    .star-input input { display: none; }
+    .star-input label { font-size: 2rem; color: #ddd; cursor: pointer; transition: color 0.2s; }
+    .star-input input:checked ~ label, .star-input label:hover, .star-input label:hover ~ label { color: #ffc107; }
+    .rating-group { margin-bottom: 20px; }
+    .rating-group h6 { margin-bottom: 8px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/my-bookings" class="back-btn"><i class="fas fa-arrow-left"></i> Back to My Bookings</a>
+    <div class="review-card">
+      <div class="text-center mb-4">
+        <i class="fas fa-paw" style="font-size: 3rem; color: #667eea;"></i>
+        <h3 class="mt-2">Rate Your Experience</h3>
+        <p class="text-muted">{{ booking.service }} - {{ booking.pet_name or 'Your Pet' }}</p>
+      </div>
+
+      <form method="POST">
+        <div class="rating-group">
+          <h6><i class="fas fa-star"></i> Overall Rating</h6>
+          <div class="star-input">
+            {% for i in range(5, 0, -1) %}
+            <input type="radio" name="overall_rating" value="{{ i }}" id="overall{{ i }}" {% if i==5 %}checked{% endif %}>
+            <label for="overall{{ i }}"><i class="fas fa-star"></i></label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <h6><i class="fas fa-gem"></i> Service Quality</h6>
+          <div class="star-input">
+            {% for i in range(5, 0, -1) %}
+            <input type="radio" name="service_quality" value="{{ i }}" id="quality{{ i }}" {% if i==5 %}checked{% endif %}>
+            <label for="quality{{ i }}"><i class="fas fa-star"></i></label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <h6><i class="fas fa-clock"></i> Punctuality</h6>
+          <div class="star-input">
+            {% for i in range(5, 0, -1) %}
+            <input type="radio" name="punctuality" value="{{ i }}" id="punct{{ i }}" {% if i==5 %}checked{% endif %}>
+            <label for="punct{{ i }}"><i class="fas fa-star"></i></label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <h6><i class="fas fa-paw"></i> Handling of Pet</h6>
+          <div class="star-input">
+            {% for i in range(5, 0, -1) %}
+            <input type="radio" name="handling_of_pet" value="{{ i }}" id="handling{{ i }}" {% if i==5 %}checked{% endif %}>
+            <label for="handling{{ i }}"><i class="fas fa-star"></i></label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label"><i class="fas fa-comment"></i> Review (optional)</label>
+          <textarea name="review_text" class="form-control" rows="3" placeholder="Tell us about your experience..."></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label"><i class="fas fa-redo"></i> Would you book this groomer again?</label>
+          <div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="would_book_again" value="yes" id="bookYes" checked>
+              <label class="form-check-label" for="bookYes">Yes</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="would_book_again" value="no" id="bookNo">
+              <label class="form-check-label" for="bookNo">No</label>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-100"><i class="fas fa-paper-plane"></i> Submit Review</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

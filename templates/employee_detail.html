@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ employee.name }} - Employee Detail</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; font-family: 'Poppins', sans-serif; }
+    .container { max-width: 1100px; padding: 20px; margin-top: 20px; }
+    .card-section { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 25px; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+    .back-btn:hover { background: rgba(255,255,255,0.3); color: white; }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+    .info-box { background: #f8f9fa; border-radius: 10px; padding: 15px; border-left: 4px solid #667eea; }
+    .info-box label { font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .info-box .val { font-weight: 600; color: #333; }
+    .rating-badge { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/erp/hr/employees" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Employees</a>
+    <div class="card-section">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h2><i class="fas fa-user-circle text-primary"></i> {{ employee.name }}</h2>
+          <span class="badge bg-primary">{{ employee.position }}</span>
+          <span class="badge bg-{{ 'success' if employee.status == 'active' else 'danger' }}">{{ employee.status|title }}</span>
+          {% if employee.is_certified %}<span class="badge bg-warning text-dark"><i class="fas fa-star"></i> FurrButler Certified</span>{% endif %}
+          {% if employee.is_groomer_of_month %}<span class="badge bg-purple text-white" style="background:#6f42c1;"><i class="fas fa-trophy"></i> Groomer of the Month</span>{% endif %}
+        </div>
+        <div>
+          <span class="rating-badge"><i class="fas fa-star"></i> {{ "%.1f"|format(avg_rating) }} ({{ total_reviews }} reviews)</span>
+          <a href="/erp/hr/employees/{{ employee.id }}/edit" class="btn btn-outline-primary ms-2"><i class="fas fa-edit"></i> Edit</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <h5><i class="fas fa-id-card text-primary"></i> Employee Information</h5>
+      <div class="info-grid mt-3">
+        <div class="info-box"><label>Email</label><div class="val">{{ employee.email or 'N/A' }}</div></div>
+        <div class="info-box"><label>Phone</label><div class="val">{{ employee.phone or 'N/A' }}</div></div>
+        <div class="info-box"><label>Base Salary</label><div class="val">{{ vendor_currency }}{{ "%.0f"|format(employee.base_salary or 0) }}/month</div></div>
+        <div class="info-box"><label>Hourly Rate</label><div class="val">{{ vendor_currency }}{{ "%.0f"|format(employee.hourly_rate or 0) }}/hr</div></div>
+        <div class="info-box"><label>Join Date</label><div class="val">{{ employee.join_date or 'N/A' }}</div></div>
+        <div class="info-box"><label>Emergency Contact</label><div class="val">{{ employee.emergency_contact or 'N/A' }}</div></div>
+        <div class="info-box"><label>Address</label><div class="val">{{ employee.address or 'N/A' }}</div></div>
+        <div class="info-box"><label>Skills</label><div class="val">{{ employee.skills or 'N/A' }}</div></div>
+        <div class="info-box"><label>Certifications</label><div class="val">{{ employee.certifications or 'N/A' }}</div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card-section">
+          <h5><i class="fas fa-calendar-check text-success"></i> Leave Balance (This Year)</h5>
+          {% if leave_balance %}
+          <table class="table table-sm mt-3">
+            <thead><tr><th>Type</th><th>Days Used</th></tr></thead>
+            <tbody>
+              {% for lb in leave_balance %}
+              <tr><td>{{ lb[0]|title }}</td><td>{{ lb[1] }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="text-muted mt-3">No leave records this year.</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card-section">
+          <h5><i class="fas fa-clock text-warning"></i> This Month Attendance</h5>
+          {% if attendance %}
+          <div class="table-responsive">
+            <table class="table table-sm mt-3">
+              <thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th></tr></thead>
+              <tbody>
+                {% for a in attendance %}
+                <tr>
+                  <td>{{ a[0] }}</td><td>{{ a[1] or '--' }}</td><td>{{ a[2] or '--' }}</td>
+                  <td>{{ "%.1f"|format(a[3] or 0) }}</td>
+                  <td><span class="badge bg-{{ 'success' if a[4]=='present' else 'warning' }}">{{ a[4] or 'N/A' }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted mt-3">No attendance records this month.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <h5><i class="fas fa-chart-line text-info"></i> Performance History (Last 3 Months)</h5>
+      {% if performance %}
+      <div class="table-responsive">
+        <table class="table mt-3">
+          <thead><tr><th>Month</th><th>Services</th><th>Revenue</th><th>Rating</th><th>Attendance</th><th>Score</th><th>Bonus</th></tr></thead>
+          <tbody>
+            {% for p in performance %}
+            <tr>
+              <td>{{ p[0] }}</td><td>{{ p[1] }}</td><td>{{ vendor_currency }}{{ "%.0f"|format(p[2] or 0) }}</td>
+              <td>{{ "%.1f"|format(p[3] or 0) }}/5</td><td>{{ "%.0f"|format(p[4] or 0) }}%</td>
+              <td><span class="badge bg-primary">{{ "%.1f"|format(p[5] or 0) }}</span></td>
+              <td>{{ vendor_currency }}{{ "%.0f"|format(p[6] or 0) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mt-3">No performance reviews recorded yet.</p>
+      {% endif %}
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
