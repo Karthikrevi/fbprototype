@@ -8507,6 +8507,104 @@ def add_stock_submit():
         return redirect(url_for("add_stock_page"))
 
 
+@app.route('/erp/inventory/restock/<int:item_id>', methods=["GET", "POST"])
+def restock_item(item_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("inventory_management"))
+    vendor_id = vendor_result[0]
+
+    c.execute("SELECT id, name, quantity, buy_price, barcode FROM products WHERE id=? AND vendor_id=?", (item_id, vendor_id))
+    product = c.fetchone()
+    if not product:
+        conn.close()
+        flash("Product not found")
+        return redirect(url_for("inventory_management"))
+
+    if request.method == "GET":
+        conn.close()
+        product_info = {
+            "id": product[0],
+            "name": product[1],
+            "current_stock": product[2] or 0,
+            "buy_price": product[3] or 0,
+            "barcode": product[4] or ""
+        }
+        return render_template("restock_item.html", product=product_info)
+
+    quantity = int(request.form.get("quantity", 0))
+    unit_cost = float(request.form.get("unit_cost", 0))
+    batch_name = request.form.get("batch_name", f"BATCH-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+    notes = request.form.get("notes", "")
+
+    if quantity <= 0 or unit_cost <= 0:
+        conn.close()
+        flash("Quantity and unit cost must be greater than zero")
+        return redirect(url_for("restock_item", item_id=item_id))
+
+    try:
+        c.execute("UPDATE products SET quantity = quantity + ?, buy_price = ? WHERE id = ?",
+                  (quantity, unit_cost, item_id))
+
+        c.execute("""
+            INSERT INTO inventory_batches (product_id, quantity, unit_cost, remaining_quantity)
+            VALUES (?, ?, ?, ?)
+        """, (item_id, quantity, unit_cost, quantity))
+
+        c.execute("""
+            INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (item_id, batch_name, quantity, unit_cost, datetime.now().strftime("%Y-%m-%d")))
+
+        c.execute("""
+            INSERT INTO restock_log (vendor_id, product_id, quantity_added, unit_cost, barcode, entry_method)
+            VALUES (?, ?, ?, ?, ?, 'manual_entry')
+        """, (vendor_id, item_id, quantity, unit_cost, product[4] or ""))
+
+        total_cost = quantity * unit_cost
+        c.execute("""
+            INSERT INTO expenses (vendor_id, category, amount, description, date)
+            VALUES (?, 'Inventory', ?, ?, ?)
+        """, (vendor_id, total_cost, f"Restock - {product[1]} ({quantity} units)", datetime.now().strftime("%Y-%m-%d")))
+
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
+        """, (vendor_id, total_cost, f"Restock - {product[1]} ({quantity} units)"))
+
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory Purchase')
+        """, (vendor_id, total_cost, f"Payment for Restock - {product[1]}"))
+
+        conn.commit()
+        conn.close()
+        flash(f"Successfully restocked {quantity} units of {product[1]}.")
+        return redirect(url_for("inventory_management"))
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        flash(f"Error restocking: {str(e)}")
+        return redirect(url_for("restock_item", item_id=item_id))
+
+
+@app.route('/erp/inventory/transfer/<int:item_id>')
+def transfer_item(item_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+    return render_template("transfer_stock_placeholder.html", item_id=item_id)
+
+
 # Enhanced inventory management with automatic expense tracking
 @app.route('/erp/inventory/add-stock/<int:product_id>', methods=["POST"])
 def add_inventory_stock(product_id):
