@@ -182,28 +182,28 @@
                     </div>
 
                     <div class="row" id="employeesList">
-                        <!-- Employee cards will be populated here -->
+                        {% if employees %}
+                        {% for emp in employees %}
                         <div class="col-md-6">
                             <div class="employee-card">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h5>Sarah Johnson</h5>
-                                        <span class="badge bg-primary">Senior Groomer</span>
-                                        <p class="text-muted mb-1">📧 sarah@petcare.com</p>
-                                        <p class="text-muted mb-2">📱 +91-9876543210</p>
+                                        <h5>{{ emp[1] }}</h5>
+                                        <span class="badge bg-primary">{{ emp[4] or 'Staff' }}</span>
+                                        <p class="text-muted mb-1">{{ emp[2] }}</p>
+                                        <p class="text-muted mb-2">{{ emp[3] or '' }}</p>
                                         <div class="d-flex align-items-center">
                                             <span class="attendance-status status-present"></span>
-                                            <small>Present Today</small>
+                                            <small>{{ emp[7] or 'Active' }}</small>
                                         </div>
                                     </div>
                                     <div class="text-end">
-                                        <h6>{{ vendor_currency }}15,000/month</h6>
-                                        <small class="text-muted">Revenue: {{ vendor_currency }}25,000</small>
+                                        <h6>{{ vendor_currency }}{{ "%.0f"|format(emp[5] or 0) }}/month</h6>
                                         <div class="mt-2">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="viewEmployee(1)">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="viewEmployee({{ emp[0] }})">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="editEmployee(1)">
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="editEmployee({{ emp[0] }})">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                         </div>
@@ -211,35 +211,13 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div class="col-md-6">
-                            <div class="employee-card">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <h5>Mike Wilson</h5>
-                                        <span class="badge bg-info">Junior Groomer</span>
-                                        <p class="text-muted mb-1">📧 mike@petcare.com</p>
-                                        <p class="text-muted mb-2">📱 +91-9876543211</p>
-                                        <div class="d-flex align-items-center">
-                                            <span class="attendance-status status-late"></span>
-                                            <small>Late Today</small>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <h6>{{ vendor_currency }}12,000/month</h6>
-                                        <small class="text-muted">Revenue: {{ vendor_currency }}18,000</small>
-                                        <div class="mt-2">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="viewEmployee(2)">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="editEmployee(2)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="col-12 text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No employees found. Add your first employee to get started.</p>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -251,7 +229,7 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <input type="date" class="form-control" id="timesheetDate" value="2025-07-23">
+                            <input type="date" class="form-control" id="timesheetDate" value="{{ now_date }}">
                         </div>
                         <div class="col-md-6">
                             <button class="btn btn-success" onclick="markAttendance()">
@@ -261,65 +239,44 @@
                     </div>
 
                     <div id="timesheetEntries">
+                        {% if employees %}
+                        {% for emp in employees %}
                         <div class="timesheet-row">
                             <div class="row align-items-center">
                                 <div class="col-md-3">
-                                    <strong>Sarah Johnson</strong><br>
-                                    <small class="text-muted">Senior Groomer</small>
+                                    <strong>{{ emp[1] }}</strong><br>
+                                    <small class="text-muted">{{ emp[4] or 'Staff' }}</small>
                                 </div>
                                 <div class="col-md-2">
-                                    <span class="badge bg-success">09:00 AM</span><br>
+                                    <span class="badge bg-secondary">--:--</span><br>
                                     <small>Check In</small>
                                 </div>
                                 <div class="col-md-2">
-                                    <span class="badge bg-danger">06:30 PM</span><br>
+                                    <span class="badge bg-secondary">--:--</span><br>
                                     <small>Check Out</small>
                                 </div>
                                 <div class="col-md-2">
-                                    <strong>9.5 hrs</strong><br>
+                                    <strong>0.0 hrs</strong><br>
                                     <small>Total Hours</small>
                                 </div>
                                 <div class="col-md-2">
-                                    <strong>{{ vendor_currency }}1,425</strong><br>
+                                    <strong>{{ vendor_currency }}{{ "%.0f"|format((emp[6] or 0) * 0) }}</strong><br>
                                     <small>Daily Earnings</small>
                                 </div>
                                 <div class="col-md-1">
-                                    <button class="btn btn-sm btn-outline-primary">
+                                    <a href="/erp/hr/timesheets" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-edit"></i>
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="timesheet-row">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <strong>Mike Wilson</strong><br>
-                                    <small class="text-muted">Junior Groomer</small>
-                                </div>
-                                <div class="col-md-2">
-                                    <span class="badge bg-warning">09:15 AM</span><br>
-                                    <small>Check In (Late)</small>
-                                </div>
-                                <div class="col-md-2">
-                                    <span class="badge bg-secondary">Working</span><br>
-                                    <small>Still Working</small>
-                                </div>
-                                <div class="col-md-2">
-                                    <strong>8.0 hrs</strong><br>
-                                    <small>Current Hours</small>
-                                </div>
-                                <div class-md-2">
-                                    <strong>{{ vendor_currency }}960</strong><br>
-                                    <small>Current Earnings</small>
-                                </div>
-                                <div class="col-md-1">
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
-                            </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No employees found. Add your first employee to get started.</p>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -332,49 +289,40 @@
                             <h4><i class="fas fa-money-bill text-success"></i> Payroll Management</h4>
 
                             <div class="table-responsive">
+                                {% if employees %}
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
                                             <th>Employee</th>
                                             <th>Base Salary</th>
-                                            <th>Hours (Month)</th>
-                                            <th>Overtime</th>
-                                            <th>Bonus</th>
-                                            <th>Total</th>
+                                            <th>Hourly Rate</th>
+                                            <th>Status</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        {% for emp in employees %}
                                         <tr>
                                             <td>
-                                                <strong>Sarah Johnson</strong><br>
-                                                <small class="text-muted">Senior Groomer</small>
+                                                <strong>{{ emp[1] }}</strong><br>
+                                                <small class="text-muted">{{ emp[4] or 'Staff' }}</small>
                                             </td>
-                                            <td>{{ vendor_currency }}15,000</td>
-                                            <td>180 hrs</td>
-                                            <td>{{ vendor_currency }}2,250</td>
-                                            <td>{{ vendor_currency }}1,500</td>
-                                            <td><strong>{{ vendor_currency }}18,750</strong></td>
+                                            <td>{{ vendor_currency }}{{ "%.0f"|format(emp[5] or 0) }}</td>
+                                            <td>{{ vendor_currency }}{{ "%.0f"|format(emp[6] or 0) }}/hr</td>
+                                            <td><span class="badge bg-success">{{ emp[7] or 'Active' }}</span></td>
                                             <td>
-                                                <button class="btn btn-sm btn-success">Pay</button>
+                                                <a href="/erp/hr/payroll" class="btn btn-sm btn-success">View Payroll</a>
                                             </td>
                                         </tr>
-                                        <tr>
-                                            <td>
-                                                <strong>Mike Wilson</strong><br>
-                                                <small class="text-muted">Junior Groomer</small>
-                                            </td>
-                                            <td>{{ vendor_currency }}12,000</td>
-                                            <td>175 hrs</td>
-                                            <td>{{ vendor_currency }}1,125</td>
-                                            <td>{{ vendor_currency }}800</td>
-                                            <td><strong>{{ vendor_currency }}13,925</strong></td>
-                                            <td>
-                                                <button class="btn btn-sm btn-success">Pay</button>
-                                            </td>
-                                        </tr>
+                                        {% endfor %}
                                     </tbody>
                                 </table>
+                                {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-money-bill fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No employees found. Add your first employee to get started.</p>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -385,29 +333,21 @@
                             <div class="mt-3">
                                 <div class="d-flex justify-content-between">
                                     <span>Total Base Salaries:</span>
-                                    <strong>{{ vendor_currency }}27,000</strong>
+                                    <strong>{{ vendor_currency }}{{ "%.0f"|format(hr_metrics.monthly_payroll) }}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <span>Overtime Pay:</span>
-                                    <strong>{{ vendor_currency }}3,375</strong>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span>Bonuses:</span>
-                                    <strong>{{ vendor_currency }}2,300</strong>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span>Deductions:</span>
-                                    <strong>{{ vendor_currency }}1,200</strong>
+                                    <span>Active Employees:</span>
+                                    <strong>{{ hr_metrics.total_employees }}</strong>
                                 </div>
                                 <hr>
                                 <div class="d-flex justify-content-between">
-                                    <strong>Total Payroll:</strong>
-                                    <strong>{{ vendor_currency }}31,475</strong>
+                                    <strong>Monthly Payroll:</strong>
+                                    <strong>{{ vendor_currency }}{{ "%.0f"|format(hr_metrics.monthly_payroll) }}</strong>
                                 </div>
                             </div>
-                            <button class="btn btn-light w-100 mt-3">
-                                <i class="fas fa-download"></i> Generate Payslips
-                            </button>
+                            <a href="/erp/hr/payroll" class="btn btn-light w-100 mt-3">
+                                <i class="fas fa-external-link-alt"></i> Full Payroll Page
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -422,25 +362,22 @@
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h6>Revenue per Employee (This Month)</h6>
+                                    <h6>Employees</h6>
+                                    {% if employees %}
+                                    {% for emp in employees %}
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between">
-                                            <span>Sarah Johnson</span>
-                                            <strong>{{ vendor_currency }}25,000</strong>
+                                            <span>{{ emp[1] }}</span>
+                                            <strong>{{ emp[4] or 'Staff' }}</strong>
                                         </div>
                                         <div class="performance-indicator">
-                                            <div class="performance-fill bg-success" style="width: 85%"></div>
+                                            <div class="performance-fill bg-success" style="width: {{ hr_metrics.productivity }}%"></div>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <span>Mike Wilson</span>
-                                            <strong>{{ vendor_currency }}18,000</strong>
-                                        </div>
-                                        <div class="performance-indicator">
-                                            <div class="performance-fill bg-warning" style="width: 60%"></div>
-                                        </div>
-                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <p class="text-muted text-center py-3">No employees found. Add your first employee to get started.</p>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -448,25 +385,25 @@
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h6>Productivity Metrics</h6>
+                                    <h6>Summary Metrics</h6>
                                     <div class="row text-center">
                                         <div class="col-6">
-                                            <h4 class="text-primary">94%</h4>
-                                            <small>Attendance Rate</small>
+                                            <h4 class="text-primary">{{ hr_metrics.total_employees }}</h4>
+                                            <small>Active Employees</small>
                                         </div>
                                         <div class="col-6">
-                                            <h4 class="text-success">4.8/5</h4>
-                                            <small>Avg Customer Rating</small>
+                                            <h4 class="text-success">{{ "%.1f"|format(hr_metrics.hours_today) }}</h4>
+                                            <small>Hours Today</small>
                                         </div>
                                     </div>
                                     <div class="row text-center mt-3">
                                         <div class="col-6">
-                                            <h4 class="text-warning">125</h4>
-                                            <small>Services Completed</small>
+                                            <h4 class="text-warning">{{ hr_metrics.productivity }}%</h4>
+                                            <small>Productivity Score</small>
                                         </div>
                                         <div class="col-6">
-                                            <h4 class="text-info">{{ vendor_currency }}1,850</h4>
-                                            <small>Avg Revenue/Day</small>
+                                            <h4 class="text-info">{{ vendor_currency }}{{ "%.0f"|format(hr_metrics.monthly_payroll) }}</h4>
+                                            <small>Monthly Payroll</small>
                                         </div>
                                     </div>
                                 </div>
