@@ -15,9 +15,10 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             padding: 40px;
-            margin-top: 50px;
+            margin-top: 20px;
+            margin-bottom: 40px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
+            max-width: 900px;
         }
         .form-control, .form-select {
             border-radius: 10px;
@@ -45,12 +46,86 @@
             margin-bottom: 20px;
             display: inline-block;
         }
+        .option-card {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            height: 100%;
+        }
+        .option-card:hover, .option-card.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        .option-card.active {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.08);
+        }
+        .option-card .icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
         .cost-calculator {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 15px;
             margin-top: 20px;
         }
+        .stock-info {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        .scan-section {
+            display: none;
+        }
+        .scan-section.active {
+            display: block;
+        }
+        #camera-preview {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border-radius: 12px;
+            margin: 15px auto;
+            overflow: hidden;
+            position: relative;
+        }
+        #camera-preview video, #camera-preview canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 40%;
+            border: 3px solid #28a745;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .lookup-result {
+            background: #f0f8ff;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            display: none;
+        }
+        .lookup-result.show { display: block; }
+        .spinner-border-sm { width: 1rem; height: 1rem; }
     </style>
 </head>
 <body>
@@ -63,87 +138,139 @@
             <h1 class="display-5">
                 <i class="fas fa-plus-circle"></i> Add Stock
             </h1>
-            <p class="lead">Receive new inventory with complete tracking</p>
+            <p class="lead">Scan a barcode or enter product details to add inventory</p>
         </div>
 
-        <form method="POST" action="/erp/inventory/add-stock">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-box"></i> Product
-                        </label>
-                        <select name="product_id" class="form-select" required onchange="updateProductInfo()">
-                            <option value="">Select Product</option>
-                            {% for product in products %}
-                            <option value="{{ product[0] }}" 
-                                    data-name="{{ product[1] }}" 
-                                    data-current="{{ product[2] }}" 
-                                    data-cost="{{ product[3] }}">
-                                {{ product[1] }} (Current: {{ product[2] }} units)
-                            </option>
-                            {% endfor %}
-                        </select>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info alert-dismissible fade show">
+            {% for message in messages %}
+            <p class="mb-0">{{ message }}</p>
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="row mb-4 g-3">
+            <div class="col-md-4">
+                <div class="option-card" onclick="selectOption('camera')" id="opt-camera">
+                    <div class="icon"><i class="fas fa-camera"></i></div>
+                    <h5>Camera Scan</h5>
+                    <p class="text-muted mb-0">Use your device camera to scan a barcode</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="option-card" onclick="selectOption('manual_barcode')" id="opt-manual_barcode">
+                    <div class="icon"><i class="fas fa-barcode"></i></div>
+                    <h5>Enter Barcode</h5>
+                    <p class="text-muted mb-0">Type a barcode number to look up the product</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="option-card" onclick="selectOption('manual_entry')" id="opt-manual_entry">
+                    <div class="icon"><i class="fas fa-edit"></i></div>
+                    <h5>Manual Entry</h5>
+                    <p class="text-muted mb-0">Enter all product details manually</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-camera" class="scan-section">
+            <div class="text-center">
+                <button type="button" class="btn btn-primary btn-lg mb-3" onclick="startCamera()" id="btn-start-camera">
+                    <i class="fas fa-video"></i> Start Camera
+                </button>
+                <button type="button" class="btn btn-danger btn-lg mb-3" onclick="stopCamera()" id="btn-stop-camera" style="display:none;">
+                    <i class="fas fa-stop"></i> Stop Camera
+                </button>
+                <div id="camera-preview" style="display:none;">
+                    <div id="interactive" class="viewport"></div>
+                    <div class="scan-overlay"></div>
+                </div>
+                <p class="text-muted mt-2" id="camera-status">Click "Start Camera" to begin scanning</p>
+            </div>
+        </div>
+
+        <div id="section-manual_barcode" class="scan-section">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                        <input type="text" class="form-control" id="manual-barcode-input"
+                               placeholder="Enter barcode number (e.g. 8901234567890)">
+                        <button class="btn btn-primary" type="button" onclick="lookupBarcode()" id="btn-lookup">
+                            <i class="fas fa-search"></i> Lookup
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-hashtag"></i> Quantity to Add
-                        </label>
-                        <input type="number" name="quantity" class="form-control" 
-                               min="1" required oninput="calculateTotal()">
+            </div>
+        </div>
+
+        <div id="lookup-result" class="lookup-result">
+            <div id="lookup-content"></div>
+        </div>
+
+        <form method="POST" action="/erp/inventory/add-stock" id="stock-form" style="display:none;">
+            <input type="hidden" name="entry_method" id="entry_method" value="manual_entry">
+            <input type="hidden" name="product_id" id="form-product-id" value="">
+            <input type="hidden" name="barcode" id="form-barcode" value="">
+
+            <div id="existing-product-info" class="stock-info" style="display:none;">
+                <h5><i class="fas fa-check-circle"></i> Existing Product Found</h5>
+                <p class="mb-0">
+                    <strong id="existing-name"></strong> — Current stock: <span id="existing-stock"></span> units
+                </p>
+            </div>
+
+            <div id="new-product-fields">
+                <h5 class="mb-3"><i class="fas fa-box-open"></i> Product Details</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Product Name</label>
+                        <input type="text" name="product_name" id="form-product-name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Category</label>
+                        <input type="text" name="category" id="form-category" class="form-control" value="General">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Brand</label>
+                        <input type="text" name="brand" id="form-brand" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sell Price ({{ vendor_currency }})</label>
+                        <input type="number" name="sale_price" id="form-sale-price" class="form-control" step="0.01" min="0" required>
                     </div>
                 </div>
             </div>
 
+            <hr>
+            <h5 class="mb-3"><i class="fas fa-cubes"></i> Stock Details</h5>
             <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-rupee-sign"></i> Unit Cost ({{ vendor_currency }})
-                        </label>
-                        <input type="number" name="unit_cost" class="form-control" 
-                               step="0.01" min="0" required oninput="calculateTotal()">
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Quantity to Add</label>
+                    <input type="number" name="quantity" id="form-quantity" class="form-control"
+                           min="1" required oninput="calculateTotal()">
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-truck"></i> Supplier
-                        </label>
-                        <input type="text" name="supplier" class="form-control" 
-                               placeholder="Supplier name">
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Unit Cost ({{ vendor_currency }})</label>
+                    <input type="number" name="unit_cost" id="form-unit-cost" class="form-control"
+                           step="0.01" min="0.01" required oninput="calculateTotal()">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Batch Name</label>
+                    <input type="text" name="batch_name" class="form-control"
+                           placeholder="Auto-generated if empty">
                 </div>
             </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-barcode"></i> Batch Number
-                        </label>
-                        <input type="text" name="batch_number" class="form-control" 
-                               placeholder="Batch/Lot number">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-map-marker-alt"></i> Storage Location
-                        </label>
-                        <select name="location" class="form-select">
-                            <option value="Main Warehouse">Main Warehouse</option>
-                            <option value="Secondary Storage">Secondary Storage</option>
-                            <option value="Display Area">Display Area</option>
-                            <option value="Cold Storage">Cold Storage</option>
-                        </select>
-                    </div>
-                </div>
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes about this restock"></textarea>
             </div>
 
-            <!-- Cost Calculator -->
             <div class="cost-calculator">
                 <h5><i class="fas fa-calculator"></i> Cost Summary</h5>
                 <div class="row">
@@ -157,12 +284,6 @@
                         <strong>Total Cost:</strong> {{ vendor_currency }}<span id="calc-total">0.00</span>
                     </div>
                 </div>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle"></i> 
-                        This cost will be automatically recorded in your inventory and expense accounts.
-                    </small>
-                </div>
             </div>
 
             <div class="text-center mt-4">
@@ -171,29 +292,209 @@
                 </button>
             </div>
         </form>
+
+        <div id="section-manual_entry" class="scan-section"></div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function updateProductInfo() {
-            const select = document.querySelector('select[name="product_id"]');
-            const selectedOption = select.options[select.selectedIndex];
-            
-            if (selectedOption.value) {
-                const currentCost = selectedOption.getAttribute('data-cost');
-                document.querySelector('input[name="unit_cost"]').value = currentCost || '';
-                calculateTotal();
+        let currentOption = '';
+        let cameraRunning = false;
+
+        function selectOption(option) {
+            currentOption = option;
+            document.querySelectorAll('.option-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('opt-' + option).classList.add('active');
+
+            document.querySelectorAll('.scan-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('section-' + option).classList.add('active');
+
+            document.getElementById('entry_method', '');
+            document.getElementById('lookup-result').classList.remove('show');
+
+            if (option === 'camera') {
+                document.getElementById('entry_method').value = 'camera_scan';
+                document.getElementById('stock-form').style.display = 'none';
+            } else if (option === 'manual_barcode') {
+                document.getElementById('entry_method').value = 'manual_barcode';
+                document.getElementById('stock-form').style.display = 'none';
+            } else if (option === 'manual_entry') {
+                document.getElementById('entry_method').value = 'manual_entry';
+                showManualForm();
+            }
+
+            if (option !== 'camera' && cameraRunning) {
+                stopCamera();
             }
         }
 
-        function calculateTotal() {
-            const quantity = document.querySelector('input[name="quantity"]').value || 0;
-            const unitCost = document.querySelector('input[name="unit_cost"]').value || 0;
-            const total = quantity * unitCost;
+        function showManualForm() {
+            document.getElementById('stock-form').style.display = 'block';
+            document.getElementById('form-product-id').value = '';
+            document.getElementById('form-barcode').value = '';
+            document.getElementById('existing-product-info').style.display = 'none';
+            document.getElementById('new-product-fields').style.display = 'block';
+            document.getElementById('form-product-name').value = '';
+            document.getElementById('form-category').value = 'General';
+            document.getElementById('form-brand').value = '';
+            document.getElementById('form-sale-price').value = '';
+            document.getElementById('form-quantity').value = '';
+            document.getElementById('form-unit-cost').value = '';
+        }
 
+        function startCamera() {
+            document.getElementById('camera-preview').style.display = 'block';
+            document.getElementById('btn-start-camera').style.display = 'none';
+            document.getElementById('btn-stop-camera').style.display = 'inline-block';
+            document.getElementById('camera-status').textContent = 'Initializing camera...';
+
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#interactive'),
+                    constraints: {
+                        facingMode: "environment",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_128_reader",
+                        "code_39_reader",
+                        "upc_reader",
+                        "upc_e_reader"
+                    ]
+                },
+                locate: true
+            }, function(err) {
+                if (err) {
+                    document.getElementById('camera-status').textContent =
+                        'Camera access denied or not available. Try entering the barcode manually.';
+                    stopCamera();
+                    return;
+                }
+                Quagga.start();
+                cameraRunning = true;
+                document.getElementById('camera-status').textContent = 'Point camera at barcode...';
+            });
+
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                stopCamera();
+                document.getElementById('camera-status').textContent = 'Barcode detected: ' + code;
+                handleBarcodeResult(code);
+            });
+        }
+
+        function stopCamera() {
+            try { Quagga.stop(); } catch(e) {}
+            cameraRunning = false;
+            document.getElementById('camera-preview').style.display = 'none';
+            document.getElementById('btn-start-camera').style.display = 'inline-block';
+            document.getElementById('btn-stop-camera').style.display = 'none';
+        }
+
+        function lookupBarcode() {
+            const barcode = document.getElementById('manual-barcode-input').value.trim();
+            if (!barcode) {
+                alert('Please enter a barcode number');
+                return;
+            }
+            handleBarcodeResult(barcode);
+        }
+
+        function handleBarcodeResult(barcode) {
+            const resultDiv = document.getElementById('lookup-result');
+            const contentDiv = document.getElementById('lookup-content');
+            resultDiv.classList.add('show');
+            contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Looking up barcode ' + barcode + '...</p></div>';
+
+            fetch('/erp/inventory/scan-barcode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ barcode: barcode })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.source === 'local') {
+                    contentDiv.innerHTML = '<div class="text-success"><i class="fas fa-check-circle fa-2x"></i></div>' +
+                        '<h5 class="mt-2">Product Found in Your Inventory</h5>' +
+                        '<p><strong>' + data.product.name + '</strong> — Current stock: ' + data.product.current_stock + ' units</p>';
+                    showExistingProductForm(data.product, barcode);
+                } else if (data.source === 'openfoodfacts') {
+                    contentDiv.innerHTML = '<div class="text-info"><i class="fas fa-globe fa-2x"></i></div>' +
+                        '<h5 class="mt-2">Product Found Online</h5>' +
+                        '<p><strong>' + data.product.name + '</strong>' +
+                        (data.product.brand ? ' by ' + data.product.brand : '') + '</p>' +
+                        '<p class="text-muted">Please confirm details and set pricing below.</p>';
+                    showNewProductForm(data.product, barcode);
+                } else {
+                    contentDiv.innerHTML = '<div class="text-warning"><i class="fas fa-exclamation-triangle fa-2x"></i></div>' +
+                        '<h5 class="mt-2">Product Not Found</h5>' +
+                        '<p>Barcode <strong>' + barcode + '</strong> was not found in your inventory or online databases.</p>' +
+                        '<p class="text-muted">Please enter product details manually below.</p>';
+                    showManualFormWithBarcode(barcode);
+                }
+            })
+            .catch(err => {
+                contentDiv.innerHTML = '<div class="text-danger"><i class="fas fa-times-circle fa-2x"></i></div>' +
+                    '<h5 class="mt-2">Lookup Failed</h5><p>Could not connect to lookup service. Please enter details manually.</p>';
+                showManualFormWithBarcode(barcode);
+            });
+        }
+
+        function showExistingProductForm(product, barcode) {
+            document.getElementById('stock-form').style.display = 'block';
+            document.getElementById('form-product-id').value = product.id;
+            document.getElementById('form-barcode').value = barcode;
+            document.getElementById('existing-product-info').style.display = 'block';
+            document.getElementById('existing-name').textContent = product.name;
+            document.getElementById('existing-stock').textContent = product.current_stock;
+            document.getElementById('new-product-fields').style.display = 'none';
+            document.getElementById('form-unit-cost').value = product.buy_price || '';
+        }
+
+        function showNewProductForm(product, barcode) {
+            document.getElementById('stock-form').style.display = 'block';
+            document.getElementById('form-product-id').value = '';
+            document.getElementById('form-barcode').value = barcode;
+            document.getElementById('existing-product-info').style.display = 'none';
+            document.getElementById('new-product-fields').style.display = 'block';
+            document.getElementById('form-product-name').value = product.name || '';
+            document.getElementById('form-category').value = product.category || 'General';
+            document.getElementById('form-brand').value = product.brand || '';
+            document.getElementById('form-sale-price').value = '';
+            document.getElementById('form-unit-cost').value = '';
+        }
+
+        function showManualFormWithBarcode(barcode) {
+            if (currentOption !== 'manual_entry') {
+                selectOption('manual_entry');
+            }
+            document.getElementById('stock-form').style.display = 'block';
+            document.getElementById('form-product-id').value = '';
+            document.getElementById('form-barcode').value = barcode;
+            document.getElementById('existing-product-info').style.display = 'none';
+            document.getElementById('new-product-fields').style.display = 'block';
+        }
+
+        function calculateTotal() {
+            const quantity = document.getElementById('form-quantity').value || 0;
+            const unitCost = document.getElementById('form-unit-cost').value || 0;
+            const total = quantity * unitCost;
             document.getElementById('calc-quantity').textContent = quantity;
             document.getElementById('calc-unit-cost').textContent = parseFloat(unitCost).toFixed(2);
             document.getElementById('calc-total').textContent = total.toFixed(2);
         }
+
+        document.getElementById('manual-barcode-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); lookupBarcode(); }
+        });
     </script>
 </body>
 </html>

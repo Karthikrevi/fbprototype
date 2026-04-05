@@ -453,6 +453,21 @@ def init_erp_db():
     ''')
 
     c.execute('''
+        CREATE TABLE IF NOT EXISTS restock_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            product_id INTEGER,
+            quantity_added INTEGER,
+            unit_cost REAL,
+            barcode TEXT,
+            entry_method TEXT,
+            restock_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+    ''')
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS payment_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             vendor_id INTEGER,
@@ -8303,6 +8318,194 @@ def process_pos_sale():
         conn.rollback()
         conn.close()
         return {"success": False, "error": str(e)}, 500
+
+@app.route('/erp/inventory/scan-barcode', methods=["GET", "POST"])
+def scan_barcode():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    if request.method == "GET":
+        return redirect(url_for("add_stock_page"))
+
+    if request.is_json:
+        barcode = request.json.get("barcode", "")
+    else:
+        barcode = request.form.get("barcode", "")
+    if not barcode:
+        return {"success": False, "error": "No barcode provided"}, 400
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return {"success": False, "error": "Vendor not found"}, 404
+    vendor_id = vendor_result[0]
+
+    c.execute("SELECT id, name, category, buy_price, sale_price, quantity, barcode FROM products WHERE vendor_id=? AND barcode=?", (vendor_id, barcode))
+    product = c.fetchone()
+    conn.close()
+
+    if product:
+        return {
+            "success": True,
+            "source": "local",
+            "product": {
+                "id": product[0],
+                "name": product[1],
+                "category": product[2] or "",
+                "buy_price": product[3] or 0,
+                "sale_price": product[4] or 0,
+                "current_stock": product[5] or 0,
+                "barcode": product[6]
+            }
+        }
+
+    try:
+        import urllib.request
+        url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+        req = urllib.request.Request(url, headers={"User-Agent": "FurrButler/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            import json
+            data = json.loads(resp.read().decode())
+            if data.get("status") == 1:
+                p = data.get("product", {})
+                return {
+                    "success": True,
+                    "source": "openfoodfacts",
+                    "product": {
+                        "name": p.get("product_name", "Unknown Product"),
+                        "brand": p.get("brands", ""),
+                        "category": p.get("categories", "").split(",")[0].strip() if p.get("categories") else "General",
+                        "barcode": barcode
+                    }
+                }
+    except Exception:
+        pass
+
+    return {"success": True, "source": "not_found", "barcode": barcode}
+
+
+@app.route('/erp/inventory/add-stock', methods=["GET"])
+def add_stock_page():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    products = []
+    if vendor_result:
+        vendor_id = vendor_result[0]
+        c.execute("SELECT id, name, quantity, buy_price, barcode FROM products WHERE vendor_id=? ORDER BY name", (vendor_id,))
+        products = c.fetchall()
+    conn.close()
+    return render_template("add_stock_form.html", products=products)
+
+
+@app.route('/erp/inventory/add-stock', methods=["POST"])
+def add_stock_submit():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    try:
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        vendor_result = c.fetchone()
+        if not vendor_result:
+            flash("Vendor not found")
+            conn.close()
+            return redirect(url_for("add_stock_page"))
+        vendor_id = vendor_result[0]
+
+        entry_method = request.form.get("entry_method", "manual_entry")
+        product_id = request.form.get("product_id")
+        barcode = request.form.get("barcode", "")
+        quantity = int(request.form.get("quantity", 0))
+        unit_cost = float(request.form.get("unit_cost", 0))
+        batch_name = request.form.get("batch_name", f"BATCH-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+        notes = request.form.get("notes", "")
+
+        if quantity <= 0 or unit_cost <= 0:
+            flash("Invalid quantity or cost")
+            return redirect(url_for("add_stock_page"))
+
+        if product_id:
+            product_id = int(product_id)
+            c.execute("SELECT name FROM products WHERE id=? AND vendor_id=?", (product_id, vendor_id))
+            prod = c.fetchone()
+            if not prod:
+                flash("Product not found")
+                return redirect(url_for("add_stock_page"))
+            product_name = prod[0]
+        else:
+            product_name = request.form.get("product_name", "Unnamed Product")
+            category = request.form.get("category", "General")
+            brand = request.form.get("brand", "")
+            sale_price = float(request.form.get("sale_price", 0))
+            if not barcode:
+                barcode = f"FB{vendor_id}{int(datetime.now().timestamp())}"
+            description = f"Brand: {brand}" if brand else ""
+
+            c.execute("""
+                INSERT INTO products (vendor_id, name, description, category, buy_price, sale_price, quantity, barcode)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+            """, (vendor_id, product_name, description, category, unit_cost, sale_price, barcode))
+            product_id = c.lastrowid
+
+        total_cost = quantity * unit_cost
+
+        c.execute("""
+            INSERT INTO inventory_batches (product_id, quantity, unit_cost, remaining_quantity)
+            VALUES (?, ?, ?, ?)
+        """, (product_id, quantity, unit_cost, quantity))
+
+        c.execute("""
+            INSERT INTO product_batches (product_id, batch_name, quantity, buy_price, arrival_date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (product_id, batch_name, quantity, unit_cost, datetime.now().strftime("%Y-%m-%d")))
+
+        c.execute("UPDATE products SET quantity = quantity + ?, buy_price = ? WHERE id = ?",
+                  (quantity, unit_cost, product_id))
+
+        c.execute("""
+            INSERT INTO restock_log (vendor_id, product_id, quantity_added, unit_cost, barcode, entry_method)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (vendor_id, product_id, quantity, unit_cost, barcode, entry_method))
+
+        c.execute("""
+            INSERT INTO expenses (vendor_id, category, amount, description, date)
+            VALUES (?, 'Inventory', ?, ?, ?)
+        """, (vendor_id, total_cost, f"Inventory purchase - {product_name} ({quantity} units)", datetime.now().strftime("%Y-%m-%d")))
+
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'debit', 'Inventory', ?, ?, 'Inventory')
+        """, (vendor_id, total_cost, f"Inventory Purchase - {product_name} ({quantity} units)"))
+
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
+            VALUES (?, 'credit', 'Cash', ?, ?, 'Inventory Purchase')
+        """, (vendor_id, total_cost, f"Payment for Inventory - {product_name}"))
+
+        conn.commit()
+        conn.close()
+        flash(f"Successfully added {quantity} units of {product_name} to inventory.")
+        return redirect(url_for("inventory_management"))
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        flash(f"Error adding inventory: {str(e)}")
+        return redirect(url_for("add_stock_page"))
+
 
 # Enhanced inventory management with automatic expense tracking
 @app.route('/erp/inventory/add-stock/<int:product_id>', methods=["POST"])

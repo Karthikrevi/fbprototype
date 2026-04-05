@@ -1,0 +1,78 @@
+In main.py and add stock functionality only:
+
+1. Create a new route /erp/inventory/scan-barcode
+   GET: Returns barcode scanning page
+   POST: Accepts barcode value
+   First looks up barcode in products table
+   for this vendor
+   If not found locally, calls Open Food Facts API:
+   https://world.openfoodfacts.org/api/v0/product/{barcode}.json
+   Returns product details as JSON including
+   name, brand, category if found
+   Returns not_found status if not in either
+
+2. Update the Add Stock page:
+   Show three options at the top:
+
+   Option A — Camera scan:
+   Use QuaggaJS from CDN:
+   https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js
+   Scan Barcode button opens device camera
+   When barcode detected auto-fills product field
+   Calls /erp/inventory/scan-barcode with result
+
+   Option B — Manual barcode entry:
+   Text input for barcode number
+   Lookup button searches products table
+   then Open Food Facts API
+   Auto-fills product name and details if found
+
+   Option C — Manual product entry:
+   Full manual form for unregistered products
+   Fields: product name, category, brand,
+   unit type, buy price, sell price
+   No barcode required
+   Generates internal SKU automatically
+
+3. When barcode matches existing vendor product:
+   Auto-fill product name and details
+   Show current stock level
+   Show fields: quantity to add,
+   unit cost, batch name, notes
+   Submit updates existing product stock
+
+4. When barcode found in Open Food Facts:
+   Auto-fill name, brand, category from API
+   Ask vendor to confirm and add price details
+   Create new product record then add stock
+
+5. When barcode not found anywhere:
+   Show message: "Product not found —
+   please enter details manually"
+   Switch to Option C manual form automatically
+
+6. Create restock_log table in init_erp_db():
+   CREATE TABLE IF NOT EXISTS restock_log (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       vendor_id INTEGER,
+       product_id INTEGER,
+       quantity_added INTEGER,
+       unit_cost REAL,
+       barcode TEXT,
+       entry_method TEXT,
+       restock_date TEXT DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (vendor_id) REFERENCES vendors(id),
+       FOREIGN KEY (product_id) REFERENCES products(id)
+   )
+   entry_method records: camera_scan,
+   manual_barcode or manual_entry
+
+7. Update Demand Forecast button to link to
+   /erp/reports/inventory-analytics
+
+Do not modify any other routes.
+Do not modify any other templates.
+Do not modify database tables other than
+adding restock_log.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
