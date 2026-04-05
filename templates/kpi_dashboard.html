@@ -281,7 +281,13 @@
           <div class="kpi-name">{{ kpi.name }}</div>
           <div class="kpi-value-row">
             <span class="kpi-value">{{ kpi.display_value }}</span>
-            <span class="kpi-trend {{ kpi.trend_class }}">{{ kpi.trend_icon }} {{ kpi.trend_text }}</span>
+            {% if kpi.trend_text == 'Up' %}
+            <span class="kpi-trend" style="color:#28a745;background:#d4edda;">&#9650; Up</span>
+            {% elif kpi.trend_text == 'Down' %}
+            <span class="kpi-trend" style="color:#dc3545;background:#f8d7da;">&#9660; Down</span>
+            {% else %}
+            <span class="kpi-trend" style="color:#6c757d;background:#e9ecef;">&mdash; Flat</span>
+            {% endif %}
           </div>
           <div class="kpi-target">Target: {{ kpi.display_target }}</div>
         </div>
