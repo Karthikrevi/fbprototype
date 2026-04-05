@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from replit import db
+from replit_db_shim import db
 import os
 import json
 from werkzeug.utils import secure_filename
