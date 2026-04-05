@@ -1,0 +1,186 @@
+In main.py and templates only, create
+two new pages for the vendor ERP.
+Do not modify any existing routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After creating each template verify
+it exists before moving to next.
+
+PAGE 1 — Budget Planning:
+Route: /erp/finance/budget GET and POST
+
+GET: Pull existing budgets from 
+expense_budgets table for this vendor
+Pull actual spending per category from
+expenses table for current month
+Pull actual revenue from sales_log
+for current month
+
+Show a budget planning page with:
+
+Revenue Target section:
+- Input field for monthly revenue target
+- Shows actual revenue this month
+- Shows variance and percentage achieved
+- Progress bar colour coded:
+  Green if above 80% of target
+  Yellow if 50-80%
+  Red if below 50%
+
+Expense Budget section:
+Table with these categories as rows:
+Inventory, Salaries, Rent, Utilities,
+Marketing, Equipment, Maintenance, Other
+
+Each row shows:
+- Category name
+- Budget input field pre-filled if set
+- Actual spent this month
+- Variance (budget minus actual)
+- Progress bar green/yellow/red
+- Status: On Track / Over Budget / Under Budget
+
+Save All Budgets button POSTs to
+/erp/finance/budget
+Saves all category budgets to
+expense_budgets table
+
+Summary card at top:
+Total Budget vs Total Actual Spending
+Net variance
+Overall budget health indicator
+
+Styling: Purple gradient matching ERP
+Back button to /erp/reports
+
+POST: Save all submitted budget values
+to expense_budgets table for this vendor
+Flash success message
+Redirect back to GET
+
+PAGE 2 — KPI Dashboard:
+Route: /erp/finance/kpi-dashboard GET
+
+Pull real data for all default KPIs
+from the database.
+
+Default KPI set:
+
+1. Monthly Revenue
+   Source: sales_log current month
+   Target: from expense_budgets revenue_target
+   Format: currency
+
+2. Revenue Growth %
+   Source: this month vs last month sales
+   Target: 10% growth
+   Format: percentage
+
+3. Gross Margin %
+   Source: (revenue - COGS) / revenue x 100
+   Target: 40%
+   Format: percentage
+
+4. New Customers This Month
+   Source: crm_customers created this month
+   Target: 10
+   Format: number
+
+5. Average Order Value
+   Source: total revenue / order count
+   Target: from previous month AOV
+   Format: currency
+
+6. Inventory Turnover Rate
+   Source: from inventory_analytics
+   Target: 2.0x
+   Format: decimal
+
+7. Booking Count This Month
+   Source: bookings table current month
+   Target: 20
+   Format: number
+
+8. Customer Rating Average
+   Source: reviews table average rating
+   Target: 4.5
+   Format: decimal out of 5
+
+9. Dead Stock Percentage
+   Source: products with zero sales /
+   total products x 100
+   Target: under 10%
+   Format: percentage
+
+10. Staff Productivity Score
+    Source: employee_performance table
+    average productivity_score
+    Target: 80
+    Format: number out of 100
+
+For each KPI show a card with:
+- KPI name
+- Current value large and prominent
+- Target value
+- Trend arrow up green or down red
+  compared to last month
+- Status badge:
+  On Target green if within 10% of target
+  At Risk yellow if 10-25% below target
+  Off Track red if more than 25% below target
+
+At top show overall KPI health score:
+Percentage of KPIs that are On Target
+Large circular indicator
+Green above 70%, yellow 50-70%,
+red below 50%
+
+Personalisation section below all KPIs:
+
+Dropdown to add additional KPIs:
+- Return on Investment
+- Customer Lifetime Value
+- Repeat Customer Rate
+- Employee Attendance Rate
+- Revenue per Employee
+- Cost per Acquisition
+- Refund Rate
+- On-Time Delivery Rate
+- Social Media Followers
+- WhatsApp Response Rate
+
+Add KPI button adds selected KPI to
+vendor_kpis table for this vendor
+
+CREATE TABLE IF NOT EXISTS vendor_kpis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    kpi_name TEXT,
+    kpi_target REAL,
+    is_active BOOLEAN DEFAULT 1,
+    display_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+Each added KPI shows with:
+- KPI name
+- Editable target input
+- Remove button that deactivates it
+
+Save KPI Settings button saves
+all targets to vendor_kpis table
+
+Route: /erp/finance/kpi-dashboard/add-kpi POST
+Adds selected KPI to vendor_kpis
+
+Route: /erp/finance/kpi-dashboard/remove-kpi/<id> POST
+Deactivates a KPI
+
+Styling: Purple gradient matching ERP
+Back button to /erp/reports
+
+Do not modify any existing routes.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

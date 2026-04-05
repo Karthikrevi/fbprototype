@@ -101,7 +101,10 @@ An advanced chatbot system uses machine learning for intent classification and b
 - **Context processor**: `now_date` injected into all templates for date comparisons
 - **CA Package** (`/erp/finance/ca-package`): Professional financial reports page with P&L, GST, Balance Sheet, Ledger, Expenses, Sales summaries; Chart.js expense bar chart; balance check indicator; ZIP download with all 6 CSVs; individual CSV export routes at `/erp/finance/ca-package/export/{pnl,gst,balance-sheet,ledger,expenses,sales}`
 - **CSV Export Routes**: `/erp/reports/pnl/export` (P&L CSV), `/erp/reports/ledger/export` (General Ledger CSV with running balance)
-- **Dummy Button Fixes**: All `href="#"` and placeholder `alert()` buttons in served vendor ERP templates replaced with working links — profit_loss.html, general_ledger.html, manage_time_slots.html, erp_vendor_dashboard.html
+- **Dummy Button Fixes**: All `href="#"` and placeholder `alert()` buttons in served vendor ERP templates replaced with working links — profit_loss.html, general_ledger.html, manage_time_slots.html, erp_vendor_dashboard.html, financial_planning.html
+- **Board Report** (`/erp/finance/board-report`): 6-page printable professional business report with Cover, Executive Summary (auto-generated narrative), Financial Performance (Chart.js revenue line + expense doughnut + comparison table), Business Operations (top products/services tables), Financial Position (balance sheet), KPIs & Outlook; print/PDF buttons; disclaimer notice; navy/white design
+- **Budget Planning** (`/erp/finance/budget` GET/POST): Revenue target + 8 expense category budgets; saves to `expense_budgets` table; progress bars with color coding; budget vs actual comparison; purple gradient ERP styling
+- **KPI Dashboard** (`/erp/finance/kpi-dashboard`): 10 default KPIs with real data (revenue, growth, margin, customers, AOV, inventory turnover, bookings, rating, dead stock, staff productivity); health ring; status badges (On Target/At Risk/Off Track); trend arrows; personalisation section to add/remove custom KPIs from 10 additional options; `vendor_kpis` table for custom KPI storage
 
 ## Dynamic Vendor Currency
 - `get_vendor_currency(vendor_id)` and `get_vendor_id_from_email(email)` registered as Jinja2 globals

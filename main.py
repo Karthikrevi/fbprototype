@@ -11192,6 +11192,571 @@ def financial_planning():
     conn.close()
     return render_template("financial_planning.html", planning_data=planning_data)
 
+
+@app.route('/erp/finance/board-report')
+def board_report():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id, name, city, category FROM vendors WHERE email=?", (email,))
+    vendor_row = c.fetchone()
+    if not vendor_row:
+        conn.close()
+        return redirect(url_for("erp_dashboard"))
+
+    vendor_id = vendor_row[0]
+    vendor_name = vendor_row[1] or email
+    vendor_city = vendor_row[2] or ""
+    vendor_category = vendor_row[3] or ""
+
+    from datetime import datetime, timedelta
+    import calendar
+    now = datetime.now()
+    this_month_start = now.replace(day=1).strftime("%Y-%m-01")
+    this_month_end = now.strftime("%Y-%m-%d 23:59:59")
+    last_month_end = (now.replace(day=1) - timedelta(days=1))
+    last_month_start = last_month_end.replace(day=1).strftime("%Y-%m-01")
+    last_month_end_str = last_month_end.strftime("%Y-%m-%d 23:59:59")
+    current_month_name = now.strftime("%B")
+    last_month_name = (now.replace(day=1) - timedelta(days=1)).strftime("%B")
+
+    currency = get_vendor_currency(vendor_id)
+
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, this_month_start, this_month_end))
+    revenue_this = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, last_month_start, last_month_end_str))
+    revenue_last = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=? AND date>=? AND date<=?", (vendor_id, this_month_start, this_month_end))
+    expenses_this = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=? AND date>=? AND date<=?", (vendor_id, last_month_start, last_month_end_str))
+    expenses_last = c.fetchone()[0] or 0
+
+    cogs_this = 0
+    try:
+        c.execute("SELECT COALESCE(SUM(s.quantity * p.buy_price),0) FROM sales_log s JOIN products p ON s.product_id=p.id WHERE s.vendor_id=? AND s.sale_date>=? AND s.sale_date<=?", (vendor_id, this_month_start, this_month_end))
+        cogs_this = c.fetchone()[0] or 0
+    except:
+        pass
+    cogs_last = 0
+    try:
+        c.execute("SELECT COALESCE(SUM(s.quantity * p.buy_price),0) FROM sales_log s JOIN products p ON s.product_id=p.id WHERE s.vendor_id=? AND s.sale_date>=? AND s.sale_date<=?", (vendor_id, last_month_start, last_month_end_str))
+        cogs_last = c.fetchone()[0] or 0
+    except:
+        pass
+
+    gross_this = revenue_this - cogs_this
+    gross_last = revenue_last - cogs_last
+    net_this = revenue_this - expenses_this
+    net_last = revenue_last - expenses_last
+
+    def pct_change(current, previous):
+        if previous == 0:
+            return 100.0 if current > 0 else 0.0
+        return ((current - previous) / abs(previous)) * 100
+
+    month_labels = []
+    month_revenues = []
+    for i in range(5, -1, -1):
+        d_ref = now.replace(day=1) - timedelta(days=1)
+        for _ in range(i):
+            d_ref = d_ref.replace(day=1) - timedelta(days=1)
+        m_start = d_ref.replace(day=1) if i > 0 else now.replace(day=1)
+        m_name = m_start.strftime("%b %Y")
+        m_start_str = m_start.strftime("%Y-%m-01")
+        last_day = calendar.monthrange(m_start.year, m_start.month)[1]
+        m_end_str = m_start.strftime(f"%Y-%m-{last_day:02d}") + " 23:59:59"
+        c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, m_start_str, m_end_str))
+        month_labels.append(m_name)
+        month_revenues.append(round(c.fetchone()[0] or 0, 2))
+
+    c.execute("SELECT p.name, SUM(s.total_amount), SUM(s.quantity) FROM sales_log s JOIN products p ON s.product_id=p.id WHERE s.vendor_id=? AND s.sale_date>=? AND s.sale_date<=? GROUP BY p.name ORDER BY SUM(s.total_amount) DESC LIMIT 5", (vendor_id, this_month_start, this_month_end))
+    top_products_raw = c.fetchall()
+    top_products = []
+    total_product_rev = revenue_this if revenue_this > 0 else 1
+    top_products_total = 0
+    for tp in top_products_raw:
+        pct = (tp[1] / total_product_rev * 100) if total_product_rev > 0 else 0
+        top_products.append((tp[0], tp[1], tp[2], round(pct, 1)))
+        top_products_total += tp[1]
+    top_products_pct = (top_products_total / total_product_rev * 100) if total_product_rev > 0 else 0
+
+    c.execute("SELECT service, COUNT(*), 0, 0 FROM bookings WHERE vendor_id=? AND date>=? AND date<=? GROUP BY service ORDER BY COUNT(*) DESC LIMIT 3", (vendor_id, this_month_start, this_month_end))
+    top_services = c.fetchall()
+    top_services_list = []
+    for ts in top_services:
+        avg_val = 0
+        total_val = 0
+        top_services_list.append((ts[0], ts[1], avg_val, total_val))
+
+    c.execute("SELECT category, SUM(amount) FROM expenses WHERE vendor_id=? AND date>=? AND date<=? GROUP BY category ORDER BY SUM(amount) DESC", (vendor_id, this_month_start, this_month_end))
+    expense_categories = c.fetchall()
+
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id=?", (vendor_id,))
+    total_customers = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id=? AND created_at>=?", (vendor_id, this_month_start))
+    new_customers = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id=? AND date>=? AND date<=?", (vendor_id, this_month_start, this_month_end))
+    bookings_this = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id=? AND date>=? AND date<=?", (vendor_id, last_month_start, last_month_end_str))
+    bookings_last = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, this_month_start, this_month_end))
+    orders_this = c.fetchone()[0] or 0
+
+    avg_order = (revenue_this / orders_this) if orders_this > 0 else 0
+
+    c.execute("SELECT COALESCE(SUM(quantity * sale_price),0), COUNT(*) FROM products WHERE vendor_id=?", (vendor_id,))
+    inv_row = c.fetchone()
+    inventory_value = inv_row[0] or 0
+    sku_count = inv_row[1] or 0
+
+    c.execute("SELECT COUNT(*) FROM products WHERE vendor_id=? AND quantity<=5 AND quantity>0", (vendor_id,))
+    low_stock = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(balance_due),0) FROM receivable_entries WHERE vendor_id=? AND status!='Paid'", (vendor_id,))
+    outstanding_recv = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(balance_due),0) FROM payable_entries WHERE vendor_id=? AND status!='Paid'", (vendor_id,))
+    outstanding_pay = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM employees WHERE vendor_id=? AND status='Active'", (vendor_id,))
+    emp_count = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(base_salary),0) FROM employees WHERE vendor_id=? AND status='Active'", (vendor_id,))
+    payroll_cost = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id=? AND date>? AND status IN ('confirmed','pending','Confirmed','Pending')", (vendor_id, now.strftime("%Y-%m-%d")))
+    pending_bookings = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(AVG(rating),0) FROM reviews WHERE vendor_id=?", (vendor_id,))
+    avg_rating = c.fetchone()[0] or 0
+
+    cash_balance = revenue_this - expenses_this
+    try:
+        c.execute("SELECT COALESCE(SUM(CASE WHEN entry_type='debit' AND account='Cash/Bank' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type='credit' AND account='Cash/Bank' THEN amount ELSE 0 END),0) FROM ledger_entries WHERE vendor_id=?", (vendor_id,))
+        cash_balance = c.fetchone()[0] or 0
+    except:
+        pass
+
+    total_assets = cash_balance + outstanding_recv + inventory_value
+    net_position = total_assets - outstanding_pay
+
+    gross_margin = (gross_this / revenue_this * 100) if revenue_this > 0 else 0
+    net_margin = (net_this / revenue_this * 100) if revenue_this > 0 else 0
+    inv_turnover = (cogs_this / inventory_value) if inventory_value > 0 else 0
+
+    conn.close()
+
+    d = {
+        'vendor_name': vendor_name,
+        'vendor_city': vendor_city,
+        'vendor_category': vendor_category,
+        'currency': currency,
+        'current_month_name': current_month_name,
+        'last_month_name': last_month_name,
+        'current_year': now.strftime("%Y"),
+        'generated_at': now.strftime("%d %B %Y, %I:%M %p"),
+        'generated_date': now.strftime("%d %B %Y"),
+        'revenue_this_month': revenue_this,
+        'revenue_last_month': revenue_last,
+        'revenue_change_pct': pct_change(revenue_this, revenue_last),
+        'expenses_this_month': expenses_this,
+        'expenses_last_month': expenses_last,
+        'expense_change_pct': pct_change(expenses_this, expenses_last),
+        'gross_profit_this_month': gross_this,
+        'gross_profit_last_month': gross_last,
+        'gross_profit_change_pct': pct_change(gross_this, gross_last),
+        'net_profit_this_month': net_this,
+        'net_profit_last_month': net_last,
+        'net_profit_change_pct': pct_change(net_this, net_last),
+        'gross_margin_pct': gross_margin,
+        'net_margin_pct': net_margin,
+        'month_labels': month_labels,
+        'month_revenues': month_revenues,
+        'top_products': top_products,
+        'top_products_total': top_products_total,
+        'top_products_pct': round(top_products_pct, 1),
+        'top_services': top_services_list,
+        'total_bookings_this_month': bookings_this,
+        'expense_categories': expense_categories,
+        'total_customers': total_customers,
+        'new_customers': new_customers,
+        'bookings_this_month': bookings_this,
+        'bookings_last_month': bookings_last,
+        'orders_this_month': orders_this,
+        'avg_order_value': avg_order,
+        'inventory_value': inventory_value,
+        'sku_count': sku_count,
+        'low_stock_count': low_stock,
+        'outstanding_receivables': outstanding_recv,
+        'outstanding_payables': outstanding_pay,
+        'employee_count': emp_count,
+        'payroll_cost': payroll_cost,
+        'pending_bookings': pending_bookings,
+        'avg_rating': avg_rating,
+        'cash_balance': cash_balance,
+        'total_assets': total_assets,
+        'net_position': net_position,
+        'inventory_turnover': inv_turnover,
+    }
+
+    return render_template("board_report.html", d=d)
+
+
+@app.route('/erp/finance/budget', methods=["GET", "POST"])
+def budget_planning():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return redirect(url_for("erp_dashboard"))
+
+    vendor_id = result[0]
+
+    from datetime import datetime
+    now = datetime.now()
+    this_month_start = now.strftime("%Y-%m-01")
+    this_month_end = now.strftime("%Y-%m-%d 23:59:59")
+
+    budget_categories = [
+        ("Inventory", "inventory"),
+        ("Salaries", "salaries"),
+        ("Rent", "rent"),
+        ("Utilities", "utilities"),
+        ("Marketing", "marketing"),
+        ("Equipment", "equipment"),
+        ("Maintenance", "maintenance"),
+        ("Other", "other"),
+    ]
+
+    if request.method == "POST":
+        revenue_target = float(request.form.get("revenue_target", 0) or 0)
+        c.execute("INSERT OR REPLACE INTO expense_budgets (id, vendor_id, category, monthly_budget) VALUES ((SELECT id FROM expense_budgets WHERE vendor_id=? AND category='revenue_target'), ?, 'revenue_target', ?)", (vendor_id, vendor_id, revenue_target))
+
+        for name, key in budget_categories:
+            budget_val = float(request.form.get(f"budget_{key}", 0) or 0)
+            c.execute("INSERT OR REPLACE INTO expense_budgets (id, vendor_id, category, monthly_budget) VALUES ((SELECT id FROM expense_budgets WHERE vendor_id=? AND category=?), ?, ?, ?)", (vendor_id, key, vendor_id, key, budget_val))
+
+        conn.commit()
+        conn.close()
+        flash("All budgets saved successfully!")
+        return redirect(url_for("budget_planning"))
+
+    c.execute("SELECT category, monthly_budget FROM expense_budgets WHERE vendor_id=?", (vendor_id,))
+    existing_budgets = {row[0]: row[1] for row in c.fetchall()}
+
+    revenue_target = existing_budgets.get("revenue_target", 0)
+
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, this_month_start, this_month_end))
+    actual_revenue = c.fetchone()[0] or 0
+
+    categories = []
+    total_budget = 0
+    total_actual = 0
+    for name, key in budget_categories:
+        budget = existing_budgets.get(key, 0)
+        c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=? AND LOWER(category) LIKE ? AND date>=? AND date<=?", (vendor_id, f"%{key}%", this_month_start, this_month_end))
+        actual = c.fetchone()[0] or 0
+        variance = budget - actual
+        categories.append({
+            'name': name,
+            'key': key,
+            'budget': budget,
+            'actual': actual,
+            'variance': variance,
+        })
+        total_budget += budget
+        total_actual += actual
+
+    total_variance = total_budget - total_actual
+    conn.close()
+
+    return render_template("budget_planning.html",
+        categories=categories,
+        total_budget=total_budget,
+        total_actual=total_actual,
+        total_variance=total_variance,
+        revenue_target=revenue_target,
+        actual_revenue=actual_revenue)
+
+
+@app.route('/erp/finance/kpi-dashboard')
+def kpi_dashboard():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return redirect(url_for("erp_dashboard"))
+
+    vendor_id = result[0]
+    currency = get_vendor_currency(vendor_id)
+
+    c.execute("CREATE TABLE IF NOT EXISTS vendor_kpis (id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_id INTEGER, kpi_name TEXT, kpi_target REAL, is_active BOOLEAN DEFAULT 1, display_order INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (vendor_id) REFERENCES vendors(id))")
+    conn.commit()
+
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    this_month_start = now.strftime("%Y-%m-01")
+    this_month_end = now.strftime("%Y-%m-%d 23:59:59")
+    last_month_end = now.replace(day=1) - timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1).strftime("%Y-%m-01")
+    last_month_end_str = last_month_end.strftime("%Y-%m-%d 23:59:59")
+
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, this_month_start, this_month_end))
+    rev_this = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, last_month_start, last_month_end_str))
+    rev_last = c.fetchone()[0] or 0
+
+    c.execute("SELECT monthly_budget FROM expense_budgets WHERE vendor_id=? AND category='revenue_target'", (vendor_id,))
+    rev_target_row = c.fetchone()
+    rev_target = rev_target_row[0] if rev_target_row else rev_last * 1.1 if rev_last > 0 else 10000
+
+    rev_growth = ((rev_this - rev_last) / abs(rev_last) * 100) if rev_last != 0 else (100 if rev_this > 0 else 0)
+
+    cogs = 0
+    try:
+        c.execute("SELECT COALESCE(SUM(s.quantity * p.buy_price),0) FROM sales_log s JOIN products p ON s.product_id=p.id WHERE s.vendor_id=? AND s.sale_date>=? AND s.sale_date<=?", (vendor_id, this_month_start, this_month_end))
+        cogs = c.fetchone()[0] or 0
+    except:
+        pass
+    gross_margin = ((rev_this - cogs) / rev_this * 100) if rev_this > 0 else 0
+
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id=? AND created_at>=?", (vendor_id, this_month_start))
+    new_cust = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id=? AND created_at>=? AND created_at<=?", (vendor_id, last_month_start, last_month_end_str))
+    new_cust_last = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, this_month_start, this_month_end))
+    order_count = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM sales_log WHERE vendor_id=? AND sale_date>=? AND sale_date<=?", (vendor_id, last_month_start, last_month_end_str))
+    order_count_last = c.fetchone()[0] or 0
+    aov = rev_this / order_count if order_count > 0 else 0
+    aov_last = rev_last / order_count_last if order_count_last > 0 else 0
+
+    inv_value = 0
+    try:
+        c.execute("SELECT COALESCE(SUM(quantity * sale_price),0) FROM products WHERE vendor_id=?", (vendor_id,))
+        inv_value = c.fetchone()[0] or 0
+    except:
+        pass
+    inv_turnover = (cogs / inv_value) if inv_value > 0 else 0
+
+    c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id=? AND date>=? AND date<=?", (vendor_id, this_month_start, this_month_end))
+    bookings_this = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM bookings WHERE vendor_id=? AND date>=? AND date<=?", (vendor_id, last_month_start, last_month_end_str))
+    bookings_last = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(AVG(rating),0) FROM reviews WHERE vendor_id=?", (vendor_id,))
+    avg_rating = c.fetchone()[0] or 0
+
+    total_products = 0
+    dead_stock = 0
+    try:
+        c.execute("SELECT COUNT(*) FROM products WHERE vendor_id=?", (vendor_id,))
+        total_products = c.fetchone()[0] or 0
+        c.execute("SELECT COUNT(*) FROM products WHERE vendor_id=? AND id NOT IN (SELECT DISTINCT product_id FROM sales_log WHERE vendor_id=?)", (vendor_id, vendor_id))
+        dead_stock = c.fetchone()[0] or 0
+    except:
+        pass
+    dead_stock_pct = (dead_stock / total_products * 100) if total_products > 0 else 0
+
+    staff_prod = 0
+    try:
+        c.execute("SELECT COALESCE(AVG(productivity_score),0) FROM employee_performance WHERE vendor_id=?", (vendor_id,))
+        staff_prod = c.fetchone()[0] or 0
+    except:
+        pass
+
+    def make_kpi(name, value, target, last_val, fmt, suffix=""):
+        if target == 0:
+            gap = 0
+        else:
+            gap = abs(value - target) / abs(target) * 100
+
+        if fmt == "currency":
+            dv = f"{currency}{value:,.2f}"
+            dt = f"{currency}{target:,.2f}"
+        elif fmt == "percentage":
+            dv = f"{value:.1f}%"
+            dt = f"{target:.1f}%"
+        elif fmt == "decimal":
+            dv = f"{value:.1f}{suffix}"
+            dt = f"{target:.1f}{suffix}"
+        else:
+            dv = f"{int(value)}"
+            dt = f"{int(target)}"
+
+        if gap <= 10:
+            status_class = "on-target"
+            status_badge = "status-on-target"
+            status_label = "On Target"
+        elif gap <= 25:
+            status_class = "at-risk"
+            status_badge = "status-at-risk"
+            status_label = "At Risk"
+        else:
+            status_class = "off-track"
+            status_badge = "status-off-track"
+            status_label = "Off Track"
+
+        if value > last_val:
+            trend_class = "trend-up"
+            trend_icon = "&#9650;"
+            trend_text = "Up"
+        elif value < last_val:
+            trend_class = "trend-down"
+            trend_icon = "&#9660;"
+            trend_text = "Down"
+        else:
+            trend_class = "trend-flat"
+            trend_icon = "&#9644;"
+            trend_text = "Flat"
+
+        return {
+            'name': name,
+            'value': value,
+            'display_value': dv,
+            'display_target': dt,
+            'status_class': status_class,
+            'status_badge': status_badge,
+            'status_label': status_label,
+            'trend_class': trend_class,
+            'trend_icon': trend_icon,
+            'trend_text': trend_text,
+        }
+
+    gross_margin_last = ((rev_last - cogs) / rev_last * 100) if rev_last > 0 else 0
+
+    kpis = [
+        make_kpi("Monthly Revenue", rev_this, rev_target, rev_last, "currency"),
+        make_kpi("Revenue Growth %", rev_growth, 10, 0, "percentage"),
+        make_kpi("Gross Margin %", gross_margin, 40, gross_margin_last, "percentage"),
+        make_kpi("New Customers This Month", new_cust, 10, new_cust_last, "number"),
+        make_kpi("Average Order Value", aov, aov_last if aov_last > 0 else aov, aov_last, "currency"),
+        make_kpi("Inventory Turnover Rate", inv_turnover, 2.0, 0, "decimal", "x"),
+        make_kpi("Booking Count This Month", bookings_this, 20, bookings_last, "number"),
+        make_kpi("Customer Rating Average", avg_rating, 4.5, avg_rating, "decimal", "/5"),
+        make_kpi("Dead Stock Percentage", dead_stock_pct, 10, dead_stock_pct, "percentage"),
+        make_kpi("Staff Productivity Score", staff_prod, 80, staff_prod, "number"),
+    ]
+
+    on_target = sum(1 for k in kpis if k['status_class'] == 'on-target')
+    health_pct = int((on_target / len(kpis)) * 100) if kpis else 0
+
+    c.execute("SELECT id, kpi_name, kpi_target FROM vendor_kpis WHERE vendor_id=? AND is_active=1 ORDER BY display_order", (vendor_id,))
+    custom_kpis = [{'id': r[0], 'kpi_name': r[1], 'kpi_target': r[2]} for r in c.fetchall()]
+
+    all_additional = [
+        "Return on Investment", "Customer Lifetime Value", "Repeat Customer Rate",
+        "Employee Attendance Rate", "Revenue per Employee", "Cost per Acquisition",
+        "Refund Rate", "On-Time Delivery Rate", "Social Media Followers", "WhatsApp Response Rate"
+    ]
+    active_names = {ck['kpi_name'] for ck in custom_kpis}
+    available_kpis = [k for k in all_additional if k not in active_names]
+
+    conn.close()
+
+    return render_template("kpi_dashboard.html",
+        kpis=kpis,
+        health_pct=health_pct,
+        on_target_count=on_target,
+        custom_kpis=custom_kpis,
+        available_kpis=available_kpis)
+
+
+@app.route('/erp/finance/kpi-dashboard/add-kpi', methods=["POST"])
+def kpi_add():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return redirect(url_for("kpi_dashboard"))
+
+    vendor_id = result[0]
+    kpi_name = request.form.get("kpi_name", "").strip()
+    kpi_target = float(request.form.get("kpi_target", 0) or 0)
+
+    if kpi_name:
+        c.execute("CREATE TABLE IF NOT EXISTS vendor_kpis (id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_id INTEGER, kpi_name TEXT, kpi_target REAL, is_active BOOLEAN DEFAULT 1, display_order INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (vendor_id) REFERENCES vendors(id))")
+        c.execute("SELECT id FROM vendor_kpis WHERE vendor_id=? AND kpi_name=?", (vendor_id, kpi_name))
+        existing = c.fetchone()
+        if existing:
+            c.execute("UPDATE vendor_kpis SET is_active=1, kpi_target=? WHERE id=?", (kpi_target, existing[0]))
+        else:
+            c.execute("INSERT INTO vendor_kpis (vendor_id, kpi_name, kpi_target) VALUES (?,?,?)", (vendor_id, kpi_name, kpi_target))
+        conn.commit()
+        flash(f"KPI '{kpi_name}' added successfully!")
+
+    conn.close()
+    return redirect(url_for("kpi_dashboard"))
+
+
+@app.route('/erp/finance/kpi-dashboard/remove-kpi/<int:kpi_id>', methods=["POST"])
+def kpi_remove(kpi_id):
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if result:
+        c.execute("UPDATE vendor_kpis SET is_active=0 WHERE id=? AND vendor_id=?", (kpi_id, result[0]))
+        conn.commit()
+        flash("KPI removed.")
+
+    conn.close()
+    return redirect(url_for("kpi_dashboard"))
+
+
+@app.route('/erp/finance/kpi-dashboard/save-kpis', methods=["POST"])
+def kpi_save():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if result:
+        vendor_id = result[0]
+        c.execute("SELECT id FROM vendor_kpis WHERE vendor_id=? AND is_active=1", (vendor_id,))
+        for row in c.fetchall():
+            target = float(request.form.get(f"target_{row[0]}", 0) or 0)
+            c.execute("UPDATE vendor_kpis SET kpi_target=? WHERE id=?", (target, row[0]))
+        conn.commit()
+        flash("KPI settings saved!")
+
+    conn.close()
+    return redirect(url_for("kpi_dashboard"))
+
+
 @app.route('/erp/finance/revenue-recognition')
 def revenue_recognition():
     if "vendor" not in session:

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Budget Planning - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .main-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .back-btn:hover { background: rgba(255,255,255,0.3); color: #fff; }
+
+    .page-header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+      padding-top: 20px;
+    }
+
+    .page-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 5px; }
+    .page-header p { opacity: 0.85; }
+
+    .card-section {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .card-section h4 {
+      color: #667eea;
+      font-weight: 700;
+      margin-bottom: 20px;
+      font-size: 1.15rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 10px;
+    }
+
+    .summary-item {
+      text-align: center;
+      padding: 20px;
+      border-radius: 12px;
+      background: #f8f9fa;
+    }
+
+    .summary-item .label { font-size: 0.8rem; color: #777; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-item .value { font-size: 1.6rem; font-weight: 700; color: #333; margin-top: 5px; }
+
+    .health-good { border-left: 4px solid #28a745; }
+    .health-warn { border-left: 4px solid #ffc107; }
+    .health-bad { border-left: 4px solid #dc3545; }
+
+    .revenue-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .revenue-input-group label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #555;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .revenue-input-group input {
+      width: 100%;
+      padding: 10px 15px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .revenue-input-group input:focus { border-color: #667eea; outline: none; }
+
+    .revenue-stats .stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.9rem;
+    }
+
+    .revenue-stats .stat:last-child { border-bottom: none; }
+    .revenue-stats .stat .val { font-weight: 700; }
+
+    .progress-bar-custom {
+      height: 10px;
+      border-radius: 5px;
+      background: #e9ecef;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar-custom .fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.5s;
+    }
+
+    .fill-green { background: #28a745; }
+    .fill-yellow { background: #ffc107; }
+    .fill-red { background: #dc3545; }
+
+    .budget-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .budget-table th {
+      background: #667eea;
+      color: white;
+      padding: 12px 15px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .budget-table th:first-child { border-radius: 10px 0 0 0; }
+    .budget-table th:last-child { border-radius: 0 10px 0 0; }
+
+    .budget-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.9rem;
+      vertical-align: middle;
+    }
+
+    .budget-table tr:last-child td { border-bottom: none; }
+
+    .budget-table input[type="number"] {
+      width: 120px;
+      padding: 6px 10px;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .budget-table input[type="number"]:focus { border-color: #667eea; outline: none; }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-on-track { background: #d4edda; color: #155724; }
+    .badge-over { background: #f8d7da; color: #721c24; }
+    .badge-under { background: #fff3cd; color: #856404; }
+    .badge-no-budget { background: #e9ecef; color: #6c757d; }
+
+    .save-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .save-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    @media (max-width: 768px) {
+      .revenue-section { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">&larr; Back</a>
+
+  <div class="main-container">
+    <div class="page-header">
+      <h1>📈 Budget Planning</h1>
+      <p>Set targets, track spending, and manage your monthly budget</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="alert alert-success" style="border-radius:10px;text-align:center;font-weight:600;">
+      {% for m in messages %}{{ m }}{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="card-section">
+      <h4>Budget Summary</h4>
+      <div class="summary-grid">
+        <div class="summary-item {{ 'health-good' if total_variance >= 0 else 'health-bad' }}">
+          <div class="label">Total Budget</div>
+          <div class="value">{{ vendor_currency }}{{ "%.2f"|format(total_budget) }}</div>
+        </div>
+        <div class="summary-item {{ 'health-good' if total_actual <= total_budget or total_budget == 0 else 'health-bad' }}">
+          <div class="label">Total Actual Spending</div>
+          <div class="value">{{ vendor_currency }}{{ "%.2f"|format(total_actual) }}</div>
+        </div>
+        <div class="summary-item {{ 'health-good' if total_variance >= 0 else 'health-bad' }}">
+          <div class="label">Net Variance</div>
+          <div class="value {{ 'text-success' if total_variance >= 0 else 'text-danger' }}">{{ vendor_currency }}{{ "%.2f"|format(total_variance) }}</div>
+        </div>
+        <div class="summary-item {% if total_budget > 0 %}{% if total_actual/total_budget <= 0.8 %}health-good{% elif total_actual/total_budget <= 1.0 %}health-warn{% else %}health-bad{% endif %}{% else %}health-good{% endif %}">
+          <div class="label">Budget Health</div>
+          <div class="value">{% if total_budget > 0 %}{% if total_actual/total_budget <= 0.8 %}Healthy{% elif total_actual/total_budget <= 1.0 %}Caution{% else %}Over Budget{% endif %}{% else %}No Budget Set{% endif %}</div>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="/erp/finance/budget">
+      <div class="card-section">
+        <h4>Revenue Target</h4>
+        <div class="revenue-section">
+          <div>
+            <div class="revenue-input-group">
+              <label>Monthly Revenue Target ({{ vendor_currency }})</label>
+              <input type="number" name="revenue_target" step="0.01" min="0" value="{{ "%.2f"|format(revenue_target) }}">
+            </div>
+            <div class="progress-bar-custom" style="margin-top:15px;">
+              {% set rev_pct = (actual_revenue / revenue_target * 100) if revenue_target > 0 else 0 %}
+              <div class="fill {% if rev_pct >= 80 %}fill-green{% elif rev_pct >= 50 %}fill-yellow{% else %}fill-red{% endif %}" style="width: {{ [rev_pct, 100]|min }}%"></div>
+            </div>
+            <div style="font-size:0.8rem;color:#888;margin-top:5px;">{{ "%.1f"|format(rev_pct) }}% of target achieved</div>
+          </div>
+          <div class="revenue-stats">
+            <div class="stat"><span>Actual Revenue</span><span class="val">{{ vendor_currency }}{{ "%.2f"|format(actual_revenue) }}</span></div>
+            <div class="stat"><span>Target</span><span class="val">{{ vendor_currency }}{{ "%.2f"|format(revenue_target) }}</span></div>
+            <div class="stat">
+              <span>Variance</span>
+              <span class="val {{ 'text-success' if actual_revenue >= revenue_target else 'text-danger' }}">
+                {{ vendor_currency }}{{ "%.2f"|format(actual_revenue - revenue_target) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-section">
+        <h4>Expense Budgets by Category</h4>
+        <table class="budget-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Budget</th>
+              <th>Actual Spent</th>
+              <th>Variance</th>
+              <th>Progress</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cat in categories %}
+            <tr>
+              <td style="font-weight:600;">{{ cat.name }}</td>
+              <td><input type="number" name="budget_{{ cat.key }}" step="0.01" min="0" value="{{ "%.2f"|format(cat.budget) }}"></td>
+              <td>{{ vendor_currency }}{{ "%.2f"|format(cat.actual) }}</td>
+              <td class="{{ 'text-success' if cat.variance >= 0 else 'text-danger' }}">
+                {{ vendor_currency }}{{ "%.2f"|format(cat.variance) }}
+              </td>
+              <td style="min-width:120px;">
+                <div class="progress-bar-custom">
+                  {% set pct = (cat.actual / cat.budget * 100) if cat.budget > 0 else 0 %}
+                  <div class="fill {% if pct <= 80 %}fill-green{% elif pct <= 100 %}fill-yellow{% else %}fill-red{% endif %}" style="width: {{ [pct, 100]|min }}%"></div>
+                </div>
+              </td>
+              <td>
+                {% if cat.budget == 0 %}
+                  <span class="status-badge badge-no-budget">No Budget</span>
+                {% elif cat.actual > cat.budget %}
+                  <span class="status-badge badge-over">Over Budget</span>
+                {% elif cat.actual >= cat.budget * 0.8 %}
+                  <span class="status-badge badge-under">Near Limit</span>
+                {% else %}
+                  <span class="status-badge badge-on-track">On Track</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <button type="submit" class="save-btn">💾 Save All Budgets</button>
+    </form>
+  </div>
+</body>
+</html>

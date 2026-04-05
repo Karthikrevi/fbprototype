@@ -1,0 +1,295 @@
+In main.py and templates only, create the
+Board Report page.
+Do not modify any existing routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+Route: /erp/finance/board-report GET
+
+Pull this data for this vendor:
+- Vendor business name, city, category
+- Revenue: this month, last month,
+  last 6 months monthly breakdown
+- Top 5 products by revenue
+- Top 3 services by booking count
+- Expense breakdown by category
+- Gross margin percentage
+- Net profit this month and last month
+- Customer count from crm_customers
+- New customers this month
+- Booking count this month vs last month
+- Average order value
+- Inventory total value and SKU count
+- Low stock items count
+- Outstanding receivables amount
+- Outstanding payables amount
+- Employee count and monthly payroll cost
+
+Pass all data to board_report.html
+
+Create templates/board_report.html:
+
+Design: Clean white printable format
+Navy blue section headers
+FurrButler logo text at top right
+No purple gradient anywhere
+Professional typography
+Each section starts on a clear visual break
+Print button and Download PDF button
+at top right — both trigger window.print()
+with note to use browser Save as PDF
+
+PAGE 1 — Cover Page:
+
+Large business name centered
+Tagline: "Business Performance Report"
+Period: "For the period ending [current month year]"
+Prepared by: FurrButler ERP
+Generated on: [current date and time]
+Confidential notice:
+"This report is prepared for internal
+business review and stakeholder communication.
+All figures are based on data recorded in
+FurrButler ERP."
+
+PAGE 2 — Executive Summary:
+
+Section header: "Executive Summary"
+
+Opening paragraph — auto-generated narrative:
+"[Business Name] recorded total revenue of
+[amount] for [month], representing a [X]%
+[increase/decrease] compared to [last month].
+The business served [booking count] customers
+through bookings and processed [order count]
+marketplace orders during this period."
+
+Performance highlights — auto-generated bullets:
+If revenue increased vs last month:
+"Revenue grew by [X]% month on month,
+driven primarily by [top product/service]
+which contributed [amount] to total sales."
+
+If revenue decreased:
+"Revenue declined by [X]% compared to
+the previous month. Management attention
+is recommended to identify growth opportunities."
+
+Profitability paragraph:
+"The business achieved a gross margin of
+[X]% for the period. After accounting for
+operating expenses of [amount], the net
+[profit/loss] for the period stands at [amount]."
+
+Inventory paragraph:
+"Inventory comprises [SKU count] active
+product lines with a total stock value of
+[amount]. [Low stock count] products are
+currently running low and may require
+restocking attention."
+
+Outlook paragraph:
+"With [pending booking count] bookings
+confirmed for upcoming periods and
+[receivable amount] in outstanding
+receivables, the business outlook
+remains [positive if profit > 0 / 
+challenging if loss]."
+
+PAGE 3 — Financial Performance:
+
+Section header: "Financial Performance"
+
+Subsection: Revenue Analysis
+Chart.js line chart showing 6 months
+revenue trend with actual data points
+Label each point with the month name
+
+Two column comparison table:
+                This Month    Last Month    Change
+Total Revenue   [amount]      [amount]      [+/- %]
+Total Expenses  [amount]      [amount]      [+/- %]  
+Gross Profit    [amount]      [amount]      [+/- %]
+Net Profit      [amount]      [amount]      [+/- %]
+
+Narrative paragraph below table:
+"Revenue for [month] was [amount].
+[If up: This represents continued growth
+and reflects strong demand for the
+business's products and services.]
+[If down: This represents a decline from
+the previous period and warrants review
+of sales strategies and customer engagement.]"
+
+Subsection: Expense Analysis
+Chart.js doughnut chart showing expense
+breakdown by category
+
+Narrative:
+"Total operating expenses for the period
+amounted to [amount]. The largest expense
+categories were [top 2 categories] accounting
+for [combined %] of total expenditure.
+[If salaries is top: Staff costs remain
+the primary operational expense, reflecting
+the labour-intensive nature of pet services.]"
+
+PAGE 4 — Business Operations:
+
+Section header: "Business Operations"
+
+Subsection: Products & Services Performance
+Table: Top 5 products by revenue
+Product Name | Units Sold | Revenue | % of Total
+
+Narrative:
+"[Top product] was the best performing
+product line generating [amount] in revenue.
+The top 5 products collectively contributed
+[combined amount] representing [%] of total
+product sales for the period."
+
+Table: Top 3 services by booking count
+Service | Bookings | Avg Value | Total Revenue
+
+Narrative:
+"Service bookings totalled [count] for
+the period. [Top service] was the most
+popular service with [count] bookings.
+[If bookings increased: Booking volumes
+show healthy demand for the business's
+service offerings.]"
+
+Subsection: Customer Overview
+Key metrics in a clean grid:
+Total Customers | New This Month | 
+Avg Order Value | Repeat Bookings
+
+Narrative:
+"The business currently serves a customer
+base of [total] registered clients.
+[New count] new customers were acquired
+during [month], [if > 0: demonstrating
+continued market penetration /
+if 0: suggesting a focus on customer
+acquisition may be beneficial]."
+
+PAGE 5 — Balance Sheet Summary:
+
+Section header: "Financial Position"
+
+Simple balance sheet layout:
+ASSETS                          Amount
+Current Assets
+  Cash and Bank               [amount]
+  Accounts Receivable         [amount]
+  Inventory                   [amount]
+Total Current Assets          [amount]
+
+LIABILITIES
+Current Liabilities
+  Accounts Payable            [amount]
+Total Liabilities             [amount]
+
+EQUITY
+  Net Position                [assets - liabilities]
+
+Narrative:
+"As at [date], the business holds total
+assets of [amount] against liabilities
+of [amount], resulting in a net equity
+position of [amount].
+[If positive: The business maintains a
+healthy financial position with assets
+exceeding liabilities.]
+[If negative: The current liability
+position warrants attention and management
+should consider strategies to improve
+the balance sheet position.]"
+
+Accounts receivable note:
+"Outstanding receivables of [amount]
+are expected to be collected within
+the normal credit terms. Management
+should monitor aged receivables to
+ensure timely collection."
+
+PAGE 6 — Key Metrics & Outlook:
+
+Section header: "Key Performance Indicators"
+
+Clean metrics grid:
+Gross Margin %
+Net Profit Margin %
+Average Order Value
+Inventory Turnover Rate
+Customer Satisfaction Score
+Staff Count
+
+Subsection: Outlook
+Narrative:
+"Looking ahead, the business has
+[pending booking count] confirmed
+bookings representing an estimated
+revenue pipeline of [estimated amount].
+[If low stock: Attention is required
+for [low stock count] products that
+are running below minimum stock levels.]
+[If high receivables: Collection of
+outstanding receivables of [amount]
+should be prioritised to maintain
+healthy cash flow.]"
+
+Closing statement:
+"Management is encouraged to review
+these figures in detail and take
+appropriate action on areas highlighted
+in this report."
+
+DISCLAIMER (bottom of final page):
+
+Styled as a formal legal notice box
+with light grey border:
+
+"IMPORTANT NOTICE
+
+This report has been automatically
+generated by FurrButler ERP based on
+transaction data entered into the system
+by the business owner or their authorised
+staff.
+
+FurrButler Technologies provides this
+report as a business management tool only.
+The accuracy of this report is entirely
+dependent on the completeness and accuracy
+of data entered into the system. Manual
+data entry errors, omissions or
+manipulations will directly affect the
+figures presented herein.
+
+This report does not constitute audited
+financial statements and should not be
+relied upon as such. Users are strongly
+advised to verify all figures with a
+qualified chartered accountant before
+making business decisions, presenting
+to external parties, or using for
+statutory compliance purposes.
+
+FurrButler Technologies accepts no
+liability for decisions made based on
+this report."
+
+Print and Download PDF buttons
+both trigger window.print()
+Add a CSS print stylesheet that
+removes navigation and buttons
+when printing
+
+Back button to /erp/reports
+
+Do not modify any existing routes.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
