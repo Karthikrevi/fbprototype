@@ -1,0 +1,198 @@
+In main.py and accounting templates only,
+make these improvements.
+Do not modify any other routes or templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Manual Journal Entry:
+
+Add route /erp/finance/journal-entry 
+GET and POST.
+
+GET: Show a form with fields:
+- Entry date (date picker, default today)
+- Entry type radio: debit or credit
+- Account dropdown with these options:
+  Cash, Bank, Sales Revenue, 
+  Cost of Goods Sold, Inventory,
+  Accounts Receivable, Accounts Payable,
+  Operating Expenses, Platform Fees,
+  Capital, Drawings, Fixed Assets,
+  Tax Payable, GST Collected, GST Paid
+- Amount number field
+- Description text field
+- Sub category text field
+- Reference number text field (optional)
+
+POST: Insert into ledger_entries table.
+Mark these entries with a new column
+entry_source = 'manual' to distinguish
+from auto-generated entries.
+
+Add entry_source column to ledger_entries
+using ALTER TABLE IF NOT EXISTS pattern.
+
+Show last 20 manual entries below the form
+with a badge showing Manual vs Auto.
+
+PART 2 — Expense Receipt Upload:
+
+In the manage_expenses route and template,
+add a receipt image upload field to the
+expense entry form.
+
+Save uploaded receipt to 
+static/uploads/receipts/ folder.
+Create the folder if it does not exist.
+
+Add receipt_url column to expenses table
+using ALTER TABLE IF NOT EXISTS pattern.
+
+In the expenses list view show a small
+receipt icon next to each expense that
+has a receipt uploaded.
+Clicking the icon opens the receipt image
+in a new tab.
+
+Add an expense_budgets table:
+CREATE TABLE IF NOT EXISTS expense_budgets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    category TEXT,
+    monthly_budget REAL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+Add a budget setting form above the expense
+list where vendor can set monthly budget
+per category.
+
+Show a budget vs actual summary bar
+per category using a progress bar:
+Under 70% of budget = green
+70-90% of budget = yellow
+Over 90% of budget = red
+
+PART 3 — Manual Invoice Creation:
+
+Add route /erp/finance/invoice/create
+GET and POST.
+
+GET: Show invoice creation form with:
+- Customer email text field
+- Customer name text field
+- Invoice date date picker
+- Due date date picker
+- Line items section:
+  Each line item has description, 
+  quantity, unit price fields
+  Total auto-calculated via JavaScript
+  Add Item button adds new line item row
+  Remove button removes a line item row
+  No page reload needed for add/remove
+- Subtotal auto-calculated
+- GST rate pulled from vendor settings
+- GST amount auto-calculated
+- Total auto-calculated
+- Notes textarea
+- Payment terms dropdown:
+  Due on receipt, Net 7, Net 15, Net 30
+
+POST: Create an order record in orders table
+Insert line items into order_items table
+Show a printable invoice page after creation
+styled cleanly with:
+  FurrButler logo area
+  Vendor name and address
+  Customer details
+  Line items table
+  Subtotal, GST, Total
+  Due date and payment instructions
+  Print button
+
+PART 4 — Fix Balance Sheet hardcoded values:
+
+In the balance_sheet route replace all
+hardcoded values with real database queries:
+
+Fixed assets: Pull from a new table
+CREATE TABLE IF NOT EXISTS fixed_assets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    asset_name TEXT,
+    purchase_value REAL,
+    current_value REAL,
+    purchase_date TEXT,
+    asset_type TEXT,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+If no fixed assets recorded show 0.
+
+Owner equity: Pull from a new table
+CREATE TABLE IF NOT EXISTS capital_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id INTEGER,
+    entry_type TEXT,
+    amount REAL,
+    description TEXT,
+    entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)
+
+If no capital recorded show 0.
+
+Long term debt: Pull from ledger_entries
+where account = 'Accounts Payable'
+and sub_category = 'Long Term'.
+
+Remove all hardcoded fallback numbers.
+Show actual calculated values even if zero.
+
+PART 5 — Fix Cash Flow hardcoded values:
+
+In the cash_flow_statement route replace
+hardcoded investing_cash_flow = -5000
+with sum of fixed_assets purchase values
+from the fixed_assets table.
+
+Replace hardcoded beginning_cash = 25000
+with sum of all capital_accounts entries.
+
+PART 6 — GST Summary with CSV export:
+
+Add route /erp/finance/gst-summary
+GET: Show GST summary with date range picker
+defaulting to current month.
+
+Show:
+- Total sales in period
+- GST collected on sales (at vendor GST rate)
+- Total purchases and expenses in period
+- GST paid on expenses (estimated at 18%)
+- Input tax credit available
+- Net GST payable
+
+Show individual transactions with
+GST breakdown below the summary.
+
+Add Export CSV button that downloads
+the GST summary as a CSV file with
+all transaction details.
+
+PART 7 — Add data entry links to 
+accounting dashboard:
+
+In accounting_dashboard.html only,
+add a Quick Actions section with buttons:
+
++ Add Expense → /erp/reports/expenses
++ Journal Entry → /erp/finance/journal-entry
++ Create Invoice → /erp/finance/invoice/create
++ GST Summary → /erp/finance/gst-summary
+View Ledger → /erp/reports/ledger
+View P&L → /erp/reports/pnl
+Balance Sheet → /erp/finance/balance-sheet
+
+Do not modify any other templates.

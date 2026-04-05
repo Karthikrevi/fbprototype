@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Invoice - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #667eea; font-size: 2.2rem; }
+    .invoice-form {
+      max-width: 900px; margin: 0 auto; background: white;
+      padding: 35px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .section-title { color: #667eea; font-size: 1.1rem; font-weight: bold; margin: 25px 0 15px 0; padding-bottom: 8px; border-bottom: 2px solid #e9ecef; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem;
+    }
+    .line-items-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .line-items-table th { background: #f8f9fa; padding: 10px; text-align: left; font-size: 0.85rem; color: #667eea; border-bottom: 2px solid #e9ecef; }
+    .line-items-table td { padding: 8px; }
+    .line-items-table input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+    .btn-add-row { background: none; border: 1px dashed #667eea; color: #667eea; padding: 8px 20px; border-radius: 8px; cursor: pointer; width: 100%; margin: 10px 0; }
+    .btn-add-row:hover { background: rgba(102,126,234,0.1); }
+    .btn-remove { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .btn-submit {
+      background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+      padding: 14px 30px; border: none; border-radius: 8px; font-weight: bold;
+      cursor: pointer; width: 100%; font-size: 1.1rem; margin-top: 20px;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+    .totals-section { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px; }
+    .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+    .total-row.grand { font-size: 1.2rem; font-weight: bold; color: #667eea; border-top: 2px solid #667eea; padding-top: 12px; }
+    .back-btn {
+      position: fixed; top: 20px; left: 20px; background: #667eea; color: white;
+      padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; z-index: 1000;
+    }
+    .back-btn:hover { background: #5a67d8; color: white; }
+  </style>
+</head>
+<body>
+  <a href="/erp/reports" class="back-btn">← Back to Finance</a>
+
+  <div class="header">
+    <h1>🧾 Create Invoice</h1>
+    <p>Generate a professional invoice for your customer</p>
+  </div>
+
+  <div class="invoice-form">
+    <form method="POST" id="invoiceForm">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+          <strong style="font-size: 1.2rem; color: #333;">{{ vendor_name }}</strong>
+          <p style="color: #666; margin: 0; font-size: 0.9rem;">Invoice Generator</p>
+        </div>
+        <div style="text-align: right; color: #666; font-size: 0.85rem;">
+          GST Rate: {{ gst_rate }}%
+        </div>
+      </div>
+
+      <div class="section-title">Customer Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" name="customer_name" required placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Customer Email</label>
+          <input type="email" name="customer_email" placeholder="email@example.com">
+        </div>
+      </div>
+
+      <div class="section-title">Invoice Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Invoice Date</label>
+          <input type="date" name="invoice_date" required>
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" name="due_date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Payment Terms</label>
+        <select name="payment_terms">
+          <option value="Due on receipt">Due on receipt</option>
+          <option value="Net 15">Net 15</option>
+          <option value="Net 30">Net 30</option>
+          <option value="Net 45">Net 45</option>
+          <option value="Net 60">Net 60</option>
+        </select>
+      </div>
+
+      <div class="section-title">Line Items</div>
+      <table class="line-items-table" id="lineItems">
+        <thead>
+          <tr>
+            <th style="width:40%">Description</th>
+            <th style="width:15%">Qty</th>
+            <th style="width:20%">Unit Price ({{ vendor_currency }})</th>
+            <th style="width:15%">Total</th>
+            <th style="width:10%"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="line-row">
+            <td><input type="text" name="item_description[]" placeholder="Product or service" required></td>
+            <td><input type="number" name="item_quantity[]" min="1" value="1" class="qty-input" required></td>
+            <td><input type="number" name="item_price[]" step="0.01" min="0" class="price-input" required></td>
+            <td class="row-total" style="font-family: monospace; font-weight: bold; padding-top: 16px;">{{ vendor_currency }}0.00</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="btn-add-row" onclick="addRow()">+ Add Line Item</button>
+
+      <div class="totals-section">
+        <div class="total-row"><span>Subtotal</span><span id="subtotal">{{ vendor_currency }}0.00</span></div>
+        <div class="total-row"><span>GST ({{ gst_rate }}%)</span><span id="gstAmount">{{ vendor_currency }}0.00</span></div>
+        <div class="total-row grand"><span>Grand Total</span><span id="grandTotal">{{ vendor_currency }}0.00</span></div>
+      </div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Additional notes for the customer"></textarea>
+      </div>
+
+      <button type="submit" class="btn-submit">🧾 Generate Invoice</button>
+    </form>
+  </div>
+
+  <script>
+    const GST = {{ gst_rate }};
+    const CURRENCY = '{{ vendor_currency }}';
+
+    function addRow() {
+      const tbody = document.querySelector('#lineItems tbody');
+      const row = document.createElement('tr');
+      row.className = 'line-row';
+      row.innerHTML = `
+        <td><input type="text" name="item_description[]" placeholder="Product or service" required></td>
+        <td><input type="number" name="item_quantity[]" min="1" value="1" class="qty-input" required></td>
+        <td><input type="number" name="item_price[]" step="0.01" min="0" class="price-input" required></td>
+        <td class="row-total" style="font-family:monospace;font-weight:bold;padding-top:16px">${CURRENCY}0.00</td>
+        <td><button type="button" class="btn-remove" onclick="removeRow(this)">✕</button></td>
+      `;
+      tbody.appendChild(row);
+      attachCalc();
+    }
+
+    function removeRow(btn) {
+      btn.closest('tr').remove();
+      calcTotals();
+    }
+
+    function calcTotals() {
+      let subtotal = 0;
+      document.querySelectorAll('.line-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const price = parseFloat(row.querySelector('.price-input').value) || 0;
+        const total = qty * price;
+        subtotal += total;
+        row.querySelector('.row-total').textContent = CURRENCY + total.toFixed(2);
+      });
+      const gst = subtotal * GST / 100;
+      document.getElementById('subtotal').textContent = CURRENCY + subtotal.toFixed(2);
+      document.getElementById('gstAmount').textContent = CURRENCY + gst.toFixed(2);
+      document.getElementById('grandTotal').textContent = CURRENCY + (subtotal + gst).toFixed(2);
+    }
+
+    function attachCalc() {
+      document.querySelectorAll('.qty-input, .price-input').forEach(el => {
+        el.removeEventListener('input', calcTotals);
+        el.addEventListener('input', calcTotals);
+      });
+    }
+    attachCalc();
+  </script>
+</body>
+</html>

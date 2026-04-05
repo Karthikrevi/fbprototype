@@ -86,6 +86,17 @@ An advanced chatbot system uses machine learning for intent classification and b
 - `edit_vendor_profile` route saves both radius fields; profile view displays them
 - All coordinate checks use `is not None` guards (not truthiness) to handle 0.0 coordinates correctly
 
+## Accounting Module Improvements
+- **Journal Entry** (`/erp/finance/journal-entry`): Manual ledger entry with debit/credit, account selection, reference numbers; `entry_source` column in `ledger_entries` tracks 'manual' vs 'auto'
+- **Invoice Creation** (`/erp/finance/invoice/create`): Dynamic line items, GST calculation, generates printable invoice view; records in `orders` + `order_items` + `ledger_entries`
+- **GST Summary** (`/erp/finance/gst-summary`): Date-range filter, output/input tax breakdown, CSV export; calculates GST from sales_log and expenses
+- **Expense Management** (`/erp/reports/expenses`): Receipt file upload (stored in `static/uploads/receipts/`), monthly budget tracking per category via `expense_budgets` table, budget-vs-actual progress bars
+- **Balance Sheet** (`/erp/finance/balance-sheet`): Fixed assets from `fixed_assets` table, liabilities from ledger AP entries, owner's equity from `capital_accounts` table (no more hardcoded values)
+- **Cash Flow** (`/erp/finance/cash-flow`): Investing from `fixed_assets` purchases, financing from `capital_accounts`, beginning cash calculated from historical data
+- **Quick Actions**: 6 gradient action buttons on accounting dashboard linking to Journal Entry, Add Expense, Create Invoice, GST Summary, Balance Sheet, Cash Flow
+- **New DB tables**: `expense_budgets`, `fixed_assets`, `capital_accounts`
+- **New columns**: `ledger_entries.entry_source`, `expenses.receipt_url`
+
 ## Dynamic Vendor Currency
 - `get_vendor_currency(vendor_id)` and `get_vendor_id_from_email(email)` registered as Jinja2 globals
 - Flask context processor `inject_vendor_currency()` auto-injects `vendor_currency` (and `vendor_id`) into all templates when vendor is logged in

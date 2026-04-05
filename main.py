@@ -411,7 +411,53 @@ def init_erp_db():
     try:
         c.execute("ALTER TABLE ledger_entries ADD COLUMN sub_category TEXT")
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        pass
+
+    try:
+        c.execute("ALTER TABLE ledger_entries ADD COLUMN entry_source TEXT DEFAULT 'auto'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE expenses ADD COLUMN receipt_url TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS expense_budgets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            category TEXT,
+            monthly_budget REAL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS fixed_assets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            asset_name TEXT,
+            purchase_value REAL,
+            current_value REAL,
+            purchase_date TEXT,
+            asset_type TEXT,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS capital_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vendor_id INTEGER,
+            entry_type TEXT,
+            amount REAL,
+            description TEXT,
+            entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )
+    ''')
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS expenses (
@@ -6343,32 +6389,311 @@ def manage_expenses():
     vendor_id = result[0]
 
     if request.method == "POST":
+        action = request.form.get("action", "add_expense")
+
+        if action == "set_budget":
+            budget_category = request.form.get("budget_category")
+            monthly_budget = float(request.form.get("monthly_budget", 0))
+            if budget_category and monthly_budget > 0:
+                c.execute("DELETE FROM expense_budgets WHERE vendor_id=? AND category=?", (vendor_id, budget_category))
+                c.execute("INSERT INTO expense_budgets (vendor_id, category, monthly_budget) VALUES (?, ?, ?)",
+                          (vendor_id, budget_category, monthly_budget))
+                conn.commit()
+            return redirect(url_for("manage_expenses"))
+
         category = request.form.get("category")
         amount = float(request.form.get("amount", 0))
         description = request.form.get("description")
         date = request.form.get("date")
 
-        # Add expense
-        c.execute("""
-            INSERT INTO expenses (vendor_id, category, amount, description, date)
-            VALUES (?, ?, ?, ?, ?)
-        """, (vendor_id, category, amount, description, date))
+        receipt_url = None
+        receipt_file = request.files.get("receipt")
+        if receipt_file and receipt_file.filename:
+            import os
+            upload_dir = os.path.join("static", "uploads", "receipts")
+            os.makedirs(upload_dir, exist_ok=True)
+            safe_name = f"{vendor_id}_{int(datetime.now().timestamp())}_{receipt_file.filename}"
+            receipt_path = os.path.join(upload_dir, safe_name)
+            receipt_file.save(receipt_path)
+            receipt_url = "/" + receipt_path.replace("\\", "/")
 
-        # Add to ledger
         c.execute("""
-            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category)
-            VALUES (?, 'debit', 'Expenses', ?, ?, ?)
+            INSERT INTO expenses (vendor_id, category, amount, description, date, receipt_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (vendor_id, category, amount, description, date, receipt_url))
+
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source)
+            VALUES (?, 'debit', 'Expenses', ?, ?, ?, 'auto')
         """, (vendor_id, amount, description, category))
 
         conn.commit()
         return redirect(url_for("manage_expenses"))
 
-    # Get all expenses
     c.execute("SELECT * FROM expenses WHERE vendor_id=? ORDER BY date DESC", (vendor_id,))
     expenses = c.fetchall()
 
+    c.execute("SELECT category, monthly_budget FROM expense_budgets WHERE vendor_id=?", (vendor_id,))
+    budgets = {row[0]: row[1] for row in c.fetchall()}
+
+    categories = ['Rent', 'Utilities', 'Supplies', 'Equipment', 'Marketing', 'Insurance', 'Transport', 'Food', 'Veterinary', 'Other']
+    budget_vs_actual = []
+    for cat in categories:
+        c.execute("""
+            SELECT COALESCE(SUM(amount), 0) FROM expenses
+            WHERE vendor_id=? AND category=? AND date >= date('now', 'start of month')
+        """, (vendor_id, cat))
+        actual = c.fetchone()[0] or 0
+        budget = budgets.get(cat, 0)
+        if budget > 0 or actual > 0:
+            pct = (actual / budget * 100) if budget > 0 else 0
+            budget_vs_actual.append({
+                'category': cat,
+                'budget': budget,
+                'actual': actual,
+                'percentage': min(pct, 100),
+                'over': actual > budget if budget > 0 else False,
+                'status': 'danger' if pct > 90 else ('warning' if pct > 70 else 'success')
+            })
+
     conn.close()
-    return render_template("manage_expenses.html", expenses=expenses)
+    return render_template("manage_expenses.html", expenses=expenses, budgets=budgets, budget_vs_actual=budget_vs_actual)
+
+@app.route('/erp/finance/journal-entry', methods=["GET", "POST"])
+def journal_entry():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("journal_entry.html", entries=[])
+    vendor_id = result[0]
+
+    if request.method == "POST":
+        entry_date = request.form.get("entry_date", datetime.now().strftime("%Y-%m-%d"))
+        entry_type = request.form.get("entry_type", "debit")
+        account = request.form.get("account")
+        amount = float(request.form.get("amount", 0))
+        description = request.form.get("description", "")
+        sub_category = request.form.get("sub_category", "")
+        reference = request.form.get("reference", "")
+
+        if amount > 0 and account:
+            desc_full = f"{description} [Ref: {reference}]" if reference else description
+            c.execute("""
+                INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, 'manual', ?)
+            """, (vendor_id, entry_type, account, amount, desc_full, sub_category, entry_date))
+            conn.commit()
+            flash("Journal entry recorded successfully.")
+
+        return redirect(url_for("journal_entry"))
+
+    c.execute("""
+        SELECT id, entry_type, account, amount, description, sub_category, timestamp, entry_source
+        FROM ledger_entries WHERE vendor_id=?
+        ORDER BY id DESC LIMIT 20
+    """, (vendor_id,))
+    entries = c.fetchall()
+    conn.close()
+    return render_template("journal_entry.html", entries=entries)
+
+
+@app.route('/erp/finance/invoice/create', methods=["GET", "POST"])
+def create_invoice():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("accounting_dashboard"))
+    vendor_id = vendor_result[0]
+    vendor_name = vendor_result[1] or "Vendor"
+
+    c.execute("SELECT gst_rate FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    gst_result = c.fetchone()
+    gst_rate = gst_result[0] if gst_result else 18.0
+
+    if request.method == "POST":
+        customer_email = request.form.get("customer_email", "")
+        customer_name = request.form.get("customer_name", "")
+        invoice_date = request.form.get("invoice_date", datetime.now().strftime("%Y-%m-%d"))
+        due_date = request.form.get("due_date", "")
+        notes = request.form.get("notes", "")
+        payment_terms = request.form.get("payment_terms", "Due on receipt")
+
+        descriptions = request.form.getlist("item_description[]")
+        quantities = request.form.getlist("item_quantity[]")
+        prices = request.form.getlist("item_price[]")
+
+        subtotal = 0
+        line_items = []
+        for i in range(len(descriptions)):
+            if descriptions[i] and quantities[i] and prices[i]:
+                qty = int(quantities[i])
+                price = float(prices[i])
+                total = qty * price
+                subtotal += total
+                line_items.append({"description": descriptions[i], "quantity": qty, "unit_price": price, "total": total})
+
+        gst_amount = subtotal * gst_rate / 100
+        grand_total = subtotal + gst_amount
+
+        c.execute("""
+            INSERT INTO orders (user_email, vendor_id, total_amount, status, delivery_address, order_date)
+            VALUES (?, ?, ?, 'invoice', ?, ?)
+        """, (customer_email, vendor_id, grand_total, f"Invoice for {customer_name}", invoice_date))
+        order_id = c.lastrowid
+
+        for item in line_items:
+            c.execute("""
+                INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+                VALUES (?, 0, ?, ?)
+            """, (order_id, item["quantity"], item["unit_price"]))
+
+        c.execute("""
+            INSERT INTO ledger_entries (vendor_id, entry_type, account, amount, description, sub_category, entry_source, timestamp)
+            VALUES (?, 'debit', 'Accounts Receivable', ?, ?, 'Invoice', 'auto', ?)
+        """, (vendor_id, grand_total, f"Invoice #{order_id} - {customer_name}", invoice_date))
+
+        conn.commit()
+
+        invoice = {
+            "id": order_id,
+            "vendor_name": vendor_name,
+            "customer_email": customer_email,
+            "customer_name": customer_name,
+            "invoice_date": invoice_date,
+            "due_date": due_date,
+            "line_items": line_items,
+            "subtotal": subtotal,
+            "gst_rate": gst_rate,
+            "gst_amount": gst_amount,
+            "grand_total": grand_total,
+            "notes": notes,
+            "payment_terms": payment_terms
+        }
+        conn.close()
+        return render_template("invoice_view.html", invoice=invoice)
+
+    conn.close()
+    return render_template("invoice_create.html", gst_rate=gst_rate, vendor_name=vendor_name)
+
+
+@app.route('/erp/finance/gst-summary')
+def gst_summary():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return render_template("gst_summary.html", data={})
+    vendor_id = result[0]
+
+    start_date = request.args.get("start_date", datetime.now().strftime("%Y-%m-01"))
+    end_date = request.args.get("end_date", datetime.now().strftime("%Y-%m-%d"))
+    export = request.args.get("export")
+
+    c.execute("SELECT gst_rate FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    gst_result = c.fetchone()
+    gst_rate = gst_result[0] if gst_result else 18.0
+
+    c.execute("""
+        SELECT COALESCE(SUM(total_amount), 0) FROM sales_log
+        WHERE vendor_id=? AND sale_date BETWEEN ? AND ?
+    """, (vendor_id, start_date, end_date))
+    total_sales = c.fetchone()[0] or 0
+
+    gst_collected = total_sales * gst_rate / (100 + gst_rate)
+
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) FROM expenses
+        WHERE vendor_id=? AND date BETWEEN ? AND ?
+    """, (vendor_id, start_date, end_date))
+    total_expenses = c.fetchone()[0] or 0
+
+    gst_paid = total_expenses * 18 / 118
+    input_credit = gst_paid
+    net_gst = gst_collected - input_credit
+
+    c.execute("""
+        SELECT 'Sale' as type, sale_date as date, 
+               COALESCE(p.name, 'Product') as description,
+               sl.total_amount as amount,
+               sl.total_amount * ? / (100 + ?) as gst
+        FROM sales_log sl
+        LEFT JOIN products p ON sl.product_id = p.id
+        WHERE sl.vendor_id=? AND sl.sale_date BETWEEN ? AND ?
+        ORDER BY sl.sale_date DESC
+    """, (gst_rate, gst_rate, vendor_id, start_date, end_date))
+    sale_txns = [{"type": "Sale", "date": r[1], "description": r[2], "amount": r[3], "gst": round(r[4], 2)} for r in c.fetchall()]
+
+    c.execute("""
+        SELECT date, category, description, amount
+        FROM expenses WHERE vendor_id=? AND date BETWEEN ? AND ?
+        ORDER BY date DESC
+    """, (vendor_id, start_date, end_date))
+    expense_txns = [{"type": "Expense", "date": r[0], "description": f"{r[1]} - {r[2] or ''}", "amount": r[3], "gst": round(r[3] * 18 / 118, 2)} for r in c.fetchall()]
+
+    transactions = sale_txns + expense_txns
+    transactions.sort(key=lambda x: x["date"], reverse=True)
+
+    conn.close()
+
+    data = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "total_sales": round(total_sales, 2),
+        "gst_collected": round(gst_collected, 2),
+        "total_expenses": round(total_expenses, 2),
+        "gst_paid": round(gst_paid, 2),
+        "input_credit": round(input_credit, 2),
+        "net_gst": round(net_gst, 2),
+        "gst_rate": gst_rate,
+        "transactions": transactions
+    }
+
+    if export == "csv":
+        import io, csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["GST Summary Report", f"{start_date} to {end_date}"])
+        writer.writerow([])
+        writer.writerow(["Total Sales", total_sales])
+        writer.writerow(["GST Collected", round(gst_collected, 2)])
+        writer.writerow(["Total Expenses", total_expenses])
+        writer.writerow(["GST Paid (Input Credit)", round(gst_paid, 2)])
+        writer.writerow(["Net GST Payable", round(net_gst, 2)])
+        writer.writerow([])
+        writer.writerow(["Type", "Date", "Description", "Amount", "GST"])
+        for t in transactions:
+            writer.writerow([t["type"], t["date"], t["description"], t["amount"], t["gst"]])
+
+        from flask import Response
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment;filename=gst_summary_{start_date}_{end_date}.csv"}
+        )
+
+    return render_template("gst_summary.html", data=data)
+
 
 @app.route('/erp/reports/settings', methods=["GET", "POST"])
 def accounting_settings():
@@ -9949,26 +10274,49 @@ def balance_sheet():
     # Total Current Assets
     current_assets = cash + inventory + accounts_receivable
 
-    # Fixed Assets (simplified)
-    fixed_assets = 50000  # Placeholder for equipment, furniture, etc.
+    # Fixed Assets from fixed_assets table
+    c.execute("SELECT COALESCE(SUM(current_value), 0) FROM fixed_assets WHERE vendor_id=?", (vendor_id,))
+    fixed_assets = c.fetchone()[0] or 0
 
     total_assets = current_assets + fixed_assets
 
-    # Calculate Liabilities
-    # Accounts Payable (unpaid expenses)
-    accounts_payable = cash_expenses * 0.3  # Estimate 30% still unpaid
+    # Accounts Payable from ledger
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) FROM ledger_entries
+        WHERE vendor_id=? AND account='Accounts Payable' AND entry_type='credit'
+        AND (sub_category IS NULL OR sub_category != 'Long Term')
+    """, (vendor_id,))
+    ap_credits = c.fetchone()[0] or 0
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) FROM ledger_entries
+        WHERE vendor_id=? AND account='Accounts Payable' AND entry_type='debit'
+        AND (sub_category IS NULL OR sub_category != 'Long Term')
+    """, (vendor_id,))
+    ap_debits = c.fetchone()[0] or 0
+    accounts_payable = ap_credits - ap_debits
 
-    # Current Liabilities
     current_liabilities = accounts_payable
 
-    # Long-term Debt
-    long_term_debt = 25000  # Placeholder
+    # Long-term Debt from ledger
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) FROM ledger_entries
+        WHERE vendor_id=? AND account='Accounts Payable' AND sub_category='Long Term' AND entry_type='credit'
+    """, (vendor_id,))
+    lt_credits = c.fetchone()[0] or 0
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) FROM ledger_entries
+        WHERE vendor_id=? AND account='Accounts Payable' AND sub_category='Long Term' AND entry_type='debit'
+    """, (vendor_id,))
+    lt_debits = c.fetchone()[0] or 0
+    long_term_debt = lt_credits - lt_debits
 
     total_liabilities = current_liabilities + long_term_debt
 
-    # Calculate Equity
-    retained_earnings = total_assets - total_liabilities
-    owner_equity = 100000  # Initial investment
+    # Owner's Equity from capital_accounts
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM capital_accounts WHERE vendor_id=?", (vendor_id,))
+    owner_equity = c.fetchone()[0] or 0
+
+    retained_earnings = total_assets - total_liabilities - owner_equity
     total_equity = owner_equity + retained_earnings
 
     balance_sheet = {
@@ -10033,13 +10381,33 @@ def cash_flow_statement():
 
     operating_cash_flow = cash_from_sales - cash_for_expenses
 
-    # Investing Activities (simplified)
-    investing_cash_flow = -5000  # Equipment purchases
+    # Investing Activities from fixed_assets purchases this period
+    c.execute("""
+        SELECT COALESCE(SUM(purchase_value), 0) FROM fixed_assets
+        WHERE vendor_id=? AND purchase_date >= date('now', '-30 days')
+    """, (vendor_id,))
+    equipment_purchases = c.fetchone()[0] or 0
+    investing_cash_flow = -equipment_purchases
 
-    # Financing Activities (simplified)
-    financing_cash_flow = 0  # No financing activities
+    # Financing Activities from capital_accounts this period
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) FROM capital_accounts
+        WHERE vendor_id=? AND entry_date >= date('now', '-30 days')
+    """, (vendor_id,))
+    financing_cash_flow = c.fetchone()[0] or 0
 
     net_cash_flow = operating_cash_flow + investing_cash_flow + financing_cash_flow
+
+    # Beginning cash = all-time sales - all-time expenses - all-time asset purchases + all-time capital, minus this period
+    c.execute("SELECT COALESCE(SUM(total_amount), 0) FROM sales_log WHERE vendor_id=? AND sale_date < date('now', '-30 days')", (vendor_id,))
+    prior_sales = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE vendor_id=? AND date < date('now', '-30 days')", (vendor_id,))
+    prior_expenses = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(purchase_value), 0) FROM fixed_assets WHERE vendor_id=? AND purchase_date < date('now', '-30 days')", (vendor_id,))
+    prior_assets = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(amount), 0) FROM capital_accounts WHERE vendor_id=? AND entry_date < date('now', '-30 days')", (vendor_id,))
+    prior_capital = c.fetchone()[0] or 0
+    beginning_cash = prior_sales - prior_expenses - prior_assets + prior_capital
 
     cash_flow = {
         'operating': {
@@ -10055,8 +10423,8 @@ def cash_flow_statement():
             'net_financing': financing_cash_flow
         },
         'net_change': net_cash_flow,
-        'beginning_cash': 25000,  # Assumed starting balance
-        'ending_cash': 25000 + net_cash_flow
+        'beginning_cash': beginning_cash,
+        'ending_cash': beginning_cash + net_cash_flow
     }
 
     conn.close()
