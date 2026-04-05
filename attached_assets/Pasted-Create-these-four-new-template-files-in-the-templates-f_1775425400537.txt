@@ -1,0 +1,131 @@
+Create these four new template files in 
+the templates folder.
+Do not modify any Python files.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After creating each file verify it exists
+before moving to the next one.
+
+FILE 1: templates/journal_entry.html
+Route: /erp/finance/journal-entry
+Same purple gradient styling as erp_dashboard.html
+
+Form POSTing to /erp/finance/journal-entry:
+- entry_date date picker default today
+- entry_type radio: debit or credit
+- account dropdown:
+  Cash, Bank, Sales Revenue,
+  Cost of Goods Sold, Inventory,
+  Accounts Receivable, Accounts Payable,
+  Operating Expenses, Platform Fees,
+  Capital, Drawings, Fixed Assets,
+  Tax Payable, GST Collected, GST Paid
+- amount number minimum 0.01
+- description text required
+- sub_category text optional
+- reference_number text optional
+- Save Entry submit button
+
+Table below showing {{ recent_entries }}:
+Date, Type, Account, Amount, Description, Source
+Green Manual badge where entry_source = manual
+Grey Auto badge for all others
+
+Back button to /erp/reports
+
+FILE 2: templates/gst_summary.html
+Route: /erp/finance/gst-summary
+Same purple gradient styling
+
+Date range form GETting /erp/finance/gst-summary:
+- start_date date picker first day of current month
+- end_date date picker last day of current month
+- Filter button
+
+Six summary cards:
+{{ summary.total_sales }}
+{{ summary.gst_collected }}
+{{ summary.total_expenses }}
+{{ summary.gst_paid }}
+{{ summary.input_tax_credit }}
+{{ summary.net_gst_payable }}
+Net GST payable card in red if greater than 0
+
+Transactions table showing {{ transactions }}:
+Date, Type, Description, Amount, GST Amount
+
+Export CSV button linking to:
+/erp/finance/gst-summary/export?start_date=
+{{ start_date }}&end_date={{ end_date }}
+
+Back button to /erp/reports
+
+FILE 3: templates/invoice_create.html
+Route: /erp/finance/invoice/create
+Same purple gradient styling
+
+Form POSTing to /erp/finance/invoice/create:
+- customer_email text
+- customer_name text
+- invoice_date date picker
+- due_date date picker
+- payment_terms dropdown:
+  Due on Receipt, Net 7, Net 15, Net 30
+
+Line items table with JavaScript:
+Columns: Description, Qty, Unit Price, Total
+One row by default
+Add Item button adds new row without reload
+Each row has Remove button
+JavaScript auto-calculates:
+  Row total = qty x unit price
+  Subtotal = sum of all row totals
+  GST = subtotal x gst_rate / 100
+  Grand total = subtotal + GST
+
+- gst_rate number field default 18
+- notes textarea optional
+- Create Invoice submit button
+
+All calculations in JavaScript only
+No page reload for adding or removing items
+
+Back button to /erp/reports
+
+FILE 4: templates/manage_expenses.html
+Route: /erp/reports/expenses
+Same purple gradient styling
+
+Section 1 — Budget Settings:
+Form POSTing to /erp/reports/expenses/budget:
+- category dropdown:
+  Rent, Utilities, Salaries, Inventory,
+  Marketing, Equipment, Maintenance, Other
+- monthly_budget number input
+- Set Budget button
+
+Show {{ budgets }} as progress bars:
+Under 70% green, 70-90% yellow, over 90% red
+Show actual vs budget amount per category
+
+Section 2 — Add Expense Form:
+Form POSTing to /erp/reports/expenses:
+- category dropdown same options
+- amount number
+- description text
+- date date picker
+- receipt file upload accepting jpg jpeg png pdf
+- Add Expense button
+
+Section 3 — Expenses Table:
+Show {{ expenses }} with columns:
+Date, Category, Amount, Description, Receipt
+If expense has receipt_url show View Receipt
+link opening file in new tab
+Otherwise show dash
+
+Back button to /erp/reports
+
+After creating all four files confirm each
+one exists by checking the file system.

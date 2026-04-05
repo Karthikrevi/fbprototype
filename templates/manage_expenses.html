@@ -1,217 +1,308 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Expense Management - FurrButler ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .expense-form {
-      max-width: 650px; margin: 0 auto 40px auto; background: white;
-      padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      color: #333;
     }
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;
+    .page-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px;
     }
-    .btn-add { background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
-    .btn-add:hover { background: #218838; }
-    .expenses-table {
-      max-width: 1100px; margin: 0 auto; background: white;
-      border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    .page-header {
+      background: rgba(255,255,255,0.95);
+      padding: 25px 30px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-    th { background: #667eea; color: white; font-weight: bold; }
-    tr:hover { background: #f8f9fa; }
-    .amount { font-family: monospace; font-weight: bold; color: #dc3545; }
-    .back-btn {
-      position: fixed; top: 20px; left: 20px; background: #667eea; color: white;
-      padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; z-index: 1000;
+    .page-header h2 {
+      margin: 0;
+      font-weight: 700;
+      color: #4a3f8a;
     }
-    .back-btn:hover { background: #5a67d8; color: white; }
-    .budget-section {
-      max-width: 1100px; margin: 0 auto 30px auto; background: white;
-      padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    .card-section {
+      background: rgba(255,255,255,0.95);
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-    .budget-bar-container { margin: 8px 0; }
+    .card-section h5 {
+      font-weight: 600;
+      color: #4a3f8a;
+      margin-bottom: 20px;
+    }
+    .form-label {
+      font-weight: 500;
+      color: #555;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      padding: 10px 14px;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102,126,234,0.25);
+    }
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      color: white;
+      padding: 10px 30px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn-primary-custom:hover {
+      opacity: 0.9;
+      color: white;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.4);
+      padding: 8px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-back:hover {
+      background: rgba(255,255,255,0.3);
+      color: white;
+    }
+    .btn-budget {
+      background: #28a745;
+      border: none;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn-budget:hover { opacity: 0.9; color: white; }
     .budget-bar {
-      height: 22px; border-radius: 11px; background: #e9ecef; overflow: hidden; position: relative;
+      background: #e9ecef;
+      border-radius: 10px;
+      height: 28px;
+      overflow: hidden;
+      margin-bottom: 8px;
     }
-    .budget-bar-fill { height: 100%; border-radius: 11px; transition: width 0.5s; }
-    .budget-bar-label {
-      display: flex; justify-content: space-between; font-size: 0.85rem; color: #555; margin-bottom: 3px;
+    .budget-bar .fill {
+      height: 100%;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+      transition: width 0.4s ease;
     }
-    .budget-form-inline {
-      display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 15px;
-      padding-top: 15px; border-top: 1px solid #eee;
+    .budget-bar .fill.success { background: #28a745; }
+    .budget-bar .fill.warning { background: #ffc107; color: #333; }
+    .budget-bar .fill.danger { background: #dc3545; }
+    .budget-item {
+      margin-bottom: 15px;
     }
-    .budget-form-inline select, .budget-form-inline input {
-      padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px;
+    .budget-item .info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
     }
-    .btn-budget { background: #667eea; color: white; padding: 8px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-    .btn-budget:hover { opacity: 0.9; }
-    .receipt-link { color: #667eea; text-decoration: none; font-size: 0.85rem; }
+    .budget-item .info .cat {
+      font-weight: 600;
+      color: #4a3f8a;
+    }
+    .budget-item .info .amounts {
+      color: #666;
+    }
+    .table-section table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .table-section th {
+      background: #f0edff;
+      color: #4a3f8a;
+      font-weight: 600;
+      padding: 12px 15px;
+      border: none;
+    }
+    .table-section th:first-child { border-radius: 10px 0 0 0; }
+    .table-section th:last-child { border-radius: 0 10px 0 0; }
+    .table-section td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+    .receipt-link {
+      color: #667eea;
+      font-weight: 600;
+      text-decoration: none;
+    }
     .receipt-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <a href="/erp/reports" class="back-btn">← Back to Reports</a>
-
-  <div class="header">
-    <h1>💵 Expense Management</h1>
-    <p>Track and categorize your business expenses</p>
-  </div>
-
-  {% if budget_vs_actual %}
-  <div class="budget-section">
-    <h4 style="color: #667eea; margin-bottom: 18px;">📊 Budget vs Actual (This Month)</h4>
-    {% for item in budget_vs_actual %}
-    <div class="budget-bar-container">
-      <div class="budget-bar-label">
-        <span><strong>{{ item.category }}</strong></span>
-        <span>
-          {{ vendor_currency }}{{ "%.2f"|format(item.actual) }}
-          {% if item.budget > 0 %}
-          / {{ vendor_currency }}{{ "%.2f"|format(item.budget) }}
-          {% if item.over %}<span style="color: #dc3545; font-weight: bold;"> (Over Budget!)</span>{% endif %}
-          {% else %}
-          <span style="color: #999;">(No budget set)</span>
-          {% endif %}
-        </span>
-      </div>
-      <div class="budget-bar">
-        <div class="budget-bar-fill bg-{{ item.status }}" style="width: {{ item.percentage if item.budget > 0 else 100 }}%;"></div>
-      </div>
+  <div class="page-container">
+    <div class="page-header">
+      <h2>💰 Expense Management</h2>
+      <a href="/erp/reports" class="btn-back">← Back to Accounting</a>
     </div>
-    {% endfor %}
 
-    <form method="POST" class="budget-form-inline">
-      <input type="hidden" name="action" value="set_budget">
-      <div>
-        <label style="font-size: 0.8rem; color: #666;">Category</label>
-        <select name="budget_category" required>
-          <option value="">Select</option>
-          <option value="Rent">Rent</option>
-          <option value="Utilities">Utilities</option>
-          <option value="Supplies">Supplies</option>
-          <option value="Equipment">Equipment</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Insurance">Insurance</option>
-          <option value="Transport">Transport</option>
-          <option value="Food">Pet Food</option>
-          <option value="Veterinary">Veterinary</option>
-          <option value="Other">Other</option>
-        </select>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="alert alert-success alert-dismissible fade show" style="border-radius:12px;" role="alert">
+      {{ messages[0] }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="card-section">
+      <h5>Budget Settings</h5>
+      <form method="POST" action="/erp/reports/expenses">
+        <input type="hidden" name="action" value="set_budget">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Category</label>
+            <select name="budget_category" class="form-select" required>
+              <option value="">Select Category</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Salaries">Salaries</option>
+              <option value="Inventory">Inventory</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Monthly Budget ({{ vendor_currency }})</label>
+            <input type="number" name="monthly_budget" class="form-control" step="0.01" min="0.01" placeholder="0.00" required>
+          </div>
+          <div class="col-md-4">
+            <button type="submit" class="btn-budget">Set Budget</button>
+          </div>
+        </div>
+      </form>
+
+      {% if budget_vs_actual and budget_vs_actual|length > 0 %}
+      <hr style="margin: 25px 0; border-color: #e8e4f8;">
+      <h6 style="font-weight:600; color:#4a3f8a; margin-bottom:15px;">Budget vs Actual (This Month)</h6>
+      {% for b in budget_vs_actual %}
+      <div class="budget-item">
+        <div class="info">
+          <span class="cat">{{ b.category }}</span>
+          <span class="amounts">{{ vendor_currency }} {{ "%.2f"|format(b.actual) }} / {{ vendor_currency }} {{ "%.2f"|format(b.budget) }}</span>
+        </div>
+        <div class="budget-bar">
+          <div class="fill {{ b.status }}" style="width: {{ b.percentage }}%;">
+            {% if b.percentage >= 15 %}{{ "%.0f"|format(b.percentage) }}%{% endif %}
+          </div>
+        </div>
       </div>
-      <div>
-        <label style="font-size: 0.8rem; color: #666;">Monthly Budget ({{ vendor_currency }})</label>
-        <input type="number" name="monthly_budget" step="0.01" min="0.01" placeholder="Amount" required>
+      {% endfor %}
+      {% endif %}
+    </div>
+
+    <div class="card-section">
+      <h5>Add Expense</h5>
+      <form method="POST" action="/erp/reports/expenses" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-select" required>
+              <option value="">Select Category</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Salaries">Salaries</option>
+              <option value="Inventory">Inventory</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Amount ({{ vendor_currency }})</label>
+            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Date</label>
+            <input type="date" name="date" class="form-control" value="{{ now_date or '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control" placeholder="Expense description" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Receipt (optional)</label>
+            <input type="file" name="receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+          </div>
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-primary-custom">Add Expense</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card-section table-section">
+      <h5>Expenses</h5>
+      {% if expenses and expenses|length > 0 %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in expenses %}
+            <tr>
+              <td>{{ e[5] if e[5] else '-' }}</td>
+              <td>{{ e[2] if e[2] else '-' }}</td>
+              <td>{{ vendor_currency }} {{ "%.2f"|format(e[3]) }}</td>
+              <td>{{ e[4] if e[4] else '-' }}</td>
+              <td>
+                {% if e[6] %}
+                <a href="{{ e[6] }}" target="_blank" class="receipt-link">View Receipt</a>
+                {% else %}
+                —
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <button type="submit" class="btn-budget">Set Budget</button>
-    </form>
+      {% else %}
+      <p style="color:#888; text-align:center; padding:20px 0;">No expenses recorded yet. Add your first expense above.</p>
+      {% endif %}
+    </div>
   </div>
-  {% endif %}
 
-  <div class="expense-form">
-    <h3 style="margin-bottom: 20px; color: #333;">➕ Add New Expense</h3>
-    <form method="POST" enctype="multipart/form-data">
-      <input type="hidden" name="action" value="add_expense">
-      <div class="form-group">
-        <label>Category</label>
-        <select name="category" required>
-          <option value="">Select Category</option>
-          <option value="Rent">Rent</option>
-          <option value="Utilities">Utilities</option>
-          <option value="Supplies">Supplies</option>
-          <option value="Equipment">Equipment</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Insurance">Insurance</option>
-          <option value="Transport">Transport</option>
-          <option value="Food">Pet Food</option>
-          <option value="Veterinary">Veterinary</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Amount ({{ vendor_currency }})</label>
-        <input type="number" name="amount" step="0.01" required>
-      </div>
-
-      <div class="form-group">
-        <label>Description</label>
-        <textarea name="description" rows="3" placeholder="Brief description of the expense"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" name="date" required>
-      </div>
-
-      <div class="form-group">
-        <label>Receipt (optional)</label>
-        <input type="file" name="receipt" accept="image/*,.pdf" style="padding: 8px;">
-      </div>
-
-      <button type="submit" class="btn-add">💾 Add Expense</button>
-    </form>
-  </div>
-
-  <div class="expenses-table">
-    <h3 style="padding: 20px; margin: 0; background: #f8f9fa; color: #333;">📋 Recent Expenses</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Category</th>
-          <th>Description</th>
-          <th>Amount</th>
-          <th>Receipt</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for expense in expenses %}
-        <tr>
-          <td>{{ expense[5] }}</td>
-          <td>
-            <span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
-              {{ expense[2] }}
-            </span>
-          </td>
-          <td>{{ expense[4] or 'No description' }}</td>
-          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(expense[3]) }}</td>
-          <td>
-            {% if expense[6] %}
-            <a href="{{ expense[6] }}" target="_blank" class="receipt-link">📎 View</a>
-            {% else %}
-            <span style="color: #ccc;">—</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-
-        {% if not expenses %}
-        <tr>
-          <td colspan="5" style="text-align: center; color: #666; padding: 40px;">
-            No expenses recorded yet. Add your first expense above!
-          </td>
-        </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-  <div style="margin-top: 40px; text-align: center; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 15px;">
-    <h4 style="color: #667eea; margin-bottom: 15px;">💡 Expense Tips</h4>
-    <ul style="text-align: left; max-width: 600px; margin: 0 auto; color: #666;">
-      <li>Categorize expenses properly for better analysis</li>
-      <li>Upload receipts to keep a digital record</li>
-      <li>Set monthly budgets to track spending limits</li>
-      <li>Review monthly spending by category</li>
-    </ul>
-  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

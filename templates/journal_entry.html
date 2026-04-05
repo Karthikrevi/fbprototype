@@ -1,165 +1,258 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Journal Entry - FurrButler ERP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .header h1 { color: #667eea; font-size: 2.2rem; }
-    .entry-form {
-      max-width: 700px; margin: 0 auto 40px auto; background: white;
-      padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      color: #333;
     }
-    .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;
+    .page-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px;
     }
-    .btn-submit {
-      background: linear-gradient(135deg, #667eea, #764ba2); color: white;
-      padding: 12px 30px; border: none; border-radius: 8px; font-weight: bold;
-      cursor: pointer; width: 100%; font-size: 1rem;
+    .page-header {
+      background: rgba(255,255,255,0.95);
+      padding: 25px 30px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .btn-submit:hover { opacity: 0.9; }
-    .entries-table {
-      max-width: 1100px; margin: 0 auto; background: white;
-      border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    .page-header h2 {
+      margin: 0;
+      font-weight: 700;
+      color: #4a3f8a;
     }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 14px; text-align: left; border-bottom: 1px solid #eee; }
-    th { background: #667eea; color: white; font-weight: bold; }
-    tr:hover { background: #f8f9fa; }
-    .badge-debit { background: #dc3545; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; }
-    .badge-credit { background: #28a745; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; }
-    .badge-manual { background: #ffc107; color: #333; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; }
-    .badge-auto { background: #6c757d; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; }
-    .amount { font-family: monospace; font-weight: bold; }
-    .back-btn {
-      position: fixed; top: 20px; left: 20px; background: #667eea; color: white;
-      padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; z-index: 1000;
+    .card-section {
+      background: rgba(255,255,255,0.95);
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-    .back-btn:hover { background: #5a67d8; color: white; }
-    .flash-msg { max-width: 700px; margin: 0 auto 20px auto; background: #d4edda; color: #155724; padding: 12px 20px; border-radius: 8px; }
+    .card-section h5 {
+      font-weight: 600;
+      color: #4a3f8a;
+      margin-bottom: 20px;
+    }
+    .form-label {
+      font-weight: 500;
+      color: #555;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      padding: 10px 14px;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102,126,234,0.25);
+    }
+    .form-check-input:checked {
+      background-color: #667eea;
+      border-color: #667eea;
+    }
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      color: white;
+      padding: 10px 30px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn-primary-custom:hover {
+      opacity: 0.9;
+      color: white;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.4);
+      padding: 8px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-back:hover {
+      background: rgba(255,255,255,0.3);
+      color: white;
+    }
+    .table-section table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .table-section th {
+      background: #f0edff;
+      color: #4a3f8a;
+      font-weight: 600;
+      padding: 12px 15px;
+      border: none;
+    }
+    .table-section th:first-child { border-radius: 10px 0 0 0; }
+    .table-section th:last-child { border-radius: 0 10px 0 0; }
+    .table-section td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+    .badge-manual {
+      background: #28a745;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-auto {
+      background: #6c757d;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .radio-group {
+      display: flex;
+      gap: 25px;
+      padding-top: 5px;
+    }
   </style>
 </head>
 <body>
-  <a href="/erp/reports" class="back-btn">← Back to Finance</a>
+  <div class="page-container">
+    <div class="page-header">
+      <h2>📒 Journal Entry</h2>
+      <a href="/erp/reports" class="btn-back">← Back to Accounting</a>
+    </div>
 
-  <div class="header">
-    <h1>📝 Journal Entry</h1>
-    <p>Record manual ledger entries with double-entry bookkeeping</p>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="alert alert-success alert-dismissible fade show" style="border-radius:12px;" role="alert">
+      {{ messages[0] }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="card-section">
+      <h5>New Journal Entry</h5>
+      <form method="POST" action="/erp/finance/journal-entry">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Entry Date</label>
+            <input type="date" name="entry_date" class="form-control" value="{{ now_date or '' }}" required>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Entry Type</label>
+            <div class="radio-group">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="entry_type" id="typeDebit" value="debit" checked>
+                <label class="form-check-label" for="typeDebit">Debit</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="entry_type" id="typeCredit" value="credit">
+                <label class="form-check-label" for="typeCredit">Credit</label>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Account</label>
+            <select name="account" class="form-select" required>
+              <option value="">Select Account</option>
+              <option value="Cash">Cash</option>
+              <option value="Bank">Bank</option>
+              <option value="Sales Revenue">Sales Revenue</option>
+              <option value="Cost of Goods Sold">Cost of Goods Sold</option>
+              <option value="Inventory">Inventory</option>
+              <option value="Accounts Receivable">Accounts Receivable</option>
+              <option value="Accounts Payable">Accounts Payable</option>
+              <option value="Operating Expenses">Operating Expenses</option>
+              <option value="Platform Fees">Platform Fees</option>
+              <option value="Capital">Capital</option>
+              <option value="Drawings">Drawings</option>
+              <option value="Fixed Assets">Fixed Assets</option>
+              <option value="Tax Payable">Tax Payable</option>
+              <option value="GST Collected">GST Collected</option>
+              <option value="GST Paid">GST Paid</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Amount ({{ vendor_currency }})</label>
+            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control" placeholder="Enter description" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Sub Category (optional)</label>
+            <input type="text" name="sub_category" class="form-control" placeholder="Sub category">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Reference Number (optional)</label>
+            <input type="text" name="reference_number" class="form-control" placeholder="Reference #">
+          </div>
+          <div class="col-12 mt-3">
+            <button type="submit" class="btn btn-primary-custom">Save Entry</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card-section table-section">
+      <h5>Recent Entries</h5>
+      {% if entries and entries|length > 0 %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Account</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in entries %}
+            <tr>
+              <td>{{ e[6] }}</td>
+              <td style="text-transform:capitalize;">{{ e[1] }}</td>
+              <td>{{ e[2] }}</td>
+              <td>{{ vendor_currency }} {{ "%.2f"|format(e[3]) }}</td>
+              <td>{{ e[4] }}</td>
+              <td>
+                {% if e[7] == 'manual' %}
+                <span class="badge-manual">Manual</span>
+                {% else %}
+                <span class="badge-auto">Auto</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="color:#888; text-align:center; padding:20px 0;">No journal entries yet. Create your first entry above.</p>
+      {% endif %}
+    </div>
   </div>
 
-  {% with messages = get_flashed_messages() %}
-  {% if messages %}
-  {% for msg in messages %}
-  <div class="flash-msg">{{ msg }}</div>
-  {% endfor %}
-  {% endif %}
-  {% endwith %}
-
-  <div class="entry-form">
-    <h4 style="margin-bottom: 20px; color: #333;">➕ New Journal Entry</h4>
-    <form method="POST">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div class="form-group">
-          <label>Entry Date</label>
-          <input type="date" name="entry_date" required>
-        </div>
-        <div class="form-group">
-          <label>Type</label>
-          <select name="entry_type" required>
-            <option value="debit">Debit</option>
-            <option value="credit">Credit</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div class="form-group">
-          <label>Account</label>
-          <select name="account" required>
-            <option value="">Select Account</option>
-            <option value="Cash">Cash</option>
-            <option value="Sales">Sales Revenue</option>
-            <option value="Expenses">Expenses</option>
-            <option value="Accounts Receivable">Accounts Receivable</option>
-            <option value="Accounts Payable">Accounts Payable</option>
-            <option value="Inventory">Inventory</option>
-            <option value="Equipment">Equipment</option>
-            <option value="Owner Equity">Owner's Equity</option>
-            <option value="Loan">Loan / Borrowings</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Amount ({{ vendor_currency }})</label>
-          <input type="number" name="amount" step="0.01" min="0.01" required>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Sub-Category</label>
-        <input type="text" name="sub_category" placeholder="e.g. Rent, Equipment Purchase, etc.">
-      </div>
-
-      <div class="form-group">
-        <label>Description</label>
-        <textarea name="description" rows="2" placeholder="Brief description of this entry"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Reference Number</label>
-        <input type="text" name="reference" placeholder="Invoice #, Receipt #, etc.">
-      </div>
-
-      <button type="submit" class="btn-submit">📝 Record Journal Entry</button>
-    </form>
-  </div>
-
-  <div class="entries-table">
-    <h4 style="padding: 20px; margin: 0; background: #f8f9fa; color: #333;">📒 Recent Ledger Entries</h4>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Date</th>
-          <th>Type</th>
-          <th>Account</th>
-          <th>Amount</th>
-          <th>Description</th>
-          <th>Source</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for entry in entries %}
-        <tr>
-          <td>#{{ entry[0] }}</td>
-          <td>{{ entry[6] or 'N/A' }}</td>
-          <td>
-            <span class="badge-{{ entry[1] }}">{{ entry[1]|upper }}</span>
-          </td>
-          <td>{{ entry[2] }}</td>
-          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(entry[3]) }}</td>
-          <td>{{ entry[4] or '-' }}</td>
-          <td>
-            {% if entry[7] == 'manual' %}
-            <span class="badge-manual">Manual</span>
-            {% else %}
-            <span class="badge-auto">Auto</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-        {% if not entries %}
-        <tr>
-          <td colspan="7" style="text-align: center; color: #666; padding: 40px;">
-            No ledger entries yet. Create your first journal entry above.
-          </td>
-        </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
