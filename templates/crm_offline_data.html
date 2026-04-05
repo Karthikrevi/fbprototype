@@ -231,51 +231,44 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    var searchEl = document.getElementById('searchData');
-    var priorityEl = document.getElementById('filterPriority');
-    var statusEl = document.getElementById('filterStatus');
-
-    if (searchEl) {
-      searchEl.addEventListener('keyup', function() {
-        const searchTerm = this.value.toLowerCase();
-        const dataCards = document.querySelectorAll('.data-card');
-        
-        dataCards.forEach(card => {
-          const text = card.textContent.toLowerCase();
-          card.style.display = text.includes(searchTerm) ? 'block' : 'none';
-        });
+    // Search functionality
+    document.getElementById('searchData').addEventListener('keyup', function() {
+      const searchTerm = this.value.toLowerCase();
+      const dataCards = document.querySelectorAll('.data-card');
+      
+      dataCards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(searchTerm) ? 'block' : 'none';
       });
-    }
+    });
 
-    if (priorityEl) {
-      priorityEl.addEventListener('change', function() {
-        const priority = this.value;
-        const dataCards = document.querySelectorAll('.data-card');
-        
-        dataCards.forEach(card => {
-          if (!priority || card.dataset.priority === priority) {
-            card.style.display = 'block';
-          } else {
-            card.style.display = 'none';
-          }
-        });
+    // Filter by priority
+    document.getElementById('filterPriority').addEventListener('change', function() {
+      const priority = this.value;
+      const dataCards = document.querySelectorAll('.data-card');
+      
+      dataCards.forEach(card => {
+        if (!priority || card.dataset.priority === priority) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
       });
-    }
+    });
 
-    if (statusEl) {
-      statusEl.addEventListener('change', function() {
-        const status = this.value;
-        const dataCards = document.querySelectorAll('.data-card');
-        
-        dataCards.forEach(card => {
-          if (!status || card.dataset.status === status) {
-            card.style.display = 'block';
-          } else {
-            card.style.display = 'none';
-          }
-        });
+    // Filter by status
+    document.getElementById('filterStatus').addEventListener('change', function() {
+      const status = this.value;
+      const dataCards = document.querySelectorAll('.data-card');
+      
+      dataCards.forEach(card => {
+        if (!status || card.dataset.status === status) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
       });
-    }
+    });
 
     // Invite customer function
     function inviteCustomer(dataId, customerName) {

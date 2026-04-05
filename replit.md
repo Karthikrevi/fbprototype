@@ -1,25 +1,24 @@
 # Overview
 
-FurrButler is a comprehensive pet services ERP and marketplace platform built with Flask (Python). The system serves multiple user types including pet parents, vendors, veterinarians, handlers, isolation centers, NGOs, and government entities. It provides inventory management, booking systems, financial accounting, and a pet passport system called "FurrWings" for international travel documentation. Includes WhatsApp Business integration and an AI-powered chatbot for business analytics.
+FurrButler is a comprehensive pet services ERP and marketplace platform built with a modern full-stack architecture. The system serves multiple user types including pet parents, vendors, veterinarians, handlers, isolation centers, NGOs, and government entities. At its core, it provides inventory management, booking systems, financial accounting, and a unique pet passport system called "FurrWings" for international travel documentation. The platform also includes a WhatsApp Business integration for vendor operations and an AI-powered chatbot for business analytics.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
-Currency: Indian Rupee (₹)
 
 # System Architecture
 
 ## Frontend Architecture
-Server-side rendered with Jinja2 templates, Bootstrap 5, and Font Awesome icons. The `/web` directory has a separate React/Vite frontend but the main app runs as a monolithic Flask server.
+The web application is built with **React 18**, **Vite**, and **TypeScript** as the main frontend stack. It uses **Tailwind CSS** with **shadcn/ui** components for consistent styling and user interface elements. The application is designed as a **Progressive Web App (PWA)** with offline capabilities and includes role-based routing to serve different user types with appropriate interfaces. GDPR compliance is built-in with consent management and cookie banner functionality.
 
 ## Backend Architecture
-Single Flask application in `main.py` (~11,000 lines) with SQLite databases (`erp.db`, `furrvet.db`). Uses Flask-SocketIO for real-time features. User/pet data stored via `replit_db_shim.py` (SQLite-based key-value store replacing the old Replit DB). Vendor ERP, marketplace, FurrWings, FurrVet, and NGO modules all defined as routes in `main.py`.
+The API backend follows a **Flask application factory pattern** with modular blueprint-based architecture. It uses **SQLAlchemy** as the ORM with **Flask-Migrate** for database management. Authentication is handled through **JWT tokens** with role-based access control (RBAC) supporting multiple user roles including admins, pet parents, vets, handlers, isolation centers, NGOs, and government users. The system includes comprehensive error handling, rate limiting, and CORS support.
 
 ## Database Design
-**SQLite** databases: `erp.db` (main ERP), `furrvet.db` (veterinary), `kv_store.db` (user/pet data shim). Tables include vendors, products, bookings, sales_log, reviews, handler_profiles, stray_dogs, ngo_partners, passport_documents, and many more.
+The system uses **SQLite** for development and is designed to support **PostgreSQL** for production. The database schema includes separate domains for users, pets, vendors, bookings, passport requests, handler tasks, isolation stays, and NGO entities. Key tables include products with FIFO batch tracking, comprehensive financial ledgers, and detailed medical records with audit trails.
 
 ## Authentication & Authorization
-Session-based auth with separate login flows for pet parents, vendors, vets, handlers, isolation centers, NGOs, and master admin. No JWT — uses Flask sessions.
+A sophisticated RBAC system defines roles and permissions for different user types. JWT-based authentication provides secure token management with configurable expiration times. The system includes session management utilities and user preference tracking with multi-language support for Indian and international languages.
 
 ## Business Logic Modules
 The platform includes specialized modules for inventory management with advanced analytics covering all 14 standard inventory formulas: EOQ, Reorder Point (ROP), Safety Stock, Inventory Turnover Ratio, Days Sales of Inventory (DSI), GMROI, ABC Analysis, Fill Rate, Inventory to Sales Ratio, Stock Cover Duration, Dead Stock Detection, Clearance Strategy, and comprehensive financial accounting with automated ledger entries, CRM functionality, and the FurrWings pet passport system.

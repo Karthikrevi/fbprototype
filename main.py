@@ -2546,8 +2546,7 @@ def vendor_profile(vendor_id):
             conn.close()
             return render_template("vendor_placeholder.html", vendor_name="Unknown Vendor")
     except Exception as e:
-        import logging
-        logging.exception("Error loading vendor profile")
+        print("Error loading vendor:", e)
         return "Error loading vendor profile"
 
 @app.route('/marketplace/vendor/fluffy-paws')
@@ -4266,6 +4265,47 @@ def stray_detail(stray_uid):
                          expenses=expenses, 
                          updates=updates)
 
+@app.route('/api/citizen-report', methods=["POST"])
+def submit_citizen_report():
+    """API endpoint for citizens to report issues"""
+    try:
+        data = request.get_json()
+        
+        report_type = data.get("report_type")
+        stray_uid = data.get("stray_uid")
+        description = data.get("description")
+        reporter_email = data.get("reporter_email")
+        
+        if not report_type or not description:
+            return {"success": False, "error": "Missing required fields"}, 400
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        # Get stray ID from UID if provided
+        stray_id = None
+        if stray_uid:
+            c.execute("SELECT id FROM stray_dogs WHERE stray_uid = ?", (stray_uid,))
+            stray_result = c.fetchone()
+            if stray_result:
+                stray_id = stray_result[0]
+        
+        # Insert citizen report
+        c.execute("""
+            INSERT INTO citizen_reports 
+            (stray_id, reporter_email, report_type, description, priority_level)
+            VALUES (?, ?, ?, ?, ?)
+        """, (stray_id, reporter_email, report_type, description, 
+              'high' if report_type in ['suspicious_activity', 'false_information'] else 'medium'))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Report submitted successfully"}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
+
 @app.route('/ngo/login', methods=["GET", "POST"])
 def ngo_login():
     """NGO partner login"""
@@ -4405,6 +4445,16 @@ def ngo_dashboard():
                          stats=stats, 
                          recent_strays=recent_strays, 
                          ngo_name=ngo_name)
+
+@app.route('/ngo/register-stray', methods=["GET", "POST"])
+def ngo_register_stray():
+    """Register a new stray dog"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    if request.method == "POST":
+        ngo_id = session["ngo_id"]
+
 
     # === FURRVET PATIENT MANAGEMENT ===
     @app.route('/furrvet/patients')
@@ -4795,6 +4845,104 @@ def ngo_dashboard():
             flash(f"Error registering stray: {str(e)}")
 
     return render_template("register_stray.html")
+
+@app.route('/ngo/add-vaccination', methods=["GET", "POST"])
+def ngo_add_vaccination():
+    """Record a vaccination for a stray"""
+    if "ngo" not in session:
+        return redirect(url_for("ngo_login"))
+
+    if request.method == "POST":
+        ngo_id = session["ngo_id"]
+        ngo_signature_key = session["ngo_signature_key"]
+        
+        # Get form data
+        stray_id = request.form.get("stray_id")
+        vaccine_data = {
+            'vaccination_date': request.form.get("vaccination_date"),
+            'vaccine_name': request.form.get("vaccine_name"),
+            'vaccine_batch_number': request.form.get("vaccine_batch_number"),
+            'vaccine_expiration_date': request.form.get("vaccine_expiration_date"),
+            'vaccinator_name': request.form.get("vaccinator_name"),
+            'vaccinator_contact': request.form.get("vaccinator_contact"),
+            'vaccinator_license': request.form.get("vaccinator_license"),
+            'vaccination_cost': float(request.form.get("vaccination_cost", 0)),
+            'is_furrbutler_vet': 1 if request.form.get("is_furrbutler_vet") else 0,
+            'additional_notes': request.form.get("additional_notes")
+        }
+        
+        # Handle file uploads
+        vaccination_photo_url = ""
+        certificate_url = ""
+        
+        photo_file = request.files.get("vaccination_photo")
+        if photo_file and photo_file.filename and allowed_file(photo_file.filename):
+            filename = secure_filename(photo_file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            photo_file.save(filepath)
+            vaccination_photo_url = "/" + filepath
+        
+        cert_file = request.files.get("certificate")
+        if cert_file and cert_file.filename:
+            filename = secure_filename(cert_file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            cert_file.save(filepath)
+            certificate_url = "/" + filepath
+        
+        # Generate digital signature
+        import hashlib
+        timestamp = datetime.now().isoformat()
+        signature_data = f"{stray_id}{vaccine_data['vaccine_name']}{vaccine_data['vaccine_batch_number']}{timestamp}{ngo_signature_key}"
+        digital_signature = hashlib.sha256(signature_data.encode()).hexdigest()
+        
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        
+        try:
+            c.execute("""
+                INSERT INTO stray_vaccinations 
+                (stray_id, ngo_id, vaccination_photo_url, certificate_url, vaccine_name,
+                 vaccine_batch_number, vaccine_expiration_date, vaccinator_name, vaccinator_contact,
+                 vaccinator_license, is_furrbutler_vet, vaccination_date, vaccination_cost,
+                 additional_notes, digital_signature, signature_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (stray_id, ngo_id, vaccination_photo_url, certificate_url, vaccine_data['vaccine_name'],
+                  vaccine_data['vaccine_batch_number'], vaccine_data['vaccine_expiration_date'],
+                  vaccine_data['vaccinator_name'], vaccine_data['vaccinator_contact'],
+                  vaccine_data['vaccinator_license'], vaccine_data['is_furrbutler_vet'],
+                  vaccine_data['vaccination_date'], vaccine_data['vaccination_cost'],
+                  vaccine_data['additional_notes'], digital_signature, timestamp))
+            
+            # Update stray vaccination count
+            c.execute("UPDATE stray_dogs SET total_vaccinations = total_vaccinations + 1, last_vaccination_date = ? WHERE id = ?", 
+                     (vaccine_data['vaccination_date'], stray_id))
+            
+            # Update NGO stats
+            c.execute("UPDATE ngo_partners SET total_vaccinations = total_vaccinations + 1 WHERE id = ?", (ngo_id,))
+            
+            # Record expense if cost provided
+            if vaccine_data['vaccination_cost'] > 0:
+                c.execute("""
+                    INSERT INTO stray_expenses 
+                    (stray_id, ngo_id, expense_type, amount, description, expense_date, created_by)
+                    VALUES (?, ?, 'Vaccination', ?, ?, ?, ?)
+                """, (stray_id, ngo_id, vaccine_data['vaccination_cost'], 
+                      f"Vaccination: {vaccine_data['vaccine_name']}", vaccine_data['vaccination_date'], session["ngo"]))
+            
+            conn.commit()
+            conn.close()
+            
+            flash("Vaccination recorded successfully with digital verification!")
+            return redirect(url_for("ngo_dashboard"))
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            flash(f"Error recording vaccination: {str(e)}")
+
+    return render_template("add_vaccination.html")
+
+
 
 # ---- FURRWINGS ROLE-BASED LOGIN ROUTES ----
 
@@ -6006,6 +6154,8 @@ def disable_module():
     
     module_manager = ModuleManager()
     success = module_manager.disable_module(vendor_id, module_name)
+    
+    print(f"DEBUG: Disable module {module_name} for vendor {vendor_id}: {'SUCCESS' if success else 'FAILED'}")
     
     if success:
         return {"success": True, "message": f"Module {module_name} disabled successfully"}
@@ -8475,6 +8625,7 @@ def inventory_bot_query():
                 "log_id": None
             }
     except Exception as e:
+        print(f"Inventory bot error: {e}")
         return {"error": str(e)}, 500
 
 @app.route('/erp/inventory-bot/feedback', methods=["POST"])

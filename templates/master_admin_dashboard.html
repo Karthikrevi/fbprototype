@@ -138,19 +138,19 @@
       </div>
       <div class="col-md-2">
         <div class="stat-card sales">
-          <h4>₹{{ "%.2f"|format(stats.total_sales) }}</h4>
+          <h4>${{ "%.2f"|format(stats.total_sales) }}</h4>
           <p class="mb-0">Total Sales</p>
         </div>
       </div>
       <div class="col-md-3">
         <div class="stat-card commission">
-          <h4>₹{{ "%.2f"|format(stats.total_commission) }}</h4>
+          <h4>${{ "%.2f"|format(stats.total_commission) }}</h4>
           <p class="mb-0">Legacy Commission</p>
         </div>
       </div>
       <div class="col-md-3">
         <div class="stat-card earnings">
-          <h4>₹{{ "%.2f"|format(stats.platform_earnings) }}</h4>
+          <h4>${{ "%.2f"|format(stats.platform_earnings) }}</h4>
           <p class="mb-0">Platform Earnings</p>
         </div>
       </div>
@@ -217,7 +217,7 @@
               <div class="card border-0">
                 <div class="card-body text-center">
                   <h6 class="card-title">{{ breakdown[0].title() }}</h6>
-                  <h4 class="text-success">₹{{ "%.2f"|format(breakdown[1]) }}</h4>
+                  <h4 class="text-success">${{ "%.2f"|format(breakdown[1]) }}</h4>
                   <p class="text-muted mb-0">{{ breakdown[2] }} transactions</p>
                 </div>
               </div>
@@ -252,9 +252,9 @@
                     {{ transaction[3].title() }}
                   </span>
                 </td>
-                <td>₹{{ "%.2f"|format(transaction[4]) }}</td>
+                <td>${{ "%.2f"|format(transaction[4]) }}</td>
                 <td>{{ transaction[5] }}%</td>
-                <td class="text-success fw-bold">₹{{ "%.2f"|format(transaction[6]) }}</td>
+                <td class="text-success fw-bold">${{ "%.2f"|format(transaction[6]) }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -291,7 +291,7 @@
                     {% if 'rate' in setting[1] or 'fee' in setting[1] %}
                       {{ setting[2] }}%
                     {% else %}
-                      ₹{{ "%.2f"|format(setting[2]) }}
+                      ${{ "%.2f"|format(setting[2]) }}
                     {% endif %}
                   </span>
                   <input type="number" class="form-control form-control-sm edit-input d-none" 
@@ -302,7 +302,7 @@
                     {% if 'rate' in setting[1] or 'fee' in setting[1] %}
                       {{ setting[5] }}%
                     {% else %}
-                      ₹{{ "%.2f"|format(setting[5]) }}
+                      ${{ "%.2f"|format(setting[5]) }}
                     {% endif %}
                   {% else %}
                     <em>No previous value</em>

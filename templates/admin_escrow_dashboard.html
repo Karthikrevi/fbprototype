@@ -72,13 +72,13 @@
       </div>
       <div class="col-md-3">
         <div class="stats-card">
-          <div class="h3 text-success">₹{{ "%.2f"|format(stats.total_held) }}</div>
+          <div class="h3 text-success">${{ "%.2f"|format(stats.total_held) }}</div>
           <div class="text-muted">Funds in Escrow</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="stats-card">
-          <div class="h3 text-info">₹{{ "%.2f"|format(stats.total_platform_fees) }}</div>
+          <div class="h3 text-info">${{ "%.2f"|format(stats.total_platform_fees) }}</div>
           <div class="text-muted">Platform Fees Earned</div>
         </div>
       </div>
@@ -125,9 +125,9 @@
                     <small class="text-muted">to {{ booking.destination_country }}</small>
                   </td>
                   <td>
-                    <strong>₹{{ "%.2f"|format(booking.total_amount) }}</strong><br>
-                    <small class="text-muted">Handler: ₹{{ "%.2f"|format(booking.handler_fee) }}</small><br>
-                    <small class="text-success">Platform: ₹{{ "%.2f"|format(booking.platform_fee) }}</small>
+                    <strong>${{ "%.2f"|format(booking.total_amount) }}</strong><br>
+                    <small class="text-muted">Handler: ${{ "%.2f"|format(booking.handler_fee) }}</small><br>
+                    <small class="text-success">Platform: ${{ "%.2f"|format(booking.platform_fee) }}</small>
                   </td>
                   <td>
                     <span class="badge bg-{{ 'success' if booking.escrow_status == 'released' else 'primary' if booking.escrow_status == 'held' else 'danger' }}">
@@ -193,7 +193,7 @@
                       {{ transaction.transaction_type.title() }}
                     </span>
                   </td>
-                  <td>₹{{ "%.2f"|format(transaction.amount) }}</td>
+                  <td>${{ "%.2f"|format(transaction.amount) }}</td>
                   <td>{{ transaction.initiated_by }}</td>
                   <td>{{ transaction.reason or '-' }}</td>
                   <td>{{ transaction.timestamp }}</td>
