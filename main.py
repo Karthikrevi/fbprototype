@@ -8416,11 +8416,10 @@ def inventory_management():
     if not result:
         conn.close()
         return render_template("inventory_management.html", 
-                             inventory_summary={}, 
-                             inventory_alerts=[], 
-                             procurement_summary={},
+                             inventory_summary={'total_products': 0, 'total_units': 0, 'total_value': 0, 'turnover_rate': 0},
+                             inventory_alerts=[],
                              inventory_items=[],
-                             chart_data={})
+                             chart_data={'labels': [], 'revenue_data': [], 'units_data': []})
 
     vendor_id = result[0]
 
@@ -8454,13 +8453,6 @@ def inventory_management():
             'product_name': item[0],
             'message': f'Low stock: only {item[1]} units remaining'
         })
-
-    # Procurement summary (mock data)
-    procurement_summary = {
-        'pending_orders': 3,
-        'incoming_units': 150,
-        'pending_value': 12500
-    }
 
     # Get detailed inventory items
     c.execute("""
@@ -8497,18 +8489,38 @@ def inventory_management():
             'unit_type': 'units'
         })
 
-    # Chart data (mock)
+    # Calculate real turnover rate from sales data
+    c.execute("""
+        SELECT COALESCE(SUM(total_amount), 0) FROM sales_log
+        WHERE vendor_id = ? AND sale_date >= date('now', '-365 days')
+    """, (vendor_id,))
+    annual_sales = c.fetchone()[0] or 0
+    total_value = inventory_summary['total_value']
+    inventory_summary['turnover_rate'] = round(annual_sales / total_value, 1) if total_value > 0 else 0.0
+
+    # Chart data from real monthly sales
+    c.execute("""
+        SELECT strftime('%Y-%m', sale_date) as month,
+               SUM(total_amount) as revenue,
+               SUM(quantity) as units
+        FROM sales_log
+        WHERE vendor_id = ?
+        AND sale_date >= date('now', '-6 months')
+        GROUP BY strftime('%Y-%m', sale_date)
+        ORDER BY month ASC
+    """, (vendor_id,))
+    monthly_sales = c.fetchall()
+
     chart_data = {
-        'labels': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        'turnover_data': [2.1, 2.3, 2.5, 2.2, 2.4, 2.6],
-        'stock_data': [150, 145, 160, 155, 170, 165]
+        'labels': [row[0] for row in monthly_sales] if monthly_sales else [],
+        'revenue_data': [round(row[1] or 0, 2) for row in monthly_sales] if monthly_sales else [],
+        'units_data': [row[2] or 0 for row in monthly_sales] if monthly_sales else []
     }
 
     conn.close()
     return render_template("inventory_management.html",
                          inventory_summary=inventory_summary,
                          inventory_alerts=inventory_alerts,
-                         procurement_summary=procurement_summary,
                          inventory_items=inventory_items,
                          chart_data=chart_data)
 

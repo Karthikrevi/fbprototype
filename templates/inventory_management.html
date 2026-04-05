@@ -93,13 +93,6 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(220, 53, 69, 0.1);
         }
-        .procurement-panel {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
         .chart-container {
             background: white;
             padding: 20px;
@@ -143,7 +136,7 @@
             <div class="col-md-3">
                 <div class="metric-card">
                     <div class="metric-value">
-                        <i class="fas fa-rupee-sign"></i> {{ vendor_currency }}{{ "%.0f"|format(inventory_summary.total_value) }}
+                        {{ vendor_currency }}{{ "%.0f"|format(inventory_summary.total_value) }}
                     </div>
                     <div class="metric-label">Inventory Value</div>
                 </div>
@@ -158,9 +151,9 @@
             </div>
         </div>
 
-        <!-- Alerts & Procurement Panel -->
+        <!-- Inventory Alerts -->
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="alert-panel">
                     <h5><i class="fas fa-exclamation-triangle text-danger"></i> Inventory Alerts</h5>
                     <ul class="mb-0">
@@ -171,25 +164,6 @@
                         <li class="text-success">No critical alerts at this time</li>
                         {% endif %}
                     </ul>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="procurement-panel">
-                    <h5><i class="fas fa-shopping-cart"></i> Procurement Status</h5>
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <strong>{{ procurement_summary.pending_orders }}</strong>
-                            <br><small>Pending Orders</small>
-                        </div>
-                        <div class="col-4">
-                            <strong>{{ procurement_summary.incoming_units }}</strong>
-                            <br><small>Incoming Units</small>
-                        </div>
-                        <div class="col-4">
-                            <strong>{{ vendor_currency }}{{ "%.0f"|format(procurement_summary.pending_value) }}</strong>
-                            <br><small>Pending Value</small>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -205,14 +179,8 @@
             <a href="/erp/inventory/add-stock" class="btn btn-success btn-lg me-3">
                 <i class="fas fa-plus"></i> Add Stock
             </a>
-            <a href="/erp/inventory/transfer" class="btn btn-info btn-lg me-3">
-                <i class="fas fa-exchange-alt"></i> Transfer Stock
-            </a>
             <a href="/erp/inventory/forecast" class="btn btn-primary btn-lg me-3">
                 <i class="fas fa-crystal-ball"></i> Demand Forecast
-            </a>
-            <a href="/erp/inventory/procurement" class="btn btn-warning btn-lg">
-                <i class="fas fa-shopping-cart"></i> Procurement
             </a>
         </div>
 
@@ -283,24 +251,25 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Inventory Performance Chart
         const ctx = document.getElementById('inventoryChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: {{ chart_data.labels|tojson }},
                 datasets: [{
-                    label: 'Inventory Turnover',
-                    data: {{ chart_data.turnover_data|tojson }},
+                    label: 'Revenue ({{ vendor_currency }})',
+                    data: {{ chart_data.revenue_data|tojson }},
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    tension: 0.4
+                    tension: 0.4,
+                    yAxisID: 'y'
                 }, {
-                    label: 'Stock Levels',
-                    data: {{ chart_data.stock_data|tojson }},
+                    label: 'Units Sold',
+                    data: {{ chart_data.units_data|tojson }},
                     borderColor: '#28a745',
                     backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    tension: 0.4
+                    tension: 0.4,
+                    yAxisID: 'y1'
                 }]
             },
             options: {
@@ -312,7 +281,27 @@
                 },
                 scales: {
                     y: {
-                        beginAtZero: true
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Revenue ({{ vendor_currency }})'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Units Sold'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
                     }
                 }
             }
