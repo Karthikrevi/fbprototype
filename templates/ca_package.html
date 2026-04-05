@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CA Package - FurrButler ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body {
+      background: #f4f6fa;
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      color: #333;
+    }
+    .page-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    .doc-header {
+      background: #fff;
+      border-bottom: 4px solid #1a2744;
+      padding: 30px 35px;
+      border-radius: 10px 10px 0 0;
+      margin-bottom: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .doc-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .doc-header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a2744;
+      margin: 0 0 5px 0;
+    }
+    .doc-header .subtitle {
+      color: #5a6a85;
+      font-size: 0.9rem;
+    }
+    .doc-meta {
+      font-size: 0.85rem;
+      color: #5a6a85;
+      line-height: 1.7;
+      text-align: right;
+    }
+    .btn-zip {
+      background: #1a2744;
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+      margin-top: 15px;
+    }
+    .btn-zip:hover { background: #2a3d5c; color: #fff; }
+    .doc-body {
+      background: #fff;
+      padding: 0;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      margin-bottom: 25px;
+    }
+    .report-section {
+      padding: 30px 35px;
+      border-top: 1px solid #eef0f5;
+    }
+    .report-section:first-child { border-top: none; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .section-header h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1a2744;
+      margin: 0;
+    }
+    .btn-csv {
+      background: #e8f0fe;
+      color: #1a2744;
+      border: 1px solid #c5d5ea;
+      padding: 7px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-csv:hover { background: #d0dfef; color: #1a2744; }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+    .metric-card {
+      background: #f8f9fc;
+      border: 1px solid #eef0f5;
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+    }
+    .metric-card .label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #7a8599;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .metric-card .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1a2744;
+    }
+    .metric-card .value.positive { color: #1a8754; }
+    .metric-card .value.negative { color: #dc3545; }
+    .mini-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.88rem;
+    }
+    .mini-table th {
+      background: #f0f2f8;
+      color: #1a2744;
+      font-weight: 600;
+      padding: 10px 14px;
+      text-align: left;
+      border: none;
+    }
+    .mini-table th:first-child { border-radius: 8px 0 0 0; }
+    .mini-table th:last-child { border-radius: 0 8px 0 0; }
+    .mini-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #4a5568;
+    }
+    .balance-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+    .balance-check.ok { background: #d4edda; color: #155724; }
+    .balance-check.warn { background: #f8d7da; color: #721c24; }
+    .chart-container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .disclaimer {
+      background: #fff;
+      border-top: 3px solid #e0e4ec;
+      padding: 25px 35px;
+      border-radius: 0 0 10px 10px;
+      margin-bottom: 25px;
+      font-size: 0.82rem;
+      color: #7a8599;
+      line-height: 1.6;
+    }
+    .btn-back {
+      background: #1a2744;
+      color: #fff;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-back:hover { background: #2a3d5c; color: #fff; }
+    .top-product {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.9rem;
+    }
+    .top-product:last-child { border-bottom: none; }
+    .top-product .name { color: #1a2744; font-weight: 500; }
+    .top-product .rev { color: #5a6a85; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="doc-header">
+      <div class="doc-header-top">
+        <div>
+          <h1>FurrButler ERP — Financial Reports Package</h1>
+          <div class="subtitle">{{ data.vendor_name }} &middot; {{ data.vendor_email }}</div>
+        </div>
+        <div class="doc-meta">
+          Generated: {{ data.generated }}<br>
+          Financial Period: {{ data.period }}
+        </div>
+      </div>
+      <a href="/erp/finance/ca-package/export/zip" class="btn-zip">📦 Download Complete Package (ZIP)</a>
+    </div>
+
+    <div class="doc-body">
+
+      <div class="report-section">
+        <div class="section-header">
+          <h3>1. Profit &amp; Loss Statement</h3>
+          <a href="/erp/finance/ca-package/export/pnl" class="btn-csv">Download CSV</a>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Total Revenue</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.pnl.total_revenue) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Total Expenses</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.pnl.total_expenses) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Gross Profit</div>
+            <div class="value {% if data.pnl.gross_profit >= 0 %}positive{% else %}negative{% endif %}">{{ vendor_currency }} {{ "%.2f"|format(data.pnl.gross_profit) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Net Profit</div>
+            <div class="value {% if data.pnl.net_profit >= 0 %}positive{% else %}negative{% endif %}">{{ vendor_currency }} {{ "%.2f"|format(data.pnl.net_profit) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="section-header">
+          <h3>2. GST Summary</h3>
+          <a href="/erp/finance/ca-package/export/gst" class="btn-csv">Download CSV</a>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">GST Collected</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.gst.gst_collected) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">GST Paid</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.gst.gst_paid) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Input Tax Credit</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.gst.input_tax_credit) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Net GST Payable</div>
+            <div class="value {% if data.gst.net_gst_payable > 0 %}negative{% else %}positive{% endif %}">{{ vendor_currency }} {{ "%.2f"|format(data.gst.net_gst_payable) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="section-header">
+          <h3>3. Balance Sheet Summary</h3>
+          <a href="/erp/finance/ca-package/export/balance-sheet" class="btn-csv">Download CSV</a>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Total Assets</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.balance_sheet.total_assets) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Total Liabilities</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.balance_sheet.total_liabilities) }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Equity</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.balance_sheet.equity) }}</div>
+          </div>
+        </div>
+        {% set diff = (data.balance_sheet.total_assets - data.balance_sheet.total_liabilities - data.balance_sheet.equity)|abs %}
+        {% if diff < 0.01 %}
+        <div class="balance-check ok">✅ Balanced — Assets = Liabilities + Equity</div>
+        {% else %}
+        <div class="balance-check warn">⚠️ Not Balanced — Difference: {{ vendor_currency }} {{ "%.2f"|format(diff) }}</div>
+        {% endif %}
+      </div>
+
+      <div class="report-section">
+        <div class="section-header">
+          <h3>4. General Ledger</h3>
+          <a href="/erp/finance/ca-package/export/ledger" class="btn-csv">Download CSV</a>
+        </div>
+        {% if data.ledger.last_transactions|length > 0 %}
+        <div class="table-responsive">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in data.ledger.last_transactions %}
+              <tr>
+                <td>{{ t.date }}</td>
+                <td>{{ t.account }}</td>
+                <td style="text-transform:capitalize;">{{ t.type }}</td>
+                <td>{{ vendor_currency }} {{ "%.2f"|format(t.amount) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p style="color:#7a8599; text-align:center; padding:15px 0;">No ledger entries found.</p>
+        {% endif %}
+      </div>
+
+      <div class="report-section">
+        <div class="section-header">
+          <h3>5. Expense Breakdown</h3>
+          <a href="/erp/finance/ca-package/export/expenses" class="btn-csv">Download CSV</a>
+        </div>
+        {% if data.top_expenses|length > 0 %}
+        <div class="chart-container">
+          <canvas id="expenseChart"></canvas>
+        </div>
+        {% else %}
+        <p style="color:#7a8599; text-align:center; padding:15px 0;">No expense data available.</p>
+        {% endif %}
+      </div>
+
+      <div class="report-section">
+        <div class="section-header">
+          <h3>6. Sales Report</h3>
+          <a href="/erp/finance/ca-package/export/sales" class="btn-csv">Download CSV</a>
+        </div>
+        <div class="metrics-grid" style="margin-bottom:15px;">
+          <div class="metric-card">
+            <div class="label">Total Sales Count</div>
+            <div class="value">{{ data.sales.count }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Total Revenue</div>
+            <div class="value">{{ vendor_currency }} {{ "%.2f"|format(data.sales.total_revenue) }}</div>
+          </div>
+        </div>
+        {% if data.sales.top_products|length > 0 %}
+        <h6 style="font-weight:600; color:#1a2744; margin:15px 0 10px 0; font-size:0.9rem;">Top Products by Revenue</h6>
+        {% for p in data.sales.top_products %}
+        <div class="top-product">
+          <span class="name">{{ p.name }}</span>
+          <span class="rev">{{ vendor_currency }} {{ "%.2f"|format(p.revenue) }}</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="color:#7a8599; text-align:center; padding:10px 0;">No sales data available.</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <div class="disclaimer">
+      These reports are generated from transactions recorded in FurrButler ERP. Please verify all entries with your chartered accountant before filing. FurrButler is not responsible for errors arising from incomplete data entry.
+    </div>
+
+    <div style="text-align:center; padding-bottom:30px;">
+      <a href="/erp/reports" class="btn-back">← Back to Accounting</a>
+    </div>
+  </div>
+
+  {% if data.top_expenses|length > 0 %}
+  <script>
+    var ctx = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [{% for e in data.top_expenses %}'{{ e.category }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Amount',
+          data: [{% for e in data.top_expenses %}{{ e.amount }}{% if not loop.last %},{% endif %}{% endfor %}],
+          backgroundColor: ['#1a2744','#2d4a7a','#4a7ab5','#7aabd4','#a8cce8'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { family: 'Poppins' } } },
+          x: { ticks: { font: { family: 'Poppins' } } }
+        }
+      }
+    });
+  </script>
+  {% endif %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

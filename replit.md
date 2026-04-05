@@ -99,6 +99,7 @@ An advanced chatbot system uses machine learning for intent classification and b
 - **New DB tables**: `expense_budgets`, `fixed_assets`, `capital_accounts`, `payable_entries`, `receivable_entries`, `payment_records`
 - **New columns**: `ledger_entries.entry_source`, `expenses.receipt_url`
 - **Context processor**: `now_date` injected into all templates for date comparisons
+- **CA Package** (`/erp/finance/ca-package`): Professional financial reports page with P&L, GST, Balance Sheet, Ledger, Expenses, Sales summaries; Chart.js expense bar chart; balance check indicator; ZIP download with all 6 CSVs; individual CSV export routes at `/erp/finance/ca-package/export/{pnl,gst,balance-sheet,ledger,expenses,sales}`
 
 ## Dynamic Vendor Currency
 - `get_vendor_currency(vendor_id)` and `get_vendor_id_from_email(email)` registered as Jinja2 globals

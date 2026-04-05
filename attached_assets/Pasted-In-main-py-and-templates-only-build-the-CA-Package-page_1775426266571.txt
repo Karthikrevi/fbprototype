@@ -1,0 +1,164 @@
+In main.py and templates only, build the 
+CA Package page.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After creating any template verify it exists.
+
+PART 1 — Add these routes to main.py:
+
+Route 1: /erp/finance/ca-package GET
+Pull the following data for this vendor:
+
+P&L summary:
+- Total revenue from sales_log
+- Total expenses from expenses table
+- Platform fees from platform_fees
+- Gross profit, net profit
+
+GST summary (current month):
+- Total sales
+- GST collected at vendor GST rate
+- Total expenses
+- GST paid estimated at 18%
+- Input tax credit
+- Net GST payable
+
+Balance sheet summary:
+- Cash: revenue minus expenses
+- Inventory value: sum of quantity x buy_price
+- Accounts receivable: from receivable_entries
+  where status != paid
+- Accounts payable: from payable_entries
+  where status != paid
+- Total assets, total liabilities, equity
+
+Ledger summary:
+- Total debit entries
+- Total credit entries
+- Last 10 transactions
+
+Top 5 expense categories by amount
+
+Pass all of this to ca_package.html
+
+Route 2: /erp/finance/ca-package/export/zip GET
+Generate a ZIP file using Python zipfile module
+containing these CSVs:
+
+File 1: pnl.csv
+Revenue, COGS, Gross Profit,
+Expenses, Platform Fees, Net Profit
+
+File 2: gst_summary.csv
+Total Sales, GST Collected,
+Total Expenses, GST Paid,
+Input Tax Credit, Net GST Payable
+
+File 3: balance_sheet.csv
+All asset, liability and equity line items
+with values
+
+File 4: ledger.csv
+All ledger entries for this vendor:
+Date, Type, Account, Description,
+Debit, Credit, Running Balance
+
+File 5: expenses.csv
+All expenses:
+Date, Category, Amount, Description
+
+File 6: sales.csv
+All sales:
+Date, Product, Quantity,
+Unit Price, Total, Customer
+
+Return as ZIP download
+Filename: furrbutler_ca_package.zip
+
+Route 3: /erp/finance/ca-package/export/pnl
+Returns pnl.csv only
+
+Route 4: /erp/finance/ca-package/export/gst
+Returns gst_summary.csv only
+
+Route 5: /erp/finance/ca-package/export/balance-sheet
+Returns balance_sheet.csv only
+
+Route 6: /erp/finance/ca-package/export/ledger
+Returns ledger.csv only
+
+Route 7: /erp/finance/ca-package/export/expenses
+Returns expenses.csv only
+
+Route 8: /erp/finance/ca-package/export/sales
+Returns sales.csv only
+
+PART 2 — Create templates/ca_package.html:
+
+Professional clean white design
+Not purple gradient — should feel like
+a formal financial document page
+Use navy blue accents instead
+
+Header section:
+FurrButler ERP — Financial Reports Package
+Vendor name and email
+Generated date and time
+Financial period: current month and year
+
+One prominent button at top right:
+"📦 Download Complete Package (ZIP)"
+Links to /erp/finance/ca-package/export/zip
+
+Six report sections, each showing:
+A preview of the key numbers
+A Download CSV button for that report
+
+Section 1 — Profit & Loss Statement:
+Show: Total Revenue, Total Expenses,
+      Gross Profit, Net Profit
+Highlight net profit in green if positive
+red if negative
+Download button: /erp/finance/ca-package/export/pnl
+
+Section 2 — GST Summary:
+Show: GST Collected, GST Paid,
+      Input Tax Credit, Net GST Payable
+Highlight net GST payable in red if > 0
+Download button: /erp/finance/ca-package/export/gst
+
+Section 3 — Balance Sheet Summary:
+Show: Total Assets, Total Liabilities, Equity
+Assets = Liabilities + Equity check
+Show green tick if balanced
+Show red warning if not balanced
+Download button: /erp/finance/ca-package/export/balance-sheet
+
+Section 4 — General Ledger:
+Show last 10 transactions as a mini table:
+Date, Account, Type, Amount
+Download button: /erp/finance/ca-package/export/ledger
+
+Section 5 — Expense Breakdown:
+Show top 5 categories as a simple bar chart
+using Chart.js
+Download button: /erp/finance/ca-package/export/expenses
+
+Section 6 — Sales Report:
+Show total sales count and revenue
+Show top 3 products by revenue
+Download button: /erp/finance/ca-package/export/sales
+
+Footer disclaimer:
+"These reports are generated from transactions
+recorded in FurrButler ERP. Please verify all
+entries with your chartered accountant before
+filing. FurrButler is not responsible for
+errors arising from incomplete data entry."
+
+Back button to /erp/reports
+
+Do not modify any other routes.
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

@@ -6749,6 +6749,377 @@ def gst_summary():
     return render_template("gst_summary.html", data=data)
 
 
+@app.route('/erp/finance/ca-package')
+def ca_package():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("accounting_dashboard"))
+    vendor_id = result[0]
+    vendor_name = result[1] or "Vendor"
+
+    c.execute("SELECT gst_rate FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    gst_result = c.fetchone()
+    gst_rate = gst_result[0] if gst_result else 18.0
+
+    now = datetime.now()
+    month_start = now.strftime("%Y-%m-01")
+    month_end = now.strftime("%Y-%m-%d")
+
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    total_revenue = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    total_expenses = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(fee_amount),0) FROM platform_fees WHERE vendor_id=?", (vendor_id,))
+    platform_fees = c.fetchone()[0] or 0
+
+    gross_profit = total_revenue - total_expenses
+    net_profit = gross_profit - platform_fees
+
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date BETWEEN ? AND ?",
+              (vendor_id, month_start, month_end))
+    gst_total_sales = c.fetchone()[0] or 0
+    gst_collected = gst_total_sales * gst_rate / (100 + gst_rate)
+
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=? AND date BETWEEN ? AND ?",
+              (vendor_id, month_start, month_end))
+    gst_total_expenses = c.fetchone()[0] or 0
+    gst_paid = gst_total_expenses * 18 / 118
+    input_tax_credit = gst_paid
+    net_gst_payable = gst_collected - input_tax_credit
+
+    cash_balance = total_revenue - total_expenses
+
+    c.execute("SELECT COALESCE(SUM(quantity * buy_price),0) FROM products WHERE vendor_id=?", (vendor_id,))
+    inventory_value = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(balance_due),0) FROM receivable_entries WHERE vendor_id=? AND status != 'paid'", (vendor_id,))
+    accounts_receivable = c.fetchone()[0] or 0
+
+    c.execute("SELECT COALESCE(SUM(balance_due),0) FROM payable_entries WHERE vendor_id=? AND status != 'paid'", (vendor_id,))
+    accounts_payable = c.fetchone()[0] or 0
+
+    total_assets = cash_balance + inventory_value + accounts_receivable
+    total_liabilities = accounts_payable
+    equity = total_assets - total_liabilities
+
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM ledger_entries WHERE vendor_id=? AND entry_type='debit'", (vendor_id,))
+    total_debits = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM ledger_entries WHERE vendor_id=? AND entry_type='credit'", (vendor_id,))
+    total_credits = c.fetchone()[0] or 0
+
+    c.execute("""SELECT timestamp, account, entry_type, amount, description
+                 FROM ledger_entries WHERE vendor_id=? ORDER BY id DESC LIMIT 10""", (vendor_id,))
+    last_transactions = [{"date": r[0], "account": r[1], "type": r[2], "amount": r[3], "description": r[4]} for r in c.fetchall()]
+
+    c.execute("""SELECT category, SUM(amount) as total FROM expenses
+                 WHERE vendor_id=? GROUP BY category ORDER BY total DESC LIMIT 5""", (vendor_id,))
+    top_expenses = [{"category": r[0], "amount": r[1]} for r in c.fetchall()]
+
+    c.execute("SELECT COUNT(*) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    sales_count = c.fetchone()[0] or 0
+
+    c.execute("""SELECT p.name, SUM(sl.total_amount) as rev
+                 FROM sales_log sl LEFT JOIN products p ON sl.product_id=p.id
+                 WHERE sl.vendor_id=? GROUP BY sl.product_id ORDER BY rev DESC LIMIT 3""", (vendor_id,))
+    top_products = [{"name": r[0] or "Product", "revenue": r[1]} for r in c.fetchall()]
+
+    conn.close()
+
+    data = {
+        "vendor_name": vendor_name,
+        "vendor_email": email,
+        "generated": now.strftime("%d %b %Y, %I:%M %p"),
+        "period": now.strftime("%B %Y"),
+        "pnl": {
+            "total_revenue": round(total_revenue, 2),
+            "total_expenses": round(total_expenses, 2),
+            "platform_fees": round(platform_fees, 2),
+            "gross_profit": round(gross_profit, 2),
+            "net_profit": round(net_profit, 2),
+        },
+        "gst": {
+            "total_sales": round(gst_total_sales, 2),
+            "gst_collected": round(gst_collected, 2),
+            "total_expenses": round(gst_total_expenses, 2),
+            "gst_paid": round(gst_paid, 2),
+            "input_tax_credit": round(input_tax_credit, 2),
+            "net_gst_payable": round(net_gst_payable, 2),
+        },
+        "balance_sheet": {
+            "cash": round(cash_balance, 2),
+            "inventory": round(inventory_value, 2),
+            "accounts_receivable": round(accounts_receivable, 2),
+            "accounts_payable": round(accounts_payable, 2),
+            "total_assets": round(total_assets, 2),
+            "total_liabilities": round(total_liabilities, 2),
+            "equity": round(equity, 2),
+        },
+        "ledger": {
+            "total_debits": round(total_debits, 2),
+            "total_credits": round(total_credits, 2),
+            "last_transactions": last_transactions,
+        },
+        "top_expenses": top_expenses,
+        "sales": {
+            "count": sales_count,
+            "total_revenue": round(total_revenue, 2),
+            "top_products": top_products,
+        },
+    }
+    return render_template("ca_package.html", data=data)
+
+
+def _ca_get_vendor(session_obj):
+    if "vendor" not in session_obj:
+        return None, None, None
+    email = session_obj["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        return None, None, None
+    return conn, c, result
+
+
+@app.route('/erp/finance/ca-package/export/zip')
+def ca_export_zip():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    import zipfile
+    conn_result = _ca_get_vendor(session)
+    conn, c, vendor_row = conn_result
+    if not conn:
+        flash("Vendor not found")
+        return redirect(url_for("accounting_dashboard"))
+    vendor_id = vendor_row[0]
+
+    c.execute("SELECT gst_rate FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+    gst_r = c.fetchone()
+    gst_rate = gst_r[0] if gst_r else 18.0
+
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    total_revenue = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    total_expenses = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(fee_amount),0) FROM platform_fees WHERE vendor_id=?", (vendor_id,))
+    platform_fees_val = c.fetchone()[0] or 0
+    gross_profit = total_revenue - total_expenses
+    net_profit = gross_profit - platform_fees_val
+
+    now = datetime.now()
+    ms = now.strftime("%Y-%m-01")
+    me = now.strftime("%Y-%m-%d")
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date BETWEEN ? AND ?", (vendor_id, ms, me))
+    gst_sales = c.fetchone()[0] or 0
+    gst_collected = gst_sales * gst_rate / (100 + gst_rate)
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=? AND date BETWEEN ? AND ?", (vendor_id, ms, me))
+    gst_exp = c.fetchone()[0] or 0
+    gst_paid = gst_exp * 18 / 118
+    itc = gst_paid
+    net_gst = gst_collected - itc
+
+    cash_bal = total_revenue - total_expenses
+    c.execute("SELECT COALESCE(SUM(quantity * buy_price),0) FROM products WHERE vendor_id=?", (vendor_id,))
+    inv_val = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(balance_due),0) FROM receivable_entries WHERE vendor_id=? AND status != 'paid'", (vendor_id,))
+    ar = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(balance_due),0) FROM payable_entries WHERE vendor_id=? AND status != 'paid'", (vendor_id,))
+    ap = c.fetchone()[0] or 0
+    total_assets = cash_bal + inv_val + ar
+    total_liabilities = ap
+    equity_val = total_assets - total_liabilities
+
+    c.execute("SELECT timestamp, entry_type, account, description, amount FROM ledger_entries WHERE vendor_id=? ORDER BY id", (vendor_id,))
+    ledger_rows = c.fetchall()
+
+    c.execute("SELECT date, category, amount, description FROM expenses WHERE vendor_id=? ORDER BY date", (vendor_id,))
+    expense_rows = c.fetchall()
+
+    c.execute("""SELECT sl.sale_date, COALESCE(p.name,'Product'), sl.quantity, sl.unit_price, sl.total_amount, sl.customer_email
+                 FROM sales_log sl LEFT JOIN products p ON sl.product_id=p.id WHERE sl.vendor_id=? ORDER BY sl.sale_date""", (vendor_id,))
+    sales_rows = c.fetchall()
+    conn.close()
+
+    import io, csv
+    mem = io.BytesIO()
+    with zipfile.ZipFile(mem, 'w', zipfile.ZIP_DEFLATED) as zf:
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Revenue","COGS","Gross Profit","Expenses","Platform Fees","Net Profit"])
+        w.writerow([round(total_revenue,2), 0, round(gross_profit,2), round(total_expenses,2), round(platform_fees_val,2), round(net_profit,2)])
+        zf.writestr("pnl.csv", buf.getvalue())
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Total Sales","GST Collected","Total Expenses","GST Paid","Input Tax Credit","Net GST Payable"])
+        w.writerow([round(gst_sales,2), round(gst_collected,2), round(gst_exp,2), round(gst_paid,2), round(itc,2), round(net_gst,2)])
+        zf.writestr("gst_summary.csv", buf.getvalue())
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Item","Value"])
+        w.writerow(["Cash",round(cash_bal,2)])
+        w.writerow(["Inventory",round(inv_val,2)])
+        w.writerow(["Accounts Receivable",round(ar,2)])
+        w.writerow(["Total Assets",round(total_assets,2)])
+        w.writerow(["Accounts Payable",round(ap,2)])
+        w.writerow(["Total Liabilities",round(total_liabilities,2)])
+        w.writerow(["Equity",round(equity_val,2)])
+        zf.writestr("balance_sheet.csv", buf.getvalue())
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Date","Type","Account","Description","Debit","Credit","Running Balance"])
+        running = 0
+        for r in ledger_rows:
+            d = r[4] if r[1] == 'debit' else 0
+            cr = r[4] if r[1] == 'credit' else 0
+            running += d - cr
+            w.writerow([r[0], r[1], r[2], r[3], round(d,2), round(cr,2), round(running,2)])
+        zf.writestr("ledger.csv", buf.getvalue())
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Date","Category","Amount","Description"])
+        for r in expense_rows:
+            w.writerow([r[0], r[1], round(r[2],2), r[3]])
+        zf.writestr("expenses.csv", buf.getvalue())
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Date","Product","Quantity","Unit Price","Total","Customer"])
+        for r in sales_rows:
+            w.writerow([r[0], r[1], r[2], round(r[3],2), round(r[4],2), r[5]])
+        zf.writestr("sales.csv", buf.getvalue())
+
+    mem.seek(0)
+    from flask import Response
+    return Response(mem.getvalue(), mimetype="application/zip",
+                    headers={"Content-Disposition": "attachment;filename=furrbutler_ca_package.zip"})
+
+
+def _ca_single_csv(csv_name, header, row_fn):
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    conn_result = _ca_get_vendor(session)
+    conn, c, vendor_row = conn_result
+    if not conn:
+        flash("Vendor not found")
+        return redirect(url_for("accounting_dashboard"))
+    vendor_id = vendor_row[0]
+    import io, csv
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(header)
+    row_fn(c, vendor_id, w)
+    conn.close()
+    from flask import Response
+    return Response(buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment;filename={csv_name}"})
+
+
+@app.route('/erp/finance/ca-package/export/pnl')
+def ca_export_pnl():
+    def write_rows(c, vid, w):
+        c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=?", (vid,))
+        rev = c.fetchone()[0] or 0
+        c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=?", (vid,))
+        exp = c.fetchone()[0] or 0
+        c.execute("SELECT COALESCE(SUM(fee_amount),0) FROM platform_fees WHERE vendor_id=?", (vid,))
+        pf = c.fetchone()[0] or 0
+        w.writerow([round(rev,2), 0, round(rev-exp,2), round(exp,2), round(pf,2), round(rev-exp-pf,2)])
+    return _ca_single_csv("pnl.csv", ["Revenue","COGS","Gross Profit","Expenses","Platform Fees","Net Profit"], write_rows)
+
+
+@app.route('/erp/finance/ca-package/export/gst')
+def ca_export_gst():
+    def write_rows(c, vid, w):
+        c.execute("SELECT gst_rate FROM settings_vendor WHERE vendor_id=?", (vid,))
+        gr = c.fetchone()
+        gst_rate = gr[0] if gr else 18.0
+        now = datetime.now()
+        ms, me = now.strftime("%Y-%m-01"), now.strftime("%Y-%m-%d")
+        c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=? AND sale_date BETWEEN ? AND ?", (vid, ms, me))
+        ts = c.fetchone()[0] or 0
+        gc = ts * gst_rate / (100 + gst_rate)
+        c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=? AND date BETWEEN ? AND ?", (vid, ms, me))
+        te = c.fetchone()[0] or 0
+        gp = te * 18 / 118
+        w.writerow([round(ts,2), round(gc,2), round(te,2), round(gp,2), round(gp,2), round(gc-gp,2)])
+    return _ca_single_csv("gst_summary.csv", ["Total Sales","GST Collected","Total Expenses","GST Paid","Input Tax Credit","Net GST Payable"], write_rows)
+
+
+@app.route('/erp/finance/ca-package/export/balance-sheet')
+def ca_export_balance_sheet():
+    def write_rows(c, vid, w):
+        c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=?", (vid,))
+        rev = c.fetchone()[0] or 0
+        c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=?", (vid,))
+        exp = c.fetchone()[0] or 0
+        cash = rev - exp
+        c.execute("SELECT COALESCE(SUM(quantity*buy_price),0) FROM products WHERE vendor_id=?", (vid,))
+        inv = c.fetchone()[0] or 0
+        c.execute("SELECT COALESCE(SUM(balance_due),0) FROM receivable_entries WHERE vendor_id=? AND status!='paid'", (vid,))
+        ar = c.fetchone()[0] or 0
+        c.execute("SELECT COALESCE(SUM(balance_due),0) FROM payable_entries WHERE vendor_id=? AND status!='paid'", (vid,))
+        ap = c.fetchone()[0] or 0
+        ta = cash + inv + ar
+        tl = ap
+        eq = ta - tl
+        w.writerow(["Cash", round(cash,2)])
+        w.writerow(["Inventory", round(inv,2)])
+        w.writerow(["Accounts Receivable", round(ar,2)])
+        w.writerow(["Total Assets", round(ta,2)])
+        w.writerow(["Accounts Payable", round(ap,2)])
+        w.writerow(["Total Liabilities", round(tl,2)])
+        w.writerow(["Equity", round(eq,2)])
+    return _ca_single_csv("balance_sheet.csv", ["Item","Value"], write_rows)
+
+
+@app.route('/erp/finance/ca-package/export/ledger')
+def ca_export_ledger():
+    def write_rows(c, vid, w):
+        c.execute("SELECT timestamp, entry_type, account, description, amount FROM ledger_entries WHERE vendor_id=? ORDER BY id", (vid,))
+        running = 0
+        for r in c.fetchall():
+            d = r[4] if r[1] == 'debit' else 0
+            cr = r[4] if r[1] == 'credit' else 0
+            running += d - cr
+            w.writerow([r[0], r[1], r[2], r[3], round(d,2), round(cr,2), round(running,2)])
+    return _ca_single_csv("ledger.csv", ["Date","Type","Account","Description","Debit","Credit","Running Balance"], write_rows)
+
+
+@app.route('/erp/finance/ca-package/export/expenses')
+def ca_export_expenses():
+    def write_rows(c, vid, w):
+        c.execute("SELECT date, category, amount, description FROM expenses WHERE vendor_id=? ORDER BY date", (vid,))
+        for r in c.fetchall():
+            w.writerow([r[0], r[1], round(r[2],2), r[3]])
+    return _ca_single_csv("expenses.csv", ["Date","Category","Amount","Description"], write_rows)
+
+
+@app.route('/erp/finance/ca-package/export/sales')
+def ca_export_sales():
+    def write_rows(c, vid, w):
+        c.execute("""SELECT sl.sale_date, COALESCE(p.name,'Product'), sl.quantity, sl.unit_price, sl.total_amount, sl.customer_email
+                     FROM sales_log sl LEFT JOIN products p ON sl.product_id=p.id WHERE sl.vendor_id=? ORDER BY sl.sale_date""", (vid,))
+        for r in c.fetchall():
+            w.writerow([r[0], r[1], r[2], round(r[3],2), round(r[4],2), r[5]])
+    return _ca_single_csv("sales.csv", ["Date","Product","Quantity","Unit Price","Total","Customer"], write_rows)
+
+
 @app.route('/erp/reports/settings', methods=["GET", "POST"])
 def accounting_settings():
     if "vendor" not in session:
