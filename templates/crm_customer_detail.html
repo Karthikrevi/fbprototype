@@ -155,7 +155,7 @@
         <div class="col-md-4">
           <div class="stats-row">
             <div class="stat-item">
-              <div class="stat-value">₹{{ "%.0f"|format(customer[18] or 0) }}</div>
+              <div class="stat-value">{{ vendor_currency }}{{ "%.0f"|format(customer[18] or 0) }}</div>
               <div class="stat-label">Total Spent</div>
             </div>
             <div class="stat-item">
@@ -239,7 +239,7 @@
                     <small class="text-muted">{{ order[3][:10] }}</small>
                   </div>
                   <div class="text-end">
-                    <strong>₹{{ "%.2f"|format(order[1]) }}</strong>
+                    <strong>{{ vendor_currency }}{{ "%.2f"|format(order[1]) }}</strong>
                   </div>
                 </div>
               </div>
@@ -318,7 +318,7 @@
                   </div>
                   <div class="text-end">
                     {% if opp[7] %}
-                      <strong>₹{{ "%.0f"|format(opp[7]) }}</strong><br>
+                      <strong>{{ vendor_currency }}{{ "%.0f"|format(opp[7]) }}</strong><br>
                     {% endif %}
                     <small>{{ opp[6] or 0 }}% probability</small>
                   </div>

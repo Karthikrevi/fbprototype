@@ -127,7 +127,7 @@
             <div class="col-md-3">
                 <div class="metric-card">
                     <i class="fas fa-rupee-sign fa-2x mb-2"></i>
-                    <h4 id="payroll-month">₹45,000</h4>
+                    <h4 id="payroll-month">{{ vendor_currency }}45,000</h4>
                     <small>Monthly Payroll</small>
                 </div>
             </div>
@@ -197,8 +197,8 @@
                                         </div>
                                     </div>
                                     <div class="text-end">
-                                        <h6>₹15,000/month</h6>
-                                        <small class="text-muted">Revenue: ₹25,000</small>
+                                        <h6>{{ vendor_currency }}15,000/month</h6>
+                                        <small class="text-muted">Revenue: {{ vendor_currency }}25,000</small>
                                         <div class="mt-2">
                                             <button class="btn btn-sm btn-outline-primary" onclick="viewEmployee(1)">
                                                 <i class="fas fa-eye"></i>
@@ -226,8 +226,8 @@
                                         </div>
                                     </div>
                                     <div class="text-end">
-                                        <h6>₹12,000/month</h6>
-                                        <small class="text-muted">Revenue: ₹18,000</small>
+                                        <h6>{{ vendor_currency }}12,000/month</h6>
+                                        <small class="text-muted">Revenue: {{ vendor_currency }}18,000</small>
                                         <div class="mt-2">
                                             <button class="btn btn-sm btn-outline-primary" onclick="viewEmployee(2)">
                                                 <i class="fas fa-eye"></i>
@@ -280,7 +280,7 @@
                                     <small>Total Hours</small>
                                 </div>
                                 <div class="col-md-2">
-                                    <strong>₹1,425</strong><br>
+                                    <strong>{{ vendor_currency }}1,425</strong><br>
                                     <small>Daily Earnings</small>
                                 </div>
                                 <div class="col-md-1">
@@ -310,7 +310,7 @@
                                     <small>Current Hours</small>
                                 </div>
                                 <div class-md-2">
-                                    <strong>₹960</strong><br>
+                                    <strong>{{ vendor_currency }}960</strong><br>
                                     <small>Current Earnings</small>
                                 </div>
                                 <div class="col-md-1">
@@ -350,11 +350,11 @@
                                                 <strong>Sarah Johnson</strong><br>
                                                 <small class="text-muted">Senior Groomer</small>
                                             </td>
-                                            <td>₹15,000</td>
+                                            <td>{{ vendor_currency }}15,000</td>
                                             <td>180 hrs</td>
-                                            <td>₹2,250</td>
-                                            <td>₹1,500</td>
-                                            <td><strong>₹18,750</strong></td>
+                                            <td>{{ vendor_currency }}2,250</td>
+                                            <td>{{ vendor_currency }}1,500</td>
+                                            <td><strong>{{ vendor_currency }}18,750</strong></td>
                                             <td>
                                                 <button class="btn btn-sm btn-success">Pay</button>
                                             </td>
@@ -364,11 +364,11 @@
                                                 <strong>Mike Wilson</strong><br>
                                                 <small class="text-muted">Junior Groomer</small>
                                             </td>
-                                            <td>₹12,000</td>
+                                            <td>{{ vendor_currency }}12,000</td>
                                             <td>175 hrs</td>
-                                            <td>₹1,125</td>
-                                            <td>₹800</td>
-                                            <td><strong>₹13,925</strong></td>
+                                            <td>{{ vendor_currency }}1,125</td>
+                                            <td>{{ vendor_currency }}800</td>
+                                            <td><strong>{{ vendor_currency }}13,925</strong></td>
                                             <td>
                                                 <button class="btn btn-sm btn-success">Pay</button>
                                             </td>
@@ -385,24 +385,24 @@
                             <div class="mt-3">
                                 <div class="d-flex justify-content-between">
                                     <span>Total Base Salaries:</span>
-                                    <strong>₹27,000</strong>
+                                    <strong>{{ vendor_currency }}27,000</strong>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span>Overtime Pay:</span>
-                                    <strong>₹3,375</strong>
+                                    <strong>{{ vendor_currency }}3,375</strong>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span>Bonuses:</span>
-                                    <strong>₹2,300</strong>
+                                    <strong>{{ vendor_currency }}2,300</strong>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span>Deductions:</span>
-                                    <strong>₹1,200</strong>
+                                    <strong>{{ vendor_currency }}1,200</strong>
                                 </div>
                                 <hr>
                                 <div class="d-flex justify-content-between">
                                     <strong>Total Payroll:</strong>
-                                    <strong>₹31,475</strong>
+                                    <strong>{{ vendor_currency }}31,475</strong>
                                 </div>
                             </div>
                             <button class="btn btn-light w-100 mt-3">
@@ -426,7 +426,7 @@
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between">
                                             <span>Sarah Johnson</span>
-                                            <strong>₹25,000</strong>
+                                            <strong>{{ vendor_currency }}25,000</strong>
                                         </div>
                                         <div class="performance-indicator">
                                             <div class="performance-fill bg-success" style="width: 85%"></div>
@@ -435,7 +435,7 @@
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between">
                                             <span>Mike Wilson</span>
-                                            <strong>₹18,000</strong>
+                                            <strong>{{ vendor_currency }}18,000</strong>
                                         </div>
                                         <div class="performance-indicator">
                                             <div class="performance-fill bg-warning" style="width: 60%"></div>
@@ -465,7 +465,7 @@
                                             <small>Services Completed</small>
                                         </div>
                                         <div class="col-6">
-                                            <h4 class="text-info">₹1,850</h4>
+                                            <h4 class="text-info">{{ vendor_currency }}1,850</h4>
                                             <small>Avg Revenue/Day</small>
                                         </div>
                                     </div>
@@ -764,7 +764,7 @@
         if (data.success) {
           document.getElementById('total-employees').textContent = data.metrics.total_employees;
           document.getElementById('hours-today').textContent = data.metrics.hours_today;
-          document.getElementById('payroll-month').textContent = `₹${data.metrics.monthly_payroll.toLocaleString()}`;
+          document.getElementById('payroll-month').textContent = `{{ vendor_currency }}${data.metrics.monthly_payroll.toLocaleString()}`;
           document.getElementById('productivity').textContent = `${data.metrics.productivity}%`;
         }
       })

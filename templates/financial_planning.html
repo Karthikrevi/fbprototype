@@ -108,15 +108,15 @@
         <div class="section-title">Current Performance</div>
         <div class="metric-row">
           <span>Revenue</span>
-          <span class="amount positive">₹{{ "%.2f"|format(planning_data.current.revenue) }}</span>
+          <span class="amount positive">{{ vendor_currency }}{{ "%.2f"|format(planning_data.current.revenue) }}</span>
         </div>
         <div class="metric-row">
           <span>Expenses</span>
-          <span class="amount negative">₹{{ "%.2f"|format(planning_data.current.expenses) }}</span>
+          <span class="amount negative">{{ vendor_currency }}{{ "%.2f"|format(planning_data.current.expenses) }}</span>
         </div>
         <div class="metric-row">
           <span><strong>Net Profit</strong></span>
-          <span class="amount {{ 'positive' if planning_data.current.profit >= 0 else 'negative' }}">₹{{ "%.2f"|format(planning_data.current.profit) }}</span>
+          <span class="amount {{ 'positive' if planning_data.current.profit >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(planning_data.current.profit) }}</span>
         </div>
       </div>
 
@@ -125,15 +125,15 @@
         <div class="section-title">Budget Targets</div>
         <div class="metric-row">
           <span>Revenue Target</span>
-          <span class="amount neutral">₹{{ "%.2f"|format(planning_data.budget.revenue) }}</span>
+          <span class="amount neutral">{{ vendor_currency }}{{ "%.2f"|format(planning_data.budget.revenue) }}</span>
         </div>
         <div class="metric-row">
           <span>Expense Budget</span>
-          <span class="amount neutral">₹{{ "%.2f"|format(planning_data.budget.expenses) }}</span>
+          <span class="amount neutral">{{ vendor_currency }}{{ "%.2f"|format(planning_data.budget.expenses) }}</span>
         </div>
         <div class="metric-row">
           <span><strong>Profit Target</strong></span>
-          <span class="amount neutral">₹{{ "%.2f"|format(planning_data.budget.profit) }}</span>
+          <span class="amount neutral">{{ vendor_currency }}{{ "%.2f"|format(planning_data.budget.profit) }}</span>
         </div>
       </div>
 
@@ -142,11 +142,11 @@
         <div class="section-title">Variance Analysis</div>
         <div class="metric-row">
           <span>Revenue Variance</span>
-          <span class="amount {{ 'positive' if planning_data.variance.revenue >= 0 else 'negative' }}">₹{{ "%.2f"|format(planning_data.variance.revenue) }}</span>
+          <span class="amount {{ 'positive' if planning_data.variance.revenue >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(planning_data.variance.revenue) }}</span>
         </div>
         <div class="metric-row">
           <span>Expense Variance</span>
-          <span class="amount {{ 'positive' if planning_data.variance.expense <= 0 else 'negative' }}">₹{{ "%.2f"|format(planning_data.variance.expense) }}</span>
+          <span class="amount {{ 'positive' if planning_data.variance.expense <= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(planning_data.variance.expense) }}</span>
         </div>
         <div class="metric-row">
           <span><strong>Performance %</strong></span>
@@ -162,20 +162,20 @@
         <div class="scenario-card scenario-best">
           <h5 style="color: #28a745; margin-bottom: 15px;">🚀 Best Case Scenario</h5>
           <div style="margin-bottom: 10px;">
-            <strong>Revenue:</strong> ₹{{ "%.2f"|format(planning_data.scenarios.best_case.revenue) }}
+            <strong>Revenue:</strong> {{ vendor_currency }}{{ "%.2f"|format(planning_data.scenarios.best_case.revenue) }}
           </div>
           <div>
-            <strong>Profit:</strong> ₹{{ "%.2f"|format(planning_data.scenarios.best_case.profit) }}
+            <strong>Profit:</strong> {{ vendor_currency }}{{ "%.2f"|format(planning_data.scenarios.best_case.profit) }}
           </div>
         </div>
         
         <div class="scenario-card scenario-worst">
           <h5 style="color: #dc3545; margin-bottom: 15px;">⚠️ Worst Case Scenario</h5>
           <div style="margin-bottom: 10px;">
-            <strong>Revenue:</strong> ₹{{ "%.2f"|format(planning_data.scenarios.worst_case.revenue) }}
+            <strong>Revenue:</strong> {{ vendor_currency }}{{ "%.2f"|format(planning_data.scenarios.worst_case.revenue) }}
           </div>
           <div>
-            <strong>Profit:</strong> ₹{{ "%.2f"|format(planning_data.scenarios.worst_case.profit) }}
+            <strong>Profit:</strong> {{ vendor_currency }}{{ "%.2f"|format(planning_data.scenarios.worst_case.profit) }}
           </div>
         </div>
       </div>

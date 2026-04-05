@@ -125,7 +125,7 @@
             </div>
             <div class="col-md-3">
                 <div class="stats-card text-center">
-                    <h3>₹{{ total_monthly_cost }}</h3>
+                    <h3>{{ vendor_currency }}{{ total_monthly_cost }}</h3>
                     <p class="mb-0">Monthly Cost</p>
                 </div>
             </div>
@@ -214,9 +214,9 @@
                         {% if not module.is_core and module.monthly_price > 0 %}
                             <div class="pricing-info">
                                 <small class="text-muted">
-                                    <strong>₹{{ module.monthly_price }}/month</strong>
+                                    <strong>{{ vendor_currency }}{{ module.monthly_price }}/month</strong>
                                     {% if module.annual_price > 0 %}
-                                        or ₹{{ module.annual_price }}/year
+                                        or {{ vendor_currency }}{{ module.annual_price }}/year
                                     {% endif %}
                                 </small>
                             </div>

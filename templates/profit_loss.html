@@ -103,12 +103,12 @@
     
     <div class="pnl-row">
       <span>Sales Revenue</span>
-      <span class="amount">₹{{ "%.2f"|format(pnl.revenue) }}</span>
+      <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(pnl.revenue) }}</span>
     </div>
     
     <div class="pnl-row total">
       <span>Total Revenue</span>
-      <span class="amount positive">₹{{ "%.2f"|format(pnl.revenue) }}</span>
+      <span class="amount positive">{{ vendor_currency }}{{ "%.2f"|format(pnl.revenue) }}</span>
     </div>
 
     <div class="pnl-row section-header">
@@ -117,12 +117,12 @@
     
     <div class="pnl-row">
       <span>Cost of Products Sold</span>
-      <span class="amount">₹{{ "%.2f"|format(pnl.cogs) }}</span>
+      <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(pnl.cogs) }}</span>
     </div>
     
     <div class="pnl-row total">
       <span>Gross Profit</span>
-      <span class="amount {{ 'positive' if pnl.gross_profit >= 0 else 'negative' }}">₹{{ "%.2f"|format(pnl.gross_profit) }}</span>
+      <span class="amount {{ 'positive' if pnl.gross_profit >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(pnl.gross_profit) }}</span>
     </div>
 
     <div class="pnl-row section-header">
@@ -131,22 +131,22 @@
     
     <div class="pnl-row">
       <span>Business Expenses</span>
-      <span class="amount">₹{{ "%.2f"|format(pnl.expenses) }}</span>
+      <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(pnl.expenses) }}</span>
     </div>
     
     <div class="pnl-row">
       <span>Platform Fees</span>
-      <span class="amount">₹{{ "%.2f"|format(pnl.platform_fees) }}</span>
+      <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(pnl.platform_fees) }}</span>
     </div>
     
     <div class="pnl-row total">
       <span>Total Operating Expenses</span>
-      <span class="amount negative">₹{{ "%.2f"|format(pnl.expenses + pnl.platform_fees) }}</span>
+      <span class="amount negative">{{ vendor_currency }}{{ "%.2f"|format(pnl.expenses + pnl.platform_fees) }}</span>
     </div>
 
     <div class="pnl-row total" style="font-size: 1.3rem; color: {{ 'green' if pnl.net_profit >= 0 else 'red' }}; border-bottom: 3px solid currentColor;">
       <span>NET PROFIT</span>
-      <span class="amount">₹{{ "%.2f"|format(pnl.net_profit) }}</span>
+      <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(pnl.net_profit) }}</span>
     </div>
     
     <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">

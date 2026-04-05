@@ -229,23 +229,23 @@
   <!-- Enhanced Stats Grid -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-value positive">₹{{ "%.2f"|format(stats.total_sales) }}</div>
+      <div class="stat-value positive">{{ vendor_currency }}{{ "%.2f"|format(stats.total_sales) }}</div>
       <div class="stat-label">Total Revenue</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value negative">₹{{ "%.2f"|format(stats.total_expenses) }}</div>
+      <div class="stat-value negative">{{ vendor_currency }}{{ "%.2f"|format(stats.total_expenses) }}</div>
       <div class="stat-label">Total Expenses</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value {{ 'positive' if stats.net_profit >= 0 else 'negative' }}">₹{{ "%.2f"|format(stats.net_profit) }}</div>
+      <div class="stat-value {{ 'positive' if stats.net_profit >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(stats.net_profit) }}</div>
       <div class="stat-label">Net Profit</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value warning">₹0.00</div>
+      <div class="stat-value warning">{{ vendor_currency }}0.00</div>
       <div class="stat-label">Accounts Receivable</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value warning">₹0.00</div>
+      <div class="stat-value warning">{{ vendor_currency }}0.00</div>
       <div class="stat-label">Accounts Payable</div>
     </div>
     <div class="stat-card">

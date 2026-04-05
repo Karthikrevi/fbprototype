@@ -112,7 +112,7 @@
 
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <label for="price" class="form-label">Price (₹) *</label>
+                        <label for="price" class="form-label">Price ({{ vendor_currency }}) *</label>
                         <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required 
                                value="{{ service[3] }}" oninput="updatePreview()">
                     </div>
@@ -152,7 +152,7 @@
 
                 <div class="price-preview mb-4">
                     <h5 class="text-success mb-1">Service Preview</h5>
-                    <div class="h4 text-success mb-0">₹<span id="previewPrice">{{ "%.2f"|format(service[3]) }}</span></div>
+                    <div class="h4 text-success mb-0">{{ vendor_currency }}<span id="previewPrice">{{ "%.2f"|format(service[3]) }}</span></div>
                     <small class="text-muted">for <span id="previewDuration">{{ service[4] }}</span> minutes</small>
                 </div>
 

@@ -173,9 +173,9 @@
           <th>Account</th>
           <th>Sub-Category</th>
           <th>Description</th>
-          <th>Debit (₹)</th>
-          <th>Credit (₹)</th>
-          <th>Balance (₹)</th>
+          <th>Debit ({{ vendor_currency }})</th>
+          <th>Credit ({{ vendor_currency }})</th>
+          <th>Balance ({{ vendor_currency }})</th>
         </tr>
       </thead>
       <tbody>
@@ -205,19 +205,19 @@
           <td>{{ entry[5] or 'No description' }}</td>
           <td class="amount">
             {% if entry[2] == 'debit' %}
-              <span class="debit">₹{{ "%.2f"|format(entry[4]) }}</span>
+              <span class="debit">{{ vendor_currency }}{{ "%.2f"|format(entry[4]) }}</span>
             {% else %}
               -
             {% endif %}
           </td>
           <td class="amount">
             {% if entry[2] == 'credit' %}
-              <span class="credit">₹{{ "%.2f"|format(entry[4]) }}</span>
+              <span class="credit">{{ vendor_currency }}{{ "%.2f"|format(entry[4]) }}</span>
             {% else %}
               -
             {% endif %}
           </td>
-          <td class="amount">₹{{ "%.2f"|format(running_balance) }}</td>
+          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(running_balance) }}</td>
         </tr>
         {% endfor %}
         
@@ -369,7 +369,7 @@
         
         // Check for debit entries (which could be expenses, inventory, or assets)
         if (debitText !== '-') {
-          const amount = parseFloat(debitText.replace('₹', '').replace(',', ''));
+          const amount = parseFloat(debitText.replace('{{ vendor_currency }}', '').replace(',', ''));
           if (!isNaN(amount)) {
             // Determine the category key - prefer sub-category if it exists and isn't just "-"
             let categoryKey;
@@ -397,7 +397,7 @@
         // Also check for credit entries that might be relevant (like sales revenue)
         const creditText = cells[5].textContent.trim();
         if (creditText !== '-') {
-          const amount = parseFloat(creditText.replace('₹', '').replace(',', ''));
+          const amount = parseFloat(creditText.replace('{{ vendor_currency }}', '').replace(',', ''));
           if (!isNaN(amount)) {
             // Determine the category key for credit entries
             let categoryKey;
@@ -431,14 +431,14 @@
           html += `
             <div style="border: 1px solid #ddd; border-radius: 10px; padding: 15px;">
               <h4 style="color: #28a745; margin-top: 0;">${category}</h4>
-              <p style="margin: 5px 0;"><strong>Total: ₹${data.total.toFixed(2)}</strong></p>
+              <p style="margin: 5px 0;"><strong>Total: {{ vendor_currency }}${data.total.toFixed(2)}</strong></p>
               <p style="margin: 5px 0; color: #666;">Transactions: ${data.count}</p>
               <div style="max-height: 150px; overflow-y: auto; margin-top: 10px;">
                 ${data.items.slice(0, 5).map(item => `
                   <div style="font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid #eee;">
                     <strong>${item.date}</strong>: 
                     <span style="color: ${item.type === 'debit' ? '#dc3545' : '#28a745'}; font-weight: bold;">
-                      ${item.type === 'debit' ? '+' : '-'}₹${item.amount.toFixed(2)}
+                      ${item.type === 'debit' ? '+' : '-'}{{ vendor_currency }}${item.amount.toFixed(2)}
                     </span><br>
                     <span style="color: #666;">${item.description}</span>
                     ${item.account ? `<br><small style="color: #999;">Account: ${item.account}</small>` : ''}

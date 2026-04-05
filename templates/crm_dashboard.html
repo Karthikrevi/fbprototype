@@ -151,7 +151,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
-        <div class="stat-value">₹{{ "%.0f"|format(stats.pipeline_value) }}</div>
+        <div class="stat-value">{{ vendor_currency }}{{ "%.0f"|format(stats.pipeline_value) }}</div>
         <div class="stat-label">Pipeline Value</div>
       </div>
       <div class="stat-card">

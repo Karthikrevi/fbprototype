@@ -143,7 +143,7 @@
             <div class="col-md-3">
                 <div class="metric-card">
                     <div class="metric-value">
-                        <i class="fas fa-rupee-sign"></i> ₹{{ "%.0f"|format(inventory_summary.total_value) }}
+                        <i class="fas fa-rupee-sign"></i> {{ vendor_currency }}{{ "%.0f"|format(inventory_summary.total_value) }}
                     </div>
                     <div class="metric-label">Inventory Value</div>
                 </div>
@@ -186,7 +186,7 @@
                             <br><small>Incoming Units</small>
                         </div>
                         <div class="col-4">
-                            <strong>₹{{ "%.0f"|format(procurement_summary.pending_value) }}</strong>
+                            <strong>{{ vendor_currency }}{{ "%.0f"|format(procurement_summary.pending_value) }}</strong>
                             <br><small>Pending Value</small>
                         </div>
                     </div>

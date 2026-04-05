@@ -119,25 +119,25 @@
       
       <div class="tax-card">
         <div class="tax-title">Total Sales (Taxable)</div>
-        <div class="tax-value">₹{{ "%.2f"|format(tax_data.total_sales) }}</div>
+        <div class="tax-value">{{ vendor_currency }}{{ "%.2f"|format(tax_data.total_sales) }}</div>
         <div class="tax-label">Current period sales</div>
       </div>
       
       <div class="tax-card">
         <div class="tax-title">GST on Sales</div>
-        <div class="tax-value">₹{{ "%.2f"|format(tax_data.gst_on_sales) }}</div>
+        <div class="tax-value">{{ vendor_currency }}{{ "%.2f"|format(tax_data.gst_on_sales) }}</div>
         <div class="tax-label">Output tax collected</div>
       </div>
       
       <div class="tax-card">
         <div class="tax-title">Input Tax Credit</div>
-        <div class="tax-value">₹{{ "%.2f"|format(tax_data.input_tax_credit) }}</div>
+        <div class="tax-value">{{ vendor_currency }}{{ "%.2f"|format(tax_data.input_tax_credit) }}</div>
         <div class="tax-label">Available for set-off</div>
       </div>
       
       <div class="tax-card" style="border-left-color: #dc3545;">
         <div class="tax-title">Net GST Payable</div>
-        <div class="tax-value" style="color: #dc3545;">₹{{ "%.2f"|format(tax_data.net_gst_payable) }}</div>
+        <div class="tax-value" style="color: #dc3545;">{{ vendor_currency }}{{ "%.2f"|format(tax_data.net_gst_payable) }}</div>
         <div class="tax-label">Amount due to government</div>
       </div>
     </div>

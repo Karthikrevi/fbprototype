@@ -110,7 +110,7 @@
     
     <div class="summary-cards">
       <div class="summary-card">
-        <div class="summary-value">₹{{ "%.2f"|format(ap_summary[0] or 0) }}</div>
+        <div class="summary-value">{{ vendor_currency }}{{ "%.2f"|format(ap_summary[0] or 0) }}</div>
         <div>Total Outstanding</div>
       </div>
       <div class="summary-card">
@@ -118,7 +118,7 @@
         <div>Unpaid Bills</div>
       </div>
       <div class="summary-card">
-        <div class="summary-value">₹{{ "%.2f"|format(ap_summary[2] or 0) }}</div>
+        <div class="summary-value">{{ vendor_currency }}{{ "%.2f"|format(ap_summary[2] or 0) }}</div>
         <div>Average Bill Amount</div>
       </div>
       <div class="summary-card">
@@ -144,7 +144,7 @@
         <tr>
           <td>BILL-{{ payable[0] }}</td>
           <td>{{ payable[1] }}</td>
-          <td>₹{{ "%.2f"|format(payable[2]) }}</td>
+          <td>{{ vendor_currency }}{{ "%.2f"|format(payable[2]) }}</td>
           <td>{{ payable[4][:10] }}</td>
           <td>{{ payable[6]|int }} days</td>
           <td>

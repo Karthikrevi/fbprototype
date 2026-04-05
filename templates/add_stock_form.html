@@ -101,7 +101,7 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label">
-                            <i class="fas fa-rupee-sign"></i> Unit Cost (₹)
+                            <i class="fas fa-rupee-sign"></i> Unit Cost ({{ vendor_currency }})
                         </label>
                         <input type="number" name="unit_cost" class="form-control" 
                                step="0.01" min="0" required oninput="calculateTotal()">
@@ -151,10 +151,10 @@
                         <strong>Quantity:</strong> <span id="calc-quantity">0</span> units
                     </div>
                     <div class="col-md-4">
-                        <strong>Unit Cost:</strong> ₹<span id="calc-unit-cost">0.00</span>
+                        <strong>Unit Cost:</strong> {{ vendor_currency }}<span id="calc-unit-cost">0.00</span>
                     </div>
                     <div class="col-md-4">
-                        <strong>Total Cost:</strong> ₹<span id="calc-total">0.00</span>
+                        <strong>Total Cost:</strong> {{ vendor_currency }}<span id="calc-total">0.00</span>
                     </div>
                 </div>
                 <div class="mt-2">

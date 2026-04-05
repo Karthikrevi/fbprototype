@@ -92,7 +92,7 @@
             <div class="col-md-4">
                 <div class="stats-card">
                     <h6>Total Revenue</h6>
-                    <h3>₹{{ "%.2f"|format(receipts|sum(attribute=2)|default(0) + sales|sum(attribute=3)|default(0)) }}</h3>
+                    <h3>{{ vendor_currency }}{{ "%.2f"|format(receipts|sum(attribute=2)|default(0) + sales|sum(attribute=3)|default(0)) }}</h3>
                 </div>
             </div>
             <div class="col-md-4">
@@ -130,7 +130,7 @@
                                     <td>{{ receipt[5] }}</td>
                                     <td>{{ receipt[6] }}</td>
                                     <td>{{ receipt[7] }} {{ receipt[8] }}</td>
-                                    <td><span class="amount">₹{{ "%.2f"|format(receipt[2]) }}</span></td>
+                                    <td><span class="amount">{{ vendor_currency }}{{ "%.2f"|format(receipt[2]) }}</span></td>
                                     <td>
                                         <span class="badge bg-info">{{ receipt[4] or 'Cash' }}</span>
                                     </td>
@@ -178,8 +178,8 @@
                                     <td>{{ sale[6] }}</td>
                                     <td>{{ sale[4] }}</td>
                                     <td>{{ sale[1] }}</td>
-                                    <td>₹{{ "%.2f"|format(sale[2]) }}</td>
-                                    <td><span class="amount">₹{{ "%.2f"|format(sale[3]) }}</span></td>
+                                    <td>{{ vendor_currency }}{{ "%.2f"|format(sale[2]) }}</td>
+                                    <td><span class="amount">{{ vendor_currency }}{{ "%.2f"|format(sale[3]) }}</span></td>
                                     <td>{{ sale[5] }}</td>
                                 </tr>
                                 {% endfor %}

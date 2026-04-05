@@ -348,7 +348,7 @@
                     <div class="metric-label">Total Orders (90 days)</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">₹${(data.sales_summary?.total_revenue || 0).toLocaleString()}</div>
+                    <div class="metric-value">{{ vendor_currency }}${(data.sales_summary?.total_revenue || 0).toLocaleString()}</div>
                     <div class="metric-label">Total Revenue</div>
                 </div>
                 <div class="metric-card">
@@ -360,7 +360,7 @@
                     <div class="metric-label">Low Stock Items</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">₹${(data.kpis?.net_profit || 0).toLocaleString()}</div>
+                    <div class="metric-value">{{ vendor_currency }}${(data.kpis?.net_profit || 0).toLocaleString()}</div>
                     <div class="metric-label">Net Profit</div>
                 </div>
                 <div class="metric-card">

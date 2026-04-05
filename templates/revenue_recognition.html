@@ -106,12 +106,12 @@
     
     <div class="summary-cards">
       <div class="summary-card">
-        <div class="card-value">₹{{ "%.2f"|format(revenue_data.total_recognized) }}</div>
+        <div class="card-value">{{ vendor_currency }}{{ "%.2f"|format(revenue_data.total_recognized) }}</div>
         <div class="card-label">Total Recognized Revenue</div>
       </div>
       
       <div class="summary-card" style="border-left-color: #ffc107;">
-        <div class="card-value" style="color: #ffc107;">₹{{ "%.2f"|format(revenue_data.deferred_revenue) }}</div>
+        <div class="card-value" style="color: #ffc107;">{{ vendor_currency }}{{ "%.2f"|format(revenue_data.deferred_revenue) }}</div>
         <div class="card-label">Deferred Revenue</div>
       </div>
       
@@ -141,7 +141,7 @@
           {% for daily in revenue_data.daily_revenue %}
           <tr>
             <td>{{ daily[0] }}</td>
-            <td>₹{{ "%.2f"|format(daily[1]) }}</td>
+            <td>{{ vendor_currency }}{{ "%.2f"|format(daily[1]) }}</td>
             <td>{{ daily[2] }}</td>
             <td>Point of Sale</td>
           </tr>

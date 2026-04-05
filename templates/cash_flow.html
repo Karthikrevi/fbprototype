@@ -104,15 +104,15 @@
       <div class="section-title">Operating Activities</div>
       <div class="line-item">
         <span>Cash received from customers</span>
-        <span class="amount positive">₹{{ "%.2f"|format(cash_flow.operating.cash_from_sales) }}</span>
+        <span class="amount positive">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.operating.cash_from_sales) }}</span>
       </div>
       <div class="line-item">
         <span>Cash paid for expenses</span>
-        <span class="amount negative">₹{{ "%.2f"|format(cash_flow.operating.cash_for_expenses) }}</span>
+        <span class="amount negative">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.operating.cash_for_expenses) }}</span>
       </div>
       <div class="line-item total">
         <span>Net Cash from Operating Activities</span>
-        <span class="amount {{ 'positive' if cash_flow.operating.net_operating >= 0 else 'negative' }}">₹{{ "%.2f"|format(cash_flow.operating.net_operating) }}</span>
+        <span class="amount {{ 'positive' if cash_flow.operating.net_operating >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.operating.net_operating) }}</span>
       </div>
     </div>
 
@@ -121,11 +121,11 @@
       <div class="section-title">Investing Activities</div>
       <div class="line-item">
         <span>Equipment purchases</span>
-        <span class="amount negative">₹{{ "%.2f"|format(cash_flow.investing.equipment_purchases) }}</span>
+        <span class="amount negative">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.investing.equipment_purchases) }}</span>
       </div>
       <div class="line-item total">
         <span>Net Cash from Investing Activities</span>
-        <span class="amount {{ 'positive' if cash_flow.investing.net_investing >= 0 else 'negative' }}">₹{{ "%.2f"|format(cash_flow.investing.net_investing) }}</span>
+        <span class="amount {{ 'positive' if cash_flow.investing.net_investing >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.investing.net_investing) }}</span>
       </div>
     </div>
 
@@ -134,11 +134,11 @@
       <div class="section-title">Financing Activities</div>
       <div class="line-item">
         <span>Loans and borrowings</span>
-        <span class="amount">₹0.00</span>
+        <span class="amount">{{ vendor_currency }}0.00</span>
       </div>
       <div class="line-item total">
         <span>Net Cash from Financing Activities</span>
-        <span class="amount">₹{{ "%.2f"|format(cash_flow.financing.net_financing) }}</span>
+        <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.financing.net_financing) }}</span>
       </div>
     </div>
 
@@ -146,15 +146,15 @@
     <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #667eea;">
       <div class="line-item">
         <span>Net increase (decrease) in cash</span>
-        <span class="amount {{ 'positive' if cash_flow.net_change >= 0 else 'negative' }}">₹{{ "%.2f"|format(cash_flow.net_change) }}</span>
+        <span class="amount {{ 'positive' if cash_flow.net_change >= 0 else 'negative' }}">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.net_change) }}</span>
       </div>
       <div class="line-item">
         <span>Cash at beginning of period</span>
-        <span class="amount">₹{{ "%.2f"|format(cash_flow.beginning_cash) }}</span>
+        <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.beginning_cash) }}</span>
       </div>
       <div class="line-item grand-total">
         <span>Cash at end of period</span>
-        <span class="amount">₹{{ "%.2f"|format(cash_flow.ending_cash) }}</span>
+        <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(cash_flow.ending_cash) }}</span>
       </div>
     </div>
   </div>

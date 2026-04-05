@@ -180,14 +180,27 @@ ISO_4217_CURRENCIES = {
 
 
 def get_vendor_currency(vendor_id):
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("SELECT currency_symbol FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
-    result = c.fetchone()
-    conn.close()
-    if result and result[0]:
-        return result[0]
-    return "₹"
+    try:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT currency_symbol FROM settings_vendor WHERE vendor_id=?", (vendor_id,))
+        result = c.fetchone()
+        conn.close()
+        return result[0] if result and result[0] else '₹'
+    except Exception:
+        return '₹'
+
+
+def get_vendor_id_from_email(email):
+    try:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+        result = c.fetchone()
+        conn.close()
+        return result[0] if result else None
+    except Exception:
+        return None
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -1973,8 +1986,18 @@ app.jinja_env.globals.update(
     t=t,
     get_supported_languages=get_supported_languages,
     get_current_language=get_current_language,
-    datetime=datetime
+    datetime=datetime,
+    get_vendor_currency=get_vendor_currency,
+    get_vendor_id_from_email=get_vendor_id_from_email
 )
+
+@app.context_processor
+def inject_vendor_currency():
+    if 'vendor' in session:
+        vid = get_vendor_id_from_email(session['vendor'])
+        if vid:
+            return {'vendor_currency': get_vendor_currency(vid), 'vendor_id': vid}
+    return {'vendor_currency': '₹'}
 
 # Register JSON filter for templates
 import json

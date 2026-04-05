@@ -125,11 +125,11 @@
       <div class="summary-label">Total Units</div>
     </div>
     <div class="summary-card">
-      <div class="summary-value">₹{{ "%.0f"|format(inventory|sum(attribute=4) or 0) }}</div>
+      <div class="summary-value">{{ vendor_currency }}{{ "%.0f"|format(inventory|sum(attribute=4) or 0) }}</div>
       <div class="summary-label">Inventory Cost</div>
     </div>
     <div class="summary-card">
-      <div class="summary-value">₹{{ "%.0f"|format(inventory|sum(attribute=5) or 0) }}</div>
+      <div class="summary-value">{{ vendor_currency }}{{ "%.0f"|format(inventory|sum(attribute=5) or 0) }}</div>
       <div class="summary-label">Inventory Value</div>
     </div>
   </div>
@@ -158,10 +158,10 @@
               {{ item[1] }} units
             </span>
           </td>
-          <td class="amount">₹{{ "%.2f"|format(item[2] or 0) }}</td>
-          <td class="amount">₹{{ "%.2f"|format(item[3] or 0) }}</td>
-          <td class="amount">₹{{ "%.2f"|format(item[4] or 0) }}</td>
-          <td class="amount">₹{{ "%.2f"|format(item[5] or 0) }}</td>
+          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(item[2] or 0) }}</td>
+          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(item[3] or 0) }}</td>
+          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(item[4] or 0) }}</td>
+          <td class="amount">{{ vendor_currency }}{{ "%.2f"|format(item[5] or 0) }}</td>
           <td class="amount" style="color: {{ 'green' if (item[3] or 0) > (item[2] or 0) else 'red' }};">
             {{ "%.1f"|format(((item[3] or 0) - (item[2] or 0)) / (item[2] or 1) * 100) }}%
           </td>

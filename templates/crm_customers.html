@@ -170,7 +170,7 @@
                       <i class="fas fa-comments"></i> {{ customer[22] or 0 }} interactions
                     </span>
                     <span class="stat-badge">
-                      <i class="fas fa-rupee-sign"></i> ₹{{ "%.0f"|format(customer[18] or 0) }} spent
+                      <i class="fas fa-rupee-sign"></i> {{ vendor_currency }}{{ "%.0f"|format(customer[18] or 0) }} spent
                     </span>
                     {% if customer[23] %}
                       <span class="stat-badge">
@@ -336,7 +336,7 @@
                                             </span>
                                         </td>
                                         <td>{{ customer[6] or 'New' }}</td>
-                                        <td>₹{{ "%.2f"|format(customer[7] or 0) }}</td>
+                                        <td>{{ vendor_currency }}{{ "%.2f"|format(customer[7] or 0) }}</td>
                                         <td>{{ customer[8] or 0 }}</td>
                                         <td>{{ customer[9][:10] if customer[9] else 'N/A' }}</td>
                                         <td>

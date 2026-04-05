@@ -79,7 +79,7 @@
                     {% for sale in sales %}
                         {% set total_revenue = total_revenue + (sale[4]|float if sale[4] else 0) %}
                     {% endfor %}
-                    <div class="stat-value">₹{{ "%.2f"|format(total_revenue) }}</div>
+                    <div class="stat-value">{{ vendor_currency }}{{ "%.2f"|format(total_revenue) }}</div>
                     <div class="stat-label">Total Revenue</div>
                 </div>
             </div>
@@ -99,7 +99,7 @@
                     {% for sale in sales %}
                         {% set total_revenue = total_revenue + (sale[4]|float if sale[4] else 0) %}
                     {% endfor %}
-                    <div class="stat-value">₹{{ "%.2f"|format(total_revenue / sales|length if sales|length > 0 else 0) }}</div>
+                    <div class="stat-value">{{ vendor_currency }}{{ "%.2f"|format(total_revenue / sales|length if sales|length > 0 else 0) }}</div>
                     <div class="stat-label">Avg Order Value</div>
                 </div>
             </div>
@@ -111,7 +111,7 @@
                             {% set pos_revenue = pos_revenue + (sale[4]|float if sale[4] else 0) %}
                         {% endif %}
                     {% endfor %}
-                    <div class="stat-value">₹{{ "%.2f"|format(pos_revenue) }}</div>
+                    <div class="stat-value">{{ vendor_currency }}{{ "%.2f"|format(pos_revenue) }}</div>
                     <div class="stat-label">POS Revenue</div>
                 </div>
             </div>
@@ -136,7 +136,7 @@
                         <tr>
                             <td>{{ month[0] }}</td>
                             <td>{{ month[1] }}</td>
-                            <td>₹{{ "%.2f"|format(month[2]) }}</td>
+                            <td>{{ vendor_currency }}{{ "%.2f"|format(month[2]) }}</td>
                             <td>{{ month[3] }}</td>
                         </tr>
                         {% endfor %}
@@ -166,7 +166,7 @@
                         <tr>
                             <td>{{ product[0] }}</td>
                             <td>{{ product[1] }}</td>
-                            <td>₹{{ "%.2f"|format(product[2]) }}</td>
+                            <td>{{ vendor_currency }}{{ "%.2f"|format(product[2]) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -205,8 +205,8 @@
                                 </span>
                             </td>
                             <td>{{ sale[2] }}</td>
-                            <td>₹{{ "%.2f"|format(sale[3]|float) }}</td>
-                            <td>₹{{ "%.2f"|format(sale[4]|float) }}</td>
+                            <td>{{ vendor_currency }}{{ "%.2f"|format(sale[3]|float) }}</td>
+                            <td>{{ vendor_currency }}{{ "%.2f"|format(sale[4]|float) }}</td>
                             <td>{{ sale[5] or 'Walk-in Customer' if sale[7] == 'POS Sale' else 'Anonymous' }}</td>
                         </tr>
                         {% endfor %}

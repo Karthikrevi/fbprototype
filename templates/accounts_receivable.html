@@ -125,11 +125,11 @@
     
     <div class="summary-cards">
       <div class="summary-card">
-        <div class="summary-value">₹{{ "%.2f"|format(ar_summary[0] or 0) }}</div>
+        <div class="summary-value">{{ vendor_currency }}{{ "%.2f"|format(ar_summary[0] or 0) }}</div>
         <div>Total Outstanding</div>
       </div>
       <div class="summary-card">
-        <div class="summary-value">₹{{ "%.2f"|format(ar_summary[1] or 0) }}</div>
+        <div class="summary-value">{{ vendor_currency }}{{ "%.2f"|format(ar_summary[1] or 0) }}</div>
         <div>Total Collected</div>
       </div>
       <div class="summary-card">
@@ -148,17 +148,17 @@
         <div class="aging-bucket">
           <div style="font-weight: bold; color: #28a745;">Current</div>
           <div style="font-size: 0.9rem; color: #666;">0-30 days</div>
-          <div style="font-weight: bold; margin-top: 5px;">₹0.00</div>
+          <div style="font-weight: bold; margin-top: 5px;">{{ vendor_currency }}0.00</div>
         </div>
         <div class="aging-bucket" style="border-left-color: #ffc107;">
           <div style="font-weight: bold; color: #ffc107;">31-60 Days</div>
           <div style="font-size: 0.9rem; color: #666;">Overdue</div>
-          <div style="font-weight: bold; margin-top: 5px;">₹0.00</div>
+          <div style="font-weight: bold; margin-top: 5px;">{{ vendor_currency }}0.00</div>
         </div>
         <div class="aging-bucket" style="border-left-color: #dc3545;">
           <div style="font-weight: bold; color: #dc3545;">60+ Days</div>
           <div style="font-size: 0.9rem; color: #666;">Critical</div>
-          <div style="font-weight: bold; margin-top: 5px;">₹0.00</div>
+          <div style="font-weight: bold; margin-top: 5px;">{{ vendor_currency }}0.00</div>
         </div>
       </div>
     </div>
@@ -180,7 +180,7 @@
         <tr>
           <td>INV-{{ receivable[0] }}</td>
           <td>{{ receivable[1] }}</td>
-          <td>₹{{ "%.2f"|format(receivable[2]) }}</td>
+          <td>{{ vendor_currency }}{{ "%.2f"|format(receivable[2]) }}</td>
           <td>{{ receivable[3][:10] }}</td>
           <td>{{ receivable[6]|int }} days</td>
           <td>

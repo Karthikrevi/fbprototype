@@ -86,6 +86,14 @@ An advanced chatbot system uses machine learning for intent classification and b
 - `edit_vendor_profile` route saves both radius fields; profile view displays them
 - All coordinate checks use `is not None` guards (not truthiness) to handle 0.0 coordinates correctly
 
+## Dynamic Vendor Currency
+- `get_vendor_currency(vendor_id)` and `get_vendor_id_from_email(email)` registered as Jinja2 globals
+- Flask context processor `inject_vendor_currency()` auto-injects `vendor_currency` (and `vendor_id`) into all templates when vendor is logged in
+- 36 vendor ERP templates use `{{ vendor_currency }}` instead of hardcoded ₹
+- Pet parent, NGO, FurrVet, FurrWings, admin, passport templates remain unchanged with hardcoded ₹
+- `accounting_settings.html` Jinja2 default fallback ('₹') and JS currency list entries kept as-is
+- Default currency is ₹ (INR) when no vendor setting exists
+
 # FurrVet Module
 
 ## Templates (templates/furrvet/)

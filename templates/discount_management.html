@@ -138,7 +138,7 @@
           <label class="form-label">Discount Type</label>
           <select class="form-select" id="blanketDiscountType">
             <option value="percentage" {% if blanket_discount and blanket_discount[0] == 'percentage' %}selected{% endif %}>Percentage (%)</option>
-            <option value="fixed" {% if blanket_discount and blanket_discount[0] == 'fixed' %}selected{% endif %}>Fixed Amount (₹)</option>
+            <option value="fixed" {% if blanket_discount and blanket_discount[0] == 'fixed' %}selected{% endif %}>Fixed Amount ({{ vendor_currency }})</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -163,7 +163,7 @@
       {% if blanket_discount and blanket_discount[2] %}
       <div class="mt-3">
         <span class="badge bg-success">
-          ✅ Active Blanket Discount: {{ blanket_discount[1] }}{% if blanket_discount[0] == 'percentage' %}%{% else %}₹{% endif %}
+          ✅ Active Blanket Discount: {{ blanket_discount[1] }}{% if blanket_discount[0] == 'percentage' %}%{% else %}{{ vendor_currency }}{% endif %}
         </span>
       </div>
       {% endif %}
@@ -191,12 +191,12 @@
             <tr id="product-row-{{ product[0] }}">
               <td><strong>P{{ "%03d"|format(product[0]) }}</strong></td>
               <td>{{ product[1] }}</td>
-              <td class="price-cell">₹{{ "%.2f"|format(product[2] or 0) }}</td>
-              <td class="price-cell">₹{{ "%.2f"|format(product[3] or 0) }}</td>
+              <td class="price-cell">{{ vendor_currency }}{{ "%.2f"|format(product[2] or 0) }}</td>
+              <td class="price-cell">{{ vendor_currency }}{{ "%.2f"|format(product[3] or 0) }}</td>
               <td>
                 {% if product[5] != 'none' and product[7] == 1 %}
                   <span class="discount-badge discount-{{ product[5] }}">
-                    {{ "%.1f"|format(product[6]) }}{% if product[5] == 'percentage' %}%{% else %}₹{% endif %}
+                    {{ "%.1f"|format(product[6]) }}{% if product[5] == 'percentage' %}%{% else %}{{ vendor_currency }}{% endif %}
                   </span>
                 {% else %}
                   <span class="discount-badge no-discount">No Discount</span>
@@ -204,12 +204,12 @@
               </td>
               <td class="price-cell">
                 {% if product[5] != 'none' and product[7] == 1 and product[8] != product[3] %}
-                  <span class="original-price">₹{{ "%.2f"|format(product[3]) }}</span><br>
-                  <span class="discounted-price">₹{{ "%.2f"|format(product[8]) }}</span>
+                  <span class="original-price">{{ vendor_currency }}{{ "%.2f"|format(product[3]) }}</span><br>
+                  <span class="discounted-price">{{ vendor_currency }}{{ "%.2f"|format(product[8]) }}</span>
                   {% set savings = product[3] - product[8] %}
-                  <span class="savings-badge">Save ₹{{ "%.2f"|format(savings) }}</span>
+                  <span class="savings-badge">Save {{ vendor_currency }}{{ "%.2f"|format(savings) }}</span>
                 {% else %}
-                  ₹{{ "%.2f"|format(product[3] or 0) }}
+                  {{ vendor_currency }}{{ "%.2f"|format(product[3] or 0) }}
                 {% endif %}
               </td>
               <td>
@@ -261,7 +261,7 @@
               <label class="form-label">Discount Type</label>
               <select class="form-select" id="modalDiscountType" onchange="updateDiscountPreview()">
                 <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed Amount (₹)</option>
+                <option value="fixed">Fixed Amount ({{ vendor_currency }})</option>
               </select>
             </div>
             <div class="col-md-6 mb-3">
@@ -326,9 +326,9 @@
       }
       
       document.getElementById('previewText').innerHTML = `
-        Original Price: ₹${salePrice.toFixed(2)}<br>
-        <strong>New Price: ₹${newPrice.toFixed(2)}</strong><br>
-        <span class="text-success">Customer Saves: ₹${savings.toFixed(2)}</span>
+        Original Price: {{ vendor_currency }}${salePrice.toFixed(2)}<br>
+        <strong>New Price: {{ vendor_currency }}${newPrice.toFixed(2)}</strong><br>
+        <span class="text-success">Customer Saves: {{ vendor_currency }}${savings.toFixed(2)}</span>
       `;
     }
 
@@ -408,7 +408,7 @@
         return;
       }
 
-      if (!confirm(`Apply ${discountValue}${discountType === 'percentage' ? '%' : '₹'} discount to all products?`)) {
+      if (!confirm(`Apply ${discountValue}${discountType === 'percentage' ? '%' : '{{ vendor_currency }}'} discount to all products?`)) {
         return;
       }
 

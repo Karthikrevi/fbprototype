@@ -131,19 +131,19 @@
           <div class="subsection-title">Current Assets</div>
           <div class="line-item">
             <span>Cash and Cash Equivalents</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.current.cash) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.current.cash) }}</span>
           </div>
           <div class="line-item">
             <span>Accounts Receivable</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.current.accounts_receivable) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.current.accounts_receivable) }}</span>
           </div>
           <div class="line-item">
             <span>Inventory</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.current.inventory) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.current.inventory) }}</span>
           </div>
           <div class="line-item total">
             <span>Total Current Assets</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.current.total) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.current.total) }}</span>
           </div>
         </div>
 
@@ -151,17 +151,17 @@
           <div class="subsection-title">Fixed Assets</div>
           <div class="line-item">
             <span>Equipment and Fixtures</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.fixed.equipment) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.fixed.equipment) }}</span>
           </div>
           <div class="line-item total">
             <span>Total Fixed Assets</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.fixed.total) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.fixed.total) }}</span>
           </div>
         </div>
 
         <div class="line-item grand-total">
           <span>TOTAL ASSETS</span>
-          <span class="amount">₹{{ "%.2f"|format(balance_sheet.assets.total) }}</span>
+          <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.total) }}</span>
         </div>
       </div>
 
@@ -173,11 +173,11 @@
           <div class="subsection-title">Current Liabilities</div>
           <div class="line-item">
             <span>Accounts Payable</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.liabilities.current.accounts_payable) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.current.accounts_payable) }}</span>
           </div>
           <div class="line-item total">
             <span>Total Current Liabilities</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.liabilities.current.total) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.current.total) }}</span>
           </div>
         </div>
 
@@ -185,47 +185,47 @@
           <div class="subsection-title">Long-term Liabilities</div>
           <div class="line-item">
             <span>Long-term Debt</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.liabilities.long_term.debt) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.long_term.debt) }}</span>
           </div>
           <div class="line-item total">
             <span>Total Long-term Liabilities</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.liabilities.long_term.total) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.long_term.total) }}</span>
           </div>
         </div>
 
         <div class="line-item total">
           <span>TOTAL LIABILITIES</span>
-          <span class="amount">₹{{ "%.2f"|format(balance_sheet.liabilities.total) }}</span>
+          <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.total) }}</span>
         </div>
 
         <div class="subsection">
           <div class="subsection-title">Owner's Equity</div>
           <div class="line-item">
             <span>Owner's Capital</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.equity.owner_equity) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.equity.owner_equity) }}</span>
           </div>
           <div class="line-item">
             <span>Retained Earnings</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.equity.retained_earnings) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.equity.retained_earnings) }}</span>
           </div>
           <div class="line-item total">
             <span>Total Owner's Equity</span>
-            <span class="amount">₹{{ "%.2f"|format(balance_sheet.equity.total) }}</span>
+            <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.equity.total) }}</span>
           </div>
         </div>
 
         <div class="line-item grand-total">
           <span>TOTAL LIABILITIES & EQUITY</span>
-          <span class="amount">₹{{ "%.2f"|format(balance_sheet.liabilities.total + balance_sheet.equity.total) }}</span>
+          <span class="amount">{{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.total + balance_sheet.equity.total) }}</span>
         </div>
       </div>
     </div>
 
     <div class="balance-verification">
       <strong>✅ Balance Sheet Equation Verified:</strong><br>
-      Assets (₹{{ "%.2f"|format(balance_sheet.assets.total) }}) = 
-      Liabilities (₹{{ "%.2f"|format(balance_sheet.liabilities.total) }}) + 
-      Equity (₹{{ "%.2f"|format(balance_sheet.equity.total) }})
+      Assets ({{ vendor_currency }}{{ "%.2f"|format(balance_sheet.assets.total) }}) = 
+      Liabilities ({{ vendor_currency }}{{ "%.2f"|format(balance_sheet.liabilities.total) }}) + 
+      Equity ({{ vendor_currency }}{{ "%.2f"|format(balance_sheet.equity.total) }})
     </div>
 
     <div style="margin-top: 30px; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 10px;">

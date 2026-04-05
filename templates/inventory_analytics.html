@@ -250,7 +250,7 @@
                         {% set total_holding_cost = total_holding_cost + item.holding_cost_monthly %}
                     {% endfor %}
                     <div class="metric-value">
-                        <i class="fas fa-money-bill-wave"></i> ₹{{ "%.0f"|format(total_holding_cost) }}
+                        <i class="fas fa-money-bill-wave"></i> {{ vendor_currency }}{{ "%.0f"|format(total_holding_cost) }}
                     </div>
                     <div class="metric-label">Monthly Holding Cost</div>
                 </div>
@@ -309,10 +309,10 @@
                             <td>
                                 {% set profit_per_unit = (item.sale_price or 0) - (item.buy_price or 0) %}
                                 <span class="{% if profit_per_unit > 0 %}profit-positive{% else %}profit-negative{% endif %}">
-                                    ₹{{ "%.2f"|format(profit_per_unit) }}
+                                    {{ vendor_currency }}{{ "%.2f"|format(profit_per_unit) }}
                                 </span>
                             </td>
-                            <td>₹{{ "%.2f"|format(item.holding_cost_monthly) }}</td>
+                            <td>{{ vendor_currency }}{{ "%.2f"|format(item.holding_cost_monthly) }}</td>
                             <td>
                                 {% if item.velocity_class == "Fast-moving" %}
                                 <span class="badge movement-fast">
@@ -383,10 +383,10 @@
                         <div class="insight-item">
                             <div>
                                 <div class="insight-name">{{ item.name }}</div>
-                                <small class="text-muted">₹{{ "%.2f"|format(item.profit_per_unit) }}/unit</small>
+                                <small class="text-muted">{{ vendor_currency }}{{ "%.2f"|format(item.profit_per_unit) }}/unit</small>
                             </div>
                             <div class="insight-value profit-positive">
-                                ₹{{ "%.0f"|format(item.profit) }}
+                                {{ vendor_currency }}{{ "%.0f"|format(item.profit) }}
                             </div>
                         </div>
                         {% endfor %}
@@ -415,7 +415,7 @@
                                 <small class="text-muted">{{ item.current_stock }} units</small>
                             </div>
                             <div class="insight-value text-warning">
-                                ₹{{ "%.2f"|format(item.holding_cost_monthly) }}
+                                {{ vendor_currency }}{{ "%.2f"|format(item.holding_cost_monthly) }}
                             </div>
                         </div>
                         {% endif %}
@@ -557,7 +557,7 @@
                         {% if item.inventory_value > 100 %}
                         <li>
                             <i class="fas fa-gem text-info"></i>
-                            {{ item.name }} (₹{{ "%.0f"|format(item.inventory_value) }} value)
+                            {{ item.name }} ({{ vendor_currency }}{{ "%.0f"|format(item.inventory_value) }} value)
                         </li>
                         {% endif %}
                         {% endfor %}
