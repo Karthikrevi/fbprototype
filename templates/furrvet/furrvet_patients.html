@@ -1,116 +1,115 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patient Management - FurrVet ERP</title>
+    <title>Patient Management - FurrVet</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-blue: #2563eb;
+            --primary-blue: #3b82f6;
             --clinic-teal: #0891b2;
+            --soft-green: #059669;
             --soft-grey: #f8fafc;
+            --text-dark: #1e293b;
+            --border-light: #e2e8f0;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--soft-grey);
-        }
-
-        .main-content {
-            margin-left: 300px;
-            padding: 2rem;
-        }
-
-        .page-header {
-            background: white;
-            padding: 1.5rem 2rem;
-            border-radius: 15px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-            margin-bottom: 2rem;
-            border-left: 5px solid var(--primary-blue);
-        }
-
-        .patient-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--clinic-teal);
-            transition: transform 0.2s ease;
-        }
-
-        .patient-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-
-        .patient-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-blue), var(--clinic-teal));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            margin-right: 1rem;
-        }
-
-        .search-box {
-            max-width: 400px;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--soft-grey); color: var(--text-dark); }
+        .sidebar { width: 280px; height: 100vh; position: fixed; left: 0; top: 0; background: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%); box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto; }
+        .sidebar-header { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-brand { font-size: 1.5rem; font-weight: 700; color: white; text-decoration: none; }
+        .nav-link { color: rgba(255,255,255,0.9); padding: 0.75rem 1.5rem; display: flex; align-items: center; text-decoration: none; transition: all 0.3s ease; }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255,255,255,0.15); color: white; transform: translateX(3px); }
+        .nav-link i { width: 20px; margin-right: 0.75rem; }
+        .main-content { margin-left: 280px; padding: 2rem; }
+        .page-header { background: white; padding: 1.5rem 2rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 2rem; border-left: 4px solid var(--primary-blue); }
+        .patient-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 1rem; border-left: 4px solid var(--clinic-teal); transition: transform 0.2s ease; }
+        .patient-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .patient-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-blue), var(--clinic-teal)); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; margin-right: 1rem; }
+        .species-filter .btn { border-radius: 20px; padding: 0.4rem 1rem; font-size: 0.85rem; }
+        .species-filter .btn.active { background: var(--clinic-teal); border-color: var(--clinic-teal); color: white; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .main-content { margin-left: 0; padding: 1rem; } }
     </style>
 </head>
 <body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/furrvet" class="sidebar-brand"><i class="fas fa-heartbeat"></i> FurrVet</a>
+        </div>
+        <nav>
+            <div class="nav-item"><a href="/furrvet/dashboard" class="nav-link"><i class="fas fa-tachometer-alt"></i>Dashboard</a></div>
+            <div class="nav-item"><a href="/furrvet/appointments" class="nav-link"><i class="fas fa-calendar-check"></i>Appointments</a></div>
+            <div class="nav-item"><a href="/furrvet/patients" class="nav-link active"><i class="fas fa-paw"></i>Patients</a></div>
+            <div class="nav-item"><a href="/furrvet/medical-records" class="nav-link"><i class="fas fa-notes-medical"></i>Medical Records</a></div>
+            <div class="nav-item"><a href="/furrvet/laboratory" class="nav-link"><i class="fas fa-microscope"></i>Laboratory</a></div>
+            <div class="nav-item"><a href="/furrvet/billing" class="nav-link"><i class="fas fa-file-invoice-dollar"></i>Billing</a></div>
+            <div class="nav-item"><a href="/furrvet/inventory" class="nav-link"><i class="fas fa-boxes"></i>Inventory</a></div>
+            <div class="nav-item"><a href="/furrvet/hospitalization" class="nav-link"><i class="fas fa-bed"></i>Hospitalization</a></div>
+            <div class="nav-item"><a href="/furrvet/reports" class="nav-link"><i class="fas fa-chart-line"></i>Reports</a></div>
+            <div class="nav-item"><a href="/furrvet/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i>Logout</a></div>
+        </nav>
+    </div>
+
     <div class="main-content">
         <div class="page-header">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <h1><i class="fas fa-paw"></i> Patient Management</h1>
+                    <h1 class="mb-1"><i class="fas fa-paw"></i> Patient Management</h1>
                     <p class="text-muted mb-0">Manage pet patient records and information</p>
                 </div>
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control search-box" placeholder="Search patients..." id="searchPatients">
-                    <a href="/furrvet/patients/new" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add Patient
-                    </a>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <form method="get" action="/furrvet/patients" class="d-flex gap-2">
+                        <input type="text" name="search" class="form-control" placeholder="Search by name, owner, or chip ID..." value="{{ search }}" style="min-width:260px;">
+                        <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search"></i></button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <div class="row">
+        <div class="species-filter mb-3 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm filter-btn active" data-filter="all">All</button>
+            <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="Dog"><i class="fas fa-dog"></i> Dogs</button>
+            <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="Cat"><i class="fas fa-cat"></i> Cats</button>
+            <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="other">Other</button>
+        </div>
+
+        <div class="row" id="patientGrid">
             {% if patients %}
                 {% for patient in patients %}
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4 patient-col" data-species="{{ patient[2] }}">
                     <div class="patient-card">
                         <div class="d-flex align-items-start">
                             <div class="patient-avatar">
-                                <i class="fas fa-{{ 'dog' if patient[2] == 'Dog' else 'cat' }}"></i>
+                                {% if patient[2] == 'Dog' %}
+                                    <i class="fas fa-dog"></i>
+                                {% elif patient[2] == 'Cat' %}
+                                    <i class="fas fa-cat"></i>
+                                {% else %}
+                                    <i class="fas fa-paw"></i>
+                                {% endif %}
                             </div>
                             <div class="flex-grow-1">
                                 <h5 class="mb-1">{{ patient[1] }}</h5>
                                 <div class="text-muted small mb-2">
-                                    <strong>Species:</strong> {{ patient[2] }}<br>
-                                    <strong>Breed:</strong> {{ patient[3] or 'Mixed' }}<br>
-                                    <strong>Age:</strong> {{ patient[6] or 'Unknown' }} years<br>
-                                    <strong>Weight:</strong> {{ patient[7] or 'Not recorded' }} kg
+                                    <span class="badge bg-light text-dark me-1">{{ patient[2] }}</span>
+                                    <span class="badge bg-light text-dark">{{ patient[3] or 'Mixed' }}</span>
                                 </div>
-                                <div class="mb-2">
-                                    <strong>Owner:</strong> {{ patient[12] }}<br>
-                                    <strong>Phone:</strong> {{ patient[13] }}
+                                <div class="small mb-2">
+                                    <i class="fas fa-venus-mars text-muted"></i> {{ patient[4] or 'Unknown' }} &middot;
+                                    <i class="fas fa-weight text-muted"></i> {{ patient[6] or '—' }} kg &middot;
+                                    <i class="fas fa-palette text-muted"></i> {{ patient[9] or '—' }}
                                 </div>
-                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                    <a href="/furrvet/patients/{{ patient[0] }}" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
-                                    <a href="/furrvet/appointments/new?patient_id={{ patient[0] }}" class="btn btn-outline-success btn-sm">
-                                        <i class="fas fa-calendar-plus"></i> Book
-                                    </a>
+                                <div class="small text-muted mb-2">
+                                    <i class="fas fa-user"></i> {{ patient[17] }}
+                                    <br><i class="fas fa-phone"></i> {{ patient[18] }}
+                                </div>
+                                {% if patient[7] %}
+                                <div class="small text-muted mb-2"><i class="fas fa-microchip"></i> {{ patient[7] }}</div>
+                                {% endif %}
+                                <div class="d-flex gap-2">
+                                    <a href="/furrvet/patients/{{ patient[0] }}" class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i> View</a>
+                                    <a href="/furrvet/appointments/new?patient_id={{ patient[0] }}" class="btn btn-outline-success btn-sm"><i class="fas fa-calendar-plus"></i> Book</a>
                                 </div>
                             </div>
                         </div>
@@ -121,11 +120,8 @@
                 <div class="col-12">
                     <div class="text-center py-5">
                         <i class="fas fa-paw text-muted" style="font-size: 4rem;"></i>
-                        <h3 class="text-muted mt-3">No patients registered</h3>
-                        <p class="text-muted">Add your first patient to get started.</p>
-                        <a href="/furrvet/patients/new" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add First Patient
-                        </a>
+                        <h3 class="text-muted mt-3">No patients found</h3>
+                        <p class="text-muted">{% if search %}No results for "{{ search }}". Try a different search.{% else %}Add your first patient to get started.{% endif %}</p>
                     </div>
                 </div>
             {% endif %}
@@ -133,19 +129,17 @@
     </div>
 
     <script>
-        // Simple search functionality
-        document.getElementById('searchPatients').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const patientCards = document.querySelectorAll('.patient-card');
-            
-            patientCards.forEach(card => {
-                const text = card.textContent.toLowerCase();
-                const parentCol = card.closest('.col-md-6');
-                if (text.includes(searchTerm)) {
-                    parentCol.style.display = 'block';
-                } else {
-                    parentCol.style.display = 'none';
-                }
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const filter = this.dataset.filter;
+                document.querySelectorAll('.patient-col').forEach(col => {
+                    const species = col.dataset.species;
+                    if (filter === 'all') { col.style.display = ''; }
+                    else if (filter === 'other') { col.style.display = (species !== 'Dog' && species !== 'Cat') ? '' : 'none'; }
+                    else { col.style.display = species === filter ? '' : 'none'; }
+                });
             });
         });
     </script>

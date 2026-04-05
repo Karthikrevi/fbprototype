@@ -1,0 +1,66 @@
+Do these two things for the FurrVet section:
+
+PART 1 — Fix route indentation:
+The FurrVet routes are incorrectly nested inside 
+the ngo_register_stray function body at 4-space 
+indentation. Move all of these routes to module 
+level — zero indentation:
+/furrvet/patients
+/furrvet/patients/<int:pet_id>
+/furrvet/appointments
+/furrvet/appointments/new
+/furrvet/billing
+/furrvet/inventory
+/furrvet/medical-records
+/furrvet/laboratory
+/furrvet/reports
+/furrvet/hospitalization
+
+Do not modify their logic.
+Just fix the indentation level.
+
+PART 2 — Create missing FurrVet templates:
+Create fully functional HTML templates for 
+each FurrVet route that is missing a template.
+
+Base the design on the existing FurrVet 
+dashboard style — clean clinical white design 
+with teal/green accents appropriate for a 
+veterinary ERP system.
+
+Each page must have:
+- FurrVet sidebar navigation linking to all 
+  FurrVet sections
+- Proper data display from the route's 
+  database queries
+- Forms where data entry is needed
+- Action buttons that link to correct routes
+
+Create these templates in templates/furrvet/:
+- furrvet_patients.html — patient list with 
+  search, species filter, owner details
+- furrvet_patient_detail.html — full patient 
+  profile with medical history, vaccinations,
+  upcoming appointments tabs
+- furrvet_appointments.html — daily appointment 
+  view with date picker and status management
+- furrvet_new_appointment.html — appointment 
+  booking form with pet and time selection
+- furrvet_billing.html — invoice list with 
+  payment status and totals
+- furrvet_inventory.html — stock list with 
+  low stock alerts highlighted in red
+- furrvet_medical_records.html — records list 
+  with pet name owner and diagnosis
+- furrvet_laboratory.html — lab tests and 
+  imaging records
+- furrvet_reports.html — revenue charts 
+  appointment stats patient demographics
+- furrvet_hospitalization.html — admitted 
+  patients with bed numbers and daily notes
+
+Do not modify any existing templates.
+Do not modify any database tables.
+Do not delete any user accounts.
+Do not modify any routes other than 
+fixing the indentation issue above.

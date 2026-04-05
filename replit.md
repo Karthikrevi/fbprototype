@@ -60,3 +60,25 @@ An advanced chatbot system uses machine learning for intent classification and b
 - **Bootstrap 5** for responsive UI components
 - Custom service worker for PWA functionality
 - Comprehensive test suite infrastructure for chatbot and business logic
+
+# FurrVet Module
+
+## Templates (templates/furrvet/)
+All FurrVet templates share a consistent design: 280px fixed sidebar with blue-to-teal gradient, Bootstrap 5.3.3 + Font Awesome 6, and responsive layout. The sidebar navigation includes links to Dashboard, Appointments, Patients, Medical Records, Laboratory, Billing, Inventory, Hospitalization, Reports, and Logout.
+
+### Template-to-Route Mapping
+- `furrvet_dashboard.html` — Dashboard with stats widgets and recent activity
+- `furrvet_patients.html` — Patient list with species filter and search (pets JOIN pet_owners; owner_name=[17], owner_phone=[18])
+- `furrvet_patient_detail.html` — Detailed pet profile with tabs for medical records, vaccinations, upcoming appointments (owner_name=[17], owner_email=[18], owner_phone=[19])
+- `furrvet_appointments.html` — Appointment cards by date (appointments JOIN pets, pet_owners; pet_name=[13], species=[14], owner_name=[15], owner_phone=[16])
+- `furrvet_new_appointment.html` — Form to schedule new appointment (pets tuple: id=[0], name=[1], owner_name=[2])
+- `furrvet_billing.html` — Invoice table view (furrvet_invoices JOIN pets, pet_owners; pet_name=[18], owner_name=[19])
+- `furrvet_inventory.html` — Inventory table with low-stock alerts (furrvet_inventory columns: item_name=[1], current_stock=[7], minimum_stock=[8])
+- `furrvet_medical_records.html` — Medical record cards (medical_records JOIN pets, pet_owners; pet_name=[16], owner_name=[17])
+- `furrvet_laboratory.html` — Lab tests and imaging records (currently mock data)
+- `furrvet_reports.html` — Analytics with Chart.js doughnut/bar charts (stats dict: financial, appointments, total_patients, popular_services)
+- `furrvet_hospitalization.html` — Hospitalization records (currently mock data)
+
+## Database
+- `furrvet.db` — SQLite database with tables: pets (17 cols), pet_owners (9 cols), appointments (13 cols), medical_records (16 cols), vaccinations (12 cols), furrvet_invoices (18 cols), furrvet_inventory (16 cols), vets
+- All templates use numeric tuple indices for SQLite row access — must verify column positions when modifying queries

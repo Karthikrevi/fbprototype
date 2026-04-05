@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pet[1] }} - Patient Detail - FurrVet</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --clinic-teal: #0891b2;
+            --soft-green: #059669;
+            --soft-grey: #f8fafc;
+            --text-dark: #1e293b;
+            --border-light: #e2e8f0;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--soft-grey); color: var(--text-dark); }
+        .sidebar { width: 280px; height: 100vh; position: fixed; left: 0; top: 0; background: linear-gradient(135deg, var(--primary-blue) 0%, var(--clinic-teal) 100%); box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto; }
+        .sidebar-header { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-brand { font-size: 1.5rem; font-weight: 700; color: white; text-decoration: none; }
+        .nav-link { color: rgba(255,255,255,0.9); padding: 0.75rem 1.5rem; display: flex; align-items: center; text-decoration: none; transition: all 0.3s ease; }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255,255,255,0.15); color: white; transform: translateX(3px); }
+        .nav-link i { width: 20px; margin-right: 0.75rem; }
+        .main-content { margin-left: 280px; padding: 2rem; }
+        .profile-header { background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 2rem; border-left: 4px solid var(--clinic-teal); }
+        .pet-avatar-lg { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-blue), var(--clinic-teal)); display: flex; align-items: center; justify-content: center; color: white; font-size: 2.5rem; flex-shrink: 0; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .info-item { padding: 0.75rem; background: var(--soft-grey); border-radius: 8px; }
+        .info-label { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 600; margin-bottom: 0.25rem; }
+        .info-value { font-weight: 500; color: var(--text-dark); }
+        .section-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--border-light); }
+        .record-item { padding: 0.75rem 0; border-bottom: 1px solid var(--border-light); }
+        .record-item:last-child { border-bottom: none; }
+        .nav-tabs .nav-link { color: var(--text-dark); font-weight: 500; }
+        .nav-tabs .nav-link.active { color: var(--clinic-teal); border-color: var(--clinic-teal); border-bottom-color: white; }
+        .badge-allergy { background: #fee2e2; color: #991b1b; padding: 0.3rem 0.6rem; border-radius: 12px; font-size: 0.8rem; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .main-content { margin-left: 0; padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/furrvet" class="sidebar-brand"><i class="fas fa-heartbeat"></i> FurrVet</a>
+        </div>
+        <nav>
+            <div class="nav-item"><a href="/furrvet/dashboard" class="nav-link"><i class="fas fa-tachometer-alt"></i>Dashboard</a></div>
+            <div class="nav-item"><a href="/furrvet/appointments" class="nav-link"><i class="fas fa-calendar-check"></i>Appointments</a></div>
+            <div class="nav-item"><a href="/furrvet/patients" class="nav-link active"><i class="fas fa-paw"></i>Patients</a></div>
+            <div class="nav-item"><a href="/furrvet/medical-records" class="nav-link"><i class="fas fa-notes-medical"></i>Medical Records</a></div>
+            <div class="nav-item"><a href="/furrvet/laboratory" class="nav-link"><i class="fas fa-microscope"></i>Laboratory</a></div>
+            <div class="nav-item"><a href="/furrvet/billing" class="nav-link"><i class="fas fa-file-invoice-dollar"></i>Billing</a></div>
+            <div class="nav-item"><a href="/furrvet/inventory" class="nav-link"><i class="fas fa-boxes"></i>Inventory</a></div>
+            <div class="nav-item"><a href="/furrvet/hospitalization" class="nav-link"><i class="fas fa-bed"></i>Hospitalization</a></div>
+            <div class="nav-item"><a href="/furrvet/reports" class="nav-link"><i class="fas fa-chart-line"></i>Reports</a></div>
+            <div class="nav-item"><a href="/furrvet/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i>Logout</a></div>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="mb-3">
+            <a href="/furrvet/patients" class="text-decoration-none"><i class="fas fa-arrow-left"></i> Back to Patients</a>
+        </div>
+
+        <div class="profile-header">
+            <div class="d-flex align-items-start gap-3 flex-wrap">
+                <div class="pet-avatar-lg">
+                    {% if pet[2] == 'Dog' %}<i class="fas fa-dog"></i>
+                    {% elif pet[2] == 'Cat' %}<i class="fas fa-cat"></i>
+                    {% else %}<i class="fas fa-paw"></i>{% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h2 class="mb-1">{{ pet[1] }}</h2>
+                            <p class="text-muted mb-2">{{ pet[2] }} &middot; {{ pet[3] or 'Mixed Breed' }} &middot; {{ pet[4] or 'Unknown' }}</p>
+                            {% if pet[12] %}
+                            <div class="mb-1">
+                                {% for allergy in pet[12].split(',') %}
+                                <span class="badge-allergy me-1"><i class="fas fa-exclamation-triangle"></i> {{ allergy.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if pet[13] %}
+                            <p class="small text-muted mb-0"><i class="fas fa-heartbeat"></i> Conditions: {{ pet[13] }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="/furrvet/appointments/new?patient_id={{ pet[0] }}" class="btn btn-primary btn-sm"><i class="fas fa-calendar-plus"></i> Book Appointment</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-grid mt-3">
+                <div class="info-item">
+                    <div class="info-label">Date of Birth</div>
+                    <div class="info-value">{{ pet[5] or 'Unknown' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Weight</div>
+                    <div class="info-value">{{ pet[6] or '—' }} kg</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Color</div>
+                    <div class="info-value">{{ pet[9] or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Microchip ID</div>
+                    <div class="info-value">{{ pet[7] or 'Not chipped' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Owner</div>
+                    <div class="info-value">{{ pet[17] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Owner Phone</div>
+                    <div class="info-value">{{ pet[19] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Owner Email</div>
+                    <div class="info-value">{{ pet[18] or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Status</div>
+                    <div class="info-value"><span class="badge bg-{{ 'success' if pet[15] == 'active' else 'secondary' }}">{{ (pet[15] or 'active').title() }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#medical">Medical History</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#vaccinations">Vaccinations</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#appointments">Upcoming Appointments</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="medical">
+                <div class="section-card">
+                    <h5 class="section-title"><i class="fas fa-notes-medical"></i> Medical Records</h5>
+                    {% if medical_records %}
+                        {% for record in medical_records %}
+                        <div class="record-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ record[4] }}</strong> — Dr. {{ record[16] }}
+                                    <div class="small text-muted mt-1">
+                                        {% if record[5] %}<div><strong>Complaint:</strong> {{ record[5] }}</div>{% endif %}
+                                        {% if record[7] %}<div><strong>Diagnosis:</strong> {{ record[7] }}</div>{% endif %}
+                                        {% if record[8] %}<div><strong>Treatment:</strong> {{ record[8] }}</div>{% endif %}
+                                        {% if record[9] %}<div><strong>Prescription:</strong> {{ record[9] }}</div>{% endif %}
+                                    </div>
+                                    {% if record[11] or record[12] %}
+                                    <div class="small mt-1">
+                                        {% if record[11] %}<span class="badge bg-light text-dark">Temp: {{ record[11] }}°C</span>{% endif %}
+                                        {% if record[12] %}<span class="badge bg-light text-dark">Weight: {{ record[12] }} kg</span>{% endif %}
+                                        {% if record[13] %}<span class="badge bg-light text-dark">HR: {{ record[13] }} bpm</span>{% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <a href="/furrvet/medical-records/{{ record[0] }}" class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-3">No medical records found for this patient.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="vaccinations">
+                <div class="section-card">
+                    <h5 class="section-title"><i class="fas fa-syringe"></i> Vaccination Records</h5>
+                    {% if vaccinations %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th>Date</th><th>Vaccine</th><th>Type</th><th>Batch #</th><th>Next Due</th><th>Vet</th></tr></thead>
+                                <tbody>
+                                    {% for vax in vaccinations %}
+                                    <tr>
+                                        <td>{{ vax[7] }}</td>
+                                        <td><strong>{{ vax[3] }}</strong></td>
+                                        <td>{{ vax[4] or '—' }}</td>
+                                        <td><code>{{ vax[5] or '—' }}</code></td>
+                                        <td>
+                                            {% if vax[8] %}
+                                                <span class="badge bg-info">{{ vax[8] }}</span>
+                                            {% else %}—{% endif %}
+                                        </td>
+                                        <td>Dr. {{ vax[12] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">No vaccination records found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="appointments">
+                <div class="section-card">
+                    <h5 class="section-title"><i class="fas fa-calendar-check"></i> Upcoming Appointments</h5>
+                    {% if upcoming_appointments %}
+                        {% for appt in upcoming_appointments %}
+                        <div class="record-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ appt[3] }}</strong> at {{ appt[4] }}
+                                    <div class="small text-muted">{{ appt[5] }}{% if appt[8] %} — {{ appt[8] }}{% endif %}</div>
+                                </div>
+                                <span class="badge bg-{{ 'primary' if appt[7] == 'scheduled' else 'success' }}">{{ appt[7].title() }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-3">No upcoming appointments.</p>
+                    {% endif %}
+                    <div class="text-center mt-3">
+                        <a href="/furrvet/appointments/new?patient_id={{ pet[0] }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Schedule Appointment</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
