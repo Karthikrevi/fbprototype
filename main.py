@@ -6400,6 +6400,80 @@ def profit_loss():
     conn.close()
     return render_template("profit_loss.html", pnl=pnl_data)
 
+@app.route('/erp/reports/pnl/export')
+def pnl_export_csv():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("profit_loss"))
+    vendor_id = result[0]
+    c.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales_log WHERE vendor_id=?", (vendor_id,))
+    revenue = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(sl.quantity * ib.unit_cost),0) FROM sales_log sl JOIN inventory_batches ib ON sl.product_id = ib.product_id WHERE sl.vendor_id=?", (vendor_id,))
+    cogs = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE vendor_id=?", (vendor_id,))
+    expenses = c.fetchone()[0] or 0
+    c.execute("SELECT COALESCE(SUM(fee_amount),0) FROM platform_fees WHERE vendor_id=?", (vendor_id,))
+    pf = c.fetchone()[0] or 0
+    conn.close()
+    gross = revenue - cogs
+    net = gross - expenses - pf
+    import io, csv
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Profit & Loss Statement"])
+    w.writerow(["Item", "Amount"])
+    w.writerow(["Revenue", round(revenue, 2)])
+    w.writerow(["Cost of Goods Sold", round(cogs, 2)])
+    w.writerow(["Gross Profit", round(gross, 2)])
+    w.writerow(["Operating Expenses", round(expenses, 2)])
+    w.writerow(["Platform Fees", round(pf, 2)])
+    w.writerow(["Net Profit", round(net, 2)])
+    from flask import Response
+    return Response(buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment;filename=profit_and_loss.csv"})
+
+
+@app.route('/erp/reports/ledger/export')
+def ledger_export_csv():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    result = c.fetchone()
+    if not result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("general_ledger"))
+    vendor_id = result[0]
+    c.execute("""SELECT timestamp, entry_type, account, description, amount, sub_category
+                 FROM ledger_entries WHERE vendor_id=? ORDER BY id""", (vendor_id,))
+    rows = c.fetchall()
+    conn.close()
+    import io, csv
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Date", "Type", "Account", "Sub-Category", "Description", "Debit", "Credit", "Running Balance"])
+    running = 0
+    for r in rows:
+        d = r[4] if r[1] == 'debit' else 0
+        cr = r[4] if r[1] == 'credit' else 0
+        running += d - cr
+        w.writerow([r[0], r[1], r[2], r[5] or '', r[3], round(d, 2), round(cr, 2), round(running, 2)])
+    from flask import Response
+    return Response(buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment;filename=general_ledger.csv"})
+
+
 @app.route('/erp/reports/inventory')
 def inventory_report():
     if "vendor" not in session:
