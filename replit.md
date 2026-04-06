@@ -45,6 +45,22 @@ The CRM module provides comprehensive customer relationship management for vendo
 - **Security**: All customer-linked POST routes (interaction/task/opportunity creation) validate that the customer belongs to the current vendor.
 - **Tables**: `crm_customers` (with `marketing_opt_out` column), `crm_pets`, `crm_interactions`, `crm_opportunities`, `crm_tasks`, `crm_campaigns`, `crm_campaign_members`, `crm_offline_data`, `chat_conversations`, `chat_messages`.
 
+## JSON API v1 Module
+A complete REST API under `/api/v1/` providing JSON versions of all pet parent routes. Uses JWT (PyJWT) authentication with Bearer tokens (30-day expiry). Key features:
+- **Auth**: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /api/v1/auth/me`
+- **Pets**: CRUD at `/api/v1/pets` and `/api/v1/pets/<index>`, including PUT for updates and passport documents at `/api/v1/pets/<index>/passport`
+- **Vendors**: `/api/v1/vendor/<id>`, `/api/v1/vendor/<id>/groomers`, `/api/v1/vendor/<id>/slots`
+- **Groomers**: `/api/v1/groomers` (location search), `/api/v1/groomer/<id>` (profile + reviews)
+- **Bookings**: `POST /api/v1/bookings` (create), `GET /api/v1/bookings` (list), `POST /api/v1/bookings/<id>/review`
+- **Marketplace**: `/api/v1/marketplace` (location search), `/api/v1/marketplace/vendor/<id>` (products)
+- **Orders**: `GET/POST /api/v1/orders`
+- **Handlers**: `/api/v1/handlers`, `/api/v1/handlers/<id>`, `POST /api/v1/handlers/<id>/book`, `GET /api/v1/handler-bookings`
+- **Chat**: `/api/v1/chat/conversations`, `/api/v1/chat/<id>`, `POST /api/v1/chat/send`, `POST /api/v1/chat/start`
+- **Location**: `/api/v1/vets`, `/api/v1/boarding`, `POST /api/v1/set-location`
+- **Public (no auth)**: `/api/v1/community`, `/api/v1/stray-tracker`, `/api/v1/stray/<uid>`, `/api/v1/languages`
+- **Config**: `JWT_SECRET` env var (defaults to dev key); helper functions `generate_token()` and `token_required` decorator at end of main.py
+- **Dependencies**: PyJWT
+
 ## FurrVet Module
 The FurrVet module provides a dedicated interface for veterinarians. It includes dashboards, appointment management, patient records with detailed medical histories and vaccinations, billing, inventory management for vet supplies, laboratory services, and reporting tools. All templates share a consistent design with a fixed sidebar and are responsive. The module manages its own SQLite database (`furrvet.db`) for veterinary-specific data.
 

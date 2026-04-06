@@ -1,0 +1,266 @@
+In main.py only, add JSON API versions
+of all pet parent routes.
+Do not modify any existing routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+All API routes go under /api/v1/ prefix.
+All routes return JSON responses.
+All protected routes require a JWT token
+in the Authorization header:
+Authorization: Bearer <token>
+
+Add these dependencies if not present:
+import jwt
+import datetime
+from functools import wraps
+
+Add JWT secret to app config:
+app.config['JWT_SECRET'] = 
+os.environ.get('JWT_SECRET', 
+'furrbutler_jwt_secret_change_in_prod')
+
+Add JWT helper functions:
+
+def generate_token(email, user_type):
+    payload = {
+        'email': email,
+        'user_type': user_type,
+        'exp': datetime.datetime.utcnow() +
+               datetime.timedelta(days=30)
+    }
+    return jwt.encode(
+        payload,
+        app.config['JWT_SECRET'],
+        algorithm='HS256'
+    )
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get(
+            'Authorization', '').replace(
+            'Bearer ', '')
+        if not token:
+            return jsonify({
+                'success': False,
+                'error': 'Token required'
+            }), 401
+        try:
+            data = jwt.decode(
+                token,
+                app.config['JWT_SECRET'],
+                algorithms=['HS256'])
+            current_user = data['email']
+            user_type = data['user_type']
+        except jwt.ExpiredSignatureError:
+            return jsonify({
+                'success': False,
+                'error': 'Token expired'
+            }), 401
+        except Exception:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid token'
+            }), 401
+        return f(current_user,
+                 user_type,
+                 *args, **kwargs)
+    return decorated
+
+Add these API routes:
+
+POST /api/v1/auth/register
+Body: email, password, name
+Check if user exists in Replit db
+If exists return error
+If not create user in Replit db
+Return: { success, token, user }
+
+POST /api/v1/auth/login
+Body: email, password
+Check Replit db for user
+If valid return JWT token
+Return: { success, token, user }
+
+GET /api/v1/auth/me
+Requires token
+Return: { success, user }
+
+GET /api/v1/pets
+Requires token
+Get pets from Replit db for this user
+Return: { success, pets: [] }
+
+POST /api/v1/pets
+Requires token
+Body: name, species, breed, birthday,
+      blood, parent_name, parent_phone
+Add pet to Replit db
+Return: { success, pet }
+
+GET /api/v1/pets/<int:pet_index>
+Requires token
+Return: { success, pet, bookings, 
+          booking_history }
+
+PUT /api/v1/pets/<int:pet_index>
+Requires token
+Body: name, species, breed, birthday,
+      blood, parent_name, parent_phone
+Update pet in Replit db
+Return: { success, pet }
+
+GET /api/v1/pets/<int:pet_index>/passport
+Requires token
+Get passport documents from SQLite
+Return: { success, documents,
+          required_docs, completion_pct }
+
+GET /api/v1/groomers
+Requires token
+Params: lat, lon, location (text search)
+Use existing haversine and geocode logic
+Return: { success, vendors: [],
+          location_name,
+          has_searched: bool }
+
+GET /api/v1/marketplace
+Requires token
+Params: lat, lon, location
+Use existing marketplace logic
+Return: { success, vendors: [],
+          location_name }
+
+GET /api/v1/marketplace/vendor/<int:vendor_id>
+Requires token
+Return: { success, vendor, products: [] }
+
+GET /api/v1/vendor/<int:vendor_id>
+Requires token
+Return: { success, vendor, services: [],
+          reviews: [], has_products: bool }
+
+GET /api/v1/vendor/<int:vendor_id>/groomers
+Requires token
+Return: { success, groomers: [] }
+
+GET /api/v1/groomer/<int:employee_id>
+Requires token
+Return: { success, groomer, reviews: [],
+          vendor }
+
+GET /api/v1/vendor/<int:vendor_id>/slots
+Requires token
+Params: date
+Return: { success, slots: [] }
+
+POST /api/v1/bookings
+Requires token
+Body: vendor_id, service, date, time,
+      duration, pet_name, pet_parent_name,
+      pet_parent_phone, employee_id,
+      notes
+Create booking in SQLite
+Return: { success, booking_id }
+
+GET /api/v1/bookings
+Requires token
+Return: { success, bookings: [] }
+
+POST /api/v1/bookings/<int:booking_id>/review
+Requires token
+Body: overall_rating, service_quality,
+      punctuality, handling_of_pet,
+      review_text, would_book_again
+Create review in employee_reviews
+Return: { success }
+
+GET /api/v1/orders
+Requires token
+Return: { success, orders: [] }
+
+POST /api/v1/orders
+Requires token
+Body: vendor_id, items: [],
+      delivery_address, delivery_type,
+      delivery_fee, total_amount
+Create order in SQLite
+Return: { success, order_id }
+
+GET /api/v1/handlers
+Requires token
+Return: { success, handlers: [] }
+
+GET /api/v1/handlers/<int:handler_id>
+Requires token
+Return: { success, handler, reviews: [] }
+
+POST /api/v1/handlers/<int:handler_id>/book
+Requires token
+Body: pet_name, pet_type,
+      destination_country,
+      travel_date, notes
+Create handler booking
+Return: { success, booking_id }
+
+GET /api/v1/handler-bookings
+Requires token
+Return: { success, bookings: [] }
+
+GET /api/v1/community
+No token required
+Return: { success, posts: [] }
+
+GET /api/v1/stray-tracker
+No token required
+Return: { success, strays: [], stats }
+
+GET /api/v1/stray/<stray_uid>
+No token required
+Return: { success, stray,
+          vaccinations: [], updates: [] }
+
+GET /api/v1/chat/conversations
+Requires token
+Return: { success, conversations: [] }
+
+GET /api/v1/chat/<int:conversation_id>
+Requires token
+Return: { success, messages: [] }
+
+POST /api/v1/chat/send
+Requires token
+Body: conversation_id, message
+Return: { success }
+
+POST /api/v1/chat/start
+Requires token
+Body: vendor_id
+Return: { success, conversation_id }
+
+GET /api/v1/vets
+Requires token
+Params: lat, lon, location
+Return: { success, vets: [] }
+
+GET /api/v1/boarding
+Requires token
+Params: lat, lon, location
+Return: { success, vendors: [] }
+
+POST /api/v1/set-location
+Requires token
+Body: lat, lon
+Reverse geocode and save to user profile
+Return: { success, location_name }
+
+GET /api/v1/languages
+No token required
+Return: { success, languages: [] }
+
+Do not modify any existing routes.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db
+except where explicitly stated above.

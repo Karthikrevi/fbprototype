@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 import hashlib
 from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
+import jwt as pyjwt
+from functools import wraps
 
 # Import WhatsApp routes and module manager
 from whatsapp_routes import whatsapp_bp
@@ -2158,6 +2160,7 @@ init_furrvet_db()
 
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
+app.config['JWT_SECRET'] = os.environ.get('JWT_SECRET', 'furrbutler_jwt_secret_change_in_prod')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Setup error handlers
@@ -14341,6 +14344,936 @@ def add_vaccination():
     conn.close()
     
     return render_template("add_vaccination.html", strays=strays)
+
+# ---- JWT HELPER FUNCTIONS ----
+
+def generate_token(email, user_type):
+    payload = {
+        'email': email,
+        'user_type': user_type,
+        'exp': datetime.utcnow() + timedelta(days=30)
+    }
+    return pyjwt.encode(payload, app.config['JWT_SECRET'], algorithm='HS256')
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'success': False, 'error': 'Token required'}), 401
+        try:
+            data = pyjwt.decode(token, app.config['JWT_SECRET'], algorithms=['HS256'])
+            current_user = data['email']
+            user_type = data['user_type']
+        except pyjwt.ExpiredSignatureError:
+            return jsonify({'success': False, 'error': 'Token expired'}), 401
+        except Exception:
+            return jsonify({'success': False, 'error': 'Invalid token'}), 401
+        return f(current_user, user_type, *args, **kwargs)
+    return decorated
+
+# ---- JSON API v1 ROUTES ----
+
+@app.route('/api/v1/auth/register', methods=["POST"])
+def api_register():
+    data = request.get_json() or {}
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name', '')
+
+    if not email or not password:
+        return jsonify({'success': False, 'error': 'Email and password required'}), 400
+
+    if f"user:{email}" in db:
+        return jsonify({'success': False, 'error': 'User already exists'}), 409
+
+    db[f"user:{email}"] = {"email": email, "password": password, "name": name}
+    token = generate_token(email, 'pet_parent')
+    return jsonify({'success': True, 'token': token, 'user': {'email': email, 'name': name}})
+
+@app.route('/api/v1/auth/login', methods=["POST"])
+def api_login():
+    data = request.get_json() or {}
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'success': False, 'error': 'Email and password required'}), 400
+
+    user_key = f"user:{email}"
+    user = db.get(user_key)
+
+    if user and user.get("password") == password:
+        token = generate_token(email, 'pet_parent')
+        return jsonify({'success': True, 'token': token, 'user': {'email': email, 'name': user.get('name', '')}})
+    return jsonify({'success': False, 'error': 'Invalid email or password'}), 401
+
+@app.route('/api/v1/auth/me')
+@token_required
+def api_me(current_user, user_type):
+    user = db.get(f"user:{current_user}", {})
+    return jsonify({'success': True, 'user': {'email': current_user, 'name': user.get('name', ''), 'user_type': user_type}})
+
+@app.route('/api/v1/pets')
+@token_required
+def api_get_pets(current_user, user_type):
+    pets = db.get(f"pets:{current_user}", [])
+    return jsonify({'success': True, 'pets': pets})
+
+@app.route('/api/v1/pets', methods=["POST"])
+@token_required
+def api_add_pet(current_user, user_type):
+    data = request.get_json() or {}
+    pets = db.get(f"pets:{current_user}", [])
+
+    pet = {
+        "name": data.get("name", ""),
+        "species": data.get("species", ""),
+        "breed": data.get("breed", ""),
+        "birthday": data.get("birthday", ""),
+        "blood": data.get("blood", ""),
+        "parent_name": data.get("parent_name", ""),
+        "parent_phone": data.get("parent_phone", ""),
+        "photo": ""
+    }
+
+    pets.append(pet)
+    db[f"pets:{current_user}"] = pets
+    return jsonify({'success': True, 'pet': pet})
+
+@app.route('/api/v1/pets/<int:pet_index>')
+@token_required
+def api_get_pet(current_user, user_type, pet_index):
+    pets = db.get(f"pets:{current_user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        return jsonify({'success': False, 'error': 'Pet not found'}), 404
+
+    pet = pets[pet_index]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT service, date, time, status FROM bookings WHERE user_email = ? ORDER BY date DESC", (current_user,))
+    bookings = [{'service': r[0], 'date': r[1], 'time': r[2], 'status': r[3]} for r in c.fetchall()]
+
+    c.execute("SELECT service, date, time, status FROM bookings WHERE user_email = ? AND status = 'completed' ORDER BY date DESC", (current_user,))
+    booking_history = [{'service': r[0], 'date': r[1], 'time': r[2], 'status': r[3]} for r in c.fetchall()]
+
+    conn.close()
+    return jsonify({'success': True, 'pet': pet, 'bookings': bookings, 'booking_history': booking_history})
+
+@app.route('/api/v1/pets/<int:pet_index>', methods=["PUT"])
+@token_required
+def api_update_pet(current_user, user_type, pet_index):
+    pets = db.get(f"pets:{current_user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        return jsonify({'success': False, 'error': 'Pet not found'}), 404
+
+    data = request.get_json() or {}
+    for field in ['name', 'species', 'breed', 'birthday', 'blood', 'parent_name', 'parent_phone']:
+        if field in data:
+            pets[pet_index][field] = data[field]
+
+    db[f"pets:{current_user}"] = pets
+    return jsonify({'success': True, 'pet': pets[pet_index]})
+
+@app.route('/api/v1/pets/<int:pet_index>/passport')
+@token_required
+def api_pet_passport(current_user, user_type, pet_index):
+    pets = db.get(f"pets:{current_user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        return jsonify({'success': False, 'error': 'Pet not found'}), 404
+
+    pet_id = pet_index + 1
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, status, comments FROM passport_documents WHERE pet_id = ? ORDER BY upload_time DESC", (pet_id,))
+    docs_raw = c.fetchall()
+    conn.close()
+
+    documents = []
+    doc_status = {}
+    for doc in docs_raw:
+        d = {'doc_type': doc[0], 'uploaded_by_role': doc[1], 'uploaded_by_user_id': doc[2], 'filename': doc[3], 'upload_time': doc[4], 'status': doc[5], 'comments': doc[6]}
+        documents.append(d)
+        if doc[0] not in doc_status or doc[4] > doc_status[doc[0]]['upload_time']:
+            doc_status[doc[0]] = d
+
+    required_docs = {
+        'microchip': {'name': 'Microchip Certificate', 'allowed_roles': ['parent']},
+        'vaccine': {'name': 'Vaccination Records', 'allowed_roles': ['vet']},
+        'health_cert': {'name': 'Health Certificate', 'allowed_roles': ['vet']},
+        'dgft': {'name': 'DGFT Certificate', 'allowed_roles': ['handler']},
+        'aqcs': {'name': 'AQCS Certificate', 'allowed_roles': ['handler']},
+        'quarantine': {'name': 'Quarantine Clearance', 'allowed_roles': ['handler']}
+    }
+
+    completed = sum(1 for dt in required_docs if dt in doc_status and doc_status[dt]['status'] == 'approved')
+    completion_pct = int((completed / len(required_docs)) * 100)
+
+    return jsonify({'success': True, 'documents': documents, 'required_docs': required_docs, 'completion_pct': completion_pct})
+
+@app.route('/api/v1/groomers')
+@token_required
+def api_groomers(current_user, user_type):
+    search_lat = request.args.get('lat', type=float)
+    search_lon = request.args.get('lon', type=float)
+    location_name = None
+
+    location_query = request.args.get('location')
+    if location_query:
+        lat, lon, display = geocode_location(location_query)
+        if lat is not None and lon is not None:
+            search_lat, search_lon = lat, lon
+            location_name = location_query
+
+    vendors = []
+    has_searched = search_lat is not None and search_lon is not None
+    if has_searched:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""SELECT id, name, email, password, category, city, phone, bio, image_url,
+                     latitude, longitude, is_online, account_status, break_start_date,
+                     break_end_date, break_reason, address, state, pincode, booking_radius_km
+                     FROM vendors WHERE (account_status IS NULL OR account_status = 'active')""")
+        db_vendors = c.fetchall()
+        conn.close()
+
+        for v in db_vendors:
+            v_lat, v_lon = v[9], v[10]
+            if v_lat is None or v_lon is None:
+                continue
+            radius = v[19] or 10.0
+            dist = haversine(search_lat, search_lon, v_lat, v_lon)
+            if dist <= radius:
+                vendors.append({
+                    "id": v[0], "name": v[1], "description": v[7] or "Professional pet grooming services.",
+                    "image": v[8] or "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
+                    "city": v[5] or "Unknown", "latitude": v_lat, "longitude": v_lon,
+                    "is_online": v[11], "address": v[16] or "", "state": v[17] or "",
+                    "pincode": v[18] or "", "distance": round(dist, 1)
+                })
+        vendors.sort(key=lambda x: x["distance"])
+
+    return jsonify({'success': True, 'vendors': vendors, 'location_name': location_name, 'has_searched': has_searched})
+
+@app.route('/api/v1/marketplace')
+@token_required
+def api_marketplace(current_user, user_type):
+    search_lat = request.args.get('lat', type=float)
+    search_lon = request.args.get('lon', type=float)
+    location_name = None
+
+    location_query = request.args.get('location')
+    if location_query:
+        lat, lon, display = geocode_location(location_query)
+        if lat is not None and lon is not None:
+            search_lat, search_lon = lat, lon
+            location_name = location_query
+
+    vendors = []
+    if search_lat is not None and search_lon is not None:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""SELECT DISTINCT v.id, v.name, v.email, v.password, v.category, v.city, v.phone, v.bio, v.image_url,
+                     v.latitude, v.longitude, v.is_online, v.account_status, v.break_start_date, v.break_end_date,
+                     v.break_reason, v.address, v.state, v.pincode, v.delivery_radius_km,
+                     (SELECT COUNT(*) FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0) as product_count
+                     FROM vendors v
+                     WHERE EXISTS (SELECT 1 FROM products p WHERE p.vendor_id = v.id AND p.quantity > 0)
+                     AND (v.is_online = 1 OR NOT (LOWER(v.category) LIKE '%groom%' OR LOWER(v.category) LIKE '%salon%' OR LOWER(v.category) LIKE '%spa%' OR LOWER(v.category) LIKE '%boarding%'))
+                     AND (v.account_status IS NULL OR v.account_status = 'active')""")
+        online_vendors = c.fetchall()
+        conn.close()
+
+        for v in online_vendors:
+            v_lat, v_lon = v[9], v[10]
+            if v_lat is None or v_lon is None:
+                continue
+            radius = v[19] or 5.0
+            dist = haversine(search_lat, search_lon, v_lat, v_lon)
+            if dist <= radius:
+                vendors.append({
+                    "id": v[0], "name": v[1], "category": v[4], "city": v[5], "bio": v[7],
+                    "image_url": v[8] or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400",
+                    "product_count": v[20], "is_online": v[11], "distance": round(dist, 1)
+                })
+        vendors.sort(key=lambda x: x["distance"])
+
+    return jsonify({'success': True, 'vendors': vendors, 'location_name': location_name})
+
+@app.route('/api/v1/marketplace/vendor/<int:vendor_id>')
+@token_required
+def api_marketplace_vendor(current_user, user_type, vendor_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT name, city, bio, is_online FROM vendors WHERE id=?", (vendor_id,))
+    vendor_data = c.fetchone()
+    if not vendor_data:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Vendor not found'}), 404
+
+    vendor = {"name": vendor_data[0], "city": vendor_data[1], "bio": vendor_data[2], "is_online": vendor_data[3]}
+
+    c.execute("""SELECT p.id, p.name, p.description, p.sale_price, p.quantity, p.image_url,
+                 COALESCE(pd.discount_type, 'none') as discount_type,
+                 COALESCE(pd.discount_value, 0) as discount_value,
+                 COALESCE(pd.is_active, 0) as is_active,
+                 CASE WHEN pd.discount_type = 'percentage' AND pd.is_active = 1 THEN p.sale_price * (1 - pd.discount_value / 100)
+                      WHEN pd.discount_type = 'fixed' AND pd.is_active = 1 THEN p.sale_price - pd.discount_value
+                      ELSE p.sale_price END as discounted_price,
+                 CASE WHEN pd.discount_type IS NOT NULL AND pd.is_active = 1 THEN 1 ELSE 0 END as has_discount
+                 FROM products p LEFT JOIN product_discounts pd ON p.id = pd.product_id
+                 WHERE p.vendor_id=? AND p.quantity > 0 ORDER BY p.name""", (vendor_id,))
+    products = []
+    for p in c.fetchall():
+        products.append({
+            'id': p[0], 'name': p[1], 'description': p[2], 'sale_price': p[3],
+            'quantity': p[4], 'image_url': p[5], 'discount_type': p[6],
+            'discount_value': p[7], 'discounted_price': p[9], 'has_discount': bool(p[10])
+        })
+
+    conn.close()
+    return jsonify({'success': True, 'vendor': vendor, 'products': products})
+
+@app.route('/api/v1/vendor/<int:vendor_id>')
+@token_required
+def api_vendor_profile(current_user, user_type, vendor_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("""SELECT id, name, email, password, category, city, phone, bio, image_url,
+                 latitude, longitude, is_online, account_status, break_start_date,
+                 break_end_date, break_reason, address, state, pincode
+                 FROM vendors WHERE id = ?""", (vendor_id,))
+    data = c.fetchone()
+    if not data:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Vendor not found'}), 404
+
+    c.execute("SELECT AVG(rating), COUNT(*) FROM reviews WHERE vendor_id = ?", (data[0],))
+    rs = c.fetchone()
+    avg_rating = round(rs[0], 1) if rs[0] else 0
+    total_reviews = rs[1] or 0
+
+    c.execute("SELECT COUNT(*) FROM reviews WHERE vendor_id = ? AND rating >= 4", (data[0],))
+    good = c.fetchone()[0] or 0
+    success_rate = round((good / total_reviews * 100), 1) if total_reviews > 0 else 100
+
+    c.execute("SELECT COUNT(*) FROM products WHERE vendor_id = ? AND quantity > 0", (data[0],))
+    has_products = c.fetchone()[0] > 0
+
+    c.execute("SELECT service_name, description, price, duration_minutes, category FROM vendor_services WHERE vendor_id = ? AND is_active = 1 ORDER BY service_name", (data[0],))
+    services = []
+    for s in c.fetchall():
+        services.append({'name': s[0], 'description': s[1] or '', 'price': s[2], 'duration': s[3], 'category': s[4]})
+
+    c.execute("SELECT id, vendor_id, rating, review_text, service_type, user_email, timestamp FROM reviews WHERE vendor_id = ? ORDER BY timestamp DESC", (data[0],))
+    reviews = [{'id': r[0], 'rating': r[2], 'review_text': r[3], 'service_type': r[4], 'user_email': r[5], 'timestamp': r[6]} for r in c.fetchall()]
+
+    vendor = {
+        "id": data[0], "name": data[1], "description": data[7] or "", "image": data[8] or "",
+        "city": data[5] or "", "is_online": data[11], "category": data[4] or "",
+        "rating": avg_rating, "total_reviews": total_reviews, "success_rate": success_rate
+    }
+
+    conn.close()
+    return jsonify({'success': True, 'vendor': vendor, 'services': services, 'reviews': reviews, 'has_products': has_products})
+
+@app.route('/api/v1/vendor/<int:vendor_id>/groomers')
+@token_required
+def api_vendor_groomers(current_user, user_type, vendor_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT e.id, e.name, e.position, e.avg_overall_rating, e.total_reviews, e.is_certified, e.is_groomer_of_month, e.profile_image
+                 FROM employees e WHERE e.vendor_id=? AND e.status='active' ORDER BY e.avg_overall_rating DESC""", (vendor_id,))
+    groomers = []
+    for g in c.fetchall():
+        groomers.append({
+            'id': g[0], 'name': g[1], 'position': g[2], 'avg_rating': g[3] or 0,
+            'total_reviews': g[4] or 0, 'is_certified': g[5], 'is_groomer_of_month': g[6],
+            'profile_image': g[7]
+        })
+    conn.close()
+    return jsonify({'success': True, 'groomers': groomers})
+
+@app.route('/api/v1/groomer/<int:employee_id>')
+@token_required
+def api_groomer_profile(current_user, user_type, employee_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT e.id, e.name, e.position, e.avg_overall_rating, e.total_reviews, e.is_certified, e.is_groomer_of_month,
+                 e.profile_image, v.name as vendor_name, v.city as vendor_city, v.id as vendor_id
+                 FROM employees e JOIN vendors v ON e.vendor_id=v.id WHERE e.id=?""", (employee_id,))
+    emp = c.fetchone()
+    if not emp:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Groomer not found'}), 404
+
+    groomer = {
+        'id': emp[0], 'name': emp[1], 'position': emp[2], 'avg_rating': emp[3] or 0,
+        'total_reviews': emp[4] or 0, 'is_certified': emp[5], 'is_groomer_of_month': emp[6],
+        'profile_image': emp[7]
+    }
+    vendor = {'id': emp[10], 'name': emp[8], 'city': emp[9]}
+
+    c.execute("SELECT overall_rating, review_text, created_at, would_book_again, reviewer_email FROM employee_reviews WHERE employee_id=? ORDER BY created_at DESC", (employee_id,))
+    reviews = [{'rating': r[0], 'review_text': r[1], 'created_at': r[2], 'would_book_again': r[3], 'reviewer_email': r[4]} for r in c.fetchall()]
+
+    conn.close()
+    return jsonify({'success': True, 'groomer': groomer, 'reviews': reviews, 'vendor': vendor})
+
+@app.route('/api/v1/vendor/<int:vendor_id>/slots')
+@token_required
+def api_vendor_slots(current_user, user_type, vendor_id):
+    date = request.args.get('date')
+    if not date:
+        return jsonify({'success': False, 'error': 'Date parameter required'}), 400
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM vendor_time_slots WHERE vendor_id = ? AND is_active = 1", (vendor_id,))
+    settings = c.fetchone()
+
+    if not settings:
+        available_slots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+                          "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"]
+    else:
+        available_slots = generate_time_slots(settings, date)
+
+    c.execute("SELECT time, COUNT(*) as booking_count FROM bookings WHERE vendor_id = ? AND date = ? AND status != 'cancelled' GROUP BY time", (vendor_id, date))
+    existing_bookings = dict(c.fetchall())
+    max_capacity = settings[6] if settings else 1
+
+    slots = []
+    for slot in available_slots:
+        current_bookings = existing_bookings.get(slot, 0)
+        if current_bookings < max_capacity:
+            slots.append({"time": slot, "available": True, "remaining_capacity": max_capacity - current_bookings})
+
+    conn.close()
+    return jsonify({'success': True, 'slots': slots})
+
+@app.route('/api/v1/bookings', methods=["POST"])
+@token_required
+def api_create_booking(current_user, user_type):
+    data = request.get_json() or {}
+    vendor_id = data.get('vendor_id')
+    service = data.get('service')
+    date = data.get('date')
+    time_slot = data.get('time')
+
+    if not all([vendor_id, service, date, time_slot]):
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO bookings (vendor_id, user_email, service, date, time, duration, status,
+                 pet_name, pet_parent_name, pet_parent_phone, employee_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+              (vendor_id, current_user, service, date, time_slot,
+               data.get('duration', 60), 'confirmed',
+               data.get('pet_name', ''), data.get('pet_parent_name', ''),
+               data.get('pet_parent_phone', ''), data.get('employee_id')))
+    booking_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'booking_id': booking_id})
+
+@app.route('/api/v1/bookings')
+@token_required
+def api_get_bookings(current_user, user_type):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT b.id, b.service, b.date, b.time, b.duration, b.status, v.name as vendor_name, v.phone,
+                 b.pet_name, b.pet_parent_name, b.pet_parent_phone, v.id as vendor_id
+                 FROM bookings b LEFT JOIN vendors v ON b.vendor_id = v.id
+                 WHERE b.user_email = ? ORDER BY b.date DESC, b.time DESC""", (current_user,))
+    bookings = []
+    for b in c.fetchall():
+        bookings.append({
+            'id': b[0], 'service': b[1], 'date': b[2], 'time': b[3],
+            'duration': b[4] or 60, 'status': b[5], 'vendor_name': b[6] or 'Unknown',
+            'vendor_phone': b[7], 'pet_name': b[8], 'pet_parent_name': b[9],
+            'pet_parent_phone': b[10], 'vendor_id': b[11]
+        })
+    conn.close()
+    return jsonify({'success': True, 'bookings': bookings})
+
+@app.route('/api/v1/bookings/<int:booking_id>/review', methods=["POST"])
+@token_required
+def api_booking_review(current_user, user_type, booking_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM bookings WHERE id=?", (booking_id,))
+    booking = c.fetchone()
+    if not booking:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Booking not found'}), 404
+
+    col_names = [desc[0] for desc in c.description]
+    booking_dict = dict(zip(col_names, booking))
+
+    if booking_dict.get('user_email') != current_user:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    if booking_dict.get('status') != 'completed':
+        conn.close()
+        return jsonify({'success': False, 'error': 'Only completed bookings can be reviewed'}), 400
+
+    c.execute("SELECT id FROM employee_reviews WHERE booking_id=?", (booking_id,))
+    if c.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'error': 'Already reviewed'}), 409
+
+    employee_id = booking_dict.get('employee_id')
+    if not employee_id:
+        conn.close()
+        return jsonify({'success': False, 'error': 'No groomer assigned to this booking'}), 400
+
+    data = request.get_json() or {}
+    overall = int(data.get('overall_rating', 5))
+    quality = int(data.get('service_quality', 5))
+    punctuality = int(data.get('punctuality', 5))
+    handling = int(data.get('handling_of_pet', 5))
+    review_text = data.get('review_text', '')
+    would_book = 1 if data.get('would_book_again', True) else 0
+
+    c.execute("""INSERT INTO employee_reviews (employee_id, booking_id, vendor_id, reviewer_email,
+                 overall_rating, service_quality, punctuality, handling_of_pet, review_text, would_book_again)
+                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
+              (employee_id, booking_id, booking_dict.get('vendor_id'), current_user,
+               overall, quality, punctuality, handling, review_text, would_book))
+    try:
+        c.execute("INSERT INTO reviews (vendor_id, user_email, rating, review_text, service_type) VALUES (?,?,?,?,?)",
+                  (booking_dict.get('vendor_id'), current_user, overall, review_text, "Grooming"))
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+    update_employee_review_stats(employee_id)
+    return jsonify({'success': True})
+
+@app.route('/api/v1/orders')
+@token_required
+def api_get_orders(current_user, user_type):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT o.id, o.total_amount, o.status, o.delivery_type, o.delivery_fee,
+                 o.estimated_delivery, o.tracking_notes, o.order_date, v.name as vendor_name
+                 FROM orders o JOIN vendors v ON o.vendor_id = v.id
+                 WHERE o.user_email = ? ORDER BY o.order_date DESC""", (current_user,))
+    orders = []
+    for o in c.fetchall():
+        order = {
+            'id': o[0], 'total_amount': o[1], 'status': o[2], 'delivery_type': o[3],
+            'delivery_fee': o[4], 'estimated_delivery': o[5], 'tracking_notes': o[6],
+            'order_date': o[7], 'vendor_name': o[8]
+        }
+        c.execute("""SELECT oi.quantity, oi.unit_price, p.name, p.image_url
+                     FROM order_items oi JOIN products p ON oi.product_id = p.id
+                     WHERE oi.order_id = ?""", (o[0],))
+        order['items'] = [{'quantity': i[0], 'unit_price': i[1], 'product_name': i[2], 'image_url': i[3]} for i in c.fetchall()]
+        orders.append(order)
+    conn.close()
+    return jsonify({'success': True, 'orders': orders})
+
+@app.route('/api/v1/orders', methods=["POST"])
+@token_required
+def api_create_order(current_user, user_type):
+    data = request.get_json() or {}
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    try:
+        c.execute("""INSERT INTO orders (user_email, vendor_id, total_amount, delivery_address, delivery_type, delivery_fee, estimated_delivery)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                  (current_user, data['vendor_id'], data['total_amount'], data.get('delivery_address', ''),
+                   data.get('delivery_type', 'delivery'), data.get('delivery_fee', 0), data.get('estimated_delivery', '')))
+        order_id = c.lastrowid
+        for item in data.get('items', []):
+            c.execute("INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
+                      (order_id, item['product_id'], item['quantity'], item['unit_price']))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'order_id': order_id})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/v1/handlers')
+@token_required
+def api_handlers(current_user, user_type):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT id, name, country, base_price, services_offered, experience_years,
+                 success_rate, total_bookings, profile_image, bio, languages, certifications, is_active
+                 FROM handler_profiles WHERE is_active = 1
+                 ORDER BY success_rate DESC, total_bookings DESC""")
+    handlers = []
+    for h in c.fetchall():
+        handlers.append({
+            'id': h[0], 'name': h[1], 'country': h[2], 'base_price': h[3],
+            'services_offered': h[4], 'experience_years': h[5], 'success_rate': h[6],
+            'total_bookings': h[7], 'profile_image': h[8], 'bio': h[9],
+            'languages': h[10], 'certifications': h[11]
+        })
+    conn.close()
+    return jsonify({'success': True, 'handlers': handlers})
+
+@app.route('/api/v1/handlers/<int:handler_id>')
+@token_required
+def api_handler_detail(current_user, user_type, handler_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT id, name, country, base_price, services_offered, experience_years,
+                 success_rate, total_bookings, profile_image, bio, languages, certifications
+                 FROM handler_profiles WHERE id = ?""", (handler_id,))
+    h = c.fetchone()
+    if not h:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Handler not found'}), 404
+
+    handler = {
+        'id': h[0], 'name': h[1], 'country': h[2], 'base_price': h[3],
+        'services_offered': h[4], 'experience_years': h[5], 'success_rate': h[6],
+        'total_bookings': h[7], 'profile_image': h[8], 'bio': h[9],
+        'languages': h[10], 'certifications': h[11]
+    }
+
+    c.execute("SELECT id, handler_id, pet_parent_email, rating, review_text, created_at FROM handler_reviews WHERE handler_id = ? ORDER BY created_at DESC", (handler_id,))
+    reviews = [{'id': r[0], 'rating': r[3], 'review_text': r[4], 'created_at': r[5], 'reviewer_email': r[2]} for r in c.fetchall()]
+
+    conn.close()
+    return jsonify({'success': True, 'handler': handler, 'reviews': reviews})
+
+@app.route('/api/v1/handlers/<int:handler_id>/book', methods=["POST"])
+@token_required
+def api_book_handler(current_user, user_type, handler_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id, name, country, base_price, email FROM handler_profiles WHERE id = ? AND is_active = 1", (handler_id,))
+    h = c.fetchone()
+    if not h:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Handler not found'}), 404
+
+    data = request.get_json() or {}
+    total_amount = h[3]
+    handler_fee = total_amount * 0.9
+    platform_fee = total_amount * 0.1
+    auto_release_time = (datetime.now() + timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S")
+
+    c.execute("""INSERT INTO handler_bookings (handler_id, pet_parent_email, pet_name, pet_type, destination_country,
+                 travel_date, total_amount, handler_fee, platform_fee, auto_release_time, notes)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+              (handler_id, current_user, data.get('pet_name', ''), data.get('pet_type', ''),
+               data.get('destination_country', ''), data.get('travel_date', ''),
+               total_amount, handler_fee, platform_fee, auto_release_time, data.get('notes', '')))
+    booking_id = c.lastrowid
+
+    c.execute("INSERT INTO escrow_transactions (booking_id, transaction_type, amount, initiated_by, reason) VALUES (?, 'hold', ?, ?, 'Initial booking escrow hold')",
+              (booking_id, total_amount, current_user))
+    c.execute("UPDATE handler_profiles SET total_bookings = total_bookings + 1 WHERE id = ?", (handler_id,))
+
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'booking_id': booking_id})
+
+@app.route('/api/v1/handler-bookings')
+@token_required
+def api_handler_bookings(current_user, user_type):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT hb.*, hp.name as handler_name, hp.country, hp.profile_image
+                 FROM handler_bookings hb JOIN handler_profiles hp ON hb.handler_id = hp.id
+                 WHERE hb.pet_parent_email = ? ORDER BY hb.created_at DESC""", (current_user,))
+    bookings = []
+    for b in c.fetchall():
+        bookings.append({
+            'id': b[0], 'handler_id': b[1], 'pet_name': b[3], 'pet_type': b[4],
+            'destination_country': b[5], 'travel_date': b[6], 'total_amount': b[7],
+            'handler_fee': b[8], 'platform_fee': b[9], 'escrow_status': b[10],
+            'booking_status': b[11], 'created_at': b[12],
+            'handler_name': b[17], 'handler_country': b[18], 'handler_image': b[19]
+        })
+    conn.close()
+    return jsonify({'success': True, 'bookings': bookings})
+
+@app.route('/api/v1/community')
+def api_community():
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT scu.*, sd.stray_uid, np.name as ngo_name
+                 FROM stray_community_updates scu
+                 JOIN stray_dogs sd ON scu.stray_id = sd.id
+                 JOIN ngo_partners np ON scu.ngo_id = np.id
+                 WHERE scu.is_verified = 1 ORDER BY scu.created_at DESC LIMIT 50""")
+    posts = []
+    for p in c.fetchall():
+        posts.append({
+            'id': p[0], 'stray_id': p[1], 'update_type': p[3], 'description': p[4],
+            'photo_url': p[5], 'video_url': p[6], 'location_latitude': p[7],
+            'location_longitude': p[8], 'created_by': p[9], 'created_at': p[11],
+            'stray_uid': p[12], 'ngo_name': p[13]
+        })
+    conn.close()
+    return jsonify({'success': True, 'posts': posts})
+
+@app.route('/api/v1/stray-tracker')
+def api_stray_tracker():
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT sd.stray_uid, sd.photo_url, sd.location_address, sd.breed_type,
+                 sd.temperament, sd.collar_color, sd.total_vaccinations, sd.last_vaccination_date,
+                 np.name as ngo_name, sd.location_latitude, sd.location_longitude
+                 FROM stray_dogs sd JOIN ngo_partners np ON sd.ngo_id = np.id
+                 WHERE sd.verification_status = 'verified' AND sd.current_status = 'Active'
+                 ORDER BY sd.last_updated DESC LIMIT 50""")
+    strays = []
+    for s in c.fetchall():
+        strays.append({
+            'stray_uid': s[0], 'photo_url': s[1], 'location_address': s[2], 'breed_type': s[3],
+            'temperament': s[4], 'collar_color': s[5], 'total_vaccinations': s[6],
+            'last_vaccination_date': s[7], 'ngo_name': s[8], 'latitude': s[9], 'longitude': s[10]
+        })
+
+    c.execute("SELECT COUNT(*) FROM stray_dogs WHERE verification_status = 'verified'")
+    total_verified = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM stray_vaccinations WHERE verification_status = 'verified'")
+    total_vacc = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(DISTINCT ngo_id) FROM stray_dogs")
+    active_ngos = c.fetchone()[0] or 0
+
+    conn.close()
+    return jsonify({'success': True, 'strays': strays, 'stats': {
+        'total_verified_strays': total_verified, 'total_vaccinations': total_vacc, 'active_ngos': active_ngos
+    }})
+
+@app.route('/api/v1/stray/<stray_uid>')
+def api_stray_detail(stray_uid):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT sd.*, np.name as ngo_name, np.contact_person, np.phone
+                 FROM stray_dogs sd JOIN ngo_partners np ON sd.ngo_id = np.id
+                 WHERE sd.stray_uid = ? AND sd.verification_status = 'verified'""", (stray_uid,))
+    stray_row = c.fetchone()
+    if not stray_row:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Stray not found'}), 404
+
+    col_names = [desc[0] for desc in c.description]
+    stray = dict(zip(col_names, stray_row))
+
+    c.execute("SELECT * FROM stray_vaccinations WHERE stray_id = ? AND verification_status = 'verified' ORDER BY vaccination_date DESC", (stray_row[0],))
+    vacc_cols = [desc[0] for desc in c.description]
+    vaccinations = [dict(zip(vacc_cols, r)) for r in c.fetchall()]
+
+    c.execute("SELECT * FROM stray_community_updates WHERE stray_id = ? AND is_verified = 1 ORDER BY created_at DESC LIMIT 10", (stray_row[0],))
+    upd_cols = [desc[0] for desc in c.description]
+    updates = [dict(zip(upd_cols, r)) for r in c.fetchall()]
+
+    conn.close()
+    return jsonify({'success': True, 'stray': stray, 'vaccinations': vaccinations, 'updates': updates})
+
+@app.route('/api/v1/chat/conversations')
+@token_required
+def api_chat_conversations(current_user, user_type):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT cc.id, cc.vendor_id, cc.last_message_time, cc.vendor_unread_count, cc.user_unread_count,
+                 v.name as vendor_name,
+                 (SELECT message_text FROM chat_messages WHERE conversation_id = cc.id ORDER BY timestamp DESC LIMIT 1) as last_message
+                 FROM chat_conversations cc JOIN vendors v ON cc.vendor_id = v.id
+                 WHERE cc.user_email = ? ORDER BY cc.last_message_time DESC""", (current_user,))
+    conversations = []
+    for c_row in c.fetchall():
+        conversations.append({
+            'id': c_row[0], 'vendor_id': c_row[1], 'last_message_time': c_row[2],
+            'vendor_unread_count': c_row[3], 'user_unread_count': c_row[4],
+            'vendor_name': c_row[5], 'last_message': c_row[6]
+        })
+    conn.close()
+    return jsonify({'success': True, 'conversations': conversations})
+
+@app.route('/api/v1/chat/<int:conversation_id>')
+@token_required
+def api_chat_messages(current_user, user_type, conversation_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM chat_conversations WHERE id = ? AND user_email = ?", (conversation_id, current_user))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'error': 'Conversation not found'}), 404
+
+    c.execute("SELECT id, sender_type, sender_id, message_text, timestamp, is_read FROM chat_messages WHERE conversation_id = ? ORDER BY timestamp ASC", (conversation_id,))
+    messages = [{'id': m[0], 'sender_type': m[1], 'sender_id': m[2], 'message_text': m[3], 'timestamp': m[4], 'is_read': m[5]} for m in c.fetchall()]
+    conn.close()
+    return jsonify({'success': True, 'messages': messages})
+
+@app.route('/api/v1/chat/send', methods=["POST"])
+@token_required
+def api_chat_send(current_user, user_type):
+    data = request.get_json() or {}
+    conversation_id = data.get('conversation_id')
+    message_text = data.get('message')
+
+    if not conversation_id or not message_text:
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM chat_conversations WHERE id = ? AND user_email = ?", (conversation_id, current_user))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'error': 'Conversation not found'}), 404
+
+    c.execute("INSERT INTO chat_messages (conversation_id, sender_type, sender_id, message_text) VALUES (?, 'user', ?, ?)",
+              (conversation_id, current_user, message_text))
+    c.execute("UPDATE chat_conversations SET vendor_unread_count = vendor_unread_count + 1, last_message_time = CURRENT_TIMESTAMP WHERE id = ?",
+              (conversation_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/v1/chat/start', methods=["POST"])
+@token_required
+def api_chat_start(current_user, user_type):
+    data = request.get_json() or {}
+    vendor_id = data.get('vendor_id')
+    if not vendor_id:
+        return jsonify({'success': False, 'error': 'Vendor ID required'}), 400
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM chat_conversations WHERE vendor_id = ? AND user_email = ?", (vendor_id, current_user))
+    existing = c.fetchone()
+    if existing:
+        conn.close()
+        return jsonify({'success': True, 'conversation_id': existing[0]})
+
+    c.execute("INSERT INTO chat_conversations (vendor_id, user_email) VALUES (?, ?)", (vendor_id, current_user))
+    conversation_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'conversation_id': conversation_id})
+
+@app.route('/api/v1/vets')
+@token_required
+def api_vets(current_user, user_type):
+    search_lat = request.args.get('lat', type=float)
+    search_lon = request.args.get('lon', type=float)
+    location_name = None
+
+    location_query = request.args.get('location')
+    if location_query:
+        lat, lon, display = geocode_location(location_query)
+        if lat is not None and lon is not None:
+            search_lat, search_lon = lat, lon
+            location_name = location_query
+
+    vets = []
+    if search_lat is not None and search_lon is not None:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""SELECT id, name, email, category, city, phone, bio, image_url,
+                     latitude, longitude, is_online, address, state, pincode, booking_radius_km
+                     FROM vendors
+                     WHERE (account_status IS NULL OR account_status = 'active')
+                     AND (LOWER(category) LIKE '%vet%' OR LOWER(category) LIKE '%clinic%' OR LOWER(category) LIKE '%hospital%')""")
+        for v in c.fetchall():
+            v_lat, v_lon = v[8], v[9]
+            if v_lat is None or v_lon is None:
+                continue
+            radius = v[14] or 15.0
+            dist = haversine(search_lat, search_lon, v_lat, v_lon)
+            if dist <= radius:
+                vets.append({
+                    "id": v[0], "name": v[1], "category": v[3], "city": v[4],
+                    "phone": v[5], "bio": v[6], "image_url": v[7],
+                    "latitude": v_lat, "longitude": v_lon, "is_online": v[10],
+                    "distance": round(dist, 1)
+                })
+        vets.sort(key=lambda x: x["distance"])
+        conn.close()
+
+    return jsonify({'success': True, 'vets': vets, 'location_name': location_name})
+
+@app.route('/api/v1/boarding')
+@token_required
+def api_boarding(current_user, user_type):
+    search_lat = request.args.get('lat', type=float)
+    search_lon = request.args.get('lon', type=float)
+    location_name = None
+
+    location_query = request.args.get('location')
+    if location_query:
+        lat, lon, display = geocode_location(location_query)
+        if lat is not None and lon is not None:
+            search_lat, search_lon = lat, lon
+            location_name = location_query
+
+    vendors = []
+    if search_lat is not None and search_lon is not None:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""SELECT id, name, email, category, city, phone, bio, image_url,
+                     latitude, longitude, is_online, address, state, pincode, booking_radius_km
+                     FROM vendors
+                     WHERE (account_status IS NULL OR account_status = 'active')
+                     AND (LOWER(category) LIKE '%board%' OR LOWER(category) LIKE '%kennel%' OR LOWER(category) LIKE '%daycare%')""")
+        for v in c.fetchall():
+            v_lat, v_lon = v[8], v[9]
+            if v_lat is None or v_lon is None:
+                continue
+            radius = v[14] or 15.0
+            dist = haversine(search_lat, search_lon, v_lat, v_lon)
+            if dist <= radius:
+                vendors.append({
+                    "id": v[0], "name": v[1], "category": v[3], "city": v[4],
+                    "bio": v[6], "image_url": v[7], "latitude": v_lat, "longitude": v_lon,
+                    "is_online": v[10], "distance": round(dist, 1)
+                })
+        vendors.sort(key=lambda x: x["distance"])
+        conn.close()
+
+    return jsonify({'success': True, 'vendors': vendors, 'location_name': location_name})
+
+@app.route('/api/v1/set-location', methods=["POST"])
+@token_required
+def api_set_location(current_user, user_type):
+    data = request.get_json() or {}
+    lat = data.get('lat')
+    lon = data.get('lon')
+
+    if lat is None or lon is None:
+        return jsonify({'success': False, 'error': 'lat and lon required'}), 400
+
+    import urllib.request
+    location_name = "Your location"
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
+        req = urllib.request.Request(url, headers={"User-Agent": "FurrButler/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            geo_data = json.loads(resp.read().decode())
+            addr = geo_data.get("address", {})
+            location_name = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("suburb") or addr.get("county") or "Your location"
+    except Exception:
+        pass
+
+    user_data = db.get(f"user:{current_user}", {})
+    user_data['location'] = {"lat": lat, "lon": lon, "name": location_name}
+    db[f"user:{current_user}"] = user_data
+
+    return jsonify({'success': True, 'location_name': location_name})
+
+@app.route('/api/v1/languages')
+def api_languages():
+    languages = get_supported_languages()
+    return jsonify({'success': True, 'languages': languages})
 
 # Run app
 if __name__ == '__main__':
