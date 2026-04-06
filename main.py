@@ -1041,6 +1041,11 @@ def init_erp_db():
         )
     ''')
 
+    try:
+        c.execute("ALTER TABLE crm_customers ADD COLUMN marketing_opt_out INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS crm_pets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13416,6 +13421,13 @@ def add_interaction():
             return redirect(url_for("crm_interactions"))
 
         vendor_id = vendor_result[0]
+        customer_id = request.form.get("customer_id")
+
+        c.execute("SELECT id FROM crm_customers WHERE id = ? AND vendor_id = ?", (customer_id, vendor_id))
+        if not c.fetchone():
+            conn.close()
+            flash("Invalid customer selected")
+            return redirect(url_for("crm_interactions"))
 
         # Insert interaction
         c.execute("""
@@ -13423,7 +13435,7 @@ def add_interaction():
             (customer_id, vendor_id, interaction_type, direction, subject, description, 
              outcome, follow_up_required, follow_up_date, duration_minutes, created_by)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (request.form.get("customer_id"), vendor_id, request.form.get("interaction_type"),
+        """, (customer_id, vendor_id, request.form.get("interaction_type"),
               request.form.get("direction"), request.form.get("subject"), 
               request.form.get("description"), request.form.get("outcome"),
               1 if request.form.get("follow_up_required") else 0,
@@ -13434,7 +13446,7 @@ def add_interaction():
             UPDATE crm_customers 
             SET last_contact_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (request.form.get("customer_id"),))
+        """, (customer_id,))
 
         conn.commit()
         conn.close()
@@ -13537,6 +13549,583 @@ def sync_existing_customers():
     conn.close()
 
     return {"success": True, "synced_count": synced_count}
+
+@app.route('/erp/crm/tasks')
+def crm_tasks():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("crm_tasks.html", tasks=[], customers=[], stats={
+            'pending': 0, 'in_progress': 0, 'overdue': 0, 'completed_this_week': 0
+        }, today='')
+
+    vendor_id = vendor_result[0]
+    from datetime import date as dt_date
+    today = dt_date.today().isoformat()
+
+    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status = 'pending'", (vendor_id,))
+    pending = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status = 'in_progress'", (vendor_id,))
+    in_progress = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status IN ('pending','in_progress') AND due_date < ?", (vendor_id, today))
+    overdue = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM crm_tasks WHERE vendor_id = ? AND status = 'completed' AND completed_date >= date('now', '-7 days')", (vendor_id,))
+    completed_this_week = c.fetchone()[0] or 0
+
+    stats = {
+        'pending': pending,
+        'in_progress': in_progress,
+        'overdue': overdue,
+        'completed_this_week': completed_this_week
+    }
+
+    c.execute("""
+        SELECT t.*, cc.first_name, cc.last_name
+        FROM crm_tasks t
+        LEFT JOIN crm_customers cc ON t.customer_id = cc.id
+        WHERE t.vendor_id = ?
+        ORDER BY
+            CASE t.status WHEN 'pending' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'completed' THEN 2 ELSE 3 END,
+            CASE t.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+            t.due_date ASC
+    """, (vendor_id,))
+    tasks = c.fetchall()
+
+    c.execute("SELECT id, first_name, last_name, user_email FROM crm_customers WHERE vendor_id = ? ORDER BY first_name", (vendor_id,))
+    customers = c.fetchall()
+
+    conn.close()
+    return render_template("crm_tasks.html", tasks=tasks, customers=customers, stats=stats, today=today)
+
+
+@app.route('/erp/crm/tasks/add', methods=["POST"])
+def add_crm_task():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("crm_tasks"))
+
+    vendor_id = vendor_result[0]
+    customer_id = request.form.get("customer_id") or None
+
+    if customer_id:
+        c.execute("SELECT id FROM crm_customers WHERE id = ? AND vendor_id = ?", (customer_id, vendor_id))
+        if not c.fetchone():
+            conn.close()
+            flash("Invalid customer selected")
+            return redirect(url_for("crm_tasks"))
+
+    c.execute("""
+        INSERT INTO crm_tasks (vendor_id, customer_id, task_type, title, description, priority, due_date, assigned_to)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (vendor_id, customer_id, request.form.get("task_type"), request.form.get("title"),
+          request.form.get("description"), request.form.get("priority", "medium"),
+          request.form.get("due_date") or None, email))
+
+    conn.commit()
+    conn.close()
+    flash("Task created successfully!")
+    return redirect(url_for("crm_tasks"))
+
+
+@app.route('/erp/crm/tasks/<int:task_id>/update', methods=["POST"])
+def update_crm_task(task_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("crm_tasks"))
+
+    vendor_id = vendor_result[0]
+    new_status = request.form.get("status")
+
+    c.execute("SELECT id FROM crm_tasks WHERE id = ? AND vendor_id = ?", (task_id, vendor_id))
+    if not c.fetchone():
+        conn.close()
+        flash("Task not found")
+        return redirect(url_for("crm_tasks"))
+
+    if new_status == 'completed':
+        c.execute("UPDATE crm_tasks SET status = ?, completed_date = CURRENT_TIMESTAMP WHERE id = ?", (new_status, task_id))
+    else:
+        c.execute("UPDATE crm_tasks SET status = ? WHERE id = ?", (new_status, task_id))
+
+    conn.commit()
+    conn.close()
+    flash(f"Task updated to {new_status.replace('_', ' ')}!")
+    return redirect(url_for("crm_tasks"))
+
+
+@app.route('/erp/crm/opportunities')
+def crm_opportunities():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        empty_pipeline = {s: [] for s in ['prospecting', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']}
+        return render_template("crm_opportunities.html", pipeline=empty_pipeline, customers=[], summary={
+            'total_open': 0, 'total_pipeline_value': 0, 'weighted_value': 0, 'won_count': 0, 'won_value': 0
+        })
+
+    vendor_id = vendor_result[0]
+
+    c.execute("""
+        SELECT o.*, cc.first_name, cc.last_name
+        FROM crm_opportunities o
+        JOIN crm_customers cc ON o.customer_id = cc.id
+        WHERE o.vendor_id = ?
+        ORDER BY o.created_at DESC
+    """, (vendor_id,))
+    opportunities = c.fetchall()
+
+    pipeline = {s: [] for s in ['prospecting', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']}
+    total_open = 0
+    total_pipeline_value = 0
+    weighted_value = 0
+    won_count = 0
+    won_value = 0
+
+    for opp in opportunities:
+        stage = opp[5]
+        opp_data = {
+            'id': opp[0],
+            'customer_id': opp[1],
+            'name': opp[3],
+            'type': opp[4],
+            'stage': opp[5],
+            'probability': opp[6] or 0,
+            'value': opp[7] or 0,
+            'close_date': opp[8],
+            'customer_name': f"{opp[16]} {opp[17] or ''}".strip()
+        }
+        if stage in pipeline:
+            pipeline[stage].append(opp_data)
+
+        if stage not in ('closed_won', 'closed_lost'):
+            total_open += 1
+            total_pipeline_value += opp_data['value']
+            weighted_value += opp_data['value'] * opp_data['probability'] / 100
+        elif stage == 'closed_won':
+            won_count += 1
+            won_value += opp_data['value']
+
+    summary = {
+        'total_open': total_open,
+        'total_pipeline_value': total_pipeline_value,
+        'weighted_value': weighted_value,
+        'won_count': won_count,
+        'won_value': won_value
+    }
+
+    c.execute("SELECT id, first_name, last_name FROM crm_customers WHERE vendor_id = ? ORDER BY first_name", (vendor_id,))
+    customers = c.fetchall()
+
+    conn.close()
+    return render_template("crm_opportunities.html", pipeline=pipeline, customers=customers, summary=summary)
+
+
+@app.route('/erp/crm/opportunities/add', methods=["POST"])
+def add_crm_opportunity():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("crm_opportunities"))
+
+    vendor_id = vendor_result[0]
+    customer_id = request.form.get("customer_id")
+
+    c.execute("SELECT id FROM crm_customers WHERE id = ? AND vendor_id = ?", (customer_id, vendor_id))
+    if not c.fetchone():
+        conn.close()
+        flash("Invalid customer selected")
+        return redirect(url_for("crm_opportunities"))
+
+    c.execute("""
+        INSERT INTO crm_opportunities (customer_id, vendor_id, opportunity_name, opportunity_type, stage,
+            probability, expected_value, expected_close_date, description, assigned_to)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (customer_id, vendor_id, request.form.get("opportunity_name"),
+          request.form.get("opportunity_type"), request.form.get("stage", "prospecting"),
+          request.form.get("probability", 10), request.form.get("expected_value") or None,
+          request.form.get("expected_close_date") or None, request.form.get("description"), email))
+
+    conn.commit()
+    conn.close()
+    flash("Opportunity created successfully!")
+    return redirect(url_for("crm_opportunities"))
+
+
+@app.route('/erp/crm/opportunities/<int:opp_id>/stage', methods=["POST"])
+def update_opportunity_stage(opp_id):
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("crm_opportunities"))
+
+    vendor_id = vendor_result[0]
+
+    c.execute("SELECT stage FROM crm_opportunities WHERE id = ? AND vendor_id = ?", (opp_id, vendor_id))
+    opp = c.fetchone()
+    if not opp:
+        conn.close()
+        flash("Opportunity not found")
+        return redirect(url_for("crm_opportunities"))
+
+    direction = request.form.get("direction")
+    stages_order = ['prospecting', 'qualified', 'proposal', 'negotiation']
+    current_stage = opp[0]
+
+    if direction == 'won':
+        new_stage = 'closed_won'
+        c.execute("UPDATE crm_opportunities SET stage = ?, actual_close_date = CURRENT_TIMESTAMP, probability = 100, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_stage, opp_id))
+    elif direction == 'lost':
+        new_stage = 'closed_lost'
+        c.execute("UPDATE crm_opportunities SET stage = ?, actual_close_date = CURRENT_TIMESTAMP, probability = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_stage, opp_id))
+    elif direction == 'forward' and current_stage in stages_order:
+        idx = stages_order.index(current_stage)
+        if idx < len(stages_order) - 1:
+            new_stage = stages_order[idx + 1]
+            prob_map = {'prospecting': 10, 'qualified': 30, 'proposal': 50, 'negotiation': 75}
+            c.execute("UPDATE crm_opportunities SET stage = ?, probability = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_stage, prob_map.get(new_stage, 10), opp_id))
+    elif direction == 'back' and current_stage in stages_order:
+        idx = stages_order.index(current_stage)
+        if idx > 0:
+            new_stage = stages_order[idx - 1]
+            prob_map = {'prospecting': 10, 'qualified': 30, 'proposal': 50, 'negotiation': 75}
+            c.execute("UPDATE crm_opportunities SET stage = ?, probability = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_stage, prob_map.get(new_stage, 10), opp_id))
+
+    conn.commit()
+    conn.close()
+    flash("Opportunity stage updated!")
+    return redirect(url_for("crm_opportunities"))
+
+
+@app.route('/erp/crm/promotions')
+def crm_promotions():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("crm_promotions.html", campaigns=[], stats={
+            'total_campaigns': 0, 'active_campaigns': 0, 'total_recipients': 0, 'opted_out': 0
+        }, eligible_count=0)
+
+    vendor_id = vendor_result[0]
+
+    c.execute("SELECT COUNT(*) FROM crm_campaigns WHERE vendor_id = ?", (vendor_id,))
+    total_campaigns = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_campaigns WHERE vendor_id = ? AND status = 'active'", (vendor_id,))
+    active_campaigns = c.fetchone()[0] or 0
+
+    c.execute("""SELECT COUNT(*) FROM crm_campaign_members cm
+        JOIN crm_campaigns cc ON cm.campaign_id = cc.id
+        WHERE cc.vendor_id = ?""", (vendor_id,))
+    total_recipients = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id = ? AND marketing_opt_out = 1", (vendor_id,))
+    opted_out = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM crm_customers WHERE vendor_id = ? AND (marketing_opt_out IS NULL OR marketing_opt_out = 0) AND user_email IS NOT NULL AND user_email != ''", (vendor_id,))
+    eligible_count = c.fetchone()[0] or 0
+
+    stats = {
+        'total_campaigns': total_campaigns,
+        'active_campaigns': active_campaigns,
+        'total_recipients': total_recipients,
+        'opted_out': opted_out
+    }
+
+    c.execute("SELECT * FROM crm_campaigns WHERE vendor_id = ? ORDER BY created_at DESC", (vendor_id,))
+    campaigns = c.fetchall()
+
+    conn.close()
+    return render_template("crm_promotions.html", campaigns=campaigns, stats=stats, eligible_count=eligible_count)
+
+
+@app.route('/erp/crm/promotions/send', methods=["POST"])
+def send_crm_promotion():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id, name FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("crm_promotions"))
+
+    vendor_id = vendor_result[0]
+    vendor_name = vendor_result[1]
+
+    campaign_name = request.form.get("campaign_name")
+    campaign_type = request.form.get("campaign_type", "promotional")
+    target_audience = request.form.get("target_audience", "all")
+    message_text = request.form.get("message_text")
+    description = request.form.get("description")
+
+    c.execute("""
+        INSERT INTO crm_campaigns (vendor_id, campaign_name, campaign_type, description, start_date, target_audience, status)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 'active')
+    """, (vendor_id, campaign_name, campaign_type, description, target_audience))
+    campaign_id = c.lastrowid
+
+    audience_filter = "AND (marketing_opt_out IS NULL OR marketing_opt_out = 0) AND user_email IS NOT NULL AND user_email != ''"
+    if target_audience == 'active':
+        audience_filter += " AND customer_status = 'active'"
+    elif target_audience == 'inactive':
+        audience_filter += " AND customer_status = 'inactive'"
+    elif target_audience == 'vip':
+        audience_filter += " AND lifecycle_stage = 'vip'"
+    elif target_audience == 'new':
+        audience_filter += " AND lifecycle_stage = 'new'"
+    elif target_audience == 'leads':
+        audience_filter += " AND lifecycle_stage = 'lead'"
+
+    c.execute(f"SELECT id, user_email FROM crm_customers WHERE vendor_id = ? {audience_filter}", (vendor_id,))
+    eligible_customers = c.fetchall()
+
+    sent_count = 0
+    for cust in eligible_customers:
+        customer_id = cust[0]
+        customer_email = cust[1]
+
+        c.execute("INSERT INTO crm_campaign_members (campaign_id, customer_id, status, sent_date) VALUES (?, ?, 'sent', CURRENT_TIMESTAMP)", (campaign_id, customer_id))
+
+        c.execute("SELECT id FROM chat_conversations WHERE vendor_id = ? AND user_email = ?", (vendor_id, customer_email))
+        conv = c.fetchone()
+
+        if conv:
+            conv_id = conv[0]
+        else:
+            c.execute("INSERT INTO chat_conversations (vendor_id, user_email) VALUES (?, ?)", (vendor_id, customer_email))
+            conv_id = c.lastrowid
+
+        c.execute("""
+            INSERT INTO chat_messages (conversation_id, sender_type, sender_id, message_text, message_type)
+            VALUES (?, 'vendor', ?, ?, 'text')
+        """, (conv_id, email, f"[Promotion: {campaign_name}]\n{message_text}"))
+
+        c.execute("UPDATE chat_conversations SET last_message_time = CURRENT_TIMESTAMP, user_unread_count = user_unread_count + 1 WHERE id = ?", (conv_id,))
+        sent_count += 1
+
+    c.execute("UPDATE crm_campaigns SET status = 'completed', end_date = CURRENT_TIMESTAMP WHERE id = ?", (campaign_id,))
+
+    conn.commit()
+    conn.close()
+    flash(f"Promotion sent to {sent_count} customers via in-app chat!")
+    return redirect(url_for("crm_promotions"))
+
+
+@app.route('/erp/messages')
+def erp_messages():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return render_template("erp_messages.html", conversations=[], active_conversation=None, messages=[])
+
+    vendor_id = vendor_result[0]
+
+    c.execute("""
+        SELECT cc.id, cc.user_email, cc.last_message_time, cc.vendor_unread_count, cc.user_unread_count,
+               (SELECT message_text FROM chat_messages WHERE conversation_id = cc.id ORDER BY timestamp DESC LIMIT 1) as last_message,
+               crm.first_name, crm.last_name, crm.id as crm_id
+        FROM chat_conversations cc
+        LEFT JOIN crm_customers crm ON cc.user_email = crm.user_email AND crm.vendor_id = cc.vendor_id
+        WHERE cc.vendor_id = ?
+        ORDER BY cc.last_message_time DESC
+    """, (vendor_id,))
+    conv_rows = c.fetchall()
+
+    conversations = []
+    for row in conv_rows:
+        customer_name = f"{row[6]} {row[7] or ''}".strip() if row[6] else None
+        conversations.append({
+            'id': row[0],
+            'user_email': row[1],
+            'last_message_time': row[2],
+            'vendor_unread_count': row[3],
+            'user_unread_count': row[4],
+            'last_message': row[5],
+            'customer_name': customer_name,
+            'crm_customer_id': row[8]
+        })
+
+    active_conversation = None
+    messages = []
+    conv_id = request.args.get("conv_id")
+
+    if conv_id:
+        c.execute("SELECT id, user_email, vendor_unread_count FROM chat_conversations WHERE id = ? AND vendor_id = ?", (conv_id, vendor_id))
+        active_conv = c.fetchone()
+        if active_conv:
+            c.execute("SELECT crm.first_name, crm.last_name, crm.id FROM crm_customers crm WHERE crm.user_email = ? AND crm.vendor_id = ?", (active_conv[1], vendor_id))
+            crm_row = c.fetchone()
+
+            active_conversation = {
+                'id': active_conv[0],
+                'user_email': active_conv[1],
+                'customer_name': f"{crm_row[0]} {crm_row[1] or ''}".strip() if crm_row else None,
+                'crm_customer_id': crm_row[2] if crm_row else None
+            }
+
+            c.execute("SELECT * FROM chat_messages WHERE conversation_id = ? ORDER BY timestamp ASC", (conv_id,))
+            messages = c.fetchall()
+
+            if active_conv[2] > 0:
+                c.execute("UPDATE chat_conversations SET vendor_unread_count = 0 WHERE id = ?", (conv_id,))
+                c.execute("UPDATE chat_messages SET is_read = 1 WHERE conversation_id = ? AND sender_type = 'user'", (conv_id,))
+                conn.commit()
+
+    conn.close()
+    return render_template("erp_messages.html", conversations=conversations, active_conversation=active_conversation, messages=messages)
+
+
+@app.route('/erp/messages/new', methods=["POST"])
+def erp_new_message():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        flash("Vendor not found")
+        return redirect(url_for("erp_messages"))
+
+    vendor_id = vendor_result[0]
+    customer_email = request.form.get("customer_email")
+    message_text = request.form.get("message_text")
+
+    c.execute("SELECT id FROM chat_conversations WHERE vendor_id = ? AND user_email = ?", (vendor_id, customer_email))
+    existing = c.fetchone()
+
+    if existing:
+        conv_id = existing[0]
+    else:
+        c.execute("INSERT INTO chat_conversations (vendor_id, user_email) VALUES (?, ?)", (vendor_id, customer_email))
+        conv_id = c.lastrowid
+
+    c.execute("""
+        INSERT INTO chat_messages (conversation_id, sender_type, sender_id, message_text)
+        VALUES (?, 'vendor', ?, ?)
+    """, (conv_id, email, message_text))
+
+    c.execute("UPDATE chat_conversations SET last_message_time = CURRENT_TIMESTAMP, user_unread_count = user_unread_count + 1 WHERE id = ?", (conv_id,))
+
+    conn.commit()
+    conn.close()
+    flash("Message sent!")
+    return redirect(url_for("erp_messages", conv_id=conv_id))
+
+
+@app.route('/erp/messages/send', methods=["POST"])
+def erp_send_message():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_messages"))
+
+    vendor_id = vendor_result[0]
+    conv_id = request.form.get("conversation_id")
+    message_text = request.form.get("message_text")
+
+    c.execute("SELECT id FROM chat_conversations WHERE id = ? AND vendor_id = ?", (conv_id, vendor_id))
+    if not c.fetchone():
+        conn.close()
+        flash("Conversation not found")
+        return redirect(url_for("erp_messages"))
+
+    c.execute("""
+        INSERT INTO chat_messages (conversation_id, sender_type, sender_id, message_text)
+        VALUES (?, 'vendor', ?, ?)
+    """, (conv_id, email, message_text))
+
+    c.execute("UPDATE chat_conversations SET last_message_time = CURRENT_TIMESTAMP, user_unread_count = user_unread_count + 1 WHERE id = ?", (conv_id,))
+
+    conn.commit()
+    conn.close()
+    return redirect(url_for("erp_messages", conv_id=conv_id))
+
 
 @app.route('/ngo/register-stray', methods=["GET", "POST"])
 def register_stray():

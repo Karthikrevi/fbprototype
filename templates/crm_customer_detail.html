@@ -118,13 +118,23 @@
       background: linear-gradient(45deg, #667eea, #764ba2);
       border: none;
     }
+    .inline-form-container {
+      background: #f0f2ff;
+      border: 2px solid #667eea;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 15px;
+      display: none;
+    }
+    .inline-form-container.show {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <a href="/erp/crm/customers" class="back-btn">← Back to Customers</a>
+    <a href="/erp/crm/customers" class="back-btn">&larr; Back to Customers</a>
 
-    <!-- Customer Profile Header -->
     <div class="profile-header">
       <div class="row">
         <div class="col-md-2">
@@ -148,18 +158,18 @@
             {% endif %}
           </p>
           <div class="mt-3">
-            <span class="status-badge status-{{ customer[12] }}">{{ customer[12] }}</span>
-            <span class="lifecycle-badge lifecycle-{{ customer[13] }} ms-2">{{ customer[13].replace('_', ' ').title() }}</span>
+            <span class="status-badge status-{{ customer[15] }}">{{ customer[15] }}</span>
+            <span class="lifecycle-badge lifecycle-{{ customer[16] }} ms-2">{{ customer[16].replace('_', ' ').title() }}</span>
           </div>
         </div>
         <div class="col-md-4">
           <div class="stats-row">
             <div class="stat-item">
-              <div class="stat-value">{{ vendor_currency }}{{ "%.0f"|format(customer[18] or 0) }}</div>
+              <div class="stat-value">{{ vendor_currency }}{{ "%.0f"|format(customer[22] or 0) }}</div>
               <div class="stat-label">Total Spent</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">{{ customer[19] or 0 }}</div>
+              <div class="stat-value">{{ customer[23] or 0 }}</div>
               <div class="stat-label">Orders</div>
             </div>
             <div class="stat-item">
@@ -167,20 +177,23 @@
               <div class="stat-label">Pets</div>
             </div>
           </div>
+          <div class="mt-3 text-end">
+            <a href="/erp/messages?customer_email={{ customer[3] }}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-envelope"></i> Message This Customer
+            </a>
+          </div>
         </div>
       </div>
       
-      {% if customer[17] %}
+      {% if customer[18] %}
         <div class="mt-3">
-          <strong>Notes:</strong> {{ customer[17] }}
+          <strong>Notes:</strong> {{ customer[18] }}
         </div>
       {% endif %}
     </div>
 
     <div class="row">
-      <!-- Left Column -->
       <div class="col-md-6">
-        <!-- Pet Information -->
         <div class="content-section">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="fas fa-paw"></i> Pet Information</h5>
@@ -225,7 +238,6 @@
           {% endif %}
         </div>
 
-        <!-- Purchase History -->
         <div class="content-section">
           <h5><i class="fas fa-shopping-cart"></i> Purchase History</h5>
           
@@ -252,15 +264,83 @@
         </div>
       </div>
 
-      <!-- Right Column -->
       <div class="col-md-6">
-        <!-- Interaction History -->
         <div class="content-section">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="fas fa-comments"></i> Interaction History</h5>
-            <a href="/erp/crm/interaction/add?customer_id={{ customer[0] }}" class="btn btn-primary btn-sm">
+            <button class="btn btn-primary btn-sm" onclick="toggleInlineForm()">
               <i class="fas fa-plus"></i> Add Interaction
-            </a>
+            </button>
+          </div>
+
+          <div class="inline-form-container" id="inlineInteractionForm">
+            <h6 class="mb-3"><i class="fas fa-plus-circle"></i> Log New Interaction</h6>
+            <form method="POST" action="/erp/crm/interaction/add">
+              <input type="hidden" name="customer_id" value="{{ customer[0] }}">
+              <div class="row mb-2">
+                <div class="col-md-6">
+                  <label class="form-label">Type</label>
+                  <select class="form-select form-select-sm" name="interaction_type" required>
+                    <option value="call">Phone Call</option>
+                    <option value="email">Email</option>
+                    <option value="sms">SMS</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="in_person">In-Person</option>
+                    <option value="website">Website</option>
+                    <option value="social_media">Social Media</option>
+                    <option value="chat">Chat</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Direction</label>
+                  <select class="form-select form-select-sm" name="direction" required>
+                    <option value="outbound">Outbound</option>
+                    <option value="inbound">Inbound</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Subject</label>
+                <input type="text" class="form-control form-control-sm" name="subject" placeholder="Brief subject...">
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Description</label>
+                <textarea class="form-control form-control-sm" name="description" rows="2" placeholder="Details of the interaction..."></textarea>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-6">
+                  <label class="form-label">Outcome</label>
+                  <select class="form-select form-select-sm" name="outcome">
+                    <option value="">Select Outcome</option>
+                    <option value="successful">Successful</option>
+                    <option value="partial">Partial</option>
+                    <option value="need_follow_up">Need Follow-up</option>
+                    <option value="no_response">No Response</option>
+                    <option value="not_interested">Not Interested</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Duration (mins)</label>
+                  <input type="number" class="form-control form-control-sm" name="duration_minutes" min="0" placeholder="0">
+                </div>
+              </div>
+              <div class="mb-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="follow_up_required" id="followUpCheck" onchange="toggleFollowUpDate()">
+                  <label class="form-check-label" for="followUpCheck">Follow-up Required</label>
+                </div>
+              </div>
+              <div class="mb-3" id="followUpDateContainer" style="display:none;">
+                <label class="form-label">Follow-up Date</label>
+                <input type="date" class="form-control form-control-sm" name="follow_up_date">
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <i class="fas fa-save"></i> Log Interaction
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleInlineForm()">Cancel</button>
+              </div>
+            </form>
           </div>
           
           {% if interactions %}
@@ -271,7 +351,7 @@
                     <span class="badge bg-primary">{{ interaction[3].replace('_', ' ').title() }}</span>
                     <span class="badge bg-secondary ms-1">{{ interaction[4].title() }}</span>
                   </div>
-                  <small class="text-muted">{{ interaction[11][:16] }}</small>
+                  <small class="text-muted">{{ interaction[12][:16] }}</small>
                 </div>
                 
                 {% if interaction[5] %}
@@ -298,12 +378,11 @@
           {% else %}
             <div class="alert alert-info">
               <i class="fas fa-info-circle"></i> No interactions recorded yet.
-              <a href="/erp/crm/interaction/add?customer_id={{ customer[0] }}" class="btn btn-primary btn-sm ms-2">Add First Interaction</a>
+              <button class="btn btn-primary btn-sm ms-2" onclick="toggleInlineForm()">Add First Interaction</button>
             </div>
           {% endif %}
         </div>
 
-        <!-- Opportunities -->
         <div class="content-section">
           <h5><i class="fas fa-bullseye"></i> Opportunities</h5>
           
@@ -336,5 +415,16 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleInlineForm() {
+      var form = document.getElementById('inlineInteractionForm');
+      form.classList.toggle('show');
+    }
+    function toggleFollowUpDate() {
+      var container = document.getElementById('followUpDateContainer');
+      var checkbox = document.getElementById('followUpCheck');
+      container.style.display = checkbox.checked ? 'block' : 'none';
+    }
+  </script>
 </body>
 </html>

@@ -100,7 +100,7 @@
 </head>
 <body>
   <div class="container">
-    <a href="/erp/crm" class="back-btn">← Back to CRM Dashboard</a>
+    <a href="/erp/crm" class="back-btn">&larr; Back to CRM Dashboard</a>
 
     <div class="header">
       <div class="d-flex justify-content-between align-items-center">
@@ -142,13 +142,13 @@
         </div>
 
         {% for data in offline_data %}
-          <div class="data-card" data-priority="{{ data[12] }}" data-status="{{ data[13] }}">
+          <div class="data-card" data-priority="{{ data[14] }}" data-status="{{ data[15] }}">
             <div class="row">
               <div class="col-md-8">
                 <div class="d-flex align-items-center mb-2">
                   <h5 class="mb-0 me-3">{{ data[3] }} {{ data[4] or '' }}</h5>
-                  <span class="priority-badge priority-{{ data[12] }}">{{ data[12] }} priority</span>
-                  <span class="status-badge status-{{ data[13] }} ms-2">{{ data[13] }}</span>
+                  <span class="priority-badge priority-{{ data[14] }}">{{ data[14] }} priority</span>
+                  <span class="status-badge status-{{ data[15] }} ms-2">{{ data[15] }}</span>
                 </div>
                 
                 <div class="row mb-2">
@@ -191,27 +191,27 @@
 
                 <div class="mt-2">
                   <small class="text-muted">
-                    <i class="fas fa-calendar"></i> Collected: {{ data[16][:10] }} | 
-                    <i class="fas fa-user"></i> Method: {{ data[13].replace('_', ' ').title() }} | 
+                    <i class="fas fa-calendar"></i> Collected: {{ data[18][:10] if data[18] else 'Unknown' }} | 
+                    <i class="fas fa-user"></i> Method: {{ data[13].replace('_', ' ').title() if data[13] else 'Unknown' }} | 
                     <i class="fas fa-user-tie"></i> By: {{ data[2] }}
                   </small>
                 </div>
               </div>
               
               <div class="col-md-4 text-end">
-                {% if data[13] == 'pending' and data[6] %}
+                {% if data[15] == 'pending' and data[6] %}
                   <button class="invite-btn" onclick="inviteCustomer({{ data[0] }}, '{{ data[3] }} {{ data[4] or '' }}')">
                     <i class="fas fa-paper-plane"></i> Send Invitation
                   </button>
-                {% elif data[13] == 'invited' %}
+                {% elif data[15] == 'invited' %}
                   <div class="text-muted">
                     <i class="fas fa-clock"></i> Invited on<br>
-                    {{ data[14][:10] if data[14] else 'Unknown' }}
+                    {{ data[16][:10] if data[16] else 'Unknown' }}
                   </div>
-                {% elif data[13] == 'joined' %}
+                {% elif data[15] == 'joined' %}
                   <div class="text-success">
                     <i class="fas fa-check-circle"></i> Joined on<br>
-                    {{ data[15][:10] if data[15] else 'Unknown' }}
+                    {{ data[17][:10] if data[17] else 'Unknown' }}
                   </div>
                 {% endif %}
               </div>
@@ -231,53 +231,32 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Search functionality
     document.getElementById('searchData').addEventListener('keyup', function() {
       const searchTerm = this.value.toLowerCase();
-      const dataCards = document.querySelectorAll('.data-card');
-      
-      dataCards.forEach(card => {
-        const text = card.textContent.toLowerCase();
-        card.style.display = text.includes(searchTerm) ? 'block' : 'none';
+      document.querySelectorAll('.data-card').forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(searchTerm) ? 'block' : 'none';
       });
     });
 
-    // Filter by priority
     document.getElementById('filterPriority').addEventListener('change', function() {
       const priority = this.value;
-      const dataCards = document.querySelectorAll('.data-card');
-      
-      dataCards.forEach(card => {
-        if (!priority || card.dataset.priority === priority) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
+      document.querySelectorAll('.data-card').forEach(card => {
+        card.style.display = (!priority || card.dataset.priority === priority) ? 'block' : 'none';
       });
     });
 
-    // Filter by status
     document.getElementById('filterStatus').addEventListener('change', function() {
       const status = this.value;
-      const dataCards = document.querySelectorAll('.data-card');
-      
-      dataCards.forEach(card => {
-        if (!status || card.dataset.status === status) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
+      document.querySelectorAll('.data-card').forEach(card => {
+        card.style.display = (!status || card.dataset.status === status) ? 'block' : 'none';
       });
     });
 
-    // Invite customer function
     function inviteCustomer(dataId, customerName) {
       if (confirm(`Send invitation to ${customerName} to join your platform?`)) {
         fetch(`/erp/crm/offline-data/invite/${dataId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' }
         })
         .then(response => response.json())
         .then(data => {

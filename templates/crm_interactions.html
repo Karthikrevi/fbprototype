@@ -98,7 +98,7 @@
 </head>
 <body>
   <div class="container">
-    <a href="/erp/crm" class="back-btn">← Back to CRM Dashboard</a>
+    <a href="/erp/crm" class="back-btn">&larr; Back to CRM Dashboard</a>
 
     <div class="header">
       <div class="d-flex justify-content-between align-items-center">
@@ -113,7 +113,6 @@
     </div>
 
     <div class="content-section">
-      <!-- Search and Filter -->
       <div class="row mb-4">
         <div class="col-md-4">
           <input type="text" class="form-control" id="searchInteractions" placeholder="Search interactions...">
@@ -148,11 +147,10 @@
         </div>
       </div>
 
-      <!-- Interactions List -->
       <div id="interactionsList">
         {% if interactions %}
           {% for interaction in interactions %}
-            <div class="interaction-card" data-type="{{ interaction[3] }}" data-direction="{{ interaction[4] }}" data-customer-type="{{ interaction[14] }}">
+            <div class="interaction-card" data-type="{{ interaction[3] }}" data-direction="{{ interaction[4] }}" data-customer-type="{{ interaction[17] }}">
               <div class="row">
                 <div class="col-md-8">
                   <div class="d-flex align-items-center mb-2">
@@ -165,7 +163,7 @@
                   
                   <h6>
                     <a href="/erp/crm/customer/{{ interaction[1] }}" style="text-decoration: none;">
-                      {{ interaction[12] }} {{ interaction[13] or '' }}
+                      {{ interaction[15] }} {{ interaction[16] or '' }}
                     </a>
                     {% if interaction[5] %}
                       - {{ interaction[5] }}
@@ -178,7 +176,7 @@
                   
                   <div class="mb-2">
                     <small class="text-muted">
-                      <i class="fas fa-user"></i> {{ interaction[14].title() }} Customer | 
+                      <i class="fas fa-user"></i> {{ interaction[17].title() }} Customer | 
                       <i class="fas fa-user-tie"></i> By: {{ interaction[11] }}
                       {% if interaction[10] %}
                         | <i class="fas fa-clock"></i> {{ interaction[10] }} minutes
@@ -197,7 +195,7 @@
                 
                 <div class="col-md-4 text-end">
                   <div class="mb-2">
-                    <small class="text-muted">{{ interaction[11][:16] }}</small>
+                    <small class="text-muted">{{ interaction[12][:16] }}</small>
                   </div>
                   <div>
                     <a href="/erp/crm/customer/{{ interaction[1] }}" class="btn btn-outline-primary btn-sm">
@@ -222,56 +220,31 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Search functionality
     document.getElementById('searchInteractions').addEventListener('keyup', function() {
       const searchTerm = this.value.toLowerCase();
-      const interactions = document.querySelectorAll('.interaction-card');
-      
-      interactions.forEach(interaction => {
-        const text = interaction.textContent.toLowerCase();
-        interaction.style.display = text.includes(searchTerm) ? 'block' : 'none';
+      document.querySelectorAll('.interaction-card').forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(searchTerm) ? 'block' : 'none';
       });
     });
 
-    // Filter by type
     document.getElementById('filterType').addEventListener('change', function() {
       const type = this.value;
-      const interactions = document.querySelectorAll('.interaction-card');
-      
-      interactions.forEach(interaction => {
-        if (!type || interaction.dataset.type === type) {
-          interaction.style.display = 'block';
-        } else {
-          interaction.style.display = 'none';
-        }
+      document.querySelectorAll('.interaction-card').forEach(card => {
+        card.style.display = (!type || card.dataset.type === type) ? 'block' : 'none';
       });
     });
 
-    // Filter by direction
     document.getElementById('filterDirection').addEventListener('change', function() {
       const direction = this.value;
-      const interactions = document.querySelectorAll('.interaction-card');
-      
-      interactions.forEach(interaction => {
-        if (!direction || interaction.dataset.direction === direction) {
-          interaction.style.display = 'block';
-        } else {
-          interaction.style.display = 'none';
-        }
+      document.querySelectorAll('.interaction-card').forEach(card => {
+        card.style.display = (!direction || card.dataset.direction === direction) ? 'block' : 'none';
       });
     });
 
-    // Filter by customer type
     document.getElementById('filterCustomerType').addEventListener('change', function() {
       const customerType = this.value;
-      const interactions = document.querySelectorAll('.interaction-card');
-      
-      interactions.forEach(interaction => {
-        if (!customerType || interaction.dataset.customerType === customerType) {
-          interaction.style.display = 'block';
-        } else {
-          interaction.style.display = 'none';
-        }
+      document.querySelectorAll('.interaction-card').forEach(card => {
+        card.style.display = (!customerType || card.dataset.customerType === customerType) ? 'block' : 'none';
       });
     });
   </script>

@@ -1,0 +1,270 @@
+In main.py and CRM templates only,
+make these fixes and improvements.
+Do not modify any other routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After any template changes verify the
+file exists and has correct content.
+
+PART 1 — Fix duplicate HTML:
+
+In crm_dashboard.html:
+Find the second <!DOCTYPE html> tag
+Delete everything from that point
+to the end of the file
+Keep only the modern gradient version
+
+In crm_customers.html:
+Same — delete the second HTML document
+Keep only the modern card view version
+
+In add_crm_customer.html:
+Same — delete the second HTML document
+Keep only the comprehensive form with
+pet information section
+
+PART 2 — Fix column indices:
+
+In crm_customers.html replace all
+column index references:
+
+Replace customer[12] with customer[15]
+Replace customer[13] with customer[16]
+Replace customer[18] with customer[22]
+Replace customer[21] with customer[28]
+Replace customer[22] with customer[29]
+Replace customer[23] with customer[30]
+
+In crm_customer_detail.html replace:
+Replace customer[12] with customer[15]
+Replace customer[13] with customer[16]
+Replace customer[18] with customer[22]
+Replace customer[19] with customer[23]
+
+In crm_interactions.html replace:
+Replace interaction[11] used as timestamp
+with interaction[12]
+Replace interaction[12] used as first_name
+with interaction[15]
+Replace interaction[13] used as last_name
+with interaction[16]
+Replace interaction[14] used as customer_type
+with interaction[17]
+
+In crm_offline_data.html replace:
+Replace data[12] used as priority
+with data[14]
+Replace data[13] used as status
+with data[15]
+Replace data[14] used as invited_date
+with data[16]
+Replace data[15] used as joined_date
+with data[17]
+Replace data[16] used as collection_date
+with data[18]
+
+PART 3 — Add Phone to CRM:
+Remove the hardcoded +91-9876543210
+placeholder from add_crm_customer.html
+Primary Phone field
+
+PART 4 — Inline interaction logging:
+
+In crm_customer_detail.html:
+Replace the Add Interaction button
+that navigates away to a new page
+with an inline expandable form
+that appears below the interaction
+history without page reload
+
+The inline form has:
+- interaction_type dropdown
+- direction dropdown
+- subject text input
+- description textarea
+- outcome dropdown
+- follow_up_required checkbox
+- follow_up_date date picker
+  only shown when checkbox is checked
+- Log Interaction submit button
+  POSTs to /erp/crm/interaction/add
+  with customer_id pre-filled
+
+PART 5 — Task creation:
+
+Add route /erp/crm/tasks GET and POST:
+GET: Show tasks page with:
+- Add Task form:
+  customer dropdown
+  task_type dropdown:
+  call/email/meeting/follow_up/demo/quote
+  title text input
+  description textarea
+  priority dropdown: low/medium/high/urgent
+  due_date date picker
+  assigned_to text input
+- All pending tasks sorted by due_date
+  with Complete button per task
+  POSTing to /erp/crm/tasks/<id>/complete
+
+POST: Save to crm_tasks table
+Redirect back to tasks page
+
+Add Tasks button to crm_dashboard.html
+action buttons linking to /erp/crm/tasks
+
+PART 6 — Opportunity pipeline:
+
+Add route /erp/crm/opportunities
+GET and POST:
+
+GET: Show pipeline view grouped by stage:
+Prospecting | Qualified | Proposal |
+Negotiation | Closed Won | Closed Lost
+
+Each stage shows:
+- Count of opportunities
+- Total expected value
+- Opportunity cards with:
+  customer name, opportunity name,
+  expected value, probability %,
+  expected close date
+
+Add Opportunity form with:
+- customer dropdown
+- opportunity_name text
+- opportunity_type text
+- stage dropdown
+- probability 0-100 number
+- expected_value number
+- expected_close_date date picker
+- source text
+- description textarea
+- next_action text
+
+POST: Save to crm_opportunities table
+
+Add Opportunities button to
+crm_dashboard.html action buttons
+
+PART 7 — Promotions via chat:
+
+Add route /erp/crm/promotions
+GET and POST:
+
+GET: Show promotions page with:
+- Create Promotion form:
+  title text input
+  message textarea
+  target_segment dropdown:
+    All Customers
+    Booked in last 30 days
+    Purchased in last 30 days
+    Inactive 90+ days
+    VIP customers
+    New customers this month
+  Preview Recipients button
+  that shows count without sending
+  Send Promotion button
+
+POST: 
+1. Query crm_customers based on
+   selected segment for this vendor
+2. For each customer with user_email:
+   Check if chat_conversation exists
+   between this vendor and customer
+   If not create one
+   Insert promotional message into
+   chat_messages table with
+   sender_type = vendor
+3. Record in crm_campaigns table
+4. Show success with sent count
+
+Add GDPR requirement:
+Only send to customers where
+a previous interaction or booking
+exists — not cold contacts
+Add note: "Promotions are only sent
+to customers who have previously
+interacted with your business"
+
+Add Unsubscribe handling:
+Add marketing_opt_out column to
+crm_customers using ALTER TABLE:
+ALTER TABLE crm_customers
+ADD COLUMN marketing_opt_out
+BOOLEAN DEFAULT 0
+
+Skip customers where
+marketing_opt_out = 1
+
+PART 8 — In-app messaging in vendor ERP:
+
+Add route /erp/messages GET:
+Show vendor messaging dashboard with:
+- List of all conversations for
+  this vendor on left side
+- Each conversation shows:
+  Customer name or email
+  Last message preview
+  Unread count badge
+  Time of last message
+- Click conversation opens message
+  thread on right side
+- Message thread shows all messages
+  with sender name and timestamp
+- Message input at bottom with:
+  Text input field
+  Send button
+  Photo upload button
+  Video upload button
+  File size limit: 10MB
+  Accepted: jpg, png, gif, mp4, mov
+
+Photo and video support:
+Add route /erp/messages/upload POST:
+Accept file upload
+Save to static/uploads/chat/
+Return file URL as JSON
+
+In chat_messages table add columns
+using ALTER TABLE IF NOT EXISTS:
+ALTER TABLE chat_messages
+ADD COLUMN attachment_url TEXT;
+ALTER TABLE chat_messages
+ADD COLUMN attachment_type TEXT;
+
+When message has attachment:
+Show image inline in chat
+Show video with play button
+Show file link for other types
+
+SocketIO real-time:
+When vendor sends message emit to
+customer's room so they see it
+instantly in pet parent app
+
+Add link to messaging from
+CRM customer detail page:
+"Message This Customer" button
+that opens /erp/messages with
+that customer's conversation
+pre-selected
+
+Create template erp_messages.html
+with two-column chat layout:
+Left: conversation list
+Right: message thread
+Purple gradient styling
+Real-time updates via SocketIO
+Back button to /erp/dashboard
+
+Add Messages link to ERP navigation
+or dashboard quick actions
+
+Do not modify any other routes.
+Do not modify any other templates
+except crm_dashboard.html for
+new action buttons.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
