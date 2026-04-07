@@ -283,21 +283,12 @@
             {% for dt in required_doc_types %}
             <div class="doc-item">
               <div class="doc-left">
-                {% if dt in doc_map %}
-                  {% if doc_map[dt][9] == 1 %}
-                  <span class="doc-icon">✅</span>
-                  {% else %}
-                  <span class="doc-icon">📎</span>
-                  {% endif %}
+                {% if dt in doc_map and doc_map[dt][9] == 1 %}
+                <span class="doc-icon">✅</span>
                 {% else %}
                 <span class="doc-icon">❌</span>
                 {% endif %}
-                <div>
-                  <div class="doc-name">{{ dt }}</div>
-                  {% if dt in doc_map %}
-                  <div class="doc-date">Issued: {{ doc_map[dt][6] or '—' }} · Expires: {{ doc_map[dt][7] or '—' }}</div>
-                  {% endif %}
-                </div>
+                <div class="doc-name">{{ dt }}</div>
               </div>
               <div class="doc-actions">
                 {% if dt in doc_map %}
@@ -306,15 +297,14 @@
                   {% elif doc_map[dt][9] == 1 and doc_map[dt]|length > 13 and doc_map[dt][13] == 'handler' %}
                   <span class="badge-status badge-furrvet">✓ Verified by Handler</span>
                   {% else %}
-                  <span class="badge-status badge-missing">⚠ Unverified — Self Uploaded</span>
+                  <span class="badge-status badge-missing">⚠ Unverified</span>
                   {% endif %}
                   {% if doc_map[dt][5] %}
-                  <a href="{{ doc_map[dt][5] }}" target="_blank" class="btn-outline btn-sm"><i class="fas fa-eye"></i></a>
+                  <a href="{{ doc_map[dt][5] }}" target="_blank" class="btn-outline btn-sm"><i class="fas fa-eye"></i> View</a>
                   {% endif %}
                 {% else %}
                 <span class="badge-status badge-missing">Missing</span>
                 <button class="btn-outline btn-sm" onclick="openUploadModal('{{ dt }}')"><i class="fas fa-upload"></i> Upload</button>
-                <div style="width:100%"><small style="color:rgba(255,255,255,.35);font-style:italic;font-size:.7rem">Self-uploaded documents are not verified by FurrButler</small></div>
                 {% endif %}
               </div>
             </div>
