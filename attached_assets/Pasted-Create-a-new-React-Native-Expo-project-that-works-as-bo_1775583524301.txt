@@ -1,0 +1,602 @@
+Create a new React Native + Expo project
+that works as both a mobile app and
+a web app using React Native Web.
+
+Do not modify any Python files.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PROJECT SETUP:
+
+Create the following file structure:
+/mobile/
+  App.js
+  app.json
+  package.json
+  /src/
+    /screens/
+    /components/
+    /navigation/
+    /services/
+    /context/
+    /constants/
+    /utils/
+
+CONSTANTS:
+
+/src/constants/api.js:
+export const API_BASE = 
+  'https://[replit-url].replit.dev/api/v1'
+export const COLORS = {
+  primary: '#667eea',
+  secondary: '#764ba2',
+  success: '#28a745',
+  danger: '#dc3545',
+  warning: '#ffc107',
+  white: '#ffffff',
+  light: '#f8f9fa',
+  dark: '#333333',
+  grey: '#6c757d'
+}
+
+SERVICES:
+
+/src/services/api.js:
+All API calls in one place.
+Functions for every endpoint:
+- auth: login, register, getMe
+- pets: getAll, getOne, create,
+        update, getPassport
+- groomers: search
+- vendors: getProfile, getGroomers,
+           getSlots
+- bookings: getAll, create, review
+- marketplace: search, getVendor
+- orders: getAll, create
+- handlers: getAll, getOne,
+            book, getMyBookings
+- chat: getConversations,
+        getMessages, send, start
+- community: getPosts
+- stray: getAll, getOne
+- location: vets, boarding, set
+- groomer: getProfile
+
+Store JWT token in AsyncStorage.
+Add token to all protected requests
+in Authorization header.
+Handle 401 by clearing token
+and redirecting to login.
+
+/src/context/AuthContext.js:
+React context for authentication state.
+Provides: user, token, login, logout,
+          register, isLoading
+On app start check AsyncStorage for
+existing token and validate with /me
+If valid restore session automatically
+
+/src/context/LocationContext.js:
+React context for user location.
+Provides: location, locationName,
+          requestLocation, setManual
+Uses expo-location for GPS permission
+
+GDPR:
+
+/src/screens/GDPRConsentScreen.js:
+Shown on first launch only.
+Stored in AsyncStorage gdpr_accepted key.
+If already accepted skip this screen.
+
+Full screen white design:
+FurrButler logo at top
+
+Section 1 — What we collect:
+Your name and email for your account
+Your pet information you provide
+Your location when you search nearby
+Your booking and order history
+Chat messages with vendors
+
+Section 2 — How we use it:
+To connect you with pet services
+To show relevant local vendors
+To process your bookings and orders
+We never sell your data to third parties
+
+Section 3 — Your rights:
+You can download your data anytime
+You can delete your account anytime
+You can opt out of marketing anytime
+You can withdraw consent anytime
+
+Required consent — must accept:
+☐ I agree to the Terms of Service
+☐ I agree to the Privacy Policy
+
+Optional consent:
+☐ I agree to receive promotional
+  messages from vendors I book with
+☐ I agree to share anonymous usage
+  data to improve the app
+
+Privacy Policy link opens a modal
+with full privacy policy text.
+Terms of Service link opens a modal
+with full terms text.
+
+Accept & Continue button:
+Only active when both required
+checkboxes are checked.
+Saves consent with timestamp to
+AsyncStorage and to server.
+
+NAVIGATION:
+
+/src/navigation/AppNavigator.js:
+Use React Navigation.
+
+Stack structure:
+If gdpr_accepted not in AsyncStorage:
+  Show GDPRConsentScreen first
+
+If not authenticated:
+  AuthStack:
+    WelcomeScreen
+    LoginScreen
+    RegisterScreen
+
+If authenticated:
+  MainStack with bottom tab navigator:
+    Tab 1: Home (HomeScreen)
+    Tab 2: Discover (DiscoverScreen)
+    Tab 3: Bookings (BookingsScreen)
+    Tab 4: Shop (MarketplaceScreen)
+    Tab 5: Profile (ProfileScreen)
+
+SCREENS:
+
+/src/screens/WelcomeScreen.js:
+Full screen purple gradient background
+FurrButler logo and tagline
+Two buttons:
+  Get Started → RegisterScreen
+  I already have an account → LoginScreen
+Animated entrance — fade in logo
+then slide up buttons
+
+/src/screens/LoginScreen.js:
+Purple gradient header
+White card below
+Email input
+Password input with show/hide toggle
+Login button — calls auth.login API
+Forgot password link (placeholder)
+Register link at bottom
+Show loading spinner during API call
+Show error message if login fails
+
+/src/screens/RegisterScreen.js:
+Purple gradient header
+White card
+First name input
+Last name input
+Email input
+Phone number input
+Password input
+Confirm password input
+Checkbox: Agree to Terms (required)
+Checkbox: Agree to Privacy Policy (required)
+Checkbox: Marketing opt-in (optional)
+Register button
+Login link at bottom
+Validate all fields before submitting
+Show errors inline per field
+
+/src/screens/HomeScreen.js:
+Purple gradient header with:
+  "Hello [first name] 👋"
+  Subtitle: "What does your pet need today?"
+
+Quick action grid (2x3):
+  🐾 Book Grooming → DiscoverScreen
+     with groomer tab active
+  🏠 Boarding → BoardingScreen
+  🐕 Find a Vet → VetsScreen
+  🛍️ Shop → MarketplaceScreen
+  ✈️ Pet Travel → HandlersScreen
+  🗺️ Stray Tracker → StrayScreen
+
+My Pets section:
+  Horizontal scroll of pet cards
+  Each card: pet photo placeholder,
+  name, breed, next appointment
+  + Add Pet card at end
+  Tap pet → PetDetailScreen
+
+Recent Bookings section:
+  Last 3 bookings with status badges
+  View All link → BookingsScreen
+
+Nearby Vendors section:
+  If location available show 3 nearest
+  If not show location permission prompt
+
+/src/screens/PetsScreen.js:
+List of all pets from API
+Each pet card shows:
+  Name, species, breed, age
+  Next appointment if any
+  Pet passport completion %
+Floating + button → AddPetScreen
+
+/src/screens/AddPetScreen.js:
+Form with:
+  Pet name (required)
+  Species dropdown:
+    Dog, Cat, Bird, Rabbit,
+    Fish, Hamster, Reptile, Other
+  Breed text input
+  Date of birth date picker
+  Gender dropdown
+  Blood type input
+  Weight input
+  Colour input
+  Microchip number input
+  Special medical notes textarea
+  Parent name (required)
+  Parent phone (required)
+Save button calls POST /api/v1/pets
+Redirect to PetsScreen on success
+
+/src/screens/PetDetailScreen.js:
+Pet photo placeholder (large)
+Pet name and species badge
+Details grid:
+  Breed, Age, Blood Type,
+  Weight, Gender, Microchip
+Parent contact info
+Booking history for this pet
+Pet passport section:
+  Completion progress bar
+  List of documents
+  View Passport button → PassportScreen
+Edit button → EditPetScreen
+
+/src/screens/EditPetScreen.js:
+Pre-filled form same as AddPetScreen
+Uses PUT /api/v1/pets/<index>
+
+/src/screens/PassportScreen.js:
+Show pet passport documents
+Completion percentage
+List of required documents:
+  Vaccination records
+  Health certificates
+  Microchip records
+  Deworming records
+  Insurance documents
+Each document shows status:
+  verified green tick
+  pending yellow clock
+  missing red cross
+Verification QR code if complete
+
+/src/screens/DiscoverScreen.js:
+Top tab navigator:
+  Tab 1: Groomers
+  Tab 2: Boarding
+  Tab 3: Vets
+
+Each tab has:
+  Location search bar at top
+  GPS button to use current location
+  Results list sorted by distance
+  Distance shown on each card
+
+Groomer card shows:
+  Vendor name and city
+  Distance
+  Rating and review count
+  Services offered as tags
+  Book Now button → BookingScreen
+
+/src/screens/VendorProfileScreen.js:
+Vendor name, category, city
+Rating with star display
+Services list with prices
+If grooming vendor show groomer list:
+  Each groomer with rating
+  Book This Groomer button
+Photos section (placeholder)
+Reviews section
+  Last 5 reviews with stars and text
+Book Now button at bottom
+  Sticky at bottom of screen
+
+/src/screens/GroomerProfileScreen.js:
+Groomer name and photo placeholder
+FurrButler Certified badge if certified
+Groomer of Month badge if applicable
+Rating breakdown:
+  Overall rating stars
+  Service Quality stars
+  Punctuality stars
+  Handling of Pet stars
+Would Book Again percentage
+All reviews with dates
+Book This Groomer button
+  Sticky at bottom
+
+/src/screens/BookingScreen.js:
+Vendor name and service at top
+Service selector if multiple services
+Date picker
+Available time slots grid
+  Green = available
+  Grey = booked
+Pet selector from user's pets
+Employee selector if vendor has groomers
+  Shows groomer name and rating
+Notes input
+Price summary
+Confirm Booking button
+  Calls POST /api/v1/bookings
+Success screen with booking details
+
+/src/screens/BookingsScreen.js:
+Filter tabs: Upcoming / Past / All
+Booking cards showing:
+  Vendor name, service, date, time
+  Status badge with colour:
+    pending yellow
+    confirmed green
+    completed grey
+    cancelled red
+  Pet name
+  Tap → BookingDetailScreen
+
+/src/screens/BookingDetailScreen.js:
+Full booking details
+Status timeline:
+  Pending → Confirmed → Completed
+Map placeholder showing vendor location
+If completed and no review:
+  Rate Your Groomer button → ReviewScreen
+Cancel button if pending
+
+/src/screens/ReviewScreen.js:
+Groomer name and photo
+Star rating for 4 categories:
+  Overall Experience
+  Service Quality
+  Punctuality
+  Handling of Pet
+Would you book again? Yes/No toggle
+Review text input
+Submit Review button
+Thank you animation on submit
+
+/src/screens/MarketplaceScreen.js:
+Location search at top
+GPS button
+Vendor cards with:
+  Shop name, city, distance
+  Product count
+  Rating
+  Browse button → VendorShopScreen
+
+/src/screens/VendorShopScreen.js:
+Shop name header
+Category filter tabs:
+  All, Food, Accessories,
+  Grooming, Medicine, Toys
+Product grid (2 columns):
+  Product image placeholder
+  Name, price, stock status
+  Add to Cart button
+Cart icon in header with item count
+View Cart button when cart has items
+
+/src/screens/CartScreen.js:
+List of cart items with:
+  Name, price, quantity selector,
+  remove button
+Delivery type selector:
+  Pickup / Delivery
+Delivery address input if delivery
+Fee summary:
+  Subtotal, delivery fee, total
+Place Order button
+  Calls POST /api/v1/orders
+
+/src/screens/OrdersScreen.js:
+Filter: Active / Completed
+Order cards with:
+  Order number, vendor, date
+  Items summary
+  Total amount
+  Status badge
+  Track Order button (placeholder)
+
+/src/screens/HandlersScreen.js:
+Handler cards with:
+  Name, experience, countries served
+  Rating, certifications
+  Book Handler button → HandlerBookScreen
+
+/src/screens/HandlerBookScreen.js:
+Handler profile summary
+Form:
+  Pet name and type
+  Destination country
+  Travel date
+  Special requirements textarea
+  Estimated quote shown
+Request Booking button
+
+/src/screens/ChatScreen.js:
+Two panel on tablet/web:
+  Left: conversation list
+  Right: active conversation
+
+On mobile:
+  ConversationsScreen → MessageScreen
+
+/src/screens/ConversationsScreen.js:
+List of all conversations
+Each row:
+  Vendor name
+  Last message preview
+  Time
+  Unread badge
+Tap → MessageScreen
+
+/src/screens/MessageScreen.js:
+Vendor name in header
+Message bubbles:
+  Pet parent messages right aligned
+    purple background
+  Vendor messages left aligned
+    white with border
+Timestamp per message
+Image/video inline display
+Message input at bottom
+  Send button
+  Photo picker button
+  Video picker button
+Real-time via SocketIO if connected
+Fallback to polling every 5 seconds
+
+/src/screens/CommunityScreen.js:
+Post cards with:
+  Author, pet photo, post text
+  Like count, comment count
+  Time posted
+Create Post button
+  Text input
+  Photo picker
+  Submit
+
+/src/screens/StrayTrackerScreen.js:
+Map view using expo-maps
+Or fallback list view if maps not available
+Filter: Reported / Vaccinated / Adopted
+Stray cards with:
+  Location, date reported
+  Vaccination status badge
+  View Details button → StrayDetailScreen
+Report New Stray button
+
+/src/screens/StrayDetailScreen.js:
+Stray details and history
+Photo if available
+Vaccination records
+Report updates timeline
+Share button (generates shareable link)
+
+/src/screens/ProfileScreen.js:
+User avatar placeholder with initials
+User name and email
+Edit Profile button
+
+My Pets quick summary
+My Bookings count
+My Orders count
+
+Settings section:
+  Language selector
+  Notification preferences
+  Privacy Settings:
+    Marketing opt-out toggle
+    Data sharing toggle
+  Download My Data button
+    Calls /api/v1/auth/me export
+  Delete My Account button
+    Confirmation modal
+    "Your account will be deleted
+     within 30 days per GDPR"
+
+About section:
+  App version
+  Privacy Policy link
+  Terms of Service link
+  Contact Support link
+
+Logout button (red, bottom)
+
+/src/screens/PrivacySettingsScreen.js:
+Current consent status per category
+Toggle per category:
+  Required (cannot toggle - grayed out)
+  Marketing messages
+  Usage analytics
+  Location services
+Download My Data button
+Delete Account button
+  Shows confirmation with 30 day notice
+Last consent update date shown
+
+COMPONENTS:
+
+/src/components/PetCard.js
+/src/components/VendorCard.js
+/src/components/BookingCard.js
+/src/components/ProductCard.js
+/src/components/StarRating.js
+/src/components/LoadingSpinner.js
+/src/components/ErrorMessage.js
+/src/components/LocationSearch.js
+/src/components/StatusBadge.js
+/src/components/GDPRConsent.js
+
+WEB SUPPORT:
+
+In app.json add:
+{
+  "web": {
+    "bundler": "metro",
+    "output": "static",
+    "favicon": "./assets/favicon.png"
+  }
+}
+
+In package.json add:
+react-native-web
+react-dom
+@expo/webpack-config
+
+Web specific:
+On web show sidebar navigation
+instead of bottom tabs
+Responsive layout for desktop:
+  Max width 1200px centered
+  Two column layout on wide screens
+
+PACKAGE.JSON dependencies:
+{
+  "expo": "~51.0.0",
+  "react": "18.2.0",
+  "react-native": "0.74.0",
+  "react-native-web": "~0.19.10",
+  "react-dom": "18.2.0",
+  "@react-navigation/native": "^6.0.0",
+  "@react-navigation/bottom-tabs": "^6.0.0",
+  "@react-navigation/stack": "^6.0.0",
+  "@react-navigation/material-top-tabs": "^6.0.0",
+  "react-native-screens": "~3.31.0",
+  "react-native-safe-area-context": "4.10.0",
+  "expo-location": "~17.0.0",
+  "expo-async-storage": "^1.23.0",
+  "@react-native-async-storage/async-storage": "1.23.1",
+  "expo-image-picker": "~15.0.0",
+  "axios": "^1.7.0",
+  "socket.io-client": "^4.7.0"
+}
+
+Do not modify any Python files.
+Do not modify any existing Flask templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

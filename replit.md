@@ -61,6 +61,36 @@ A complete REST API under `/api/v1/` providing JSON versions of all pet parent r
 - **Config**: `JWT_SECRET` env var (defaults to dev key); helper functions `generate_token()` and `token_required` decorator at end of main.py
 - **Dependencies**: PyJWT
 
+## React Native Mobile App (Expo)
+A complete React Native + Expo app in `/mobile/` that mirrors all pet parent functionality from the Jinja2 web app. Connects to the JSON API v1 endpoints.
+
+### Structure
+- `mobile/App.js` — Root component with AuthProvider, LocationProvider, SocketManager, and AppNavigator
+- `mobile/src/screens/` — 40 screen files covering all pet parent features
+- `mobile/src/components/` — 9 reusable UI components (Card, Button, Input, StarRating, Badge, etc.)
+- `mobile/src/navigation/AppNavigator.js` — Full navigation: GDPR consent → Auth stack → Main tabs (Home, Discover, Bookings, Shop, Profile) with nested stack navigators
+- `mobile/src/services/api.js` — API service layer with Axios, JWT auto-attach, 401 handling
+- `mobile/src/context/AuthContext.js` — Auth state management (login, register, logout, token validation)
+- `mobile/src/context/LocationContext.js` — GPS location with expo-location
+- `mobile/src/constants/theme.js` — Colors, fonts, shadows, spacing matching the web app's purple gradient theme
+- `mobile/src/constants/api.js` — API_BASE and SOCKET_URL configuration
+
+### Screens (40 total)
+Auth: Welcome, Login, Register, GDPRConsent | Pets: PetsList, AddPet, EditPet, PetDetail, Passport | Grooming: Groomers, GroomerListing, GroomerProfile, VendorProfile, Booking, Review | Marketplace: Marketplace, VendorShop, Cart, Orders | Handlers: Handlers, HandlerDetail, HandlerBook, HandlerInvoice, MyHandlerBookings | Chat: Conversations, Message | Location: Vets, Boarding, Discover (top tabs) | Community: Community, StrayTracker, StrayDetail | Profile: Profile, Settings, Notifications | FurrWings: FurrWingsServices, FurrWingsManagement | Other: ReportIssues, Home (dashboard)
+
+### Key Features
+- GDPR consent screen on first launch with required/optional checkboxes
+- JWT auth with AsyncStorage persistence
+- Location-based search with GPS support
+- Socket.IO integration for real-time notifications
+- Bottom tab navigation (Home, Discover, Bookings, Shop, Profile)
+- Material top tabs for Discover (Groomers/Vets/Boarding)
+- Web support via react-native-web
+- Privacy settings with marketing opt-out, data download, account deletion
+
+### Dependencies
+expo ~51.0.0, react-native 0.74.0, @react-navigation/*, axios, socket.io-client, expo-location, @react-native-async-storage/async-storage, expo-image-picker, @expo/vector-icons
+
 ## FurrVet Module
 The FurrVet module provides a dedicated interface for veterinarians. It includes dashboards, appointment management, patient records with detailed medical histories and vaccinations, billing, inventory management for vet supplies, laboratory services, and reporting tools. All templates share a consistent design with a fixed sidebar and are responsive. The module manages its own SQLite database (`furrvet.db`) for veterinary-specific data.
 

@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "FurrButler",
+    "slug": "furrbutler",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#667eea"
+    },
+    "assetBundlePatterns": ["**/*"]
+  }
+}

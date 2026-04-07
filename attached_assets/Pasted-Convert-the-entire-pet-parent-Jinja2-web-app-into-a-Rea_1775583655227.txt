@@ -1,0 +1,370 @@
+Convert the entire pet parent Jinja2 
+web app into a React Native + Expo app
+that works on both mobile and web.
+
+Do not modify any Python files.
+Do not modify any existing Flask templates
+— keep them running alongside React
+until we confirm React works.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+STEP 1 — Project setup:
+
+Create a new Expo project in /mobile/
+with this structure:
+/mobile/
+  App.js
+  app.json
+  package.json
+  /src/
+    /screens/
+    /components/
+    /navigation/
+    /services/
+    /context/
+    /constants/
+    /utils/
+
+package.json dependencies:
+{
+  "expo": "~51.0.0",
+  "react": "18.2.0",
+  "react-native": "0.74.0",
+  "react-native-web": "~0.19.10",
+  "react-dom": "18.2.0",
+  "@react-navigation/native": "^6.0.0",
+  "@react-navigation/bottom-tabs": "^6.0.0",
+  "@react-navigation/stack": "^6.0.0",
+  "@react-navigation/material-top-tabs": "^6.0.0",
+  "react-native-screens": "~3.31.0",
+  "react-native-safe-area-context": "4.10.0",
+  "expo-location": "~17.0.0",
+  "@react-native-async-storage/async-storage": "1.23.1",
+  "expo-image-picker": "~15.0.0",
+  "axios": "^1.7.0",
+  "socket.io-client": "^4.7.0"
+}
+
+app.json:
+{
+  "expo": {
+    "name": "FurrButler",
+    "slug": "furrbutler",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    }
+  }
+}
+
+STEP 2 — Constants and services:
+
+/src/constants/theme.js:
+Export COLORS matching the existing
+app's purple gradient theme:
+primary: '#667eea'
+secondary: '#764ba2'
+success: '#28a745'
+danger: '#dc3545'
+warning: '#ffc107'
+white: '#ffffff'
+light: '#f8f9fa'
+dark: '#333333'
+grey: '#6c757d'
+
+/src/constants/api.js:
+Export API_BASE pointing to the
+Flask API at /api/v1
+
+/src/services/api.js:
+One function per API endpoint
+covering all /api/v1/ routes
+that were just created.
+Store JWT in AsyncStorage.
+Add token to all protected requests.
+Handle 401 by clearing token
+and navigating to login.
+
+/src/context/AuthContext.js:
+Wraps the app with auth state.
+On startup check AsyncStorage for token.
+Validate token with GET /api/v1/auth/me.
+Provide: user, token, login,
+logout, register, isLoading.
+
+/src/context/LocationContext.js:
+GPS location state.
+Provide: coords, locationName,
+requestLocation.
+Use expo-location.
+
+STEP 3 — Go through every existing
+Jinja2 pet parent template and convert
+it to a React Native screen.
+
+For each template listed below:
+- Read the existing HTML structure
+- Identify all data variables used
+- Map them to API endpoint responses
+- Create equivalent React Native screen
+- Preserve all functionality
+- Use same colour scheme and layout feel
+- Replace Jinja2 {{ variables }} with
+  React state variables
+- Replace Flask form POSTs with
+  API service calls
+- Replace href links with
+  React Navigation navigate calls
+- Replace Flask flash messages with
+  React state error/success messages
+
+Convert these templates in order:
+
+1. login.html → LoginScreen.js
+2. register.html → RegisterScreen.js
+3. dashboard.html → HomeScreen.js
+   Include all tiles shown on dashboard:
+   Marketplace, Grooming, Veterinary,
+   Boarding, My Bookings, My Orders,
+   Messages, FurrWings Handlers,
+   My Travel Bookings, FurrWings Services,
+   Stray Tracker, Community Posts,
+   Report Issues, FurrWings Management
+   Your Pets section at top
+   with horizontal scroll
+
+4. pet_profile.html → PetsScreen.js
+5. add_pet.html → AddPetScreen.js
+6. edit_pet.html → EditPetScreen.js
+7. pet_detail.html → PetDetailScreen.js
+8. pet_passport.html → PassportScreen.js
+
+9. groomers.html → GroomersScreen.js
+   Preserve location search and GPS
+   Preserve distance sorting
+
+10. vendor_profile.html → VendorProfileScreen.js
+    Preserve groomer listing section
+    Preserve services and reviews
+
+11. groomer_listing.html → GroomerListingScreen.js
+12. groomer_profile.html → GroomerProfileScreen.js
+    Preserve certification badges
+    Preserve rating breakdown
+
+13. book_vendor.html → BookingScreen.js
+    Preserve time slot grid
+    Preserve pet selector
+    Preserve groomer selector
+
+14. my_bookings.html → BookingsScreen.js
+15. booking_review.html → ReviewScreen.js
+    Star rating inputs for all 4 categories
+
+16. marketplace.html → MarketplaceScreen.js
+    Preserve location search
+17. marketplace_vendor.html → VendorShopScreen.js
+    Preserve category filter
+    Preserve add to cart
+18. checkout.html → CartScreen.js
+    Preserve delivery type selector
+
+19. my_orders.html → OrdersScreen.js
+
+20. handlers.html → HandlersScreen.js
+21. handler_detail.html → HandlerDetailScreen.js
+22. handler_book.html → HandlerBookScreen.js
+23. handler_invoice.html → HandlerInvoiceScreen.js
+24. my_handler_bookings.html → 
+    MyHandlerBookingsScreen.js
+
+25. community.html → CommunityScreen.js
+26. stray_tracker.html → StrayScreen.js
+27. stray_detail.html → StrayDetailScreen.js
+
+28. chat.html → ConversationsScreen.js
+    and MessageScreen.js
+    Preserve SocketIO real-time messaging
+    Preserve photo and video support
+
+29. boarding.html → BoardingScreen.js
+30. vets.html → VetsScreen.js
+
+31. settings.html → SettingsScreen.js
+    Add Privacy Settings section:
+      Marketing opt-out toggle
+      Data sharing toggle
+      Download My Data
+      Delete Account
+
+32. Any remaining pet parent templates
+    not listed above — convert them too
+
+STEP 4 — Add GDPR consent screen:
+
+/src/screens/GDPRConsentScreen.js:
+Shown only on first app launch.
+Check AsyncStorage for gdpr_accepted.
+If exists skip to login.
+
+Show:
+- What data we collect
+- How we use it
+- Your rights under GDPR
+
+Required checkboxes:
+☐ I agree to Terms of Service
+☐ I agree to Privacy Policy
+
+Optional checkboxes:
+☐ Receive promotional messages
+  from vendors I book with
+☐ Share anonymous usage data
+  to improve the app
+
+Accept and Continue button:
+Only active when required boxes checked.
+Save consent to AsyncStorage.
+Save consent to server via API.
+
+STEP 5 — Add missing screens
+not in Jinja2 but needed:
+
+/src/screens/FurrWingsServicesScreen.js:
+Track vet appointments through FurrWings
+Transport booking status
+Isolation facility tracking
+Based on handler bookings and
+vet appointment data from API
+
+/src/screens/FurrWingsManagementScreen.js:
+Full passport and travel data overview
+All FurrWings bookings in one place
+International travel requirements
+Document checklist by destination country
+
+/src/screens/ReportIssuesScreen.js:
+Report a stray dog
+Report a groomer issue
+Report NGO discrepancy
+Contact FurrButler support
+Simple form with category and description
+
+/src/screens/NotificationsScreen.js:
+All notifications in one place:
+Booking confirmed
+Pet ready for pickup
+New message
+Promotion from vendor
+Review reminder
+SocketIO listener for real-time alerts
+
+STEP 6 — Navigation:
+
+/src/navigation/AppNavigator.js:
+
+Flow:
+First launch → GDPRConsentScreen
+Not logged in → AuthStack:
+  WelcomeScreen
+  LoginScreen
+  RegisterScreen
+
+Logged in → MainTabs:
+  Tab 1: Home (HomeScreen)
+    icon: home
+  Tab 2: Discover (DiscoverScreen)
+    Top tabs: Groomers/Vets/Boarding
+    icon: search
+  Tab 3: Bookings (BookingsScreen)
+    icon: calendar
+  Tab 4: Shop (MarketplaceScreen)
+    icon: shopping-bag
+  Tab 5: Profile (ProfileScreen)
+    icon: person
+
+Stack screens accessible from tabs:
+VendorProfileScreen
+GroomerProfileScreen
+BookingScreen
+BookingDetailScreen
+ReviewScreen
+VendorShopScreen
+CartScreen
+PetDetailScreen
+AddPetScreen
+EditPetScreen
+PassportScreen
+HandlerDetailScreen
+HandlerBookScreen
+MessageScreen
+StrayDetailScreen
+FurrWingsServicesScreen
+FurrWingsManagementScreen
+ReportIssuesScreen
+NotificationsScreen
+
+WelcomeScreen.js:
+Full screen purple gradient
+FurrButler logo and tagline:
+"Your complete pet care companion"
+Get Started button → RegisterScreen
+Login button → LoginScreen
+
+ProfileScreen.js:
+User name and email
+Edit profile form
+My Pets summary
+Bookings and orders counts
+Settings section
+Privacy Settings
+Logout button
+
+STEP 7 — Web support:
+
+For React Native Web:
+Show sidebar navigation on wide screens
+instead of bottom tabs
+Max width 1200px centered
+Responsive grid layouts
+
+STEP 8 — SocketIO integration:
+
+In App.js connect to Flask SocketIO server
+Join user's room on login using email
+Listen for these events:
+
+booking_done:
+  Show full screen pickup notification
+  "[Pet name] is ready for pickup at
+   [vendor name]!"
+  Rate Your Groomer button
+
+review_prompt:
+  Show bottom sheet prompt
+  "How was your session?"
+  Rate Now button → ReviewScreen
+
+new_message:
+  Update conversation unread count
+  Show notification banner if
+  not on MessageScreen
+
+booking_confirmed:
+  Show notification banner
+  Update booking status in list
+
+After creating all files:
+Verify the /mobile folder exists
+Verify App.js exists and imports
+AppNavigator correctly
+Verify package.json has all dependencies
+List all created screen files
+
+Do not modify any Python files.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
