@@ -1988,6 +1988,113 @@ def init_erp_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_insurance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_index INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            provider_name TEXT NOT NULL,
+            policy_number TEXT,
+            coverage_type TEXT,
+            coverage_amount REAL,
+            premium_monthly REAL,
+            premium_annual REAL,
+            start_date TEXT,
+            end_date TEXT,
+            claims_contact TEXT,
+            policy_document_url TEXT,
+            status TEXT DEFAULT 'active'
+                CHECK(status IN ('active','expired','cancelled')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_friendly_venues (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            venue_type TEXT NOT NULL
+                CHECK(venue_type IN ('restaurant','hotel','cafe','park','beach','resort','activity','other')),
+            address TEXT,
+            city TEXT NOT NULL,
+            state TEXT,
+            pincode TEXT,
+            phone TEXT,
+            website TEXT,
+            google_maps_url TEXT,
+            booking_url TEXT,
+            latitude REAL,
+            longitude REAL,
+            pet_policy TEXT,
+            max_pet_size TEXT CHECK(max_pet_size IN ('small','medium','large','all')),
+            pet_fee TEXT,
+            amenities TEXT,
+            rating REAL DEFAULT 0,
+            review_count INTEGER DEFAULT 0,
+            verified BOOLEAN DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1,
+            added_by TEXT DEFAULT 'admin',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS venue_bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            venue_id INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            pet_index INTEGER,
+            booking_reference TEXT,
+            booking_platform TEXT,
+            check_in_date TEXT,
+            check_out_date TEXT,
+            booking_url TEXT,
+            notes TEXT,
+            status TEXT DEFAULT 'confirmed',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (venue_id) REFERENCES pet_friendly_venues(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS venue_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            venue_id INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            pet_index INTEGER,
+            rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+            review_text TEXT,
+            pet_welcome_rating INTEGER,
+            amenities_rating INTEGER,
+            visit_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    seed_venues = [
+        ('Casino Hotel Kochi','hotel',None,'Kochi','Kerala',None,None,'https://casinohotel.in',None,'https://casinohotel.in/reservations',None,None,'Small pets allowed with prior approval','small','₹500 per night','Pet bed, Food bowls, Walking area',0,0,1,1,'admin'),
+        ('Fragrant Nature Munnar','resort',None,'Munnar','Kerala',None,None,None,None,None,None,None,'Pets welcome in designated cottages','medium','₹300 per night','Garden walks, Pet sitting',0,0,1,1,'admin'),
+        ('The Postcard Cuelim Goa','hotel',None,'Goa','Goa',None,None,None,None,None,None,None,'Pet friendly property','all','No additional charge','Beach access, Pet menu, Grooming on request',0,0,1,1,'admin'),
+        ('Windflower Prakruthi Bangalore','resort',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'Dogs welcome','large','₹1000 per stay','Large grounds, Pet pool, Vet on call',0,0,1,1,'admin'),
+        ('Cafe Noir Kochi','cafe',None,'Kochi','Kerala',None,None,None,None,None,None,None,'Pets welcome at outdoor seating','all','None','Water bowls, Outdoor seating, Pet snacks',0,0,1,1,'admin'),
+        ('Taj Malabar Resort Kochi','hotel',None,'Kochi','Kerala',None,None,'https://www.tajhotels.com',None,None,None,None,'Small pets with prior approval','small','₹750 per night','Pet bed, Pet menu, Garden',0,0,1,1,'admin'),
+        ('Marari Beach Resort','resort',None,'Alleppey','Kerala',None,None,None,None,None,None,None,'Pets welcome in beach cottages','medium','₹400 per night','Beach access, Open grounds, Pet sitting',0,0,1,1,'admin'),
+        ('Brew & Bark Cafe','cafe',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'All pets welcome','all','None','Water bowls, Play area, Pet treats menu',0,0,1,1,'admin'),
+        ('W Goa','hotel',None,'Goa','Goa',None,None,'https://www.marriott.com',None,None,None,None,'Pet friendly rooms available','medium','₹2000 per night','Pet bed, Pet amenities kit, Walking trails',0,0,1,1,'admin'),
+        ('Cubbon Park','park',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'Leashed pets welcome','all','Free','Open grounds, Walking paths, Shaded areas',0,0,1,1,'admin'),
+        ('Pawna Lake Resort','resort',None,'Pune','Maharashtra',None,None,None,None,None,None,None,'Pet friendly glamping','large','₹500 per night','Lakeside, Open area, Campfire zone',0,0,1,1,'admin'),
+        ('The Leela Mumbai','hotel',None,'Mumbai','Maharashtra',None,None,'https://www.theleela.com',None,None,None,None,'Small pets in select rooms','small','₹1500 per night','Pet concierge, Walking area, Pet menu',0,0,1,1,'admin'),
+        ('Lodhi Garden','park',None,'Delhi','Delhi',None,None,None,None,None,None,None,'Dogs on leash welcome','all','Free','Historic grounds, Walking paths, Green spaces',0,0,1,1,'admin'),
+        ('Dyu Art Cafe','cafe',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'Pets welcome in garden area','all','None','Garden seating, Water bowls, Art space',0,0,1,1,'admin'),
+        ('Zostel Alleppey','hotel',None,'Alleppey','Kerala',None,None,'https://www.zostel.com',None,None,None,None,'Pet friendly hostel','medium','₹200 per night','Common area, Backyard, Chill zone',0,0,1,1,'admin'),
+    ]
+    for v in seed_venues:
+        c.execute("SELECT id FROM pet_friendly_venues WHERE name=?", (v[0],))
+        if not c.fetchone():
+            c.execute("""INSERT INTO pet_friendly_venues
+                (name,venue_type,address,city,state,pincode,phone,website,google_maps_url,booking_url,latitude,longitude,pet_policy,max_pet_size,pet_fee,amenities,rating,review_count,verified,is_active,added_by)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", v)
+
     conn.commit()
     conn.close()
 
@@ -3268,6 +3375,10 @@ def pet_passport(pet_index):
                  ORDER BY departure_date DESC""", (pet_index, user))
     international_travel = c.fetchall()
 
+    c.execute("SELECT * FROM pet_insurance WHERE pet_index=? AND user_email=? AND status='active' ORDER BY created_at DESC LIMIT 1",
+              (pet_index, user))
+    active_insurance = c.fetchone()
+
     conn.close()
 
     user_id = user.split('@')[0] if '@' in user else user
@@ -3285,6 +3396,7 @@ def pet_passport(pet_index):
                          handler_bookings=handler_bookings_list,
                          domestic_travel=domestic_travel,
                          international_travel=international_travel,
+                         active_insurance=active_insurance,
                          today=today)
 
 @app.route('/pet/<int:pet_index>/passport/add-travel', methods=["POST"])
@@ -3419,6 +3531,257 @@ def edit_pet(pet_index):
         breeds = json.load(f)
 
     return render_template("edit_pet.html", pet=pet, pet_index=pet_index, breeds=breeds)
+
+@app.route('/pet/<int:pet_index>/insurance')
+def pet_insurance_page(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+    pet = pets[pet_index]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pet_insurance WHERE pet_index=? AND user_email=? ORDER BY created_at DESC", (pet_index, user))
+    policies = c.fetchall()
+    conn.close()
+    with open("static/data/insurance_providers.json", "r") as f:
+        providers_data = json.load(f)
+    pet_species = (pet.get("species") or "").strip()
+    filtered_providers = []
+    for prov in providers_data.get("providers", []):
+        if pet_species in prov.get("species", []):
+            filtered_providers.append(prov)
+    return render_template("pet_insurance.html", pet=pet, pet_index=pet_index, policies=policies, providers=filtered_providers)
+
+@app.route('/pet/<int:pet_index>/insurance/add', methods=["GET", "POST"])
+def add_insurance(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+    pet = pets[pet_index]
+    if request.method == "POST":
+        provider_name = request.form.get("provider_name", "").strip()
+        if provider_name == "Other":
+            provider_name = request.form.get("provider_other", "").strip() or "Other"
+        policy_number = request.form.get("policy_number", "").strip()
+        coverage_type = request.form.get("coverage_type", "").strip()
+        coverage_amount = request.form.get("coverage_amount", 0)
+        premium_monthly = request.form.get("premium_monthly", 0)
+        premium_annual = request.form.get("premium_annual", 0)
+        start_date = request.form.get("start_date", "")
+        end_date = request.form.get("end_date", "")
+        claims_contact = request.form.get("claims_contact", "").strip()
+        try:
+            coverage_amount = float(coverage_amount) if coverage_amount else 0
+        except (ValueError, TypeError):
+            coverage_amount = 0
+        try:
+            premium_monthly = float(premium_monthly) if premium_monthly else 0
+        except (ValueError, TypeError):
+            premium_monthly = 0
+        try:
+            premium_annual = float(premium_annual) if premium_annual else 0
+        except (ValueError, TypeError):
+            premium_annual = 0
+        policy_document_url = ""
+        if 'policy_document' in request.files:
+            file = request.files['policy_document']
+            if file and file.filename:
+                from werkzeug.utils import secure_filename as sf
+                filename = sf(file.filename)
+                ext = os.path.splitext(filename)[1].lower()
+                if ext in ['.pdf', '.jpg', '.jpeg', '.png']:
+                    upload_dir = os.path.join('static', 'uploads', 'insurance')
+                    os.makedirs(upload_dir, exist_ok=True)
+                    save_name = f"{user}_{pet_index}_{int(datetime.now().timestamp())}_{filename}"
+                    save_path = os.path.join(upload_dir, save_name)
+                    file.save(save_path)
+                    policy_document_url = f"/static/uploads/insurance/{save_name}"
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""INSERT INTO pet_insurance
+            (pet_index, user_email, provider_name, policy_number, coverage_type,
+             coverage_amount, premium_monthly, premium_annual, start_date, end_date,
+             claims_contact, policy_document_url, status)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (pet_index, user, provider_name, policy_number, coverage_type,
+             coverage_amount, premium_monthly, premium_annual, start_date, end_date,
+             claims_contact, policy_document_url, 'active'))
+        if end_date:
+            try:
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                reminder_dt = end_dt - timedelta(days=30)
+                reminder_date = reminder_dt.strftime("%Y-%m-%d")
+                c.execute("""INSERT INTO pet_reminders
+                    (pet_index, user_email, reminder_type, title, description,
+                     due_date, priority, source)
+                    VALUES (?,?,?,?,?,?,?,?)""",
+                    (pet_index, user, 'Other', 'Insurance Renewal Due',
+                     f"{provider_name} policy {policy_number} renewal",
+                     reminder_date, 'high', 'system'))
+            except (ValueError, TypeError):
+                pass
+        conn.commit()
+        conn.close()
+        flash("Insurance policy added successfully!")
+        return redirect(url_for("pet_insurance_page", pet_index=pet_index))
+    preselected = request.args.get("provider", "")
+    return render_template("add_insurance.html", pet=pet, pet_index=pet_index, preselected_provider=preselected)
+
+@app.route('/pet/<int:pet_index>/insurance/<int:pol_id>/cancel', methods=["POST"])
+def cancel_insurance(pet_index, pol_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE pet_insurance SET status='cancelled' WHERE id=? AND user_email=? AND pet_index=?",
+              (pol_id, user, pet_index))
+    conn.commit()
+    conn.close()
+    flash("Policy cancelled successfully.")
+    return redirect(url_for("pet_insurance_page", pet_index=pet_index))
+
+@app.route('/pet-friendly')
+def pet_friendly():
+    city = request.args.get("city", "").strip()
+    venue_type = request.args.get("venue_type", "").strip()
+    pet_size = request.args.get("pet_size", "").strip()
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    query = "SELECT * FROM pet_friendly_venues WHERE is_active=1"
+    params = []
+    if city:
+        query += " AND LOWER(city) LIKE ?"
+        params.append(f"%{city.lower()}%")
+    if venue_type and venue_type != "all":
+        query += " AND venue_type=?"
+        params.append(venue_type)
+    if pet_size and pet_size != "all":
+        query += " AND (max_pet_size=? OR max_pet_size='all')"
+        params.append(pet_size)
+    query += " ORDER BY verified DESC, rating DESC, name ASC"
+    c.execute(query, params)
+    venues = c.fetchall()
+    conn.close()
+    return render_template("pet_friendly.html", venues=venues, city=city, venue_type=venue_type, pet_size=pet_size)
+
+@app.route('/pet-friendly/suggest', methods=["POST"])
+def suggest_venue():
+    flash("Thank you for your suggestion! We'll review and add it soon.")
+    return redirect(url_for("pet_friendly"))
+
+@app.route('/pet-friendly/<int:venue_id>')
+def venue_detail(venue_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pet_friendly_venues WHERE id=?", (venue_id,))
+    venue = c.fetchone()
+    if not venue:
+        flash("Venue not found!")
+        conn.close()
+        return redirect(url_for("pet_friendly"))
+    c.execute("SELECT * FROM venue_reviews WHERE venue_id=? ORDER BY created_at DESC", (venue_id,))
+    reviews = c.fetchall()
+    avg_rating = 0
+    if reviews:
+        avg_rating = round(sum(r[4] for r in reviews if r[4]) / len(reviews), 1)
+    conn.close()
+    user_pets = []
+    if "user" in session:
+        user_pets = db.get(f"pets:{session['user']}", [])
+    return render_template("venue_detail.html", venue=venue, reviews=reviews, avg_rating=avg_rating, user_pets=user_pets)
+
+@app.route('/pet-friendly/<int:venue_id>/review', methods=["POST"])
+def add_venue_review(venue_id):
+    if "user" not in session:
+        flash("Please login to write a review.")
+        return redirect(url_for("login"))
+    user = session["user"]
+    rating = request.form.get("rating", 0, type=int)
+    review_text = request.form.get("review_text", "").strip()
+    pet_welcome_rating = request.form.get("pet_welcome_rating", 0, type=int)
+    amenities_rating = request.form.get("amenities_rating", 0, type=int)
+    visit_date = request.form.get("visit_date", "")
+    pet_index = request.form.get("pet_index", None, type=int)
+    if rating < 1 or rating > 5:
+        flash("Please provide a valid rating (1-5).")
+        return redirect(url_for("venue_detail", venue_id=venue_id))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO venue_reviews
+        (venue_id, user_email, pet_index, rating, review_text, pet_welcome_rating, amenities_rating, visit_date)
+        VALUES (?,?,?,?,?,?,?,?)""",
+        (venue_id, user, pet_index, rating, review_text, pet_welcome_rating, amenities_rating, visit_date))
+    c.execute("SELECT AVG(rating), COUNT(*) FROM venue_reviews WHERE venue_id=?", (venue_id,))
+    row = c.fetchone()
+    if row:
+        c.execute("UPDATE pet_friendly_venues SET rating=?, review_count=? WHERE id=?",
+                  (round(row[0], 1) if row[0] else 0, row[1], venue_id))
+    conn.commit()
+    conn.close()
+    flash("Review submitted successfully!")
+    return redirect(url_for("venue_detail", venue_id=venue_id))
+
+@app.route('/pet-friendly/<int:venue_id>/log-booking', methods=["GET", "POST"])
+def log_venue_booking(venue_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pet_friendly_venues WHERE id=?", (venue_id,))
+    venue = c.fetchone()
+    conn.close()
+    if not venue:
+        flash("Venue not found!")
+        return redirect(url_for("pet_friendly"))
+    pets = db.get(f"pets:{user}", [])
+    if request.method == "POST":
+        booking_platform = request.form.get("booking_platform", "")
+        booking_reference = request.form.get("booking_reference", "").strip()
+        pet_index = request.form.get("pet_index", None, type=int)
+        check_in_date = request.form.get("check_in_date", "")
+        check_out_date = request.form.get("check_out_date", "")
+        notes = request.form.get("notes", "").strip()
+        booking_url = request.form.get("booking_url", "").strip()
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""INSERT INTO venue_bookings
+            (venue_id, user_email, pet_index, booking_reference, booking_platform,
+             check_in_date, check_out_date, booking_url, notes)
+            VALUES (?,?,?,?,?,?,?,?,?)""",
+            (venue_id, user, pet_index, booking_reference, booking_platform,
+             check_in_date, check_out_date, booking_url, notes))
+        conn.commit()
+        conn.close()
+        flash("Booking logged successfully!")
+        return redirect(url_for("venue_detail", venue_id=venue_id))
+    return render_template("log_booking.html", venue=venue, pets=pets)
+
+@app.route('/my-venue-bookings')
+def my_venue_bookings():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT vb.*, pfv.name, pfv.venue_type, pfv.city, pfv.state
+        FROM venue_bookings vb
+        JOIN pet_friendly_venues pfv ON vb.venue_id = pfv.id
+        WHERE vb.user_email=?
+        ORDER BY vb.check_in_date DESC""", (user,))
+    bookings = c.fetchall()
+    conn.close()
+    pets = db.get(f"pets:{user}", [])
+    return render_template("my_venue_bookings.html", bookings=bookings, pets=pets)
 
 @app.route('/vet/dashboard')
 def vet_dashboard():

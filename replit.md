@@ -52,6 +52,24 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **Print support**: CSS print stylesheet formats Identity tab as A4 page
 - **Tab persistence**: Selected tab saved in localStorage per pet
 
+## Pet Insurance System
+- **Database table**: `pet_insurance` in erp.db — tracks policies (provider, policy number, coverage type/amount, premiums, dates, claims contact, document URL, status)
+- **Provider data**: `static/data/insurance_providers.json` — 4 providers (Digit, Bajaj Allianz, HDFC ERGO, Tata AIG) with multiple plans, species filtering, affiliate URLs
+- **Routes**: `/pet/<id>/insurance` (browse + active policies), `/pet/<id>/insurance/add` (GET/POST track policy), `/pet/<id>/insurance/<pol_id>/cancel` (POST cancel)
+- **Templates**: `pet_insurance.html` (plan comparison + active policies + disclaimer), `add_insurance.html` (form with provider dropdown, pre-selection support)
+- **Auto reminders**: Adding a policy with end_date creates a high-priority renewal reminder 30 days before expiry
+- **Document uploads**: Policy documents stored in `static/uploads/insurance/`
+- **Entry points**: Quick action in pet_detail.html, insurance section in pawsport.html Medical tab
+- **Column indices**: 0=id, 1=pet_index, 2=user_email, 3=provider_name, 4=policy_number, 5=coverage_type, 6=coverage_amount, 7=premium_monthly, 8=premium_annual, 9=start_date, 10=end_date, 11=claims_contact, 12=policy_document_url, 13=status, 14=created_at
+
+## Pet Friendly Venues System
+- **Database tables**: `pet_friendly_venues` (venue details, pet policy, amenities, ratings), `venue_bookings` (user booking logs), `venue_reviews` (ratings + reviews)
+- **Seed data**: 15 venues across Kerala, Goa, Bangalore, Mumbai, Delhi (hotels, resorts, cafes, parks)
+- **Routes**: `/pet-friendly` (browse/filter), `/pet-friendly/<id>` (detail + reviews), `/pet-friendly/<id>/review` (POST), `/pet-friendly/<id>/log-booking` (GET/POST), `/my-venue-bookings` (user's bookings), `/pet-friendly/suggest` (POST suggestion)
+- **Templates**: `pet_friendly.html` (grid with filters), `venue_detail.html` (detail + booking + reviews), `log_booking.html` (form), `my_venue_bookings.html` (booking list)
+- **Entry points**: Dashboard tile in dashboard.html, quick action in pet_detail.html
+- **Venue column indices**: 0=id, 1=name, 2=venue_type, 3=address, 4=city, 5=state, 6=pincode, 7=phone, 8=website, 9=google_maps_url, 10=booking_url, 11=latitude, 12=longitude, 13=pet_policy, 14=max_pet_size, 15=pet_fee, 16=amenities, 17=rating, 18=review_count, 19=verified, 20=is_active, 21=added_by, 22=created_at
+
 # External Dependencies
 - **Core Frameworks**: Flask, React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, React Native, Expo.
 - **Database**: SQLite, PostgreSQL.

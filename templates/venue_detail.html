@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ venue[1] }} | FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: #f5f7fa; font-family: 'Segoe UI', sans-serif; }
+    .venue-header {
+      background: linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%);
+      color: white; padding: 40px 0;
+    }
+    .venue-header h1 { font-size: 2em; margin-bottom: 5px; }
+    .venue-type-badge {
+      display: inline-block; padding: 3px 12px; border-radius: 12px;
+      font-size: 0.8em; font-weight: 600; background: rgba(255,255,255,0.2);
+    }
+    .verified-lg {
+      display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.2);
+      padding: 3px 12px; border-radius: 12px; font-size: 0.85em;
+    }
+    .detail-container { max-width: 900px; margin: 20px auto; padding: 0 20px; }
+    .info-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px; margin: 20px 0;
+    }
+    .info-item {
+      background: white; border-radius: 12px; padding: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .info-item .label { font-size: 0.8em; color: #999; text-transform: uppercase; font-weight: 600; margin-bottom: 5px; }
+    .info-item .value { font-size: 1em; color: #333; }
+    .amenity-tag {
+      display: inline-block; background: #f3e5f5; color: #7b1fa2;
+      padding: 4px 12px; border-radius: 10px; font-size: 0.85em; margin: 3px;
+    }
+    .book-card {
+      background: white; border-radius: 16px; padding: 25px; margin: 25px 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1); border: 2px solid #7b1fa2; text-align: center;
+    }
+    .btn-book {
+      background: #7b1fa2; color: white; border: none; padding: 12px 30px;
+      border-radius: 25px; font-size: 1em; font-weight: 600; cursor: pointer; text-decoration: none;
+    }
+    .btn-book:hover { background: #6a1b9a; color: white; }
+    .btn-log {
+      background: white; color: #7b1fa2; border: 2px solid #7b1fa2; padding: 10px 25px;
+      border-radius: 25px; font-size: 0.9em; cursor: pointer; text-decoration: none;
+    }
+    .btn-log:hover { background: #f3e5f5; color: #7b1fa2; }
+    .disclaimer-text { color: #999; font-size: 0.8em; margin-top: 12px; line-height: 1.5; }
+    .section-title { font-size: 1.2em; font-weight: 700; color: #4a148c; margin: 25px 0 15px; }
+    .review-card {
+      background: white; border-radius: 12px; padding: 18px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .rating-stars { color: #ff9800; }
+    .review-form {
+      background: white; border-radius: 16px; padding: 25px; margin: 20px 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .review-form input, .review-form textarea, .review-form select {
+      width: 100%; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px;
+      margin-bottom: 10px; font-size: 0.9em;
+    }
+    .review-form textarea { resize: vertical; min-height: 80px; }
+    .avg-rating { font-size: 2.5em; font-weight: 800; color: #ff9800; }
+  </style>
+</head>
+<body>
+  <div class="venue-header">
+    <div class="container" style="max-width:900px;">
+      <h1>{{ venue[1] }}</h1>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+        <span class="venue-type-badge">{{ venue[2] }}</span>
+        <span style="opacity:0.8;">{{ venue[4] }}{% if venue[5] %}, {{ venue[5] }}{% endif %}</span>
+        {% if venue[19] %}<span class="verified-lg"><i class="fas fa-check-circle"></i> Verified</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-container">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">{{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="label">📍 Address</div>
+        <div class="value">
+          {% if venue[3] %}{{ venue[3] }}, {% endif %}{{ venue[4] }}{% if venue[5] %}, {{ venue[5] }}{% endif %}
+          {% if venue[6] %} - {{ venue[6] }}{% endif %}
+          {% if venue[9] %}<br><a href="{{ venue[9] }}" target="_blank" style="color:#7b1fa2; font-size:0.85em;">View on Google Maps →</a>{% endif %}
+        </div>
+      </div>
+      {% if venue[7] %}
+      <div class="info-item">
+        <div class="label">📞 Phone</div>
+        <div class="value">{{ venue[7] }}</div>
+      </div>
+      {% endif %}
+      {% if venue[8] %}
+      <div class="info-item">
+        <div class="label">🌐 Website</div>
+        <div class="value"><a href="{{ venue[8] }}" target="_blank" style="color:#7b1fa2;">{{ venue[8]|truncate(40) }}</a></div>
+      </div>
+      {% endif %}
+      <div class="info-item">
+        <div class="label">🐾 Pet Policy</div>
+        <div class="value">{{ venue[13] or 'Contact venue for details' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="label">📏 Max Pet Size</div>
+        <div class="value" style="text-transform:capitalize;">{{ venue[14] or 'All sizes' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="label">💰 Pet Fee</div>
+        <div class="value">{{ venue[15] or 'Contact venue' }}</div>
+      </div>
+    </div>
+
+    {% if venue[16] %}
+    <div class="section-title">🎯 Amenities</div>
+    <div>
+      {% for a in venue[16].split(',') %}
+        <span class="amenity-tag">{{ a.strip() }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="book-card">
+      <h3 style="color:#4a148c; margin-bottom:10px;">Book This Venue</h3>
+      {% if venue[10] %}
+        <p style="color:#666; font-size:0.9em;">Book on their website or booking platform</p>
+        <a href="{{ venue[10] }}" target="_blank" class="btn-book" style="display:inline-block; margin-bottom:10px;">Book Now →</a>
+      {% else %}
+        <p style="color:#666; font-size:0.9em;">Contact the venue directly to book</p>
+      {% endif %}
+      <br>
+      <a href="/pet-friendly/{{ venue[0] }}/log-booking" class="btn-log" style="display:inline-block;">Log Existing Booking</a>
+      <div class="disclaimer-text">
+        {% if venue[10] %}
+        You will be redirected to {{ venue[1] }} or their booking platform. FurrButler may receive a referral commission. FurrButler does not handle bookings or cancellations.
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="section-title">⭐ Reviews</div>
+    {% if avg_rating > 0 %}
+    <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
+      <div class="avg-rating">{{ avg_rating }}</div>
+      <div>
+        <div class="rating-stars">
+          {% for i in range(5) %}{% if i < (avg_rating|int) %}★{% else %}☆{% endif %}{% endfor %}
+        </div>
+        <div style="color:#666; font-size:0.85em;">{{ reviews|length }} review{{ 's' if reviews|length != 1 }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% for r in reviews %}
+    <div class="review-card">
+      <div class="d-flex justify-content-between">
+        <div class="rating-stars">{% for i in range(5) %}{% if i < (r[4] or 0) %}★{% else %}☆{% endif %}{% endfor %}</div>
+        <small style="color:#999;">{{ r[8] or r[9][:10] if r[9] else '' }}</small>
+      </div>
+      {% if r[5] %}<p style="margin:8px 0; color:#333;">{{ r[5] }}</p>{% endif %}
+      <div style="font-size:0.8em; color:#999;">
+        {% if r[6] %}Pet Welcome: {% for i in range(5) %}{% if i < (r[6] or 0) %}★{% else %}☆{% endif %}{% endfor %} &bull; {% endif %}
+        {% if r[7] %}Amenities: {% for i in range(5) %}{% if i < (r[7] or 0) %}★{% else %}☆{% endif %}{% endfor %}{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if not reviews %}
+      <p style="color:#999; text-align:center;">No reviews yet. Be the first to review!</p>
+    {% endif %}
+
+    <div class="review-form">
+      <h5 style="color:#4a148c; margin-bottom:15px;">✍️ Write a Review</h5>
+      <form method="POST" action="/pet-friendly/{{ venue[0] }}/review">
+        <label style="font-size:0.85em; font-weight:600;">Overall Rating *</label>
+        <select name="rating" required>
+          <option value="">Select rating</option>
+          <option value="5">★★★★★ Excellent</option>
+          <option value="4">★★★★☆ Very Good</option>
+          <option value="3">★★★☆☆ Good</option>
+          <option value="2">★★☆☆☆ Fair</option>
+          <option value="1">★☆☆☆☆ Poor</option>
+        </select>
+        <label style="font-size:0.85em; font-weight:600;">Pet Welcome Rating</label>
+        <select name="pet_welcome_rating">
+          <option value="">Select</option>
+          <option value="5">★★★★★</option>
+          <option value="4">★★★★☆</option>
+          <option value="3">★★★☆☆</option>
+          <option value="2">★★☆☆☆</option>
+          <option value="1">★☆☆☆☆</option>
+        </select>
+        <label style="font-size:0.85em; font-weight:600;">Amenities Rating</label>
+        <select name="amenities_rating">
+          <option value="">Select</option>
+          <option value="5">★★★★★</option>
+          <option value="4">★★★★☆</option>
+          <option value="3">★★★☆☆</option>
+          <option value="2">★★☆☆☆</option>
+          <option value="1">★☆☆☆☆</option>
+        </select>
+        <label style="font-size:0.85em; font-weight:600;">Visit Date</label>
+        <input type="date" name="visit_date">
+        {% if user_pets %}
+        <label style="font-size:0.85em; font-weight:600;">Which pet visited?</label>
+        <select name="pet_index">
+          <option value="">Select pet</option>
+          {% for p in user_pets %}
+            <option value="{{ loop.index0 }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+        <label style="font-size:0.85em; font-weight:600;">Your Review</label>
+        <textarea name="review_text" placeholder="Share your experience..."></textarea>
+        <button type="submit" class="btn-book" style="width:100%;">Submit Review</button>
+      </form>
+    </div>
+
+    <div class="text-center" style="margin:30px 0;">
+      <a href="/pet-friendly" style="color:#7b1fa2; text-decoration:none; font-weight:600;">← Back to Pet Friendly Places</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

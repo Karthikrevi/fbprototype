@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pet Insurance - {{ pet.name }} | FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: #f5f7fa; font-family: 'Segoe UI', sans-serif; }
+    .insurance-header {
+      background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%);
+      color: white; padding: 40px 0; text-align: center;
+    }
+    .insurance-header h1 { font-size: 2em; margin-bottom: 5px; }
+    .insurance-header p { opacity: 0.85; font-size: 1.1em; }
+    .section-title { font-size: 1.3em; font-weight: 700; margin: 30px 0 15px; color: #1a237e; }
+    .policy-card {
+      background: white; border-radius: 16px; padding: 25px; margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-left: 5px solid #1a237e;
+    }
+    .policy-card .provider-name { font-size: 1.2em; font-weight: 700; color: #1a237e; }
+    .days-badge {
+      display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;
+    }
+    .days-green { background: #e8f5e9; color: #2e7d32; }
+    .days-yellow { background: #fff8e1; color: #f57f17; }
+    .days-red { background: #ffebee; color: #c62828; }
+    .provider-section {
+      background: white; border-radius: 16px; margin-bottom: 25px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden;
+    }
+    .provider-header {
+      padding: 20px 25px; display: flex; align-items: center; gap: 15px;
+      border-bottom: 1px solid #eee; flex-wrap: wrap;
+    }
+    .provider-header .emoji { font-size: 2em; }
+    .provider-header .info h3 { margin: 0; font-size: 1.2em; color: #1a237e; }
+    .provider-header .info p { margin: 0; color: #666; font-size: 0.9em; }
+    .species-badge {
+      background: #e8eaf6; color: #1a237e; padding: 3px 10px; border-radius: 12px;
+      font-size: 0.8em; font-weight: 600;
+    }
+    .plans-row { display: flex; gap: 20px; padding: 20px; flex-wrap: wrap; }
+    .plan-card {
+      flex: 1; min-width: 260px; border: 2px solid #e0e0e0; border-radius: 12px;
+      padding: 20px; position: relative; transition: border-color 0.3s;
+    }
+    .plan-card:hover { border-color: #1a237e; }
+    .plan-card.popular { border-color: #ff9800; }
+    .popular-badge {
+      position: absolute; top: -12px; right: 15px; background: #ff9800; color: white;
+      padding: 3px 12px; border-radius: 12px; font-size: 0.75em; font-weight: 700;
+    }
+    .plan-name { font-size: 1.1em; font-weight: 700; color: #1a237e; }
+    .plan-coverage { color: #666; font-size: 0.9em; margin-bottom: 10px; }
+    .plan-amount { font-size: 1.6em; font-weight: 800; color: #2e7d32; }
+    .plan-price { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+    .highlight-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; font-size: 0.9em; }
+    .exclusion-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; font-size: 0.85em; color: #888; }
+    .show-more-toggle { color: #1a237e; cursor: pointer; font-size: 0.85em; margin: 5px 0; }
+    .hidden-items { display: none; }
+    .plan-btns { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+    .btn-track {
+      background: #1a237e; color: white; border: none; padding: 8px 16px;
+      border-radius: 20px; font-size: 0.85em; cursor: pointer; text-decoration: none;
+    }
+    .btn-track:hover { background: #283593; color: white; }
+    .btn-quote {
+      background: white; color: #1a237e; border: 2px solid #1a237e; padding: 8px 16px;
+      border-radius: 20px; font-size: 0.85em; cursor: pointer; text-decoration: none;
+    }
+    .btn-quote:hover { background: #e8eaf6; color: #1a237e; }
+    .info-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin: 20px 0; }
+    .info-card {
+      background: white; border-radius: 12px; padding: 25px; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .info-card .icon { font-size: 2em; margin-bottom: 10px; }
+    .info-card h4 { color: #1a237e; font-size: 1em; margin-bottom: 8px; }
+    .info-card p { color: #666; font-size: 0.9em; margin: 0; }
+    .disclaimer-box {
+      background: #f5f5f5; border-radius: 12px; padding: 20px; margin: 30px 0;
+      color: #666; font-size: 0.85em; line-height: 1.6;
+    }
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: white; border-radius: 16px; padding: 30px; max-width: 450px; width: 90%;
+      text-align: center;
+    }
+    .modal-box h3 { color: #1a237e; margin-bottom: 15px; }
+    .modal-box p { color: #666; font-size: 0.9em; line-height: 1.5; margin-bottom: 20px; }
+    .no-policy-box {
+      background: #fff3e0; border-radius: 12px; padding: 30px; text-align: center;
+      border: 2px dashed #ff9800;
+    }
+  </style>
+</head>
+<body>
+  <div class="insurance-header">
+    <div class="container">
+      <h1>🐾 Pet Insurance for {{ pet.name }}</h1>
+      <p>Protect {{ pet.name }} with the right insurance plan</p>
+    </div>
+  </div>
+
+  <div class="container" style="max-width:1100px; padding: 20px;">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">{{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="section-title">🛡️ Active Policies</div>
+
+    {% if policies %}
+      {% for pol in policies %}
+        {% if pol[13] == 'active' %}
+        <div class="policy-card">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="provider-name">{{ pol[3] }}</div>
+              <div style="color:#666; font-size:0.9em; margin-top:5px;">
+                {% if pol[4] %}Policy #{{ pol[4] }}{% endif %}
+                {% if pol[5] %} &bull; {{ pol[5] }}{% endif %}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              {% if pol[10] %}
+                {% set end_date_str = pol[10] %}
+                <div style="font-size:0.85em; color:#666;">Valid until {{ end_date_str }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-3 mt-3" style="font-size:0.9em;">
+            {% if pol[6] %}<div><strong>Coverage:</strong> ₹{{ '{:,.0f}'.format(pol[6]) }}</div>{% endif %}
+            {% if pol[7] %}<div><strong>Premium:</strong> ₹{{ '{:,.0f}'.format(pol[7]) }}/month</div>{% endif %}
+            {% if pol[11] %}<div><strong>Claims:</strong> {{ pol[11] }}</div>{% endif %}
+          </div>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            {% if pol[12] %}
+              <a href="{{ pol[12] }}" target="_blank" class="btn-track" style="display:inline-block;">View Document</a>
+            {% endif %}
+            <form method="POST" action="/pet/{{ pet_index }}/insurance/{{ pol[0] }}/cancel" style="display:inline;" onsubmit="return confirm('Cancel this policy tracking?')">
+              <button type="submit" class="btn-quote">Cancel Policy</button>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="no-policy-box">
+        <div style="font-size:2em; margin-bottom:10px;">🛡️</div>
+        <h4 style="color:#e65100;">{{ pet.name }} is not insured yet.</h4>
+        <p style="color:#666;">Compare plans below to get started.</p>
+      </div>
+    {% endif %}
+
+    {% set cancelled = policies|selectattr('13', 'equalto', 'cancelled')|list %}
+    {% if cancelled %}
+      <div style="margin-top:15px;">
+        <small style="color:#999;">{{ cancelled|length }} cancelled/expired {{ 'policy' if cancelled|length == 1 else 'policies' }}</small>
+      </div>
+    {% endif %}
+
+    <div class="section-title">📊 Compare Plans</div>
+    <p style="color:#666; font-size:0.9em;">Showing plans available for <strong>{{ pet.species or 'your pet' }}</strong></p>
+
+    {% for provider in providers %}
+    <div class="provider-section">
+      <div class="provider-header">
+        <div class="emoji">{{ provider.logo_emoji }}</div>
+        <div class="info">
+          <h3>{{ provider.name }}</h3>
+          <p>{{ provider.tagline }}</p>
+        </div>
+        <span class="species-badge">Available for {{ pet.species }}</span>
+      </div>
+      <div class="plans-row">
+        {% for plan in provider.plans %}
+        <div class="plan-card {% if loop.length > 1 and loop.index == 2 %}popular{% endif %}">
+          {% if loop.length > 1 and loop.index == 2 %}
+            <div class="popular-badge">⭐ Most Popular</div>
+          {% endif %}
+          <div class="plan-name">{{ plan.name }}</div>
+          <div class="plan-coverage">{{ plan.coverage }}</div>
+          <div class="plan-amount">₹{{ '{:,.0f}'.format(plan.coverage_amount) }}</div>
+          <div class="plan-price">
+            From ₹{{ plan.monthly_from }}/month or ₹{{ plan.annual_from }}/year
+          </div>
+          <div style="margin-bottom:10px;">
+            {% for h in plan.highlights[:3] %}
+              <div class="highlight-item">✅ {{ h }}</div>
+            {% endfor %}
+            {% if plan.highlights|length > 3 %}
+              <div class="hidden-items" id="hl-{{ provider.id }}-{{ loop.index }}">
+                {% for h in plan.highlights[3:] %}
+                  <div class="highlight-item">✅ {{ h }}</div>
+                {% endfor %}
+              </div>
+              <div class="show-more-toggle" onclick="toggleItems('hl-{{ provider.id }}-{{ loop.index }}', this)">Show More ▾</div>
+            {% endif %}
+          </div>
+          <div style="margin-bottom:10px;">
+            {% for e in plan.exclusions[:2] %}
+              <div class="exclusion-item">❌ {{ e }}</div>
+            {% endfor %}
+            {% if plan.exclusions|length > 2 %}
+              <div class="hidden-items" id="ex-{{ provider.id }}-{{ loop.index }}">
+                {% for e in plan.exclusions[2:] %}
+                  <div class="exclusion-item">❌ {{ e }}</div>
+                {% endfor %}
+              </div>
+              <div class="show-more-toggle" onclick="toggleItems('ex-{{ provider.id }}-{{ loop.index }}', this)">Show More ▾</div>
+            {% endif %}
+          </div>
+          <div class="plan-btns">
+            <a href="/pet/{{ pet_index }}/insurance/add?provider={{ provider.name }}" class="btn-track">Track Existing Policy</a>
+            <a href="#" class="btn-quote" onclick="showDisclaimer('{{ provider.name }}', '{{ provider.affiliate_url }}'); return false;">Get Quote</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if not providers %}
+      <div class="no-policy-box" style="border-color:#ccc;">
+        <p style="color:#666;">No specific plans found for {{ pet.species or 'your pet' }}. Check back later or browse all providers.</p>
+      </div>
+    {% endif %}
+
+    <div class="section-title">🐾 Why Insure Your Pet</div>
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="icon">💰</div>
+        <h4>Financial Protection</h4>
+        <p>Vet bills can reach ₹50,000–₹2,00,000 for serious conditions. Insurance covers the unexpected.</p>
+      </div>
+      <div class="info-card">
+        <div class="icon">🏥</div>
+        <h4>Better Care</h4>
+        <p>With insurance you can choose the best treatment without worrying about cost.</p>
+      </div>
+      <div class="info-card">
+        <div class="icon">🧘</div>
+        <h4>Peace of Mind</h4>
+        <p>Know that {{ pet.name }} is covered whatever happens.</p>
+      </div>
+      <div class="info-card">
+        <div class="icon">📋</div>
+        <h4>Easy Claims</h4>
+        <p>Direct claims with your insurer. FurrButler helps you track your policy and renewal dates.</p>
+      </div>
+    </div>
+
+    <div class="disclaimer-box">
+      <strong>Disclaimer:</strong> FurrButler is not an insurance company and does not sell or underwrite insurance policies. We help you compare and access insurance products from IRDAI registered insurers. FurrButler may receive a referral commission from insurers. For claims and policy queries contact your insurer directly. Insurance is subject to terms and conditions of the respective insurer.
+    </div>
+
+    <div class="text-center" style="margin-bottom:40px;">
+      <a href="/pet/{{ pet_index }}" class="btn-track" style="display:inline-block; padding:10px 30px;">← Back to {{ pet.name }}</a>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="disclaimerModal">
+    <div class="modal-box">
+      <h3>🔗 External Redirect</h3>
+      <p id="disclaimerText"></p>
+      <div class="d-flex gap-2 justify-content-center">
+        <a href="#" id="disclaimerLink" target="_blank" class="btn-track" style="display:inline-block; padding:8px 25px;">Continue</a>
+        <button class="btn-quote" onclick="closeDisclaimer()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleItems(id, el) {
+      var items = document.getElementById(id);
+      if (items.style.display === 'block') { items.style.display = 'none'; el.textContent = 'Show More ▾'; }
+      else { items.style.display = 'block'; el.textContent = 'Show Less ▴'; }
+    }
+    function showDisclaimer(name, url) {
+      document.getElementById('disclaimerText').textContent =
+        'You are being redirected to ' + name + ' to complete your purchase. FurrButler may receive a referral commission. FurrButler does not handle insurance claims.';
+      document.getElementById('disclaimerLink').href = url;
+      document.getElementById('disclaimerModal').classList.add('active');
+    }
+    function closeDisclaimer() {
+      document.getElementById('disclaimerModal').classList.remove('active');
+    }
+  </script>
+</body>
+</html>

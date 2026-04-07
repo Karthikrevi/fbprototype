@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Policy - {{ pet.name }} | FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: #f5f7fa; font-family: 'Segoe UI', sans-serif; }
+    .form-header {
+      background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+      color: white; padding: 35px 0; text-align: center;
+    }
+    .form-header h1 { font-size: 1.8em; margin-bottom: 5px; }
+    .form-header p { opacity: 0.85; }
+    .form-container {
+      max-width: 650px; margin: -30px auto 40px; background: white;
+      border-radius: 16px; padding: 35px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      position: relative; z-index: 1;
+    }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { font-weight: 600; color: #333; margin-bottom: 5px; display: block; font-size: 0.9em; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 10px;
+      font-size: 0.95em; transition: border-color 0.3s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #1a237e; outline: none; }
+    .btn-save {
+      background: #1a237e; color: white; border: none; padding: 12px 35px;
+      border-radius: 25px; font-size: 1em; font-weight: 600; cursor: pointer;
+    }
+    .btn-save:hover { background: #283593; }
+    .btn-cancel {
+      background: white; color: #666; border: 2px solid #ddd; padding: 12px 35px;
+      border-radius: 25px; font-size: 1em; cursor: pointer; text-decoration: none;
+    }
+    .btn-cancel:hover { border-color: #999; color: #333; }
+    .note-box {
+      background: #e8f5e9; border-radius: 10px; padding: 15px; margin-top: 20px;
+      font-size: 0.85em; color: #2e7d32;
+    }
+    #other_provider_input { display: none; }
+  </style>
+</head>
+<body>
+  <div class="form-header">
+    <div class="container">
+      <h1>📋 Track Your Policy</h1>
+      <p>Add your existing policy details for {{ pet.name }}</p>
+    </div>
+  </div>
+
+  <div class="form-container">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-info">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/pet/{{ pet_index }}/insurance/add" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Insurance Provider</label>
+        <select name="provider_name" id="providerSelect" onchange="toggleOther()" required>
+          <option value="">Select provider...</option>
+          <option value="Digit Insurance" {% if preselected_provider == 'Digit Insurance' %}selected{% endif %}>Digit Insurance</option>
+          <option value="Bajaj Allianz" {% if preselected_provider == 'Bajaj Allianz' %}selected{% endif %}>Bajaj Allianz</option>
+          <option value="HDFC ERGO" {% if preselected_provider == 'HDFC ERGO' %}selected{% endif %}>HDFC ERGO</option>
+          <option value="Tata AIG" {% if preselected_provider == 'Tata AIG' %}selected{% endif %}>Tata AIG</option>
+          <option value="Care Insurance">Care Insurance</option>
+          <option value="New India Assurance">New India Assurance</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group" id="other_provider_input">
+        <label>Provider Name</label>
+        <input type="text" name="provider_other" placeholder="Enter provider name">
+      </div>
+      <div class="form-group">
+        <label>Plan / Coverage Type</label>
+        <input type="text" name="coverage_type" placeholder="e.g. Comprehensive, Accidents + Illness">
+      </div>
+      <div class="form-group">
+        <label>Policy Number <span style="color:red;">*</span></label>
+        <input type="text" name="policy_number" required placeholder="e.g. PET-2025-123456">
+      </div>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>Coverage Amount (₹)</label>
+            <input type="number" name="coverage_amount" placeholder="e.g. 100000" min="0">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>Monthly Premium (₹)</label>
+            <input type="number" name="premium_monthly" placeholder="e.g. 399" min="0">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>Annual Premium (₹)</label>
+            <input type="number" name="premium_annual" placeholder="e.g. 3999" min="0">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Policy Start Date</label>
+            <input type="date" name="start_date">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Policy End Date</label>
+            <input type="date" name="end_date">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Claims Contact Number</label>
+        <input type="text" name="claims_contact" placeholder="e.g. 1800-xxx-xxxx">
+      </div>
+      <div class="form-group">
+        <label>Upload Policy Document</label>
+        <input type="file" name="policy_document" accept=".pdf,.jpg,.jpeg,.png">
+        <small style="color:#999;">Accepted: PDF, JPG, PNG</small>
+      </div>
+      <div class="d-flex gap-3 justify-content-center" style="margin-top:25px;">
+        <button type="submit" class="btn-save">Save Policy</button>
+        <a href="/pet/{{ pet_index }}/insurance" class="btn-cancel">Cancel</a>
+      </div>
+    </form>
+
+    <div class="note-box">
+      <i class="fas fa-bell"></i> Your renewal reminder will be automatically set 30 days before your policy expires.
+    </div>
+  </div>
+
+  <div class="text-center" style="margin-bottom:40px;">
+    <a href="/pet/{{ pet_index }}/insurance" style="color:#1a237e; text-decoration:none;">← Back to Insurance</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleOther() {
+      var sel = document.getElementById('providerSelect');
+      document.getElementById('other_provider_input').style.display = sel.value === 'Other' ? 'block' : 'none';
+    }
+    toggleOther();
+  </script>
+</body>
+</html>

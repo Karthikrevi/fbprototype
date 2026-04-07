@@ -1,0 +1,107 @@
+{
+  "providers": [
+    {
+      "id": "digit",
+      "name": "Digit Insurance",
+      "logo_emoji": "🔵",
+      "tagline": "Simple pet insurance",
+      "species": ["Dog", "Cat"],
+      "affiliate_url": "https://www.godigit.com/pet-insurance?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Basic",
+          "coverage": "Accidents only",
+          "monthly_from": 199,
+          "annual_from": 1999,
+          "coverage_amount": 50000,
+          "highlights": ["Accident cover up to ₹50,000", "Emergency vet visits", "24/7 vet helpline"],
+          "exclusions": ["Pre-existing conditions", "Routine checkups", "Dental treatment"]
+        },
+        {
+          "name": "Standard",
+          "coverage": "Accidents + Illness",
+          "monthly_from": 399,
+          "annual_from": 3999,
+          "coverage_amount": 100000,
+          "highlights": ["Illness cover up to ₹1,00,000", "Hospitalisation", "Surgery cover", "24/7 vet helpline"],
+          "exclusions": ["Pre-existing conditions", "Cosmetic procedures", "Breeding costs"]
+        },
+        {
+          "name": "Comprehensive",
+          "coverage": "Full cover",
+          "monthly_from": 699,
+          "annual_from": 6999,
+          "coverage_amount": 200000,
+          "highlights": ["Full medical cover ₹2,00,000", "Dental treatment", "Alternative therapies", "Boarding if owner hospitalised", "Third party liability"],
+          "exclusions": ["Pre-existing conditions", "Elective procedures"]
+        }
+      ]
+    },
+    {
+      "id": "bajaj",
+      "name": "Bajaj Allianz",
+      "logo_emoji": "🟠",
+      "tagline": "Trusted pet protection",
+      "species": ["Dog"],
+      "affiliate_url": "https://www.bajajallianz.com/pet-insurance.html?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Dog Shield Basic",
+          "coverage": "Accidents + Illness",
+          "monthly_from": 299,
+          "annual_from": 2999,
+          "coverage_amount": 75000,
+          "highlights": ["Medical cover ₹75,000", "Accident hospitalisation", "Surgery cover", "Vet consultation"],
+          "exclusions": ["Pre-existing conditions", "Elective surgery", "Breeding"]
+        },
+        {
+          "name": "Dog Shield Premium",
+          "coverage": "Comprehensive",
+          "monthly_from": 599,
+          "annual_from": 5999,
+          "coverage_amount": 150000,
+          "highlights": ["Full cover ₹1,50,000", "Dental treatment", "Physiotherapy", "Emergency boarding", "Death benefit"],
+          "exclusions": ["Pre-existing conditions", "Racing or working dogs"]
+        }
+      ]
+    },
+    {
+      "id": "hdfc",
+      "name": "HDFC ERGO",
+      "logo_emoji": "🔴",
+      "tagline": "Reliable pet care cover",
+      "species": ["Dog", "Cat"],
+      "affiliate_url": "https://www.hdfcergo.com/pet-insurance?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Pet Health Plan",
+          "coverage": "Illness + Accidents",
+          "monthly_from": 349,
+          "annual_from": 3499,
+          "coverage_amount": 100000,
+          "highlights": ["Medical cover ₹1,00,000", "In-patient treatment", "Day care procedures", "Emergency transport"],
+          "exclusions": ["Pre-existing conditions", "Grooming", "Vitamins and supplements"]
+        }
+      ]
+    },
+    {
+      "id": "tata",
+      "name": "Tata AIG",
+      "logo_emoji": "🔷",
+      "tagline": "Complete pet protection",
+      "species": ["Dog", "Cat"],
+      "affiliate_url": "https://www.tataaig.com/health-insurance/pet-insurance?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Pet Secure",
+          "coverage": "Full medical cover",
+          "monthly_from": 449,
+          "annual_from": 4499,
+          "coverage_amount": 125000,
+          "highlights": ["Medical cover ₹1,25,000", "Accident and illness", "Specialist consultations", "Diagnostic tests", "24/7 claims support"],
+          "exclusions": ["Pre-existing conditions", "Experimental treatments", "Breeding costs"]
+        }
+      ]
+    }
+  ]
+}

@@ -328,6 +328,32 @@
 
   <!-- TAB 2: MEDICAL -->
   <div class="tab-pane" id="tab-medical">
+    <div class="section-card" style="margin-bottom:20px;">
+      <div class="section-title"><i class="fas fa-shield-alt"></i> Active Insurance</div>
+      {% if active_insurance %}
+        {% set days_rem = ((active_insurance[10]|default(''))|string) %}
+        <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:10px 0;">
+          <div>
+            <strong>{{ active_insurance[3] }}</strong><br>
+            <span style="color:#666;">Coverage: ₹{{ '{:,.0f}'.format(active_insurance[6] or 0) }}</span><br>
+            <span style="color:#666;">Valid until: {{ active_insurance[10] or '—' }}</span>
+            {% if active_insurance[10] %}
+              {% set end_parts = active_insurance[10].split('-') %}
+              {% if end_parts|length == 3 %}
+                {% set days_left = ((end_parts[0]|int - 2026) * 365) + ((end_parts[1]|int) * 30) + (end_parts[2]|int) - (now_month|default(4) * 30) - (now_day|default(7)) %}
+              {% endif %}
+            {% endif %}
+          </div>
+          <a href="/pet/{{ pet_index }}/insurance" class="btn btn-sm" style="background:#1a237e;color:white;border-radius:20px;">View Full Details →</a>
+        </div>
+      {% else %}
+        <div style="padding:10px 0;">
+          <span style="background:#ffebee;color:#c62828;padding:3px 10px;border-radius:10px;font-size:0.85em;font-weight:600;">Not insured</span>
+          <a href="/pet/{{ pet_index }}/insurance" class="btn btn-sm" style="background:#1a237e;color:white;border-radius:20px;margin-left:10px;">Get Insurance →</a>
+        </div>
+      {% endif %}
+    </div>
+
     <div class="section-card">
       <div class="section-title"><i class="fas fa-syringe"></i> Vaccination History</div>
       {% if vaccination_records %}
