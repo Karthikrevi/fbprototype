@@ -113,37 +113,61 @@
     <!-- Appointments for this pet -->
     <div class="appointments-section">
       <h3>🗓️ Upcoming Appointments for {{ pet.name }}</h3>
-      <div class="appointment-item">
-        <h5>Grooming Appointment</h5>
-        <p><strong>Date:</strong> January 25, 2024 at 2:00 PM</p>
-        <p><strong>Service:</strong> Full Grooming Package</p>
-        <p><strong>Provider:</strong> Fluffy Paws Grooming</p>
-        <span class="badge bg-success">Confirmed</span>
-      </div>
-      <div class="appointment-item">
-        <h5>Veterinary Checkup</h5>
-        <p><strong>Date:</strong> February 5, 2024 at 10:30 AM</p>
-        <p><strong>Service:</strong> Annual Health Checkup</p>
-        <p><strong>Provider:</strong> Pet Care Clinic</p>
-        <span class="badge bg-warning">Pending</span>
-      </div>
+      {% if upcoming_bookings %}
+        {% for booking in upcoming_bookings %}
+        <div class="appointment-item">
+          <h4>{{ booking[3] }}</h4>
+          <p><strong>Date:</strong> {{ booking[4] }} at {{ booking[5] }}</p>
+          <p><strong>Provider:</strong> {{ booking[9] if booking[9] else 'Unknown' }}</p>
+          <span class="badge bg-{{ 'success' if booking[7] == 'confirmed' else 'warning' if booking[7] == 'pending' else 'info' }}">{{ booking[7]|capitalize }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-4">
+          <p class="text-muted">No upcoming appointments.</p>
+          <a href="/groomers" class="btn btn-success">Book a Service</a>
+        </div>
+      {% endif %}
     </div>
 
     <!-- Reminders for this pet -->
     <div class="reminders-section">
-      <h3>🔔 Reminders for {{ pet.name }}</h3>
-      <div class="reminder-item">
-        <h5>Vaccination Due</h5>
-        <p>Annual rabies vaccination due on March 15, 2024</p>
-        <span class="badge bg-danger">High Priority</span>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">🔔 Reminders for {{ pet.name }}</h3>
+        <a href="/pet/{{ pet_index }}/reminder/add" class="btn btn-success btn-sm">+ Add Reminder</a>
       </div>
-      <div class="reminder-item">
-        <h5>Flea Treatment</h5>
-        <p>Monthly flea treatment due on February 1, 2024</p>
-        <span class="badge bg-info">Medium Priority</span>
-      </div>
+
+      {% if reminders %}
+        {% for reminder in reminders %}
+        <div class="reminder-item" style="border-left-color: {{ '#dc3545' if reminder[7] == 'urgent' else '#fd7e14' if reminder[7] == 'high' else '#667eea' if reminder[7] == 'medium' else '#28a745' }};">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="badge bg-secondary">{{ reminder[3] }}</span>
+              <span class="badge bg-{{ 'danger' if reminder[7] == 'urgent' else 'warning' if reminder[7] == 'high' else 'primary' if reminder[7] == 'medium' else 'success' }}">{{ reminder[7]|capitalize }} Priority</span>
+              {% if reminder[8] == 'furrvet' %}
+              <span class="badge bg-info">FurrVet ✓</span>
+              {% endif %}
+              <h5 class="mt-2">{{ reminder[4] }}</h5>
+              {% if reminder[5] %}<p>{{ reminder[5] }}</p>{% endif %}
+              <p><strong>Due:</strong> {{ reminder[6] }}</p>
+              {% if reminder[9] %}<p><strong>Vet:</strong> {{ reminder[9] }}</p>{% endif %}
+              {% if reminder[10] %}
+              <p><strong>Medication:</strong> {{ reminder[10] }}{% if reminder[11] %} — {{ reminder[11] }}{% endif %}</p>
+              {% endif %}
+            </div>
+            <form method="POST" action="/pet/{{ pet_index }}/reminder/{{ reminder[0] }}/complete">
+              <button type="submit" class="btn btn-success btn-sm">✓ Mark Done</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-3">
+          <p class="text-muted">No upcoming reminders.</p>
+          <a href="/pet/{{ pet_index }}/reminder/add" class="btn btn-success btn-sm">+ Add Reminder</a>
+        </div>
+      {% endif %}
     </div>
   </div>
 </body>
 </html>
-```

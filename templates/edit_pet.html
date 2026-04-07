@@ -62,60 +62,71 @@
 </head>
 <body>
   <script>
-    // Blood types data
-    const bloodTypes = {
-      "dog": ["DEA 1.1 positive", "DEA 1.1 negative", "DEA 1.2 positive", "DEA 1.2 negative", "DEA 3 positive", "DEA 3 negative", "DEA 4 positive", "DEA 4 negative", "DEA 5 positive", "DEA 5 negative", "DEA 7 positive", "DEA 7 negative", "Universal donor", "Unknown"],
-      "cat": ["Type A", "Type B", "Type AB", "Unknown"],
-      "rabbit": ["Unknown", "Type A", "Type B"],
-      "horse": ["Aa positive", "Aa negative", "Ca positive", "Ca negative", "Da positive", "Da negative", "Ka positive", "Ka negative", "Pa positive", "Pa negative", "Qa positive", "Qa negative", "Ua positive", "Ua negative"],
-      "pig": ["A positive", "A negative", "O positive", "O negative", "Unknown"],
-      "sheep": ["A positive", "A negative", "B positive", "B negative", "AB positive", "AB negative", "Unknown"],
-      "goat": ["A positive", "A negative", "B positive", "B negative", "Unknown"],
-      "cow": ["A positive", "A negative", "B positive", "B negative", "F positive", "F negative", "J positive", "J negative", "Unknown"],
-      "elephant": ["Unknown", "Not applicable"],
-      "other": ["Unknown", "Not applicable"]
-    };
+document.addEventListener('DOMContentLoaded', function() {
+  const speciesSelect = document.getElementById('species');
+  const breedSelect = document.getElementById('breed');
+  const bloodSelect = document.getElementById('blood_type');
 
-    const currentBloodType = "{{ pet.blood or '' }}";
+  let breedsData = {};
+  let bloodData = {};
 
-    function updateBloodTypes() {
-      const speciesSelect = document.getElementById('speciesSelect');
-      const bloodTypeSelect = document.getElementById('bloodTypeSelect');
-      const selectedSpecies = speciesSelect.value;
+  async function loadData() {
+    try {
+      const [breedsRes, bloodRes] = await Promise.all([
+        fetch('/static/data/breeds.json'),
+        fetch('/static/data/blood_types.json')
+      ]);
+      breedsData = await breedsRes.json();
+      bloodData = await bloodRes.json();
 
-      // Clear existing options
-      bloodTypeSelect.innerHTML = '';
-
-      if (selectedSpecies && bloodTypes[selectedSpecies]) {
-        // Add placeholder option
-        const placeholderOption = document.createElement('option');
-        placeholderOption.value = '';
-        placeholderOption.textContent = 'Select blood type';
-        bloodTypeSelect.appendChild(placeholderOption);
-
-        // Add blood type options for selected species
-        bloodTypes[selectedSpecies].forEach(bloodType => {
-          const option = document.createElement('option');
-          option.value = bloodType;
-          option.textContent = bloodType;
-          if (bloodType === currentBloodType) {
-            option.selected = true;
-          }
-          bloodTypeSelect.appendChild(option);
-        });
-      } else {
-        // No species selected
-        const placeholderOption = document.createElement('option');
-        placeholderOption.value = '';
-        placeholderOption.textContent = 'Select species first';
-        bloodTypeSelect.appendChild(placeholderOption);
+      if (speciesSelect.value) {
+        updateBreeds(speciesSelect.value);
+        updateBloodTypes(speciesSelect.value);
       }
+    } catch (error) {
+      console.error('Error loading data:', error);
     }
+  }
 
-    // Initialize blood types on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      updateBloodTypes();
+  function updateBreeds(species) {
+    const breeds = breedsData[species] || ['Mixed Breed', 'Other'];
+    const currentBreed = breedSelect.dataset.current || '';
+
+    breedSelect.innerHTML = '<option value="">Select breed</option>';
+    breeds.forEach(breed => {
+      const opt = document.createElement('option');
+      opt.value = breed;
+      opt.textContent = breed;
+      if (breed === currentBreed) {
+        opt.selected = true;
+      }
+      breedSelect.appendChild(opt);
     });
+  }
+
+  function updateBloodTypes(species) {
+    const types = bloodData[species] || bloodData['Other'] || ['Unknown'];
+    const currentBlood = bloodSelect.dataset.current || '';
+
+    bloodSelect.innerHTML = '<option value="">Select blood type</option>';
+    types.forEach(type => {
+      const opt = document.createElement('option');
+      opt.value = type;
+      opt.textContent = type;
+      if (type === currentBlood) {
+        opt.selected = true;
+      }
+      bloodSelect.appendChild(opt);
+    });
+  }
+
+  speciesSelect.addEventListener('change', function() {
+    updateBreeds(this.value);
+    updateBloodTypes(this.value);
+  });
+
+  loadData();
+});
   </script>
   <div class="container">
     <a href="/pet/{{ pet_index }}" class="back-btn">← Back to {{ pet.name }}'s Profile</a>
@@ -161,29 +172,24 @@
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Species</label>
-              <select class="form-control" id="speciesSelect" name="species" onchange="updateBloodTypes()">
+              <select class="form-control" id="species" name="species">
                 <option value="">Select species</option>
-                <option value="dog" {% if pet.species == 'dog' %}selected{% endif %}>Dog</option>
-                <option value="cat" {% if pet.species == 'cat' %}selected{% endif %}>Cat</option>
-                <option value="rabbit" {% if pet.species == 'rabbit' %}selected{% endif %}>Rabbit</option>
-                <option value="horse" {% if pet.species == 'horse' %}selected{% endif %}>Horse</option>
-                <option value="pig" {% if pet.species == 'pig' %}selected{% endif %}>Pig</option>
-                <option value="sheep" {% if pet.species == 'sheep' %}selected{% endif %}>Sheep</option>
-                <option value="goat" {% if pet.species == 'goat' %}selected{% endif %}>Goat</option>
-                <option value="cow" {% if pet.species == 'cow' %}selected{% endif %}>Cow</option>
-                <option value="elephant" {% if pet.species == 'elephant' %}selected{% endif %}>Elephant</option>
-                <option value="other" {% if pet.species == 'other' %}selected{% endif %}>Other</option>
+                <option value="Dog" {% if pet.species == 'Dog' or pet.species == 'dog' %}selected{% endif %}>Dog</option>
+                <option value="Cat" {% if pet.species == 'Cat' or pet.species == 'cat' %}selected{% endif %}>Cat</option>
+                <option value="Bird" {% if pet.species == 'Bird' or pet.species == 'bird' %}selected{% endif %}>Bird</option>
+                <option value="Rabbit" {% if pet.species == 'Rabbit' or pet.species == 'rabbit' %}selected{% endif %}>Rabbit</option>
+                <option value="Fish" {% if pet.species == 'Fish' or pet.species == 'fish' %}selected{% endif %}>Fish</option>
+                <option value="Hamster" {% if pet.species == 'Hamster' or pet.species == 'hamster' %}selected{% endif %}>Hamster</option>
+                <option value="Reptile" {% if pet.species == 'Reptile' or pet.species == 'reptile' %}selected{% endif %}>Reptile</option>
+                <option value="Other" {% if pet.species == 'Other' or pet.species == 'other' %}selected{% endif %}>Other</option>
               </select>
             </div>
           </div>
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Breed</label>
-              <select class="form-control" name="breed">
-                <option value="">Select a breed</option>
-                {% for breed in breeds %}
-                  <option value="{{ breed }}" {% if pet.breed == breed %}selected{% endif %}>{{ breed }}</option>
-                {% endfor %}
+              <select class="form-control" id="breed" name="breed" data-current="{{ pet.breed or '' }}">
+                <option value="">Select breed</option>
               </select>
             </div>
           </div>
@@ -193,8 +199,8 @@
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Blood Type</label>
-              <select class="form-control" id="bloodTypeSelect" name="blood">
-                <option value="">Select species first</option>
+              <select class="form-control" id="blood_type" name="blood" data-current="{{ pet.blood or '' }}">
+                <option value="">Select blood type</option>
               </select>
             </div>
           </div>

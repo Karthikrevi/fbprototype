@@ -33,6 +33,15 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **Portal dashboard helper**: `get_portal_dashboard()` Jinja global returns current portal's dashboard URL
 - **All templates verified**: Every `render_template()` call in main.py has a corresponding template file
 
+## Pet Data & Breeds System
+- **Consolidated breeds data**: `/static/data/breeds.json` — 8 species (Dog with 215 breeds, Cat, Bird, Rabbit, Fish, Hamster, Reptile, Other) loaded dynamically via fetch
+- **Blood types data**: `/static/data/blood_types.json` — capitalized species keys matching breeds.json, includes Dog, Cat, Rabbit, Bird, Fish, Hamster, Reptile, Other
+- **Dynamic dropdowns**: `add_pet.html` and `edit_pet.html` use JavaScript to fetch breeds/blood types from static JSON, updating breed and blood type selects when species changes. Species values are now capitalized (Dog, Cat, etc.)
+- **Pet reminders**: `pet_reminders` table in erp.db with fields: pet_index, user_email, reminder_type, title, description, due_date, priority (low/medium/high/urgent), source (manual/furrvet/system), vet_name, medication_name, dosage, frequency, is_completed
+- **Reminder routes**: `/pet/<id>/reminder/add` (GET/POST), `/pet/<id>/reminder/<rid>/complete` (POST)
+- **FurrVet bridge**: `bridge_furrvet_to_reminder()` utility function to push FurrVet prescriptions as pet parent reminders (matches by owner email and pet name)
+- **Pet detail**: Shows real upcoming bookings from erp.db and active reminders; hardcoded 2024 data removed
+
 # External Dependencies
 - **Core Frameworks**: Flask, React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, React Native, Expo.
 - **Database**: SQLite, PostgreSQL.

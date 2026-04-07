@@ -1928,8 +1928,57 @@ def init_erp_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_index INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            reminder_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            due_date TEXT NOT NULL,
+            priority TEXT DEFAULT 'medium'
+                CHECK(priority IN ('low','medium','high','urgent')),
+            source TEXT DEFAULT 'manual'
+                CHECK(source IN ('manual','furrvet','system')),
+            vet_name TEXT,
+            medication_name TEXT,
+            dosage TEXT,
+            frequency TEXT,
+            is_completed BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     conn.commit()
     conn.close()
+
+def bridge_furrvet_to_reminder(owner_email, pet_name, prescription_name, vet_instructions,
+                                next_dose_date, clinic_name, medication_name, dosage, frequency):
+    try:
+        pets = db.get(f"pets:{owner_email}", [])
+        matched_index = None
+        for idx, p in enumerate(pets):
+            if p.get("name", "").lower() == pet_name.lower():
+                matched_index = idx
+                break
+        if matched_index is not None:
+            conn2 = sqlite3.connect('erp.db')
+            c2 = conn2.cursor()
+            c2.execute("""
+                INSERT INTO pet_reminders
+                (pet_index, user_email, reminder_type, title, description,
+                 due_date, priority, source, vet_name, medication_name, dosage, frequency)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (matched_index, owner_email, 'Medication', prescription_name,
+                  vet_instructions, next_dose_date, 'high', 'furrvet',
+                  clinic_name, medication_name, dosage, frequency))
+            conn2.commit()
+            conn2.close()
+            return True
+    except Exception as e:
+        logging.error(f"FurrVet bridge error: {e}")
+    return False
 
 # Utility function to recalculate inventory from batches
 def recalculate_inventory(conn, product_id=None):
@@ -2973,11 +3022,12 @@ def pet_detail(pet_index):
 
     pet = pets[pet_index]
 
-    # Get pet-specific bookings and purchase history
+    from datetime import date as date_cls
+    today = date_cls.today().isoformat()
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
 
-    # Get bookings for this user
     c.execute("""
         SELECT service, date, time, status 
         FROM bookings 
@@ -2986,7 +3036,6 @@ def pet_detail(pet_index):
     """, (user,))
     pet_bookings = c.fetchall()
 
-    # Get booking history (completed bookings)
     c.execute("""
         SELECT service, date, time, status 
         FROM bookings 
@@ -2995,9 +3044,98 @@ def pet_detail(pet_index):
     """, (user,))
     pet_booking_history = c.fetchall()
 
+    pet_name_lower = pet.get('name', '').lower() if pet else ''
+    c.execute("""
+        SELECT b.id, b.vendor_id, b.user_email, b.service, b.date, b.time,
+               b.duration, b.status, b.pet_name, v.name as vendor_name
+        FROM bookings b
+        LEFT JOIN vendors v ON b.vendor_id = v.id
+        WHERE b.user_email = ?
+        AND LOWER(b.pet_name) = ?
+        AND b.date >= ?
+        AND b.status NOT IN ('cancelled', 'completed')
+        ORDER BY b.date ASC
+        LIMIT 5
+    """, (user, pet_name_lower, today))
+    upcoming_bookings = c.fetchall()
+
+    c.execute("""
+        SELECT * FROM pet_reminders
+        WHERE pet_index = ?
+        AND user_email = ?
+        AND is_completed = 0
+        AND due_date >= date('now', '-7 days')
+        ORDER BY due_date ASC
+    """, (pet_index, user))
+    reminders = c.fetchall()
+
     conn.close()
 
-    return render_template("pet_detail.html", pet=pet, pet_index=pet_index, pet_bookings=pet_bookings, pet_booking_history=pet_booking_history)
+    return render_template("pet_detail.html", pet=pet, pet_index=pet_index,
+                         pet_bookings=pet_bookings, pet_booking_history=pet_booking_history,
+                         upcoming_bookings=upcoming_bookings, reminders=reminders)
+
+@app.route('/pet/<int:pet_index>/reminder/add', methods=["GET", "POST"])
+def add_reminder(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+
+    pet = pets[pet_index]
+
+    if request.method == "POST":
+        reminder_type = request.form.get("reminder_type", "").strip()
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        due_date = request.form.get("due_date", "")
+        priority = request.form.get("priority", "medium")
+        vet_name = request.form.get("vet_name", "").strip()
+        medication_name = request.form.get("medication_name", "").strip()
+        dosage = request.form.get("dosage", "").strip()
+        frequency = request.form.get("frequency", "").strip()
+
+        if not reminder_type or not title or not due_date:
+            flash("Please fill in all required fields.")
+            return redirect(url_for("add_reminder", pet_index=pet_index))
+
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO pet_reminders
+            (pet_index, user_email, reminder_type, title, description,
+             due_date, priority, source, vet_name, medication_name, dosage, frequency)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?, ?, ?)
+        """, (pet_index, user, reminder_type, title, description,
+              due_date, priority, vet_name, medication_name, dosage, frequency))
+        conn.commit()
+        conn.close()
+        flash("Reminder added successfully!")
+        return redirect(url_for("pet_detail", pet_index=pet_index))
+
+    return render_template("add_reminder.html", pet=pet, pet_index=pet_index)
+
+@app.route('/pet/<int:pet_index>/reminder/<int:rid>/complete', methods=["POST"])
+def complete_reminder(pet_index, rid):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    user = session["user"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""
+        UPDATE pet_reminders SET is_completed = 1
+        WHERE id = ? AND pet_index = ? AND user_email = ?
+    """, (rid, pet_index, user))
+    conn.commit()
+    conn.close()
+    flash("Reminder marked as complete!")
+    return redirect(url_for("pet_detail", pet_index=pet_index))
 
 @app.route('/pet/<int:pet_index>/passport')
 def pet_passport(pet_index):

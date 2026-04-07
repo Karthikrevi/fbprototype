@@ -1,0 +1,472 @@
+In the project, do these tasks in order.
+Do not modify any existing routes
+except where explicitly stated.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Create consolidated breeds JSON:
+
+Create /static/data/breeds.json
+This replaces the existing dog_breeds.json
+which is a flat array.
+New file must be a dictionary keyed
+by species name.
+
+Use the existing dog_breeds.json content
+for the Dog key — read it from
+dog_breeds.json and use those exact breeds.
+Add these additional species:
+
+{
+  "Dog": [... copy from dog_breeds.json ...],
+  "Cat": [
+    "Abyssinian", "American Shorthair",
+    "Bengal", "Birman",
+    "British Shorthair", "Burmese",
+    "Devon Rex", "Egyptian Mau",
+    "Himalayan", "Indian Billi",
+    "Maine Coon", "Manx",
+    "Norwegian Forest Cat", "Persian",
+    "Ragdoll", "Russian Blue",
+    "Scottish Fold", "Siamese",
+    "Siberian", "Sphynx",
+    "Turkish Angora", "Turkish Van",
+    "Mixed Breed", "Other"
+  ],
+  "Bird": [
+    "African Grey Parrot",
+    "Amazon Parrot", "Budgerigar",
+    "Canary", "Cockatiel", "Cockatoo",
+    "Conure", "Eclectus Parrot",
+    "Finch", "Indian Ringneck Parakeet",
+    "Lovebird", "Macaw", "Myna",
+    "Parakeet", "Sun Conure",
+    "Other"
+  ],
+  "Rabbit": [
+    "American", "Angora",
+    "Californian", "Dutch",
+    "Flemish Giant", "Holland Lop",
+    "Lionhead", "Mini Rex",
+    "Netherland Dwarf", "New Zealand",
+    "Rex", "Himalayan",
+    "Polish", "Satin",
+    "Mixed Breed", "Other"
+  ],
+  "Fish": [
+    "Betta", "Cichlid", "Clownfish",
+    "Discus", "Goldfish", "Guppy",
+    "Koi", "Molly", "Oscar",
+    "Platy", "Tetra", "Tiger Barb",
+    "Angelfish", "Arowana",
+    "Flowerhorn", "Other"
+  ],
+  "Hamster": [
+    "Campbell Dwarf",
+    "Chinese Hamster",
+    "Roborovski Dwarf",
+    "Russian Dwarf",
+    "Syrian", "Winter White",
+    "Other"
+  ],
+  "Reptile": [
+    "Ball Python", "Bearded Dragon",
+    "Blue Tongue Skink",
+    "Boa Constrictor", "Chameleon",
+    "Corn Snake", "Crested Gecko",
+    "Green Iguana", "King Snake",
+    "Leopard Gecko", "Monitor Lizard",
+    "Red Eared Slider",
+    "Russian Tortoise",
+    "Sulcata Tortoise",
+    "Water Dragon", "Other"
+  ],
+  "Other": [
+    "Chinchilla", "Degu",
+    "Ferret", "Guinea Pig",
+    "Hedgehog", "Prairie Dog",
+    "Sugar Glider", "Tortoise",
+    "Other"
+  ]
+}
+
+Also read animal_blood_types.json
+from root directory and copy to
+/static/data/blood_types.json
+Keep original in root directory too.
+
+Add Flask routes to serve these files:
+@app.route('/static/data/breeds.json')
+@app.route('/static/data/blood_types.json')
+These are already served automatically
+by Flask static folder — no routes needed
+as long as files are in /static/data/
+
+PART 2 — Fix add_pet.html:
+
+In templates/add_pet.html find and
+replace the entire JavaScript section
+that handles species, breed and
+blood type dropdowns.
+
+The species select element must have
+id="species" and these options:
+Dog, Cat, Bird, Rabbit, Fish,
+Hamster, Reptile, Other
+
+The breed select element must have
+id="breed" and name="breed"
+Initially show: Select breed
+
+The blood type select element must have
+id="blood_type" and name="blood_type"
+Initially show: Select blood type
+
+Replace existing dropdown JavaScript
+with this exact script:
+
+<script>
+document.addEventListener(
+  'DOMContentLoaded', function() {
+  
+  const speciesSelect = 
+    document.getElementById('species');
+  const breedSelect = 
+    document.getElementById('breed');
+  const bloodSelect = 
+    document.getElementById('blood_type');
+
+  let breedsData = {};
+  let bloodData = {};
+
+  async function loadData() {
+    try {
+      const [breedsRes, bloodRes] = 
+        await Promise.all([
+          fetch('/static/data/breeds.json'),
+          fetch('/static/data/blood_types.json')
+        ]);
+      breedsData = await breedsRes.json();
+      bloodData = await bloodRes.json();
+      
+      if (speciesSelect.value) {
+        updateBreeds(speciesSelect.value);
+        updateBloodTypes(speciesSelect.value);
+      }
+    } catch (error) {
+      console.error(
+        'Error loading data:', error);
+    }
+  }
+
+  function updateBreeds(species) {
+    const breeds = breedsData[species] 
+      || ['Mixed Breed', 'Other'];
+    const currentBreed = 
+      breedSelect.dataset.current || '';
+    
+    breedSelect.innerHTML = 
+      '<option value="">Select breed</option>';
+    breeds.forEach(breed => {
+      const opt = 
+        document.createElement('option');
+      opt.value = breed;
+      opt.textContent = breed;
+      if (breed === currentBreed) {
+        opt.selected = true;
+      }
+      breedSelect.appendChild(opt);
+    });
+  }
+
+  function updateBloodTypes(species) {
+    const types = bloodData[species] 
+      || bloodData['Other'] 
+      || ['Unknown'];
+    const currentBlood = 
+      bloodSelect.dataset.current || '';
+    
+    bloodSelect.innerHTML = 
+      '<option value="">Select blood type</option>';
+    types.forEach(type => {
+      const opt = 
+        document.createElement('option');
+      opt.value = type;
+      opt.textContent = type;
+      if (type === currentBlood) {
+        opt.selected = true;
+      }
+      bloodSelect.appendChild(opt);
+    });
+  }
+
+  speciesSelect.addEventListener(
+    'change', function() {
+      updateBreeds(this.value);
+      updateBloodTypes(this.value);
+  });
+
+  loadData();
+});
+</script>
+
+In the breed select element add:
+data-current="{{ pet.breed if pet else '' }}"
+
+In the blood type select element add:
+data-current="{{ pet.blood if pet else '' }}"
+
+Apply the same fix to edit_pet.html:
+Same JavaScript with data-current
+pre-filled from existing pet data.
+
+PART 3 — Fix pet detail appointments:
+
+In templates/pet_detail.html:
+Find and remove all hardcoded
+appointment data including:
+- Any hardcoded booking cards
+- Fluffy Paws Grooming
+- Pet Care Clinic
+- Any dates hardcoded as 2024
+
+Replace the upcoming appointments
+section with:
+
+{% if upcoming_bookings %}
+  {% for booking in upcoming_bookings %}
+  <div class="booking-card">
+    <h4>{{ booking[3] }}</h4>
+    <p><strong>Date:</strong> 
+      {{ booking[4] }} at {{ booking[5] }}</p>
+    <p><strong>Provider:</strong> 
+      {{ booking.vendor_name if 
+      booking.vendor_name else 'Unknown' }}</p>
+    <span class="badge-{{ booking[8] }}">
+      {{ booking[8]|capitalize }}</span>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty-state">
+    <p>No upcoming appointments.</p>
+    <a href="/groomers" class="btn-book">
+      Book a Service</a>
+  </div>
+{% endif %}
+
+In main.py find the pet_detail route.
+Add this query before render_template:
+
+from datetime import date
+today = date.today().isoformat()
+
+conn = sqlite3.connect('erp.db')
+c = conn.cursor()
+
+Pull upcoming bookings for this pet:
+c.execute("""
+    SELECT b.*, v.business_name as vendor_name
+    FROM bookings b
+    LEFT JOIN vendors v ON b.vendor_id = v.id
+    WHERE b.user_email = ?
+    AND LOWER(b.pet_name) = LOWER(?)
+    AND b.appointment_date >= ?
+    AND b.status NOT IN 
+      ('cancelled', 'completed')
+    ORDER BY b.appointment_date ASC
+    LIMIT 5
+""", (session['user_email'],
+      pet['name'],
+      today))
+
+upcoming_bookings = c.fetchall()
+conn.close()
+
+Pass upcoming_bookings to template.
+
+PART 4 — Fix medical reminders:
+
+Add to init_erp_db() in main.py:
+
+CREATE TABLE IF NOT EXISTS pet_reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pet_index INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    reminder_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    due_date TEXT NOT NULL,
+    priority TEXT DEFAULT 'medium'
+        CHECK(priority IN
+        ('low','medium','high','urgent')),
+    source TEXT DEFAULT 'manual'
+        CHECK(source IN
+        ('manual','furrvet','system')),
+    vet_name TEXT,
+    medication_name TEXT,
+    dosage TEXT,
+    frequency TEXT,
+    is_completed BOOLEAN DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+Add route /pet/<int:pet_index>/reminder/add
+GET and POST:
+GET: render add_reminder.html
+POST: save to pet_reminders table
+  with pet_index and session user_email
+  redirect to /pet/<pet_index>
+
+Add route
+/pet/<int:pet_index>/reminder/<int:rid>/complete
+POST: set is_completed = 1
+redirect to /pet/<pet_index>
+
+Create templates/add_reminder.html:
+Purple gradient header
+Form with fields:
+  reminder_type dropdown:
+    Vaccination, Medication, Deworming,
+    Flea Treatment, Dental Care,
+    Vet Visit, Grooming, Other
+  title text input required
+  description textarea
+  due_date date picker required
+  priority dropdown:
+    low, medium, high, urgent
+  vet_name text optional
+  medication_name text optional
+  dosage text optional
+  frequency dropdown optional:
+    Once, Daily, Twice Daily,
+    Weekly, Monthly, As Needed
+Save Reminder button
+Cancel button back to /pet/<pet_index>
+
+In main.py pet_detail route:
+Add query for reminders:
+
+c.execute("""
+    SELECT * FROM pet_reminders
+    WHERE pet_index = ?
+    AND user_email = ?
+    AND is_completed = 0
+    AND due_date >= date('now', '-7 days')
+    ORDER BY due_date ASC
+""", (pet_index, 
+      session['user_email']))
+reminders = c.fetchall()
+
+Pass reminders to pet_detail template.
+
+In templates/pet_detail.html:
+Remove hardcoded reminders:
+- Vaccination Due March 2024
+- Flea Treatment February 2024
+
+Replace with:
++ Add Reminder button linking to
+/pet/<pet_index>/reminder/add
+
+{% for reminder in reminders %}
+<div class="reminder-card 
+  priority-{{ reminder[9] }}">
+  <div class="reminder-header">
+    <span class="reminder-type">
+      {{ reminder[3] }}</span>
+    <span class="badge-{{ reminder[9] }}">
+      {{ reminder[9]|capitalize }} Priority
+    </span>
+    {% if reminder[10] == 'furrvet' %}
+    <span class="badge-vet">
+      FurrVet ✓</span>
+    {% endif %}
+  </div>
+  <h4>{{ reminder[4] }}</h4>
+  {% if reminder[5] %}
+  <p>{{ reminder[5] }}</p>
+  {% endif %}
+  <p><strong>Due:</strong> 
+    {{ reminder[6] }}</p>
+  {% if reminder[11] %}
+  <p><strong>Vet:</strong> 
+    {{ reminder[11] }}</p>
+  {% endif %}
+  {% if reminder[12] %}
+  <p><strong>Medication:</strong>
+    {{ reminder[12] }}
+    {% if reminder[13] %}
+    — {{ reminder[13] }}
+    {% endif %}
+  </p>
+  {% endif %}
+  <form method="POST" 
+    action="/pet/{{ pet_index }}/reminder/
+    {{ reminder[0] }}/complete">
+    <button type="submit" 
+      class="btn-complete">
+      ✓ Mark Done</button>
+  </form>
+</div>
+{% endfor %}
+
+{% if not reminders %}
+<div class="empty-reminders">
+  <p>No upcoming reminders.</p>
+  <a href="/pet/{{ pet_index }}/reminder/add"
+    class="btn-add">
+    + Add Reminder</a>
+</div>
+{% endif %}
+
+PART 5 — FurrVet to pet reminder bridge:
+
+In furrvet.py or main.py,
+find where prescriptions or
+treatment plans are saved.
+
+After saving a prescription add:
+Check if owner contact matches
+a pet parent account by querying
+Replit db for matching email or phone.
+
+If match found:
+conn2 = sqlite3.connect('erp.db')
+c2 = conn2.cursor()
+c2.execute("""
+    INSERT INTO pet_reminders
+    (pet_index, user_email, reminder_type,
+     title, description, due_date,
+     priority, source, vet_name,
+     medication_name, dosage, frequency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""", (
+    matched_pet_index,
+    matched_user_email,
+    'Medication',
+    prescription_name,
+    vet_instructions,
+    next_dose_date,
+    'high',
+    'furrvet',
+    clinic_name,
+    medication_name,
+    dosage,
+    frequency
+))
+conn2.commit()
+conn2.close()
+
+Do not modify any other templates
+except add_pet.html, edit_pet.html
+and pet_detail.html as specified above.
+Create add_reminder.html as new template.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
