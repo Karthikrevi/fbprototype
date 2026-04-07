@@ -2071,30 +2071,6 @@ def init_erp_db():
         )
     ''')
 
-    seed_venues = [
-        ('Casino Hotel Kochi','hotel',None,'Kochi','Kerala',None,None,'https://casinohotel.in',None,'https://casinohotel.in/reservations',None,None,'Small pets allowed with prior approval','small','₹500 per night','Pet bed, Food bowls, Walking area',0,0,1,1,'admin'),
-        ('Fragrant Nature Munnar','resort',None,'Munnar','Kerala',None,None,None,None,None,None,None,'Pets welcome in designated cottages','medium','₹300 per night','Garden walks, Pet sitting',0,0,1,1,'admin'),
-        ('The Postcard Cuelim Goa','hotel',None,'Goa','Goa',None,None,None,None,None,None,None,'Pet friendly property','all','No additional charge','Beach access, Pet menu, Grooming on request',0,0,1,1,'admin'),
-        ('Windflower Prakruthi Bangalore','resort',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'Dogs welcome','large','₹1000 per stay','Large grounds, Pet pool, Vet on call',0,0,1,1,'admin'),
-        ('Cafe Noir Kochi','cafe',None,'Kochi','Kerala',None,None,None,None,None,None,None,'Pets welcome at outdoor seating','all','None','Water bowls, Outdoor seating, Pet snacks',0,0,1,1,'admin'),
-        ('Taj Malabar Resort Kochi','hotel',None,'Kochi','Kerala',None,None,'https://www.tajhotels.com',None,None,None,None,'Small pets with prior approval','small','₹750 per night','Pet bed, Pet menu, Garden',0,0,1,1,'admin'),
-        ('Marari Beach Resort','resort',None,'Alleppey','Kerala',None,None,None,None,None,None,None,'Pets welcome in beach cottages','medium','₹400 per night','Beach access, Open grounds, Pet sitting',0,0,1,1,'admin'),
-        ('Brew & Bark Cafe','cafe',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'All pets welcome','all','None','Water bowls, Play area, Pet treats menu',0,0,1,1,'admin'),
-        ('W Goa','hotel',None,'Goa','Goa',None,None,'https://www.marriott.com',None,None,None,None,'Pet friendly rooms available','medium','₹2000 per night','Pet bed, Pet amenities kit, Walking trails',0,0,1,1,'admin'),
-        ('Cubbon Park','park',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'Leashed pets welcome','all','Free','Open grounds, Walking paths, Shaded areas',0,0,1,1,'admin'),
-        ('Pawna Lake Resort','resort',None,'Pune','Maharashtra',None,None,None,None,None,None,None,'Pet friendly glamping','large','₹500 per night','Lakeside, Open area, Campfire zone',0,0,1,1,'admin'),
-        ('The Leela Mumbai','hotel',None,'Mumbai','Maharashtra',None,None,'https://www.theleela.com',None,None,None,None,'Small pets in select rooms','small','₹1500 per night','Pet concierge, Walking area, Pet menu',0,0,1,1,'admin'),
-        ('Lodhi Garden','park',None,'Delhi','Delhi',None,None,None,None,None,None,None,'Dogs on leash welcome','all','Free','Historic grounds, Walking paths, Green spaces',0,0,1,1,'admin'),
-        ('Dyu Art Cafe','cafe',None,'Bangalore','Karnataka',None,None,None,None,None,None,None,'Pets welcome in garden area','all','None','Garden seating, Water bowls, Art space',0,0,1,1,'admin'),
-        ('Zostel Alleppey','hotel',None,'Alleppey','Kerala',None,None,'https://www.zostel.com',None,None,None,None,'Pet friendly hostel','medium','₹200 per night','Common area, Backyard, Chill zone',0,0,1,1,'admin'),
-    ]
-    for v in seed_venues:
-        c.execute("SELECT id FROM pet_friendly_venues WHERE name=?", (v[0],))
-        if not c.fetchone():
-            c.execute("""INSERT INTO pet_friendly_venues
-                (name,venue_type,address,city,state,pincode,phone,website,google_maps_url,booking_url,latitude,longitude,pet_policy,max_pet_size,pet_fee,amenities,rating,review_count,verified,is_active,added_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", v)
-
     venue_alter_cols = [
         ("submission_status", "TEXT DEFAULT 'approved'"),
         ("submitted_by_email", "TEXT"),
@@ -2165,202 +2141,7 @@ def recalculate_inventory(conn, product_id=None):
         """)
     conn.commit()
 
-# FurrVet ERP Integration
-def init_furrvet_db():
-    """Initialize FurrVet database with all required tables"""
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Veterinarian accounts
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            license_number TEXT NOT NULL,
-            specialization TEXT,
-            phone TEXT,
-            clinic_name TEXT,
-            address TEXT,
-            city TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_active BOOLEAN DEFAULT 1
-        )
-    ''')
-    
-    # Pet owners/clients
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS pet_owners (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT,
-            phone TEXT NOT NULL,
-            address TEXT,
-            city TEXT,
-            emergency_contact TEXT,
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Pets/Patients
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS pets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            species TEXT NOT NULL,
-            breed TEXT,
-            gender TEXT,
-            date_of_birth DATE,
-            weight REAL,
-            microchip_id TEXT UNIQUE,
-            owner_id INTEGER NOT NULL,
-            color TEXT,
-            distinguishing_marks TEXT,
-            insurance_info TEXT,
-            allergies TEXT,
-            medical_conditions TEXT,
-            photo_url TEXT,
-            status TEXT DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (owner_id) REFERENCES pet_owners (id)
-        )
-    ''')
-    
-    # Appointments
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS appointments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pet_id INTEGER NOT NULL,
-            vet_id INTEGER NOT NULL,
-            appointment_date DATE NOT NULL,
-            appointment_time TIME NOT NULL,
-            appointment_type TEXT NOT NULL,
-            duration INTEGER DEFAULT 30,
-            status TEXT DEFAULT 'scheduled',
-            reason TEXT,
-            notes TEXT,
-            follow_up_required BOOLEAN DEFAULT 0,
-            follow_up_date DATE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (pet_id) REFERENCES pets (id),
-            FOREIGN KEY (vet_id) REFERENCES vets (id)
-        )
-    ''')
-    
-    # Medical records
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS medical_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pet_id INTEGER NOT NULL,
-            vet_id INTEGER NOT NULL,
-            appointment_id INTEGER,
-            visit_date DATE NOT NULL,
-            chief_complaint TEXT,
-            physical_examination TEXT,
-            diagnosis TEXT,
-            treatment_plan TEXT,
-            prescription TEXT,
-            follow_up_instructions TEXT,
-            vitals_temperature REAL,
-            vitals_weight REAL,
-            vitals_heart_rate INTEGER,
-            vitals_respiratory_rate INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (pet_id) REFERENCES pets (id),
-            FOREIGN KEY (vet_id) REFERENCES vets (id),
-            FOREIGN KEY (appointment_id) REFERENCES appointments (id)
-        )
-    ''')
-    
-    # Vaccinations
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS vaccinations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pet_id INTEGER NOT NULL,
-            vet_id INTEGER NOT NULL,
-            vaccine_name TEXT NOT NULL,
-            vaccine_type TEXT,
-            batch_number TEXT,
-            manufacturer TEXT,
-            vaccination_date DATE NOT NULL,
-            next_due_date DATE,
-            site_of_injection TEXT,
-            adverse_reactions TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (pet_id) REFERENCES pets (id),
-            FOREIGN KEY (vet_id) REFERENCES vets (id)
-        )
-    ''')
-    
-    # Invoices/Billing
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS furrvet_invoices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            invoice_number TEXT UNIQUE NOT NULL,
-            pet_id INTEGER NOT NULL,
-            owner_id INTEGER NOT NULL,
-            vet_id INTEGER NOT NULL,
-            invoice_date DATE NOT NULL,
-            due_date DATE,
-            subtotal REAL NOT NULL,
-            tax_rate REAL DEFAULT 18.0,
-            tax_amount REAL,
-            discount_rate REAL DEFAULT 0.0,
-            discount_amount REAL,
-            total_amount REAL NOT NULL,
-            payment_status TEXT DEFAULT 'pending',
-            payment_method TEXT,
-            payment_date DATE,
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (pet_id) REFERENCES pets (id),
-            FOREIGN KEY (owner_id) REFERENCES pet_owners (id),
-            FOREIGN KEY (vet_id) REFERENCES vets (id)
-        )
-    ''')
-    
-    # Inventory/Pharmacy
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS furrvet_inventory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            item_name TEXT NOT NULL,
-            item_type TEXT NOT NULL,
-            category TEXT,
-            brand TEXT,
-            description TEXT,
-            unit_of_measure TEXT,
-            current_stock INTEGER DEFAULT 0,
-            minimum_stock INTEGER DEFAULT 10,
-            unit_cost REAL,
-            selling_price REAL,
-            supplier TEXT,
-            batch_number TEXT,
-            expiry_date DATE,
-            location TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Create demo data
-    c.execute('''
-        INSERT OR IGNORE INTO vets (name, email, password, license_number, specialization, phone, clinic_name, city)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ("Dr. Sarah Johnson", "vet@furrvet.com", "vet123", "VET-2024-001", "Small Animals", "+91-9876543210", "FurrVet Clinic", "Trivandrum"))
-    
-    c.execute('''
-        INSERT OR IGNORE INTO pet_owners (name, email, phone, address, city)
-        VALUES (?, ?, ?, ?, ?)
-    ''', ("John Smith", "john@example.com", "+91-9876543211", "123 Pet Street", "Trivandrum"))
-    
-    c.execute('''
-        INSERT OR IGNORE INTO pets (name, species, breed, gender, date_of_birth, weight, owner_id, color)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ("Buddy", "Dog", "Golden Retriever", "Male", "2020-05-15", 32.5, 1, "Golden"))
-    
-    conn.commit()
-    conn.close()
+from furrvet import furrvet_bp, init_furrvet_db
 
 def init_furrvet_gdpr_table():
     conn = sqlite3.connect('furrvet.db')
@@ -2440,15 +2221,8 @@ app.jinja_env.filters['tojson'] = lambda obj: json.dumps(obj)
 # Register WhatsApp blueprint
 app.register_blueprint(whatsapp_bp)
 
-# FurrVet ERP Integration (duplicate function definition removed)
-# FurrVet authentication decorator
-def furrvet_login_required(f):
-    def decorated_function(*args, **kwargs):
-        if 'furrvet_vet_id' not in session:
-            return redirect(url_for('furrvet_login'))
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
+# Register FurrVet blueprint
+app.register_blueprint(furrvet_bp)
 
 # React Native Web App
 @app.route('/app')
@@ -2472,104 +2246,6 @@ def react_static_assets(path):
         'mobile', 'dist', 'assets')
     return send_from_directory(dist_path, path)
 
-# FurrVet Routes
-@app.route('/furrvet')
-@app.route('/furrvet/')
-def furrvet_home():
-    if 'furrvet_vet_id' in session:
-        return redirect(url_for('furrvet_dashboard'))
-    return redirect(url_for('furrvet_login'))
-
-@app.route('/furrvet/login', methods=['GET', 'POST'])
-def furrvet_login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        conn = sqlite3.connect('furrvet.db')
-        c = conn.cursor()
-        c.execute("SELECT * FROM vets WHERE email=? AND password=? AND is_active=1", (email, password))
-        vet = c.fetchone()
-        conn.close()
-        
-        if vet:
-            session['furrvet_vet_id'] = vet[0]
-            session['furrvet_vet_name'] = vet[1]
-            session['furrvet_vet_email'] = vet[2]
-            session['furrvet_clinic_name'] = vet[7]
-            return redirect(url_for('furrvet_dashboard'))
-        else:
-            flash('Invalid FurrVet credentials')
-    
-    return render_template('furrvet/furrvet_login.html')
-
-@app.route('/furrvet/logout')
-def furrvet_logout():
-    session.pop('furrvet_vet_id', None)
-    session.pop('furrvet_vet_name', None)
-    session.pop('furrvet_vet_email', None)
-    session.pop('furrvet_clinic_name', None)
-    return redirect(url_for('furrvet_login'))
-
-@app.route('/furrvet/dashboard')
-@furrvet_login_required
-def furrvet_dashboard():
-    vet_id = session['furrvet_vet_id']
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Today's appointments
-    c.execute("""
-        SELECT COUNT(*) FROM appointments 
-        WHERE vet_id = ? AND DATE(appointment_date) = DATE('now')
-    """, (vet_id,))
-    today_appointments = c.fetchone()[0]
-    
-    # Total patients
-    c.execute("SELECT COUNT(*) FROM pets")
-    total_patients = c.fetchone()[0]
-    
-    # Today's revenue
-    c.execute("""
-        SELECT COALESCE(SUM(total_amount), 0) FROM furrvet_invoices 
-        WHERE vet_id = ? AND DATE(invoice_date) = DATE('now') AND payment_status = 'paid'
-    """, (vet_id,))
-    today_revenue = c.fetchone()[0]
-    
-    # Pending appointments
-    c.execute("""
-        SELECT COUNT(*) FROM appointments 
-        WHERE vet_id = ? AND status = 'scheduled'
-    """, (vet_id,))
-    pending_appointments = c.fetchone()[0]
-    
-    # Recent appointments
-    c.execute("""
-        SELECT a.id, p.name as pet_name, po.name as owner_name, a.appointment_date, 
-               a.appointment_time, a.appointment_type, a.status
-        FROM appointments a
-        JOIN pets p ON a.pet_id = p.id
-        JOIN pet_owners po ON p.owner_id = po.id
-        WHERE a.vet_id = ?
-        ORDER BY a.appointment_date DESC, a.appointment_time DESC
-        LIMIT 5
-    """, (vet_id,))
-    recent_appointments = c.fetchall()
-    
-    conn.close()
-    
-    stats = {
-        'today_appointments': today_appointments,
-        'total_patients': total_patients,
-        'today_revenue': today_revenue,
-        'pending_appointments': pending_appointments
-    }
-    
-    return render_template('furrvet/furrvet_dashboard.html', 
-                         stats=stats, 
-                         recent_appointments=recent_appointments,
-                         vet_name=session['furrvet_vet_name'],
-                         clinic_name=session['furrvet_clinic_name'])
 
 # Setup for photo uploads
 UPLOAD_FOLDER = 'static/uploads'
@@ -2672,7 +2348,7 @@ def login():
     if session.get("vendor"):
         return redirect(url_for("erp_dashboard"))
     if session.get("furrvet_vet_id"):
-        return redirect(url_for("furrvet_dashboard"))
+        return redirect(url_for("furrvet.dashboard"))
     if session.get("vet"):
         return redirect(url_for("vet_dashboard"))
     if session.get("handler"):
@@ -3699,41 +3375,31 @@ def check_venue_submission(name, city, website, pet_policy):
 
 @app.route('/pet-friendly')
 def pet_friendly():
-    city = request.args.get("city", "").strip()
-    venue_type = request.args.get("venue_type", "").strip()
-    pet_size = request.args.get("pet_size", "").strip()
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    import json as json_mod
+    try:
+        with open('static/data/travel_affiliates.json') as f:
+            affiliates = json_mod.load(f)
+    except Exception:
+        affiliates = {'hotels': [], 'restaurants': [], 'activities': []}
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    query = "SELECT * FROM pet_friendly_venues WHERE is_active=1 AND added_by='admin'"
-    params = []
-    if city:
-        query += " AND LOWER(city) LIKE ?"
-        params.append(f"%{city.lower()}%")
-    if venue_type and venue_type != "all":
-        query += " AND venue_type=?"
-        params.append(venue_type)
-    if pet_size and pet_size != "all":
-        query += " AND (max_pet_size=? OR max_pet_size='all')"
-        params.append(pet_size)
-    query += " ORDER BY verified DESC, rating DESC, name ASC"
-    c.execute(query, params)
-    venues = c.fetchall()
-    community_query = "SELECT * FROM pet_friendly_venues WHERE is_active=1 AND added_by='community' AND submission_status IN ('approved','auto_approved')"
-    community_params = []
-    if city:
-        community_query += " AND LOWER(city) LIKE ?"
-        community_params.append(f"%{city.lower()}%")
-    if venue_type and venue_type != "all":
-        community_query += " AND venue_type=?"
-        community_params.append(venue_type)
-    if pet_size and pet_size != "all":
-        community_query += " AND (max_pet_size=? OR max_pet_size='all')"
-        community_params.append(pet_size)
-    community_query += " ORDER BY rating DESC, created_at DESC LIMIT 20"
-    c.execute(community_query, community_params)
+    c.execute("""
+        SELECT * FROM pet_friendly_venues
+        WHERE submission_status IN ('approved', 'auto_approved')
+        AND is_active = 1
+        ORDER BY created_at DESC
+        LIMIT 20
+    """)
     community_venues = c.fetchall()
     conn.close()
-    return render_template("pet_friendly.html", venues=venues, community_venues=community_venues, city=city, venue_type=venue_type, pet_size=pet_size)
+
+    return render_template('pet_friendly.html',
+        affiliates=affiliates,
+        community_venues=community_venues)
 
 @app.route('/pet-friendly/suggest', methods=["GET", "POST"])
 def suggest_venue():
@@ -3789,108 +3455,19 @@ def suggest_venue():
 
 @app.route('/pet-friendly/<int:venue_id>')
 def venue_detail(venue_id):
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM pet_friendly_venues WHERE id=?", (venue_id,))
-    venue = c.fetchone()
-    if not venue:
-        flash("Venue not found!")
-        conn.close()
-        return redirect(url_for("pet_friendly"))
-    c.execute("SELECT * FROM venue_reviews WHERE venue_id=? ORDER BY created_at DESC", (venue_id,))
-    reviews = c.fetchall()
-    avg_rating = 0
-    if reviews:
-        avg_rating = round(sum(r[4] for r in reviews if r[4]) / len(reviews), 1)
-    conn.close()
-    user_pets = []
-    if "user" in session:
-        user_pets = db.get(f"pets:{session['user']}", [])
-    return render_template("venue_detail.html", venue=venue, reviews=reviews, avg_rating=avg_rating, user_pets=user_pets)
+    return redirect(url_for('pet_friendly'))
 
-@app.route('/pet-friendly/<int:venue_id>/review', methods=["POST"])
+@app.route('/pet-friendly/<int:venue_id>/review', methods=['POST'])
 def add_venue_review(venue_id):
-    if "user" not in session:
-        flash("Please login to write a review.")
-        return redirect(url_for("login"))
-    user = session["user"]
-    rating = request.form.get("rating", 0, type=int)
-    review_text = request.form.get("review_text", "").strip()
-    pet_welcome_rating = request.form.get("pet_welcome_rating", 0, type=int)
-    amenities_rating = request.form.get("amenities_rating", 0, type=int)
-    visit_date = request.form.get("visit_date", "")
-    pet_index = request.form.get("pet_index", None, type=int)
-    if rating < 1 or rating > 5:
-        flash("Please provide a valid rating (1-5).")
-        return redirect(url_for("venue_detail", venue_id=venue_id))
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("""INSERT INTO venue_reviews
-        (venue_id, user_email, pet_index, rating, review_text, pet_welcome_rating, amenities_rating, visit_date)
-        VALUES (?,?,?,?,?,?,?,?)""",
-        (venue_id, user, pet_index, rating, review_text, pet_welcome_rating, amenities_rating, visit_date))
-    c.execute("SELECT AVG(rating), COUNT(*) FROM venue_reviews WHERE venue_id=?", (venue_id,))
-    row = c.fetchone()
-    if row:
-        c.execute("UPDATE pet_friendly_venues SET rating=?, review_count=? WHERE id=?",
-                  (round(row[0], 1) if row[0] else 0, row[1], venue_id))
-    conn.commit()
-    conn.close()
-    flash("Review submitted successfully!")
-    return redirect(url_for("venue_detail", venue_id=venue_id))
+    return redirect(url_for('pet_friendly'))
 
-@app.route('/pet-friendly/<int:venue_id>/log-booking', methods=["GET", "POST"])
+@app.route('/pet-friendly/<int:venue_id>/log-booking', methods=['GET', 'POST'])
 def log_venue_booking(venue_id):
-    if "user" not in session:
-        return redirect(url_for("login"))
-    user = session["user"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM pet_friendly_venues WHERE id=?", (venue_id,))
-    venue = c.fetchone()
-    conn.close()
-    if not venue:
-        flash("Venue not found!")
-        return redirect(url_for("pet_friendly"))
-    pets = db.get(f"pets:{user}", [])
-    if request.method == "POST":
-        booking_platform = request.form.get("booking_platform", "")
-        booking_reference = request.form.get("booking_reference", "").strip()
-        pet_index = request.form.get("pet_index", None, type=int)
-        check_in_date = request.form.get("check_in_date", "")
-        check_out_date = request.form.get("check_out_date", "")
-        notes = request.form.get("notes", "").strip()
-        booking_url = request.form.get("booking_url", "").strip()
-        conn = sqlite3.connect('erp.db')
-        c = conn.cursor()
-        c.execute("""INSERT INTO venue_bookings
-            (venue_id, user_email, pet_index, booking_reference, booking_platform,
-             check_in_date, check_out_date, booking_url, notes)
-            VALUES (?,?,?,?,?,?,?,?,?)""",
-            (venue_id, user, pet_index, booking_reference, booking_platform,
-             check_in_date, check_out_date, booking_url, notes))
-        conn.commit()
-        conn.close()
-        flash("Booking logged successfully!")
-        return redirect(url_for("venue_detail", venue_id=venue_id))
-    return render_template("log_booking.html", venue=venue, pets=pets)
+    return redirect(url_for('pet_friendly'))
 
 @app.route('/my-venue-bookings')
 def my_venue_bookings():
-    if "user" not in session:
-        return redirect(url_for("login"))
-    user = session["user"]
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("""SELECT vb.*, pfv.name, pfv.venue_type, pfv.city, pfv.state
-        FROM venue_bookings vb
-        JOIN pet_friendly_venues pfv ON vb.venue_id = pfv.id
-        WHERE vb.user_email=?
-        ORDER BY vb.check_in_date DESC""", (user,))
-    bookings = c.fetchall()
-    conn.close()
-    pets = db.get(f"pets:{user}", [])
-    return render_template("my_venue_bookings.html", bookings=bookings, pets=pets)
+    return redirect(url_for('pet_friendly'))
 
 @app.route('/vet/dashboard')
 def vet_dashboard():
@@ -5554,334 +5131,6 @@ def ngo_dashboard():
                          stats=stats, 
                          recent_strays=recent_strays, 
                          ngo_name=ngo_name)
-
-# === FURRVET PATIENT MANAGEMENT ===
-@app.route('/furrvet/patients')
-def furrvet_patients():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    search = request.args.get('search', '')
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    if search:
-        search_param = f'%{search}%'
-        c.execute("""
-            SELECT p.*, po.name as owner_name, po.phone as owner_phone
-            FROM pets p
-            JOIN pet_owners po ON p.owner_id = po.id
-            WHERE p.name LIKE ? OR po.name LIKE ? OR p.microchip_id LIKE ?
-            ORDER BY p.name
-        """, (search_param, search_param, search_param))
-    else:
-        c.execute("""
-            SELECT p.*, po.name as owner_name, po.phone as owner_phone
-            FROM pets p
-            JOIN pet_owners po ON p.owner_id = po.id
-            ORDER BY p.name
-        """)
-    
-    patients = c.fetchall()
-    conn.close()
-    
-    return render_template('furrvet/furrvet_patients.html', patients=patients, search=search)
-
-@app.route('/furrvet/patients/<int:pet_id>')
-def furrvet_patient_detail(pet_id):
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Get pet details
-    c.execute("""
-        SELECT p.*, po.name as owner_name, po.email as owner_email, 
-               po.phone as owner_phone, po.address as owner_address
-        FROM pets p
-        JOIN pet_owners po ON p.owner_id = po.id
-        WHERE p.id = ?
-    """, (pet_id,))
-    pet = c.fetchone()
-    
-    if not pet:
-        flash('Patient not found')
-        return redirect(url_for('furrvet_patients'))
-    
-    # Get medical history
-    c.execute("""
-        SELECT mr.*, v.name as vet_name
-        FROM medical_records mr
-        JOIN vets v ON mr.vet_id = v.id
-        WHERE mr.pet_id = ?
-        ORDER BY mr.visit_date DESC
-    """, (pet_id,))
-    medical_records = c.fetchall()
-    
-    # Get vaccinations
-    c.execute("""
-        SELECT v.*, vt.name as vet_name
-        FROM vaccinations v
-        JOIN vets vt ON v.vet_id = vt.id
-        WHERE v.pet_id = ?
-        ORDER BY v.vaccination_date DESC
-    """, (pet_id,))
-    vaccinations = c.fetchall()
-    
-    # Get upcoming appointments
-    c.execute("""
-        SELECT * FROM appointments
-        WHERE pet_id = ? AND appointment_date >= DATE('now')
-        ORDER BY appointment_date, appointment_time
-    """, (pet_id,))
-    upcoming_appointments = c.fetchall()
-    
-    conn.close()
-    
-    return render_template('furrvet/furrvet_patient_detail.html',
-                         pet=pet,
-                         medical_records=medical_records,
-                         vaccinations=vaccinations,
-                         upcoming_appointments=upcoming_appointments)
-
-# === FURRVET APPOINTMENT MANAGEMENT ===
-@app.route('/furrvet/appointments')
-def furrvet_appointments():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    vet_id = session['furrvet_vet_id']
-    date_filter = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
-    
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    c.execute("""
-        SELECT a.*, p.name as pet_name, p.species, po.name as owner_name, po.phone as owner_phone
-        FROM appointments a
-        JOIN pets p ON a.pet_id = p.id
-        JOIN pet_owners po ON p.owner_id = po.id
-        WHERE a.vet_id = ? AND DATE(a.appointment_date) = ?
-        ORDER BY a.appointment_time
-    """, (vet_id, date_filter))
-    
-    appointments_list = c.fetchall()
-    conn.close()
-    
-    return render_template('furrvet/furrvet_appointments.html', 
-                         appointments=appointments_list, 
-                         selected_date=date_filter)
-
-@app.route('/furrvet/appointments/new', methods=["GET", "POST"])
-def furrvet_new_appointment():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    if request.method == "POST":
-        vet_id = session['furrvet_vet_id']
-        pet_id = request.form.get('pet_id')
-        appointment_date = request.form.get('appointment_date')
-        appointment_time = request.form.get('appointment_time')
-        appointment_type = request.form.get('appointment_type')
-        reason = request.form.get('reason', '')
-        
-        conn = sqlite3.connect('furrvet.db')
-        c = conn.cursor()
-        
-        c.execute("""
-            INSERT INTO appointments (pet_id, vet_id, appointment_date, appointment_time, 
-                                    appointment_type, reason)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (pet_id, vet_id, appointment_date, appointment_time, appointment_type, reason))
-        
-        conn.commit()
-        conn.close()
-        
-        flash('Appointment scheduled successfully!')
-        return redirect(url_for('furrvet_appointments'))
-    
-    # Get all pets for the dropdown
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    c.execute("""
-        SELECT p.id, p.name, po.name as owner_name
-        FROM pets p
-        JOIN pet_owners po ON p.owner_id = po.id
-        ORDER BY p.name
-    """)
-    pets = c.fetchall()
-    conn.close()
-    
-    return render_template('furrvet/furrvet_new_appointment.html', pets=pets)
-
-# === FURRVET BILLING & INVOICING ===
-@app.route('/furrvet/billing')
-def furrvet_billing():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    vet_id = session['furrvet_vet_id']
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    c.execute("""
-        SELECT i.*, p.name as pet_name, po.name as owner_name
-        FROM furrvet_invoices i
-        JOIN pets p ON i.pet_id = p.id
-        JOIN pet_owners po ON i.owner_id = po.id
-        WHERE i.vet_id = ?
-        ORDER BY i.invoice_date DESC
-        LIMIT 50
-    """, (vet_id,))
-    
-    invoices = c.fetchall()
-    conn.close()
-    
-    return render_template('furrvet/furrvet_billing.html', invoices=invoices)
-
-# === FURRVET INVENTORY MANAGEMENT ===
-@app.route('/furrvet/inventory')
-def furrvet_inventory():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Get low stock items
-    c.execute("SELECT * FROM furrvet_inventory WHERE current_stock <= minimum_stock ORDER BY current_stock")
-    low_stock_items = c.fetchall()
-    
-    # Get all inventory
-    c.execute("SELECT * FROM furrvet_inventory ORDER BY item_name")
-    all_items = c.fetchall()
-    
-    conn.close()
-    
-    return render_template('furrvet/furrvet_inventory.html', 
-                         low_stock_items=low_stock_items, 
-                         all_items=all_items)
-
-# === FURRVET MEDICAL RECORDS ===
-@app.route('/furrvet/medical-records')
-def furrvet_medical_records():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    vet_id = session['furrvet_vet_id']
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    c.execute("""
-        SELECT mr.*, p.name as pet_name, po.name as owner_name
-        FROM medical_records mr
-        JOIN pets p ON mr.pet_id = p.id
-        JOIN pet_owners po ON p.owner_id = po.id
-        WHERE mr.vet_id = ?
-        ORDER BY mr.visit_date DESC
-        LIMIT 50
-    """, (vet_id,))
-    
-    records = c.fetchall()
-    conn.close()
-    
-    return render_template('furrvet/furrvet_medical_records.html', records=records)
-
-# === FURRVET LABORATORY & IMAGING ===
-@app.route('/furrvet/laboratory')
-def furrvet_laboratory():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    vet_id = session['furrvet_vet_id']
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Mock lab tests data since tables don't exist yet
-    lab_tests = []
-    imaging_records = []
-    
-    conn.close()
-    
-    return render_template('furrvet/furrvet_laboratory.html', 
-                         lab_tests=lab_tests, 
-                         imaging_records=imaging_records)
-
-# === FURRVET REPORTS & ANALYTICS ===
-@app.route('/furrvet/reports')
-def furrvet_reports():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    vet_id = session['furrvet_vet_id']
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Financial summary
-    c.execute("""
-        SELECT 
-            COUNT(*) as total_invoices,
-            SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END) as total_revenue,
-            SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END) as pending_amount
-        FROM furrvet_invoices 
-        WHERE vet_id = ? AND invoice_date >= date('now', '-30 days')
-    """, (vet_id,))
-    financial_summary = c.fetchone()
-    
-    # Appointment statistics
-    c.execute("""
-        SELECT 
-            COUNT(*) as total_appointments,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_appointments,
-            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_appointments
-        FROM appointments 
-        WHERE vet_id = ? AND appointment_date >= date('now', '-30 days')
-    """, (vet_id,))
-    appointment_stats = c.fetchone()
-    
-    # Patient statistics
-    c.execute("SELECT COUNT(*) FROM pets")
-    total_patients = c.fetchone()[0]
-    
-    # Popular services
-    c.execute("""
-        SELECT appointment_type, COUNT(*) as count
-        FROM appointments 
-        WHERE vet_id = ? AND appointment_date >= date('now', '-30 days')
-        GROUP BY appointment_type
-        ORDER BY count DESC
-        LIMIT 5
-    """, (vet_id,))
-    popular_services = c.fetchall()
-    
-    conn.close()
-    
-    stats = {
-        'financial': financial_summary,
-        'appointments': appointment_stats,
-        'total_patients': total_patients,
-        'popular_services': popular_services
-    }
-    
-    return render_template('furrvet/furrvet_reports.html', stats=stats)
-
-# === FURRVET HOSPITALIZATION ===
-@app.route('/furrvet/hospitalization')
-def furrvet_hospitalization():
-    if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
-
-    vet_id = session['furrvet_vet_id']
-    conn = sqlite3.connect('furrvet.db')
-    c = conn.cursor()
-    
-    # Mock hospitalization data since table doesn't exist yet
-    hospitalizations = []
-    
-    conn.close()
-    
-    return render_template('furrvet/furrvet_hospitalization.html', hospitalizations=hospitalizations)
 
 
 # ---- FURRWINGS ROLE-BASED LOGIN ROUTES ----
@@ -16530,7 +15779,7 @@ def furrvet_gdpr_privacy_notice():
 @app.route('/furrvet/gdpr/consent', methods=["GET"])
 def furrvet_gdpr_consent_page():
     if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
+        return redirect(url_for('furrvet.vet_login'))
     vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
@@ -16542,7 +15791,7 @@ def furrvet_gdpr_consent_page():
 @app.route('/furrvet/gdpr/consent', methods=["POST"])
 def furrvet_gdpr_consent_save():
     if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
+        return redirect(url_for('furrvet.vet_login'))
     vet_id = session['furrvet_vet_id']
     medical = 1 if request.form.get('medical_processing_consent') else 0
     retention = 1 if request.form.get('retention_acknowledged') else 0
@@ -16567,7 +15816,7 @@ def furrvet_gdpr_consent_save():
 @app.route('/furrvet/gdpr/export-records')
 def furrvet_gdpr_export_records():
     if 'furrvet_vet_id' not in session:
-        return redirect(url_for('furrvet_login'))
+        return redirect(url_for('furrvet.vet_login'))
     vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()

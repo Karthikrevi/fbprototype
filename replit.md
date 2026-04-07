@@ -16,7 +16,7 @@ The backend is a Flask application using an application factory pattern with mod
 The system uses SQLite for development and PostgreSQL for production, managed with Flask-Migrate. The schema supports users, pets, vendors, bookings, passport requests, and financial ledgers, including product inventory with FIFO batch tracking and detailed medical records with audit trails.
 
 ## Business Logic
-The platform incorporates specialized modules for inventory management with 14 standard formulas, comprehensive financial accounting with automated ledger entries (including Accounts Payable/Receivable, budget planning, and KPI dashboards), CRM functionality, and the "FurrWings" pet passport system. It features a dynamic currency system and location-based filtering for services using Haversine distance. A dedicated FurrVet module handles veterinary-specific data, appointments, patient records, and billing. The HRM module supports employee management, including reviews, certification tracking, and payroll.
+The platform incorporates specialized modules for inventory management with 14 standard formulas, comprehensive financial accounting with automated ledger entries (including Accounts Payable/Receivable, budget planning, and KPI dashboards), CRM functionality, and the "FurrWings" pet passport system. It features a dynamic currency system and location-based filtering for services using Haversine distance. FurrVet is a Flask Blueprint (`furrvet_bp`, url_prefix='/furrvet') in `furrvet.py` handling veterinary clinic management with its own database (`furrvet.db`), session keys (`furrvet_vet_id`, `furrvet_vet_name`, `furrvet_vet_email`, `furrvet_clinic_name`), and werkzeug password hashing. The HRM module supports employee management, including reviews, certification tracking, and payroll.
 
 ## AI & Analytics
 An AI-powered chatbot leverages machine learning for intent classification and business analytics, employing TF-IDF vectorization and Logistic Regression. It supports regex-based NLP pattern matching, semantic similarity for fallback responses, and conversation logging for retraining. The analytics engine provides real-time insights based on inventory management formulas.
@@ -62,15 +62,16 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **Entry points**: Quick action in pet_detail.html, insurance section in pawsport.html Medical tab
 - **Column indices**: 0=id, 1=pet_index, 2=user_email, 3=provider_name, 4=policy_number, 5=coverage_type, 6=coverage_amount, 7=premium_monthly, 8=premium_annual, 9=start_date, 10=end_date, 11=claims_contact, 12=policy_document_url, 13=status, 14=created_at
 
-## Pet Friendly Venues System
-- **Database tables**: `pet_friendly_venues` (venue details, pet policy, amenities, ratings), `venue_bookings` (user booking logs), `venue_reviews` (ratings + reviews)
-- **Seed data**: 15 venues across Kerala, Goa, Bangalore, Mumbai, Delhi (hotels, resorts, cafes, parks)
-- **Routes**: `/pet-friendly` (browse/filter), `/pet-friendly/<id>` (detail + reviews), `/pet-friendly/<id>/review` (POST), `/pet-friendly/<id>/log-booking` (GET/POST), `/my-venue-bookings` (user's bookings), `/pet-friendly/suggest` (POST suggestion)
-- **Templates**: `pet_friendly.html` (grid with filters), `venue_detail.html` (detail + booking + reviews), `log_booking.html` (form), `my_venue_bookings.html` (booking list)
-- **Entry points**: Dashboard tile in dashboard.html, quick action in pet_detail.html
-- **Community venue suggestions**: `/pet-friendly/suggest` (GET form + POST submit), `check_venue_submission()` for spam/duplicate detection, auto-approve clean submissions, pending queue for flagged ones
+## Pet Friendly Venues & Travel Affiliates
+- **Affiliate data**: `static/data/travel_affiliates.json` — 4 hotel platforms (Booking.com, MakeMyTrip, Airbnb, Goibibo), 2 restaurant platforms (Zomato, Google Maps), 1 activity platform (Airbnb Experiences) with affiliate URLs, features, emojis
+- **Database tables**: `pet_friendly_venues` (community-submitted venues), `venue_bookings` (legacy, routes redirect), `venue_reviews` (legacy, routes redirect)
+- **No seed data**: Hardcoded 15 admin venues removed; only community-submitted approved venues shown
+- **Routes**: `/pet-friendly` (affiliate cards + community venues), `/pet-friendly/suggest` (GET form + POST submit), `/pet-friendly/<id>` (redirect to /pet-friendly), `/pet-friendly/<id>/review` (redirect), `/pet-friendly/<id>/log-booking` (redirect), `/my-venue-bookings` (redirect)
+- **Templates**: `pet_friendly.html` (affiliate cards, community section, disclaimer modal, travel tips), `suggest_venue.html` (form with Indian states dropdown, amenities checkboxes)
+- **Disclaimer modal**: JavaScript modal warns users they are leaving FurrButler, mentions affiliate commission, advises verifying pet policies
+- **Community venue suggestions**: `check_venue_submission()` for spam/duplicate detection with SSRF protection, auto-approve clean submissions, pending queue for flagged ones
 - **Admin moderation**: `/admin/venues` dashboard with tabs (Pending/Flagged/Approved/Rejected), `/admin/venues/<id>/approve|reject|flag` actions
-- **Templates**: `suggest_venue.html` (form with Indian states dropdown, amenities checkboxes), `admin_venues.html` (moderation dashboard)
+- **Admin template**: `admin_venues.html` (moderation dashboard)
 - **Venue column indices**: 0=id, 1=name, 2=venue_type, 3=address, 4=city, 5=state, 6=pincode, 7=phone, 8=website, 9=google_maps_url, 10=booking_url, 11=latitude, 12=longitude, 13=pet_policy, 14=max_pet_size, 15=pet_fee, 16=amenities, 17=rating, 18=review_count, 19=verified, 20=is_active, 21=added_by, 22=created_at, 23=submission_status, 24=submitted_by_email, 25=submission_notes, 26=admin_notes, 27=google_verified, 28=flag_reason
 
 # External Dependencies

@@ -1,22 +1,20 @@
 
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify
 import sqlite3
 from datetime import datetime, timedelta
 import hashlib
 import json
 import os
+from functools import wraps
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 
-# Initialize FurrVet Flask app
-furrvet_app = Flask(__name__, 
-                   template_folder='templates/furrvet',
-                   static_folder='static/furrvet')
-furrvet_app.secret_key = 'furrvet_secret_key_2024'
+furrvet_bp = Blueprint('furrvet', __name__,
+                       template_folder='templates/furrvet',
+                       url_prefix='/furrvet')
 
-# Configuration
 UPLOAD_FOLDER = 'static/furrvet/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
-furrvet_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -27,7 +25,6 @@ def init_furrvet_db():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Veterinarian accounts
     c.execute('''
         CREATE TABLE IF NOT EXISTS vets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +42,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Pet owners/clients
     c.execute('''
         CREATE TABLE IF NOT EXISTS pet_owners (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +56,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Pets/Patients
     c.execute('''
         CREATE TABLE IF NOT EXISTS pets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +79,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Appointments
     c.execute('''
         CREATE TABLE IF NOT EXISTS appointments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,7 +99,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Medical records
     c.execute('''
         CREATE TABLE IF NOT EXISTS medical_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,7 +123,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Vaccinations
     c.execute('''
         CREATE TABLE IF NOT EXISTS vaccinations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -150,7 +142,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Laboratory tests
     c.execute('''
         CREATE TABLE IF NOT EXISTS lab_tests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,7 +163,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Imaging/X-rays
     c.execute('''
         CREATE TABLE IF NOT EXISTS imaging (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -191,7 +181,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Hospitalizations
     c.execute('''
         CREATE TABLE IF NOT EXISTS hospitalizations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -213,7 +202,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Surgeries/Procedures
     c.execute('''
         CREATE TABLE IF NOT EXISTS surgeries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -235,7 +223,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Inventory/Pharmacy
     c.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -257,7 +244,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Invoices/Billing
     c.execute('''
         CREATE TABLE IF NOT EXISTS invoices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -284,7 +270,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Invoice items
     c.execute('''
         CREATE TABLE IF NOT EXISTS invoice_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -298,7 +283,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Staff management
     c.execute('''
         CREATE TABLE IF NOT EXISTS staff (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -317,7 +301,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Document & Compliance Management
     c.execute('''
         CREATE TABLE IF NOT EXISTS documents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -334,7 +317,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Insurance Management
     c.execute('''
         CREATE TABLE IF NOT EXISTS pet_insurance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -370,7 +352,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Supplier Management
     c.execute('''
         CREATE TABLE IF NOT EXISTS suppliers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -405,7 +386,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # CRM & Marketing
     c.execute('''
         CREATE TABLE IF NOT EXISTS crm_campaigns (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -435,7 +415,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Training & Certification
     c.execute('''
         CREATE TABLE IF NOT EXISTS staff_certifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -450,7 +429,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Asset Management
     c.execute('''
         CREATE TABLE IF NOT EXISTS clinic_assets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -468,7 +446,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Audit Trail
     c.execute('''
         CREATE TABLE IF NOT EXISTS audit_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -484,7 +461,6 @@ def init_furrvet_db():
         )
     ''')
     
-    # Telehealth
     c.execute('''
         CREATE TABLE IF NOT EXISTS telehealth_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -505,11 +481,10 @@ def init_furrvet_db():
         )
     ''')
     
-    # Create demo data
     c.execute('''
         INSERT OR IGNORE INTO vets (name, email, password, license_number, specialization, phone, clinic_name, city)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ("Dr. Sarah Johnson", "vet@furrvet.com", "vet123", "VET-2024-001", "Small Animals", "+91-9876543210", "FurrVet Clinic", "Trivandrum"))
+    ''', ("Dr. Sarah Johnson", "vet@furrvet.com", generate_password_hash("vet123"), "VET-2024-001", "Small Animals", "+91-9876543210", "FurrVet Clinic", "Trivandrum"))
     
     c.execute('''
         INSERT OR IGNORE INTO pet_owners (name, email, phone, address, city)
@@ -524,27 +499,24 @@ def init_furrvet_db():
     conn.commit()
     conn.close()
 
-# Initialize database on startup
-init_furrvet_db()
 
-# Authentication decorator
-def login_required(f):
+def furrvet_login_required(f):
+    @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'vet_id' not in session:
-            return redirect(url_for('vet_login'))
+        if 'furrvet_vet_id' not in session:
+            return redirect(url_for('furrvet.vet_login'))
         return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
     return decorated_function
 
-# Routes
-@furrvet_app.route('/furrvet')
-@furrvet_app.route('/furrvet/')
-def furrvet_home():
-    if 'vet_id' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('vet_login'))
 
-@furrvet_app.route('/furrvet/login', methods=['GET', 'POST'])
+@furrvet_bp.route('/')
+@furrvet_bp.route('')
+def furrvet_home():
+    if 'furrvet_vet_id' in session:
+        return redirect(url_for('furrvet.dashboard'))
+    return redirect(url_for('furrvet.vet_login'))
+
+@furrvet_bp.route('/login', methods=['GET', 'POST'])
 def vet_login():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -552,59 +524,69 @@ def vet_login():
         
         conn = sqlite3.connect('furrvet.db')
         c = conn.cursor()
-        c.execute("SELECT * FROM vets WHERE email=? AND password=? AND is_active=1", (email, password))
+        c.execute("SELECT * FROM vets WHERE email=? AND is_active=1", (email,))
         vet = c.fetchone()
-        conn.close()
         
         if vet:
-            session['vet_id'] = vet[0]
-            session['vet_name'] = vet[1]
-            session['vet_email'] = vet[2]
-            session['clinic_name'] = vet[7]
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials')
+            stored_pw = vet[3]
+            if stored_pw.startswith('pbkdf2:') or stored_pw.startswith('scrypt:'):
+                pw_ok = check_password_hash(stored_pw, password)
+            else:
+                pw_ok = (stored_pw == password)
+                if pw_ok:
+                    hashed = generate_password_hash(password)
+                    c.execute("UPDATE vets SET password=? WHERE id=?", (hashed, vet[0]))
+                    conn.commit()
+            
+            if pw_ok:
+                session['furrvet_vet_id'] = vet[0]
+                session['furrvet_vet_name'] = vet[1]
+                session['furrvet_vet_email'] = vet[2]
+                session['furrvet_clinic_name'] = vet[7]
+                conn.close()
+                return redirect(url_for('furrvet.dashboard'))
+        
+        conn.close()
+        flash('Invalid FurrVet credentials')
     
     return render_template('furrvet_login.html')
 
-@furrvet_app.route('/furrvet/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('vet_login'))
+@furrvet_bp.route('/logout')
+def vet_logout():
+    session.pop('furrvet_vet_id', None)
+    session.pop('furrvet_vet_name', None)
+    session.pop('furrvet_vet_email', None)
+    session.pop('furrvet_clinic_name', None)
+    return redirect(url_for('furrvet.vet_login'))
 
-@furrvet_app.route('/furrvet/dashboard')
-@login_required
+@furrvet_bp.route('/dashboard')
+@furrvet_login_required
 def dashboard():
-    vet_id = session['vet_id']
+    vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Today's appointments
     c.execute("""
         SELECT COUNT(*) FROM appointments 
         WHERE vet_id = ? AND DATE(appointment_date) = DATE('now')
     """, (vet_id,))
     today_appointments = c.fetchone()[0]
     
-    # Total patients
     c.execute("SELECT COUNT(*) FROM pets")
     total_patients = c.fetchone()[0]
     
-    # Today's revenue
     c.execute("""
         SELECT COALESCE(SUM(total_amount), 0) FROM invoices 
         WHERE vet_id = ? AND DATE(invoice_date) = DATE('now') AND payment_status = 'paid'
     """, (vet_id,))
     today_revenue = c.fetchone()[0]
     
-    # Pending appointments
     c.execute("""
         SELECT COUNT(*) FROM appointments 
         WHERE vet_id = ? AND status = 'scheduled'
     """, (vet_id,))
     pending_appointments = c.fetchone()[0]
     
-    # Recent appointments
     c.execute("""
         SELECT a.id, p.name as pet_name, po.name as owner_name, a.appointment_date, 
                a.appointment_time, a.appointment_type, a.status
@@ -629,11 +611,11 @@ def dashboard():
     return render_template('furrvet_dashboard.html', 
                          stats=stats, 
                          recent_appointments=recent_appointments,
-                         vet_name=session['vet_name'],
-                         clinic_name=session['clinic_name'])
+                         vet_name=session.get('furrvet_vet_name', ''),
+                         clinic_name=session.get('furrvet_clinic_name', ''))
 
-@furrvet_app.route('/furrvet/patients')
-@login_required
+@furrvet_bp.route('/patients')
+@furrvet_login_required
 def patients():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
@@ -660,13 +642,12 @@ def patients():
     
     return render_template('furrvet_patients.html', patients=patients, search=search)
 
-@furrvet_app.route('/furrvet/patients/<int:pet_id>')
-@login_required
+@furrvet_bp.route('/patients/<int:pet_id>')
+@furrvet_login_required
 def patient_detail(pet_id):
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get pet details
     c.execute("""
         SELECT p.*, po.name as owner_name, po.email as owner_email, 
                po.phone as owner_phone, po.address as owner_address
@@ -678,9 +659,8 @@ def patient_detail(pet_id):
     
     if not pet:
         flash('Patient not found')
-        return redirect(url_for('patients'))
+        return redirect(url_for('furrvet.patients'))
     
-    # Get medical history
     c.execute("""
         SELECT mr.*, v.name as vet_name
         FROM medical_records mr
@@ -690,7 +670,6 @@ def patient_detail(pet_id):
     """, (pet_id,))
     medical_records = c.fetchall()
     
-    # Get vaccinations
     c.execute("""
         SELECT v.*, vt.name as vet_name
         FROM vaccinations v
@@ -700,7 +679,6 @@ def patient_detail(pet_id):
     """, (pet_id,))
     vaccinations = c.fetchall()
     
-    # Get upcoming appointments
     c.execute("""
         SELECT * FROM appointments
         WHERE pet_id = ? AND appointment_date >= DATE('now')
@@ -716,10 +694,10 @@ def patient_detail(pet_id):
                          vaccinations=vaccinations,
                          upcoming_appointments=upcoming_appointments)
 
-@furrvet_app.route('/furrvet/appointments')
-@login_required
+@furrvet_bp.route('/appointments')
+@furrvet_login_required
 def appointments():
-    vet_id = session['vet_id']
+    vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
@@ -741,11 +719,11 @@ def appointments():
                          appointments=appointments_list, 
                          selected_date=date_filter)
 
-@furrvet_app.route('/furrvet/appointments/new', methods=['GET', 'POST'])
-@login_required
+@furrvet_bp.route('/appointments/new', methods=['GET', 'POST'])
+@furrvet_login_required
 def new_appointment():
     if request.method == 'POST':
-        vet_id = session['vet_id']
+        vet_id = session['furrvet_vet_id']
         pet_id = request.form.get('pet_id')
         appointment_date = request.form.get('appointment_date')
         appointment_time = request.form.get('appointment_time')
@@ -765,9 +743,8 @@ def new_appointment():
         conn.close()
         
         flash('Appointment scheduled successfully!')
-        return redirect(url_for('appointments'))
+        return redirect(url_for('furrvet.appointments'))
     
-    # Get all pets for the dropdown
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     c.execute("""
@@ -781,10 +758,10 @@ def new_appointment():
     
     return render_template('furrvet_new_appointment.html', pets=pets)
 
-@furrvet_app.route('/furrvet/billing')
-@login_required
+@furrvet_bp.route('/billing')
+@furrvet_login_required
 def billing():
-    vet_id = session['vet_id']
+    vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
@@ -803,17 +780,15 @@ def billing():
     
     return render_template('furrvet_billing.html', invoices=invoices)
 
-@furrvet_app.route('/furrvet/inventory')
-@login_required
-def inventory():
+@furrvet_bp.route('/inventory')
+@furrvet_login_required
+def furrvet_inventory():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get low stock items
     c.execute("SELECT * FROM inventory WHERE current_stock <= minimum_stock ORDER BY current_stock")
     low_stock_items = c.fetchall()
     
-    # Get all inventory
     c.execute("SELECT * FROM inventory ORDER BY item_name")
     all_items = c.fetchall()
     
@@ -823,13 +798,12 @@ def inventory():
                          low_stock_items=low_stock_items, 
                          all_items=all_items)
 
-@furrvet_app.route('/furrvet/compliance')
-@login_required
+@furrvet_bp.route('/compliance')
+@furrvet_login_required
 def compliance():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get expiring documents
     c.execute("""
         SELECT d.*, v.name as uploaded_by_name 
         FROM documents d
@@ -839,7 +813,6 @@ def compliance():
     """)
     expiring_docs = c.fetchall()
     
-    # Get all documents
     c.execute("""
         SELECT d.*, v.name as uploaded_by_name 
         FROM documents d
@@ -854,13 +827,12 @@ def compliance():
                          expiring_docs=expiring_docs,
                          all_docs=all_docs)
 
-@furrvet_app.route('/furrvet/insurance')
-@login_required
+@furrvet_bp.route('/insurance')
+@furrvet_login_required
 def insurance():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get insurance policies with pet info
     c.execute("""
         SELECT pi.*, p.name as pet_name, po.name as owner_name
         FROM pet_insurance pi
@@ -870,7 +842,6 @@ def insurance():
     """)
     insurance_policies = c.fetchall()
     
-    # Get recent claims
     c.execute("""
         SELECT ic.*, p.name as pet_name, pi.insurance_provider
         FROM insurance_claims ic
@@ -887,17 +858,15 @@ def insurance():
                          insurance_policies=insurance_policies,
                          recent_claims=recent_claims)
 
-@furrvet_app.route('/furrvet/suppliers')
-@login_required
+@furrvet_bp.route('/suppliers')
+@furrvet_login_required
 def suppliers():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get all suppliers
     c.execute("SELECT * FROM suppliers ORDER BY name")
     suppliers_list = c.fetchall()
     
-    # Get recent purchase orders
     c.execute("""
         SELECT po.*, s.name as supplier_name
         FROM purchase_orders po
@@ -913,13 +882,12 @@ def suppliers():
                          suppliers=suppliers_list,
                          recent_orders=recent_orders)
 
-@furrvet_app.route('/furrvet/crm')
-@login_required
+@furrvet_bp.route('/crm')
+@furrvet_login_required
 def crm_dashboard():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get active campaigns
     c.execute("""
         SELECT * FROM crm_campaigns 
         WHERE status = 'active' 
@@ -927,7 +895,6 @@ def crm_dashboard():
     """)
     active_campaigns = c.fetchall()
     
-    # Get pending reminders
     c.execute("""
         SELECT cr.*, p.name as pet_name, po.name as owner_name
         FROM client_reminders cr
@@ -944,13 +911,12 @@ def crm_dashboard():
                          active_campaigns=active_campaigns,
                          pending_reminders=pending_reminders)
 
-@furrvet_app.route('/furrvet/staff-management')
-@login_required
+@furrvet_bp.route('/staff-management')
+@furrvet_login_required
 def staff_management():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get staff with certifications
     c.execute("""
         SELECT s.*, 
                COUNT(sc.id) as total_certifications,
@@ -962,7 +928,6 @@ def staff_management():
     """)
     staff_list = c.fetchall()
     
-    # Get expiring certifications
     c.execute("""
         SELECT sc.*, s.name as staff_name
         FROM staff_certifications sc
@@ -978,17 +943,15 @@ def staff_management():
                          staff_list=staff_list,
                          expiring_certifications=expiring_certifications)
 
-@furrvet_app.route('/furrvet/assets')
-@login_required
+@furrvet_bp.route('/assets')
+@furrvet_login_required
 def asset_management():
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get all assets
     c.execute("SELECT * FROM clinic_assets ORDER BY asset_name")
     assets = c.fetchall()
     
-    # Get assets needing maintenance
     c.execute("""
         SELECT * FROM clinic_assets 
         WHERE next_maintenance <= DATE('now', '+30 days')
@@ -1002,14 +965,13 @@ def asset_management():
                          assets=assets,
                          maintenance_due=maintenance_due)
 
-@furrvet_app.route('/furrvet/telehealth')
-@login_required
+@furrvet_bp.route('/telehealth')
+@furrvet_login_required
 def telehealth():
-    vet_id = session['vet_id']
+    vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Get telehealth sessions
     c.execute("""
         SELECT ts.*, p.name as pet_name, po.name as owner_name, po.phone
         FROM telehealth_sessions ts
@@ -1025,14 +987,13 @@ def telehealth():
     return render_template('furrvet_telehealth.html',
                          telehealth_sessions=telehealth_sessions)
 
-@furrvet_app.route('/furrvet/analytics')
-@login_required
+@furrvet_bp.route('/analytics')
+@furrvet_login_required
 def advanced_analytics():
-    vet_id = session['vet_id']
+    vet_id = session['furrvet_vet_id']
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
     
-    # Revenue analytics
     c.execute("""
         SELECT 
             DATE(invoice_date) as date,
@@ -1045,7 +1006,6 @@ def advanced_analytics():
     """, (vet_id,))
     daily_revenue = c.fetchall()
     
-    # Patient demographics
     c.execute("""
         SELECT species, COUNT(*) as count
         FROM pets
@@ -1060,5 +1020,104 @@ def advanced_analytics():
                          daily_revenue=daily_revenue,
                          species_stats=species_stats)
 
-if __name__ == '__main__':
-    furrvet_app.run(host='0.0.0.0', port=5000, debug=True)
+@furrvet_bp.route('/medical-records')
+@furrvet_login_required
+def medical_records():
+    vet_id = session['furrvet_vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT mr.*, p.name as pet_name, po.name as owner_name
+        FROM medical_records mr
+        JOIN pets p ON mr.pet_id = p.id
+        JOIN pet_owners po ON p.owner_id = po.id
+        WHERE mr.vet_id = ?
+        ORDER BY mr.visit_date DESC
+        LIMIT 50
+    """, (vet_id,))
+    
+    records = c.fetchall()
+    conn.close()
+    
+    return render_template('furrvet_medical_records.html', records=records)
+
+@furrvet_bp.route('/laboratory')
+@furrvet_login_required
+def laboratory():
+    vet_id = session['furrvet_vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    lab_tests = []
+    imaging_records = []
+    
+    conn.close()
+    
+    return render_template('furrvet_laboratory.html', 
+                         lab_tests=lab_tests, 
+                         imaging_records=imaging_records)
+
+@furrvet_bp.route('/reports')
+@furrvet_login_required
+def reports():
+    vet_id = session['furrvet_vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_invoices,
+            SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END) as total_revenue,
+            SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END) as pending_amount
+        FROM invoices 
+        WHERE vet_id = ? AND invoice_date >= date('now', '-30 days')
+    """, (vet_id,))
+    financial_summary = c.fetchone()
+    
+    c.execute("""
+        SELECT 
+            COUNT(*) as total_appointments,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_appointments,
+            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_appointments
+        FROM appointments 
+        WHERE vet_id = ? AND appointment_date >= date('now', '-30 days')
+    """, (vet_id,))
+    appointment_stats = c.fetchone()
+    
+    c.execute("SELECT COUNT(*) FROM pets")
+    total_patients = c.fetchone()[0]
+    
+    c.execute("""
+        SELECT appointment_type, COUNT(*) as count
+        FROM appointments 
+        WHERE vet_id = ? AND appointment_date >= date('now', '-30 days')
+        GROUP BY appointment_type
+        ORDER BY count DESC
+        LIMIT 5
+    """, (vet_id,))
+    popular_services = c.fetchall()
+    
+    conn.close()
+    
+    stats = {
+        'financial': financial_summary,
+        'appointments': appointment_stats,
+        'total_patients': total_patients,
+        'popular_services': popular_services
+    }
+    
+    return render_template('furrvet_reports.html', stats=stats)
+
+@furrvet_bp.route('/hospitalization')
+@furrvet_login_required
+def hospitalization():
+    vet_id = session['furrvet_vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    
+    hospitalizations = []
+    
+    conn.close()
+    
+    return render_template('furrvet_hospitalization.html', hospitalizations=hospitalizations)

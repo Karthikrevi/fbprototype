@@ -1,0 +1,99 @@
+{
+  "hotels": [
+    {
+      "name": "Booking.com",
+      "description": "World's largest hotel booking platform with dedicated pet friendly filter",
+      "logo_emoji": "\ud83c\udfe8",
+      "affiliate_url": "https://www.booking.com/searchresults.html?pets_allowed=1&aid=FURRBUTLER001",
+      "button_text": "Search Pet Friendly Hotels",
+      "features": [
+        "Largest pet friendly inventory",
+        "Free cancellation on most rooms",
+        "Instant confirmation",
+        "Price match guarantee"
+      ]
+    },
+    {
+      "name": "MakeMyTrip",
+      "description": "India's leading travel platform for hotels and holidays",
+      "logo_emoji": "\u2708\ufe0f",
+      "affiliate_url": "https://www.makemytrip.com/hotels/?utm_source=furrbutler&utm_medium=affiliate&utm_campaign=petfriendly",
+      "button_text": "Search Hotels on MakeMyTrip",
+      "features": [
+        "Best prices for India travel",
+        "EMI options available",
+        "24/7 customer support",
+        "Exclusive app deals"
+      ]
+    },
+    {
+      "name": "Airbnb",
+      "description": "Unique homes and stays that welcome your pets",
+      "logo_emoji": "\ud83c\udfe0",
+      "affiliate_url": "https://www.airbnb.co.in/s/homes?amenities=12&utm_source=furrbutler",
+      "button_text": "Find Pet Friendly Stays",
+      "features": [
+        "Entire homes just for you and pets",
+        "Long stay discounts",
+        "Kitchen and home facilities",
+        "Local host experience"
+      ]
+    },
+    {
+      "name": "Goibibo",
+      "description": "Great hotel deals across India",
+      "logo_emoji": "\ud83c\udfaf",
+      "affiliate_url": "https://www.goibibo.com/hotels/?utm_source=furrbutler&utm_medium=affiliate",
+      "button_text": "Search Hotels on Goibibo",
+      "features": [
+        "Gocash rewards on every booking",
+        "Lowest price guarantee",
+        "Instant hotel vouchers",
+        "Special weekend deals"
+      ]
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Zomato",
+      "description": "Find pet friendly restaurants with outdoor seating near you",
+      "logo_emoji": "\ud83c\udf7d\ufe0f",
+      "affiliate_url": "https://www.zomato.com/search?q=pet+friendly+outdoor+seating&utm_source=furrbutler",
+      "button_text": "Find Pet Friendly Restaurants",
+      "features": [
+        "Real reviews from pet owners",
+        "Outdoor seating filter",
+        "Table reservations",
+        "Full menu preview"
+      ]
+    },
+    {
+      "name": "Google Maps",
+      "description": "Discover pet friendly cafes and restaurants near you with real reviews",
+      "logo_emoji": "\ud83d\udccd",
+      "affiliate_url": "https://www.google.com/maps/search/pet+friendly+restaurants+near+me",
+      "button_text": "Search on Google Maps",
+      "features": [
+        "Real time reviews",
+        "Photos from actual visitors",
+        "Live opening hours",
+        "Navigation and directions"
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "name": "Airbnb Experiences",
+      "description": "Pet friendly activities and local experiences",
+      "logo_emoji": "\ud83c\udfaa",
+      "affiliate_url": "https://www.airbnb.co.in/s/experiences?utm_source=furrbutler",
+      "button_text": "Browse Pet Experiences",
+      "features": [
+        "Local pet friendly experiences",
+        "Guided nature walks with pets",
+        "Pet photography sessions",
+        "Adventure trails"
+      ]
+    }
+  ]
+}

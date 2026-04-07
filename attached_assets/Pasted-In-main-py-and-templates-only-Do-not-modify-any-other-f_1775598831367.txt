@@ -1,0 +1,358 @@
+In main.py and templates only.
+Do not modify any other files.
+Do not delete any accounts or data
+except venue data as specified below.
+Do not modify the Replit key-value db.
+
+PART 1 — Remove hardcoded venue data:
+
+In main.py find any INSERT OR IGNORE
+statements that add venue data to
+pet_friendly_venues table.
+Remove all of them.
+These were hardcoded placeholder venues
+not sourced from real booking platforms.
+
+Also run this directly:
+conn = sqlite3.connect('erp.db')
+c = conn.cursor()
+c.execute("""
+    DELETE FROM pet_friendly_venues
+    WHERE added_by = 'admin'
+    OR added_by IS NULL
+""")
+conn.commit()
+conn.close()
+
+Keep only venues where
+added_by = 'community'
+These are user submitted.
+
+PART 2 — Remove dead venue routes:
+
+In main.py find and remove
+or redirect these routes
+that are no longer needed:
+
+/pet-friendly/<int:venue_id> GET
+/pet-friendly/<int:venue_id>/review POST
+/pet-friendly/<int:venue_id>/log-booking
+  GET and POST
+/my-venue-bookings GET
+
+Replace each with a simple redirect
+to /pet-friendly so nothing breaks:
+
+@app.route('/pet-friendly/<int:venue_id>')
+def venue_detail(venue_id):
+    return redirect(
+        url_for('pet_friendly'))
+
+@app.route(
+'/pet-friendly/<int:venue_id>/review',
+methods=['POST'])
+def venue_review(venue_id):
+    return redirect(
+        url_for('pet_friendly'))
+
+@app.route(
+'/pet-friendly/<int:venue_id>/log-booking',
+methods=['GET', 'POST'])
+def log_venue_booking(venue_id):
+    return redirect(
+        url_for('pet_friendly'))
+
+@app.route('/my-venue-bookings')
+def my_venue_bookings():
+    return redirect(
+        url_for('pet_friendly'))
+
+PART 3 — Update /pet-friendly route:
+
+Replace the entire pet_friendly route
+with this clean version:
+
+@app.route('/pet-friendly')
+def pet_friendly():
+    if 'user_email' not in session:
+        return redirect(url_for('login'))
+
+    import json
+    try:
+        with open(
+        'static/data/travel_affiliates.json'
+        ) as f:
+            affiliates = json.load(f)
+    except:
+        affiliates = {
+            'hotels': [],
+            'restaurants': [],
+            'activities': []
+        }
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM pet_friendly_venues
+        WHERE submission_status IN
+        ('approved', 'auto_approved')
+        AND is_active = 1
+        ORDER BY created_at DESC
+        LIMIT 20
+    """)
+    community_venues = c.fetchall()
+    conn.close()
+
+    return render_template(
+        'pet_friendly.html',
+        affiliates=affiliates,
+        community_venues=community_venues)
+
+PART 4 — Create travel_affiliates.json:
+
+Create /static/data/travel_affiliates.json
+with this content:
+
+{
+  "hotels": [
+    {
+      "name": "Booking.com",
+      "description": "World's largest
+        hotel booking platform with
+        dedicated pet friendly filter",
+      "logo_emoji": "🏨",
+      "affiliate_url": "https://www.booking.com/searchresults.html?pets_allowed=1&aid=FURRBUTLER001",
+      "button_text": "Search Pet Friendly Hotels",
+      "features": [
+        "Largest pet friendly inventory",
+        "Free cancellation on most rooms",
+        "Instant confirmation",
+        "Price match guarantee"
+      ]
+    },
+    {
+      "name": "MakeMyTrip",
+      "description": "India's leading travel
+        platform for hotels and holidays",
+      "logo_emoji": "✈️",
+      "affiliate_url": "https://www.makemytrip.com/hotels/?utm_source=furrbutler&utm_medium=affiliate&utm_campaign=petfriendly",
+      "button_text": "Search Hotels on MakeMyTrip",
+      "features": [
+        "Best prices for India travel",
+        "EMI options available",
+        "24/7 customer support",
+        "Exclusive app deals"
+      ]
+    },
+    {
+      "name": "Airbnb",
+      "description": "Unique homes and stays
+        that welcome your pets",
+      "logo_emoji": "🏠",
+      "affiliate_url": "https://www.airbnb.co.in/s/homes?amenities=12&utm_source=furrbutler",
+      "button_text": "Find Pet Friendly Stays",
+      "features": [
+        "Entire homes just for you and pets",
+        "Long stay discounts",
+        "Kitchen and home facilities",
+        "Local host experience"
+      ]
+    },
+    {
+      "name": "Goibibo",
+      "description": "Great hotel deals
+        across India",
+      "logo_emoji": "🎯",
+      "affiliate_url": "https://www.goibibo.com/hotels/?utm_source=furrbutler&utm_medium=affiliate",
+      "button_text": "Search Hotels on Goibibo",
+      "features": [
+        "Gocash rewards on every booking",
+        "Lowest price guarantee",
+        "Instant hotel vouchers",
+        "Special weekend deals"
+      ]
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Zomato",
+      "description": "Find pet friendly
+        restaurants with outdoor seating
+        near you",
+      "logo_emoji": "🍽️",
+      "affiliate_url": "https://www.zomato.com/search?q=pet+friendly+outdoor+seating&utm_source=furrbutler",
+      "button_text": "Find Pet Friendly Restaurants",
+      "features": [
+        "Real reviews from pet owners",
+        "Outdoor seating filter",
+        "Table reservations",
+        "Full menu preview"
+      ]
+    },
+    {
+      "name": "Google Maps",
+      "description": "Discover pet friendly
+        cafes and restaurants near you
+        with real reviews",
+      "logo_emoji": "📍",
+      "affiliate_url": "https://www.google.com/maps/search/pet+friendly+restaurants+near+me",
+      "button_text": "Search on Google Maps",
+      "features": [
+        "Real time reviews",
+        "Photos from actual visitors",
+        "Live opening hours",
+        "Navigation and directions"
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "name": "Airbnb Experiences",
+      "description": "Pet friendly activities
+        and local experiences",
+      "logo_emoji": "🎪",
+      "affiliate_url": "https://www.airbnb.co.in/s/experiences?utm_source=furrbutler",
+      "button_text": "Browse Pet Experiences",
+      "features": [
+        "Local pet friendly experiences",
+        "Guided nature walks with pets",
+        "Pet photography sessions",
+        "Adventure trails"
+      ]
+    }
+  ]
+}
+
+PART 5 — Rewrite pet_friendly.html:
+
+Completely replace the content of
+templates/pet_friendly.html:
+
+Purple gradient header:
+"🐾 Pet Friendly Travel"
+"Find hotels restaurants and
+experiences that welcome your pets"
+
+AFFILIATE SECTION — Hotels:
+Section header: "🏨 Pet Friendly Hotels"
+
+For each hotel in affiliates.hotels:
+White card with subtle shadow
+Logo emoji large (3rem) centered
+Platform name in bold
+Description text grey
+Features list:
+  ✅ for each feature
+Large prominent button:
+  {{ affiliate.button_text }}
+  Purple gradient button
+  onclick calls showDisclaimer()
+  JavaScript function that shows
+  modal before redirecting
+
+AFFILIATE SECTION — Restaurants:
+Section header: "🍽️ Pet Friendly Dining"
+Same card format
+
+AFFILIATE SECTION — Activities:
+Section header: "🎪 Pet Friendly Activities"
+Same card format
+
+DISCLAIMER MODAL:
+Hidden by default
+Shows when any affiliate button clicked
+JavaScript sets the target URL
+
+Modal content:
+"Leaving FurrButler"
+"You are being redirected to
+[platform name]"
+"FurrButler may receive a referral
+commission from this platform at
+no additional cost to you."
+"Pet policies should always be
+verified directly with the venue
+before booking."
+
+Two buttons:
+Continue →
+  opens target URL in new tab
+  closes modal
+Cancel →
+  closes modal
+
+COMMUNITY SECTION:
+Section header: "🌟 Community Recommended"
+Subtitle: "Personally verified by
+FurrButler pet parents"
+
+If community_venues empty:
+  Empty state card:
+  "No community venues yet"
+  "Be the first to share a
+  pet friendly place you love"
+
+If community_venues exist:
+  Cards for each venue:
+    Name and type badge
+    City
+    Pet policy summary
+    "Find on Google Maps" button:
+      Opens google.com/maps/search/
+      {{ venue.name }}+{{ venue.city }}
+      in new tab
+    "Community Recommended" gold badge
+
+SUGGESTION CTA:
+Always visible below community section:
+Card with dashed border:
+"Know a pet friendly place?"
+"Share it with the FurrButler
+community. We verify all suggestions
+before publishing."
+Suggest a Venue button
+→ /pet-friendly/suggest
+
+TRAVEL TIPS:
+4 tip cards:
+  📋 Always Call Ahead
+  "Pet policies change.
+  Confirm before you book."
+
+  💊 Pack Pet Essentials
+  "Food, medications, documents,
+  waste bags, leash."
+
+  🏥 Know the Nearest Vet
+  "Research emergency vets at
+  your destination."
+
+  📄 Bring Your Pawsport
+  "For international travel carry
+  your pet's full documentation."
+
+View My Pawsport button
+→ /pet-profile
+
+DISCLAIMER BOX:
+Grey bordered box at very bottom:
+"FurrButler does not own operate
+or manage any venues listed here.
+Affiliate links may earn FurrButler
+a referral commission at no cost
+to you. Always verify pet policies
+directly with the venue.
+FurrButler accepts no responsibility
+for third party bookings."
+
+Back button → /dashboard
+
+Do not modify any other templates.
+Do not modify any other routes
+except those explicitly listed above.
+Do not delete any data except
+hardcoded admin venue entries.
+Do not modify the Replit key-value db.
+After completing verify every
+render_template() call has a
+corresponding template file.
