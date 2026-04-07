@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical Record - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.record-card{background:white;border-radius:1rem;padding:2rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.soap-label{font-weight:700;font-size:1rem;padding:0.4rem 0.8rem;border-radius:0.4rem;color:white;display:inline-block;margin-bottom:0.75rem}
+.soap-s{background:#2196F3}.soap-o{background:#4CAF50}.soap-a{background:#FF9800}.soap-p{background:#9C27B0}
+.vital-badge{display:inline-block;background:#e3f2fd;padding:0.3rem 0.8rem;border-radius:0.5rem;margin:0.2rem;font-size:0.9rem}
+@media print{.no-print{display:none!important}.clinical-header{background:#1a3a5c!important;-webkit-print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<div>
+<h2>Medical Record</h2>
+<div>{{ clinic_name }} | {{ record[-2] if record|length > 16 else '' }} | License: {{ record[-1] if record|length > 17 else '' }}</div>
+</div>
+<div class="no-print">
+<button onclick="window.print()" class="btn btn-outline-light btn-sm me-2">Print</button>
+<a href="{{ url_for('furrvet.patient_detail', pet_id=pet[0]) }}" class="btn btn-outline-light btn-sm">Back</a>
+</div>
+</div>
+</div>
+<div class="container py-4">
+<div class="record-card">
+<div class="row mb-3">
+<div class="col-md-4"><strong>Patient:</strong> {{ pet[1] }} ({{ pet[2] }})</div>
+<div class="col-md-4"><strong>Owner:</strong> {{ pet[-2] if pet|length > 19 else '' }}</div>
+<div class="col-md-4"><strong>Visit Date:</strong> {{ record[4] }}</div>
+</div>
+<div class="mb-3">
+<span class="soap-label soap-s">S - SUBJECTIVE</span>
+<p><strong>Chief Complaint:</strong> {{ record[5] or 'N/A' }}</p>
+</div>
+<div class="mb-3">
+<span class="soap-label soap-o">O - OBJECTIVE</span>
+<div class="mb-2">
+{% if record[11] %}<span class="vital-badge">Temp: {{ record[11] }}°C</span>{% endif %}
+{% if record[12] %}<span class="vital-badge">Weight: {{ record[12] }} kg</span>{% endif %}
+{% if record[13] %}<span class="vital-badge">HR: {{ record[13] }} bpm</span>{% endif %}
+{% if record[14] %}<span class="vital-badge">RR: {{ record[14] }} br/min</span>{% endif %}
+</div>
+<p>{{ record[6] or '' }}</p>
+</div>
+<div class="mb-3">
+<span class="soap-label soap-a">A - ASSESSMENT</span>
+<p><strong>Diagnosis:</strong> {{ record[7] or 'N/A' }}</p>
+</div>
+<div class="mb-3">
+<span class="soap-label soap-p">P - PLAN</span>
+<p><strong>Treatment:</strong> {{ record[8] or 'N/A' }}</p>
+{% if record[9] %}<p><strong>Prescription:</strong><br>{{ record[9]|replace('\n','<br>')|safe }}</p>{% endif %}
+{% if record[10] %}<p><strong>Follow Up:</strong> {{ record[10] }}</p>{% endif %}
+</div>
+<div class="text-muted text-end">Attending Vet: {{ record[-2] if record|length > 16 else '' }}</div>
+</div>
+</div>
+</body>
+</html>

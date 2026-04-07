@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Vaccination - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.section-title{color:#1a3a5c;font-weight:700;border-bottom:2px solid #00897b;padding-bottom:0.5rem;margin-bottom:1rem}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.75rem 2rem}
+.btn-clinical:hover{background:#00796b;color:white}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2>Record Vaccination: {{ pet[1] }} ({{ pet[2] }})</h2>
+<a href="{{ url_for('furrvet.patient_detail', pet_id=pet[0]) }}" class="btn btn-outline-light btn-sm">Back</a>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<form method="POST">
+<div class="section-card">
+<h4 class="section-title">Vaccination Details</h4>
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">Vaccine *</label>
+<select name="vaccine_name" class="form-select" id="vaccineSelect" onchange="document.getElementById('otherVaccine').style.display=this.value=='Other'?'block':'none'">
+<option value="">Select Vaccine</option>
+<optgroup label="Dog Vaccines">
+<option>Rabies</option><option>DHPP (Distemper/Hepatitis/Parvovirus/Parainfluenza)</option>
+<option>Bordetella</option><option>Leptospirosis</option><option>Lyme Disease</option><option>CIV (Canine Influenza)</option>
+</optgroup>
+<optgroup label="Cat Vaccines">
+<option>FVRCP (Feline Viral Rhinotracheitis/Calicivirus/Panleukopenia)</option>
+<option>Rabies</option><option>FeLV (Feline Leukemia)</option><option>FIV</option><option>FIP</option><option>Chlamydia</option>
+</optgroup>
+<option value="Other">Other</option>
+</select>
+<div id="otherVaccine" style="display:none;margin-top:0.5rem"><input type="text" name="vaccine_name_other" class="form-control" placeholder="Enter vaccine name"></div></div>
+<div class="col-md-6"><label class="form-label">Vaccine Type</label>
+<select name="vaccine_type" class="form-select"><option>Core</option><option>Non-Core</option><option>Booster</option></select></div>
+<div class="col-md-4"><label class="form-label">Batch Number *</label><input type="text" name="batch_number" class="form-control" required></div>
+<div class="col-md-4"><label class="form-label">Manufacturer</label><input type="text" name="manufacturer" class="form-control"></div>
+<div class="col-md-4"><label class="form-label">Vaccination Date</label><input type="date" name="vaccination_date" class="form-control" value="{{ today }}"></div>
+<div class="col-md-4"><label class="form-label">Next Due Date</label><input type="date" name="next_due_date" class="form-control"></div>
+<div class="col-md-4"><label class="form-label">Site of Injection</label>
+<select name="site_of_injection" class="form-select"><option value="">Select</option>
+<option>Left Neck</option><option>Right Neck</option><option>Left Hind Leg</option><option>Right Hind Leg</option>
+<option>Left Shoulder</option><option>Right Shoulder</option></select></div>
+<div class="col-12"><label class="form-label">Adverse Reactions</label><textarea name="adverse_reactions" class="form-control" rows="2"></textarea></div>
+</div>
+</div>
+<div class="text-center">
+<a href="{{ url_for('furrvet.patient_detail', pet_id=pet[0]) }}" class="btn btn-secondary me-2">Cancel</a>
+<button type="submit" class="btn-clinical">Record Vaccination</button>
+</div>
+</form>
+</div>
+<script>
+var today=new Date().toISOString().split('T')[0];
+if(!document.querySelector('[name=vaccination_date]').value) document.querySelector('[name=vaccination_date]').value=today;
+</script>
+</body>
+</html>

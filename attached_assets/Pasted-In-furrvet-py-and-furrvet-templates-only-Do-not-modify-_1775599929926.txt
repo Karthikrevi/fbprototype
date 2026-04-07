@@ -1,0 +1,599 @@
+In furrvet.py and furrvet templates only.
+Do not modify main.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+After completing verify every new
+render_template() call has a
+corresponding template file in
+templates/furrvet/ folder.
+
+PART 1 — Add Patient routes:
+
+Add route /furrvet/patients/new
+GET and POST:
+
+GET: render furrvet/add_patient.html
+Show form with two sections:
+
+Section 1 — Pet Owner Details:
+  owner_name text required
+  owner_email text optional
+  owner_phone text required
+  owner_address textarea
+  owner_city text
+  emergency_contact text
+
+Section 2 — Pet Details:
+  pet_name text required
+  species dropdown:
+    Dog, Cat, Bird, Rabbit,
+    Fish, Hamster, Reptile, Other
+  breed text
+  gender dropdown: Male, Female,
+    Unknown, Neutered Male,
+    Spayed Female
+  date_of_birth date picker
+  weight number with kg label
+  color text
+  distinguishing_marks textarea
+  microchip_id text
+  allergies textarea
+  medical_conditions textarea
+  insurance_info text
+
+POST:
+  Check if owner with same phone
+  already exists in pet_owners
+  If exists use existing owner_id
+  If not insert new pet_owner
+  Insert new pet with owner_id
+  Flash: "Patient [name] registered"
+  Redirect to patient_detail
+
+Add route /furrvet/patients/<id>/edit
+GET and POST:
+GET: render furrvet/edit_patient.html
+  Pre-filled with existing data
+POST: Update pets and pet_owners tables
+Redirect to patient_detail
+
+Add route /furrvet/patients/<id>/photo
+POST:
+  Accept photo file upload
+  Save to static/furrvet/uploads/
+  Update pets.photo_url
+  Return JSON success
+
+PART 2 — SOAP Medical Record routes:
+
+Add route
+/furrvet/patients/<int:pet_id>/medical/add
+GET and POST:
+
+GET: render furrvet/add_medical_record.html
+This is the most important form
+in the entire FurrVet system.
+SOAP note format:
+
+Header:
+  Patient name and species (read only)
+  Vet name from session (read only)
+  Visit date date picker default today
+  Appointment link dropdown (optional)
+    shows today's appointments for
+    this patient
+
+SUBJECTIVE section:
+  Chief Complaint textarea required
+    placeholder: What is the main
+    reason for today's visit?
+    e.g. Not eating for 2 days,
+    limping on left front leg
+  Owner observations textarea
+    placeholder: What has the owner
+    noticed at home?
+  Duration of symptoms text
+    placeholder: How long has this
+    been happening?
+  Medical history notes textarea
+    placeholder: Any relevant past
+    conditions or medications?
+
+OBJECTIVE section:
+  Vitals subsection:
+    Temperature number field
+      with °C label
+      normal range shown: 37.5-39.2°C
+      Highlight red if outside range
+    Weight number with kg label
+    Heart Rate number with bpm label
+      normal range: 60-140 bpm dogs
+    Respiratory Rate number
+      with breaths/min label
+    BCS score dropdown 1-9:
+      Body Condition Score
+      1=Emaciated, 5=Ideal, 9=Obese
+    Mucous Membranes dropdown:
+      Pink/Moist (Normal),
+      Pale, White, Yellow/Jaundiced,
+      Blue/Cyanotic, Brick Red, Tacky
+    Capillary Refill Time dropdown:
+      <2 seconds (Normal),
+      2-3 seconds, >3 seconds
+
+  Physical Examination textarea
+    placeholder: Document findings
+    from head to tail examination.
+    Include: eyes, ears, nose, mouth,
+    lymph nodes, thorax, abdomen,
+    musculoskeletal, skin, neurological
+
+ASSESSMENT section:
+  Diagnosis text input required
+    placeholder: Primary diagnosis
+  Differential Diagnoses textarea
+    placeholder: Other possible
+    diagnoses to consider
+  Prognosis dropdown:
+    Excellent, Good, Fair,
+    Guarded, Poor, Grave
+
+PLAN section:
+  Treatment Plan textarea required
+    placeholder: What treatments
+    are being administered today?
+    Include medications, procedures,
+    supportive care
+  Prescription textarea
+    placeholder: Medications to send
+    home with owner. Include drug name,
+    dose, frequency, duration
+    e.g. Amoxicillin 250mg 1 tablet
+    twice daily for 7 days
+  Follow Up Instructions textarea
+    placeholder: What should the owner
+    watch for at home? When to return?
+  Follow Up Required checkbox:
+    If checked show follow_up_date
+    date picker
+  Dietary Recommendations textarea
+    optional
+  Activity Restrictions textarea
+    optional
+
+POST:
+  Insert into medical_records table
+  If follow_up_required:
+    Insert into appointments with
+    status = scheduled
+    appointment_type = Follow Up
+  If prescription not empty:
+    Call bridge_furrvet_to_reminder()
+    to create pet reminder in
+    main erp.db for pet parent
+  Flash: "Medical record saved"
+  Redirect to patient_detail
+
+Add route
+/furrvet/patients/<int:pet_id>/medical/
+<int:record_id>
+GET: render furrvet/view_medical_record.html
+Show formatted SOAP note
+Print button
+
+PART 3 — Vaccination routes:
+
+Add route
+/furrvet/patients/<int:pet_id>/
+vaccinations/add
+GET and POST:
+
+GET: render furrvet/add_vaccination.html
+Form fields:
+  vaccine_name dropdown:
+    Dog vaccines:
+      Rabies, DHPP (Distemper/Hepatitis/
+      Parvovirus/Parainfluenza),
+      Bordetella, Leptospirosis,
+      Lyme Disease, CIV (Canine Influenza)
+    Cat vaccines:
+      FVRCP (Feline Viral Rhinotracheitis/
+      Calicivirus/Panleukopenia),
+      Rabies, FeLV (Feline Leukemia),
+      FIV, FIP, Chlamydia
+    Show relevant vaccines based on
+    pet species if species known
+    Always show Other option
+  If Other: vaccine_name text input
+  vaccine_type dropdown:
+    Core, Non-Core, Booster
+  batch_number text required
+  manufacturer text
+  vaccination_date date default today
+  next_due_date date
+    auto-calculate based on vaccine:
+    Rabies: +1 year or +3 years
+    DHPP: +1 year after initial
+    Others: +1 year default
+  site_of_injection dropdown:
+    Left Neck, Right Neck,
+    Left Hind Leg, Right Hind Leg,
+    Left Shoulder, Right Shoulder
+  adverse_reactions textarea optional
+
+POST:
+  Insert into vaccinations table
+  Mark as verified in pawsport_documents
+  in main erp.db if pet owner email
+  matches a FurrButler account:
+    INSERT INTO pawsport_documents
+    document_type = Vaccination Records
+    verified = 1
+    verified_by = furrvet
+    issued_by = clinic_name from session
+  Call bridge_furrvet_to_reminder()
+    for next due date reminder
+  Generate vaccination certificate
+    (PDF or printable HTML)
+  Flash: "Vaccination recorded"
+  Redirect to patient_detail
+
+Add route
+/furrvet/patients/<int:pet_id>/
+vaccinations/<int:vacc_id>/certificate
+GET:
+  Generate printable vaccination
+  certificate with:
+    Clinic name and license
+    Pet name and species
+    Owner name
+    Vaccine name and batch number
+    Vaccination date
+    Next due date
+    Vet name and signature line
+    Clinic stamp placeholder
+  Render as printable HTML page
+  Add print button
+
+PART 4 — Lab Test routes:
+
+Add route /furrvet/lab/add
+GET and POST:
+
+GET: render furrvet/add_lab_test.html
+Form:
+  Pet search/dropdown
+  test_name dropdown:
+    Complete Blood Count (CBC),
+    Blood Chemistry Panel,
+    Urinalysis, Fecal Examination,
+    Thyroid Panel (T4),
+    Heartworm Test, Tick Panel,
+    Parvovirus Test, FeLV/FIV Test,
+    Culture and Sensitivity,
+    Cytology, Biopsy, Other
+  If Other: text input
+  test_type dropdown:
+    In-House, External Lab,
+    Rapid Test, Culture
+  ordered_date default today
+  external_lab text if external
+  cost number optional
+  notes textarea
+
+POST: Insert into lab_tests
+Set status = pending
+Flash: "Lab test ordered"
+Redirect to patient_detail or
+lab dashboard
+
+Add route /furrvet/lab/<int:test_id>/results
+GET and POST:
+GET: render furrvet/enter_results.html
+Show test details
+Form to enter results:
+  results textarea required
+    placeholder: Enter results here
+    For CBC: include RBC, WBC,
+    platelets, haemoglobin values
+  reference_values textarea
+    pre-filled with normal ranges
+    based on test_name
+  completed_date date default today
+  lab_technician text
+  abnormal_flags multiselect:
+    Check which values are abnormal
+  Mark as Complete checkbox
+
+POST:
+  Update lab_tests
+  Set status = completed
+  If any abnormal flags:
+    Create urgent reminder in
+    pet_reminders for pet owner
+    If owner has FurrButler account
+  Flash: "Results entered"
+  Redirect to patient_detail
+
+PART 5 — Hospitalization routes:
+
+Add route /furrvet/hospitalize
+GET and POST:
+GET: render furrvet/admit_patient.html
+Form:
+  Pet search dropdown
+  admission_date default today
+  reason textarea required
+  bed_number text
+  ward_type dropdown:
+    General, ICU, Isolation,
+    Post-Surgery, Maternity
+  feeding_instructions textarea
+  medication_schedule textarea
+  initial_notes textarea
+
+POST:
+  Insert into hospitalizations
+  Set status = admitted
+  Update appointments if linked
+  Flash: "Patient admitted"
+  Redirect to hospitalization detail
+
+Add route
+/furrvet/hospitalization/<int:hosp_id>
+GET: render furrvet/hospitalization_detail.html
+Show patient details
+Show daily notes history
+Show medication schedule
+Show feeding instructions
+Form to add daily note:
+  date default today
+  note textarea
+  vitals quick entry
+POSTs to update daily_notes
+Add Discharge button
+→ /furrvet/hospitalization/<id>/discharge
+
+Add route
+/furrvet/hospitalization/<int:hosp_id>/
+discharge
+GET and POST:
+GET: render furrvet/discharge_patient.html
+Form:
+  discharge_date default today
+  discharge_summary textarea required
+  discharge_instructions textarea
+  follow_up_date date
+  medications_to_go textarea
+  dietary_restrictions textarea
+
+POST:
+  Update hospitalizations
+  Set status = discharged
+  Set discharge_date
+  Flash: "Patient discharged"
+  Generate discharge summary page
+
+PART 6 — Invoice creation routes:
+
+Add route /furrvet/billing/new
+GET and POST:
+
+GET: render furrvet/create_invoice.html
+Form:
+  Pet/owner search
+  invoice_date default today
+  due_date default today + 30 days
+
+  Line items section:
+  Dynamic rows with JavaScript:
+    item_description text
+    item_type dropdown:
+      Consultation, Vaccination,
+      Medication, Lab Test, Imaging,
+      Surgery, Hospitalization,
+      Grooming, Other
+    quantity number default 1
+    unit_price number
+    total_price auto-calculated
+  Add Item button (no page reload)
+  Remove Item button per row
+
+  Subtotal auto-calculated
+  tax_rate number default 18
+  tax_amount auto-calculated
+  discount_rate number default 0
+  discount_amount auto-calculated
+  total_amount auto-calculated
+
+  payment_status dropdown:
+    Pending, Paid, Partial, Waived
+  payment_method dropdown:
+    Cash, UPI, Card, Bank Transfer,
+    Insurance, Other
+  notes textarea optional
+
+POST:
+  Generate invoice_number:
+    INV-{clinic_id}-{year}-{sequence}
+  Insert into invoices
+  Insert all line items into
+  invoice_items table
+  Add to accounting ledger in erp.db
+    if vet has linked vendor account
+  Flash: "Invoice created"
+  Redirect to invoice view
+
+Add route /furrvet/billing/<int:inv_id>
+GET: render furrvet/view_invoice.html
+Professional printable invoice:
+  Clinic letterhead
+  Invoice number and date
+  Patient and owner details
+  Line items table
+  Totals
+  Payment status
+  Print button
+  Mark as Paid button if pending
+
+Add route /furrvet/billing/<int:inv_id>/pay
+POST:
+  Update payment_status = paid
+  Update payment_date = today
+  Update payment_method
+  Flash: "Payment recorded"
+
+PART 7 — Inventory management routes:
+
+Add route /furrvet/inventory/add
+GET and POST:
+GET: render furrvet/add_inventory.html
+Form:
+  item_name text required
+  item_type dropdown:
+    Medication, Vaccine, Consumable,
+    Equipment, Surgical Supply,
+    Diagnostic, Food, Other
+  category text
+  brand text
+  unit_of_measure dropdown:
+    Tablet, Capsule, Vial, Bottle,
+    Box, Pack, Piece, ml, mg, kg
+  current_stock number required
+  minimum_stock number default 10
+  unit_cost number
+  selling_price number
+  supplier text
+  batch_number text
+  expiry_date date
+  location text
+    (where in clinic it is stored)
+
+POST: Insert into inventory
+Flash: "Item added"
+
+Add route /furrvet/inventory/<int:item_id>/
+restock
+POST:
+  Body: quantity_added, batch_number,
+    expiry_date, supplier, cost
+  Update current_stock += quantity_added
+  Flash: "Stock updated"
+
+PART 8 — Staff management routes:
+
+Add route /furrvet/staff/add
+GET and POST:
+GET: render furrvet/add_staff.html
+Form:
+  name text required
+  email text
+  phone text
+  role dropdown:
+    Veterinarian, Vet Nurse,
+    Vet Technician, Receptionist,
+    Pharmacist, Lab Technician,
+    Cleaner, Driver, Other
+  department dropdown:
+    Clinical, Pharmacy, Laboratory,
+    Reception, Administration
+  salary number
+  hire_date date
+  shift_timing text
+  qualifications textarea
+  emergency_contact text
+
+POST: Insert into staff
+Flash: "Staff member added"
+
+Add route /furrvet/staff/<int:staff_id>/
+certification/add
+GET and POST:
+Form:
+  certification_name text required
+  issuing_body text
+  issue_date date
+  expiry_date date
+  document upload
+
+POST: Insert into staff_certifications
+Flash: "Certification added"
+
+PART 9 — Appointment management:
+
+Add route
+/furrvet/appointments/<int:appt_id>/update
+POST:
+  Body: status
+  Options: scheduled, arrived,
+    in_progress, completed, no_show,
+    cancelled
+  Update appointments table
+  If completed and no medical record:
+    Flash: "Don't forget to add
+    a SOAP note for this appointment"
+  Redirect back
+
+Add route /furrvet/appointments/calendar
+GET: render furrvet/appointment_calendar.html
+Show monthly calendar view
+Each day shows appointment count
+Click day to see that day's list
+Navigation: previous/next month
+
+PART 10 — Quick prescription writer:
+
+Add route /furrvet/prescriptions/new
+GET and POST:
+GET: render furrvet/prescription.html
+Quick prescription form:
+  Pet search
+  Date default today
+
+  Drug table with dynamic rows:
+    drug_name text with autocomplete
+      from inventory table medications
+    strength text (e.g. 250mg)
+    form dropdown:
+      Tablet, Capsule, Liquid,
+      Injection, Topical, Eye Drops,
+      Ear Drops, Cream, Powder
+    dose text (e.g. 1 tablet)
+    frequency dropdown:
+      Once, Twice Daily, Three Times
+      Daily, Every 8 Hours,
+      Every 12 Hours, Weekly,
+      As Needed
+    duration text (e.g. 7 days)
+    instructions text
+    Add Drug button
+    Remove button per row
+
+  General instructions textarea
+  Refill allowed toggle
+  Vet signature line (vet name
+    and license auto-filled)
+
+POST:
+  Save prescription text to
+  medical_records or standalone
+  Call bridge_furrvet_to_reminder()
+    for each drug for pet owner
+  Generate printable prescription
+
+GET /furrvet/prescriptions/<id>:
+  Printable prescription with
+  clinic letterhead, vet license,
+  all drug details, patient info
+
+Do not modify any other Python files.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create all new templates in
+templates/furrvet/ folder.
+After completing verify every new
+render_template() call has a
+corresponding template file.

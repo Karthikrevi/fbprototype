@@ -4,6 +4,7 @@ from replit_db_shim import db
 import os
 import json
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from math import radians, cos, sin, asin, sqrt
 import sqlite3
 from datetime import datetime, timedelta
@@ -2085,6 +2086,95 @@ def init_erp_db():
         except Exception:
             pass
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS furrwings_vets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            license_number TEXT NOT NULL,
+            license_issuing_body TEXT,
+            specialization TEXT,
+            phone TEXT NOT NULL,
+            clinic_name TEXT NOT NULL,
+            clinic_address TEXT,
+            city TEXT NOT NULL,
+            state TEXT,
+            pincode TEXT,
+            furrvet_account_email TEXT,
+            approval_status TEXT DEFAULT 'pending'
+                CHECK(approval_status IN ('pending','approved','suspended','rejected')),
+            approved_date TEXT,
+            approved_by TEXT,
+            certificate_count INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS health_certificates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            certificate_number TEXT UNIQUE NOT NULL,
+            vet_id INTEGER NOT NULL,
+            pet_name TEXT NOT NULL,
+            pet_species TEXT NOT NULL,
+            pet_breed TEXT,
+            pet_dob TEXT,
+            pet_microchip TEXT,
+            owner_name TEXT NOT NULL,
+            owner_email TEXT,
+            owner_phone TEXT,
+            destination_country TEXT NOT NULL,
+            purpose TEXT DEFAULT 'travel'
+                CHECK(purpose IN ('travel','export','import','competition','breeding')),
+            issue_date TEXT NOT NULL,
+            expiry_date TEXT NOT NULL,
+            examination_date TEXT NOT NULL,
+            examination_findings TEXT,
+            vaccinations_verified TEXT,
+            parasites_treated BOOLEAN DEFAULT 0,
+            parasite_treatment_date TEXT,
+            parasite_product TEXT,
+            fit_for_travel BOOLEAN DEFAULT 1,
+            special_conditions TEXT,
+            vet_signature TEXT,
+            certificate_status TEXT DEFAULT 'issued'
+                CHECK(certificate_status IN ('draft','issued','revoked')),
+            linked_pawsport_pet_index INTEGER,
+            linked_user_email TEXT,
+            verification_hash TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vet_id) REFERENCES furrwings_vets(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS travel_vaccinations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            certificate_id INTEGER NOT NULL,
+            vaccine_name TEXT NOT NULL,
+            vaccination_date TEXT NOT NULL,
+            batch_number TEXT,
+            manufacturer TEXT,
+            next_due_date TEXT,
+            verified_by_vet BOOLEAN DEFAULT 1,
+            FOREIGN KEY (certificate_id) REFERENCES health_certificates(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS furrwings_vet_activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vet_id INTEGER NOT NULL,
+            activity_type TEXT NOT NULL,
+            description TEXT,
+            certificate_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vet_id) REFERENCES furrwings_vets(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -2223,6 +2313,457 @@ app.register_blueprint(whatsapp_bp)
 
 # Register FurrVet blueprint
 app.register_blueprint(furrvet_bp)
+
+# ============================================================
+# FurrWings Vet Portal - Travel Health Certificates
+# ============================================================
+import hashlib
+from functools import wraps as fw_wraps
+
+def furrwings_vet_required(f):
+    @fw_wraps(f)
+    def decorated(*args, **kwargs):
+        if 'furrwings_vet_id' not in session:
+            return redirect('/furrwings/vet/login')
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/furrwings/vet/register', methods=['GET', 'POST'])
+def furrwings_vet_register():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
+        license_number = request.form.get('license_number', '').strip()
+        license_body = request.form.get('license_issuing_body', '')
+        if license_body == 'Other':
+            license_body = request.form.get('license_body_other', '').strip()
+        specialization = request.form.get('specialization', '')
+        phone = request.form.get('phone', '').strip()
+        clinic_name = request.form.get('clinic_name', '').strip()
+        clinic_address = request.form.get('clinic_address', '').strip()
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state', '')
+        pincode = request.form.get('pincode', '').strip()
+        furrvet_email = request.form.get('furrvet_account_email', '').strip()
+
+        if not all([name, email, password, license_number, phone, clinic_name, city]):
+            flash('Please fill in all required fields')
+            return redirect('/furrwings/vet/register')
+        if password != confirm:
+            flash('Passwords do not match')
+            return redirect('/furrwings/vet/register')
+        if not request.form.get('gdpr_consent'):
+            flash('You must agree to the terms and conditions')
+            return redirect('/furrwings/vet/register')
+
+        pw_hash = generate_password_hash(password)
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        try:
+            c.execute("""INSERT INTO furrwings_vets
+                (name, email, password, license_number, license_issuing_body,
+                 specialization, phone, clinic_name, clinic_address, city, state, pincode,
+                 furrvet_account_email)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (name, email, pw_hash, license_number, license_body,
+                 specialization, phone, clinic_name, clinic_address, city, state, pincode,
+                 furrvet_email or None))
+            conn.commit()
+            flash('Application submitted. Our team will review within 2-3 business days.')
+            conn.close()
+            return redirect('/furrwings/vet/pending')
+        except sqlite3.IntegrityError:
+            flash('An account with this email already exists')
+            conn.close()
+            return redirect('/furrwings/vet/register')
+
+    return render_template('furrwings_vet_register.html')
+
+@app.route('/furrwings/vet/pending')
+def furrwings_vet_pending():
+    return render_template('furrwings_vet_pending.html')
+
+@app.route('/furrwings/vet/login', methods=['GET', 'POST'])
+def furrwings_vet_login():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM furrwings_vets WHERE email=?", (email,))
+        vet = c.fetchone()
+        conn.close()
+        if not vet:
+            flash('Invalid email or password')
+            return redirect('/furrwings/vet/login')
+        if not check_password_hash(vet[3], password):
+            flash('Invalid email or password')
+            return redirect('/furrwings/vet/login')
+        status = vet[14]
+        if status == 'pending':
+            flash('Your application is still under review')
+            return redirect('/furrwings/vet/pending')
+        elif status == 'rejected':
+            flash('Your application was not approved. Please contact support.')
+            return redirect('/furrwings/vet/login')
+        elif status == 'suspended':
+            flash('Your account has been suspended. Please contact support.')
+            return redirect('/furrwings/vet/login')
+        session['furrwings_vet_id'] = vet[0]
+        session['furrwings_vet_name'] = vet[1]
+        session['furrwings_vet_email'] = vet[2]
+        session['furrwings_clinic'] = vet[8]
+        return redirect('/furrwings/vet/dashboard')
+    return render_template('furrwings_vet_login.html')
+
+@app.route('/furrwings/vet/logout')
+def furrwings_vet_logout():
+    for key in ['furrwings_vet_id', 'furrwings_vet_name', 'furrwings_vet_email', 'furrwings_clinic']:
+        session.pop(key, None)
+    return redirect('/furrwings/vet/login')
+
+@app.route('/furrwings/vet/dashboard')
+@furrwings_vet_required
+def furrwings_vet_dashboard():
+    vet_id = session['furrwings_vet_id']
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM health_certificates WHERE vet_id=? AND certificate_status='issued'", (vet_id,))
+    total_certs = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM health_certificates WHERE vet_id=? AND certificate_status='issued' AND strftime('%%Y-%%m', issue_date)=strftime('%%Y-%%m', 'now')", (vet_id,))
+    month_certs = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM health_certificates WHERE vet_id=? AND certificate_status='draft'", (vet_id,))
+    draft_certs = c.fetchone()[0]
+    c.execute("SELECT * FROM health_certificates WHERE vet_id=? ORDER BY created_at DESC LIMIT 10", (vet_id,))
+    recent_certs = c.fetchall()
+    c.execute("SELECT * FROM furrwings_vet_activity WHERE vet_id=? ORDER BY created_at DESC LIMIT 15", (vet_id,))
+    activity = c.fetchall()
+    c.execute("SELECT * FROM furrwings_vets WHERE id=?", (vet_id,))
+    vet = c.fetchone()
+    conn.close()
+    return render_template('furrwings_vet_dashboard.html',
+                         total_certs=total_certs, month_certs=month_certs,
+                         draft_certs=draft_certs, recent_certs=recent_certs,
+                         activity=activity, vet=vet)
+
+@app.route('/furrwings/vet/certificate/new', methods=['GET', 'POST'])
+@furrwings_vet_required
+def furrwings_vet_new_cert():
+    vet_id = session['furrwings_vet_id']
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM furrwings_vets WHERE id=?", (vet_id,))
+    vet = c.fetchone()
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'issue')
+        pet_name = request.form.get('pet_name', '').strip()
+        pet_species = request.form.get('pet_species', '').strip()
+        pet_breed = request.form.get('pet_breed', '').strip()
+        pet_dob = request.form.get('pet_dob', '')
+        pet_microchip = request.form.get('pet_microchip', '').strip()
+        owner_name = request.form.get('owner_name', '').strip()
+        owner_email = request.form.get('owner_email', '').strip()
+        owner_phone = request.form.get('owner_phone', '').strip()
+        destination = request.form.get('destination_country', '').strip()
+        purpose = request.form.get('purpose', 'travel')
+        exam_date = request.form.get('examination_date', '')
+        exam_findings = request.form.get('examination_findings', '').strip()
+        parasites_treated = 1 if request.form.get('parasites_treated') else 0
+        parasite_date = request.form.get('parasite_treatment_date', '')
+        parasite_product = request.form.get('parasite_product', '').strip()
+        fit_for_travel = 1 if request.form.get('fit_for_travel', 'yes') == 'yes' else 0
+        special_conditions = request.form.get('special_conditions', '').strip()
+        linked_email = request.form.get('linked_user_email', '')
+        linked_pet_index = request.form.get('linked_pawsport_pet_index', '')
+
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        issue_date = today_str
+        expiry_date = (datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d')
+        cert_status = 'draft' if action == 'draft' else 'issued'
+
+        c.execute("SELECT COUNT(*) FROM health_certificates WHERE vet_id=?", (vet_id,))
+        seq = c.fetchone()[0] + 1
+        cert_number = f"FW-VET-{vet_id}-{datetime.now().year}-{seq:04d}"
+
+        hash_data = f"{cert_number}{pet_name}{owner_name}{issue_date}{vet_id}"
+        verification_hash = hashlib.sha256(hash_data.encode()).hexdigest()[:32]
+
+        vacc_names = request.form.getlist('vaccine_name[]')
+        vacc_dates = request.form.getlist('vaccination_date[]')
+        vacc_batch = request.form.getlist('batch_number[]')
+        vacc_mfr = request.form.getlist('manufacturer[]')
+        vacc_next = request.form.getlist('next_due_date[]')
+        vacc_verified_text = ', '.join([n for n in vacc_names if n.strip()])
+
+        c.execute("""INSERT INTO health_certificates
+            (certificate_number, vet_id, pet_name, pet_species, pet_breed, pet_dob, pet_microchip,
+             owner_name, owner_email, owner_phone, destination_country, purpose,
+             issue_date, expiry_date, examination_date, examination_findings,
+             vaccinations_verified, parasites_treated, parasite_treatment_date, parasite_product,
+             fit_for_travel, special_conditions, vet_signature,
+             certificate_status, linked_pawsport_pet_index, linked_user_email, verification_hash)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (cert_number, vet_id, pet_name, pet_species, pet_breed, pet_dob, pet_microchip,
+             owner_name, owner_email, owner_phone, destination, purpose,
+             issue_date, expiry_date, exam_date or today_str, exam_findings,
+             vacc_verified_text, parasites_treated, parasite_date, parasite_product,
+             fit_for_travel, special_conditions, vet[1],
+             cert_status, int(linked_pet_index) if linked_pet_index else None,
+             linked_email or None, verification_hash))
+        cert_id = c.lastrowid
+
+        for i in range(len(vacc_names)):
+            if vacc_names[i].strip():
+                c.execute("""INSERT INTO travel_vaccinations
+                    (certificate_id, vaccine_name, vaccination_date, batch_number, manufacturer, next_due_date)
+                    VALUES (?,?,?,?,?,?)""",
+                    (cert_id, vacc_names[i], vacc_dates[i] if i < len(vacc_dates) else '',
+                     vacc_batch[i] if i < len(vacc_batch) else '',
+                     vacc_mfr[i] if i < len(vacc_mfr) else '',
+                     vacc_next[i] if i < len(vacc_next) else ''))
+
+        if cert_status == 'issued':
+            c.execute("UPDATE furrwings_vets SET certificate_count = certificate_count + 1 WHERE id=?", (vet_id,))
+            if linked_email:
+                try:
+                    c.execute("""INSERT INTO pawsport_documents
+                        (pet_index, user_email, document_type, document_name,
+                         file_url, issue_date, expiry_date, issued_by, verified, verification_hash)
+                        VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                        (int(linked_pet_index) if linked_pet_index else 0, linked_email,
+                         'Health Certificate', f'Travel Health Certificate - {destination}',
+                         f'/furrwings/vet/certificate/{cert_id}', issue_date, expiry_date,
+                         vet[8], 1, verification_hash))
+                except Exception:
+                    pass
+
+        c.execute("INSERT INTO furrwings_vet_activity (vet_id, activity_type, description, certificate_id) VALUES (?,?,?,?)",
+                  (vet_id, 'certificate_issued' if cert_status == 'issued' else 'draft_saved',
+                   f'{cert_status.title()} certificate {cert_number} for {pet_name} traveling to {destination}', cert_id))
+        conn.commit()
+        conn.close()
+        flash(f'Certificate {cert_status} successfully: {cert_number}')
+        return redirect(f'/furrwings/vet/certificate/{cert_id}')
+
+    conn.close()
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    return render_template('furrwings_vet_new_cert.html', vet=vet, today=today_str)
+
+@app.route('/furrwings/vet/certificate/<int:cert_id>')
+@furrwings_vet_required
+def furrwings_vet_cert_view(cert_id):
+    vet_id = session['furrwings_vet_id']
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT hc.*, fv.name as vet_name, fv.license_number, fv.clinic_name, fv.clinic_address, fv.city as vet_city
+                 FROM health_certificates hc
+                 JOIN furrwings_vets fv ON hc.vet_id = fv.id
+                 WHERE hc.id=? AND hc.vet_id=?""", (cert_id, vet_id))
+    cert = c.fetchone()
+    if not cert:
+        conn.close()
+        flash('Certificate not found')
+        return redirect('/furrwings/vet/certificates')
+    c.execute("SELECT * FROM travel_vaccinations WHERE certificate_id=?", (cert_id,))
+    vaccinations = c.fetchall()
+    conn.close()
+    return render_template('furrwings_vet_cert_view.html', cert=cert, vaccinations=vaccinations)
+
+@app.route('/furrwings/vet/certificate/<int:cert_id>/print')
+@furrwings_vet_required
+def furrwings_vet_cert_print(cert_id):
+    vet_id = session['furrwings_vet_id']
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT hc.*, fv.name as vet_name, fv.license_number, fv.clinic_name, fv.clinic_address, fv.city as vet_city
+                 FROM health_certificates hc
+                 JOIN furrwings_vets fv ON hc.vet_id = fv.id
+                 WHERE hc.id=? AND hc.vet_id=?""", (cert_id, vet_id))
+    cert = c.fetchone()
+    if not cert:
+        conn.close()
+        flash('Certificate not found')
+        return redirect('/furrwings/vet/certificates')
+    c.execute("SELECT * FROM travel_vaccinations WHERE certificate_id=?", (cert_id,))
+    vaccinations = c.fetchall()
+    conn.close()
+    return render_template('furrwings_vet_cert_print.html', cert=cert, vaccinations=vaccinations)
+
+@app.route('/furrwings/vet/certificate/<int:cert_id>/revoke', methods=['POST'])
+@furrwings_vet_required
+def furrwings_vet_cert_revoke(cert_id):
+    vet_id = session['furrwings_vet_id']
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE health_certificates SET certificate_status='revoked' WHERE id=? AND vet_id=?", (cert_id, vet_id))
+    c.execute("INSERT INTO furrwings_vet_activity (vet_id, activity_type, description, certificate_id) VALUES (?,?,?,?)",
+              (vet_id, 'certificate_revoked', f'Certificate revoked', cert_id))
+    conn.commit()
+    conn.close()
+    flash('Certificate has been revoked')
+    return redirect(f'/furrwings/vet/certificate/{cert_id}')
+
+@app.route('/furrwings/vet/certificates')
+@furrwings_vet_required
+def furrwings_vet_cert_list():
+    vet_id = session['furrwings_vet_id']
+    status_filter = request.args.get('status', 'all')
+    search = request.args.get('search', '').strip()
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    query = "SELECT * FROM health_certificates WHERE vet_id=?"
+    params = [vet_id]
+    if status_filter == 'issued':
+        query += " AND certificate_status='issued'"
+    elif status_filter == 'draft':
+        query += " AND certificate_status='draft'"
+    elif status_filter == 'revoked':
+        query += " AND certificate_status='revoked'"
+    elif status_filter == 'expiring':
+        query += " AND certificate_status='issued' AND expiry_date <= date('now', '+3 days') AND expiry_date >= date('now')"
+    elif status_filter == 'expired':
+        query += " AND certificate_status='issued' AND expiry_date < date('now')"
+    if search:
+        query += " AND (pet_name LIKE ? OR owner_name LIKE ? OR certificate_number LIKE ?)"
+        params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
+    query += " ORDER BY created_at DESC"
+    c.execute(query, params)
+    certs = c.fetchall()
+    conn.close()
+    return render_template('furrwings_vet_cert_list.html', certs=certs,
+                         status_filter=status_filter, search=search)
+
+@app.route('/verify/cert/<hash_val>')
+def verify_certificate(hash_val):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT hc.*, fv.name as vet_name, fv.license_number, fv.clinic_name, fv.city
+                 FROM health_certificates hc
+                 JOIN furrwings_vets fv ON hc.vet_id = fv.id
+                 WHERE hc.verification_hash=?""", (hash_val,))
+    cert = c.fetchone()
+    conn.close()
+    return render_template('verify_certificate.html', cert=cert, hash_val=hash_val)
+
+@app.route('/furrwings/vet/search-pet', methods=['POST'])
+@furrwings_vet_required
+def furrwings_search_pet():
+    search = request.form.get('search', '').strip()
+    if not search:
+        return jsonify({'found': False, 'pets': []})
+    all_keys = db.keys()
+    found_pets = []
+    user_email = None
+    for k in all_keys:
+        if k.startswith('pets:'):
+            email = k.replace('pets:', '')
+            if search.lower() in email.lower():
+                pets = db.get(k, [])
+                user_email = email
+                for idx, p in enumerate(pets):
+                    found_pets.append({'index': idx, 'name': p.get('name', ''),
+                                      'species': p.get('species', ''), 'breed': p.get('breed', '')})
+    if not found_pets:
+        for k in all_keys:
+            if k.startswith('user:'):
+                user = db.get(k, {})
+                if user.get('phone', '') == search:
+                    email = k.replace('user:', '')
+                    pets = db.get(f'pets:{email}', [])
+                    user_email = email
+                    for idx, p in enumerate(pets):
+                        found_pets.append({'index': idx, 'name': p.get('name', ''),
+                                          'species': p.get('species', ''), 'breed': p.get('breed', '')})
+    return jsonify({'found': len(found_pets) > 0, 'pets': found_pets, 'user_email': user_email or ''})
+
+@app.route('/furrwings/vet/sync-furrvet')
+@furrwings_vet_required
+def furrwings_sync_furrvet():
+    vet_id = session['furrwings_vet_id']
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT furrvet_account_email FROM furrwings_vets WHERE id=?", (vet_id,))
+    row = c.fetchone()
+    conn.close()
+    furrvet_email = row[0] if row and row[0] else None
+    furrvet_vaccs = []
+    if furrvet_email:
+        try:
+            conn2 = sqlite3.connect('furrvet.db')
+            c2 = conn2.cursor()
+            c2.execute("""SELECT v.id, v.pet_id, v.vaccine_name, v.vaccine_type, v.batch_number,
+                         v.manufacturer, v.vaccination_date, v.next_due_date,
+                         p.name as pet_name, p.species, o.name as owner_name
+                         FROM vaccinations v
+                         JOIN pets p ON v.pet_id = p.id
+                         JOIN pet_owners o ON p.owner_id = o.id
+                         ORDER BY v.vaccination_date DESC LIMIT 50""")
+            furrvet_vaccs = c2.fetchall()
+            conn2.close()
+        except Exception as e:
+            import logging
+            logging.error(f"FurrWings sync error: {e}")
+    return render_template('furrwings_vet_sync.html', furrvet_email=furrvet_email, furrvet_vaccs=furrvet_vaccs)
+
+@app.route('/admin/furrwings/vets')
+def admin_furrwings_vets():
+    if 'admin' not in session:
+        return redirect('/admin-login')
+    status_filter = request.args.get('status', 'all')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    if status_filter != 'all':
+        c.execute("SELECT * FROM furrwings_vets WHERE approval_status=? ORDER BY created_at DESC", (status_filter,))
+    else:
+        c.execute("SELECT * FROM furrwings_vets ORDER BY created_at DESC")
+    vets = c.fetchall()
+    conn.close()
+    return render_template('admin_furrwings_vets.html', vets=vets, status_filter=status_filter)
+
+@app.route('/admin/furrwings/vets/<int:vid>/approve', methods=['POST'])
+def admin_furrwings_approve(vid):
+    if 'admin' not in session:
+        return redirect('/admin-login')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    c.execute("UPDATE furrwings_vets SET approval_status='approved', approved_date=?, approved_by=? WHERE id=?",
+              (today_str, session.get('admin', 'admin'), vid))
+    conn.commit()
+    conn.close()
+    flash('Vet application approved')
+    return redirect('/admin/furrwings/vets')
+
+@app.route('/admin/furrwings/vets/<int:vid>/reject', methods=['POST'])
+def admin_furrwings_reject(vid):
+    if 'admin' not in session:
+        return redirect('/admin-login')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE furrwings_vets SET approval_status='rejected' WHERE id=?", (vid,))
+    conn.commit()
+    conn.close()
+    flash('Vet application rejected')
+    return redirect('/admin/furrwings/vets')
+
+@app.route('/admin/furrwings/vets/<int:vid>/suspend', methods=['POST'])
+def admin_furrwings_suspend(vid):
+    if 'admin' not in session:
+        return redirect('/admin-login')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE furrwings_vets SET approval_status='suspended' WHERE id=?", (vid,))
+    conn.commit()
+    conn.close()
+    flash('Vet account suspended')
+    return redirect('/admin/furrwings/vets')
+
+# ============================================================
+# End FurrWings Vet Portal
+# ============================================================
 
 # React Native Web App
 @app.route('/app')

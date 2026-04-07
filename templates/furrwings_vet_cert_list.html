@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Certificates - FurrWings</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+body{background:#f0f4f8;font-family:'Segoe UI',sans-serif}
+.fw-header{background:linear-gradient(135deg,#0a1628,#1a3a6c);color:white;padding:1rem 0}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.table th{background:#f0f4f8;color:#1a3a6c;font-size:0.85rem}
+.filter-btn{border-radius:2rem;font-size:0.85rem;font-weight:500}
+.badge-issued{background:#28a745}.badge-draft{background:#6c757d}.badge-revoked{background:#dc3545}
+</style>
+</head>
+<body>
+<div class="fw-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h4 class="mb-0"><i class="fas fa-plane-departure"></i> FurrWings — My Certificates</h4>
+<div>
+<a href="/furrwings/vet/certificate/new" class="btn btn-outline-light btn-sm me-1">+ New Certificate</a>
+<a href="/furrwings/vet/dashboard" class="btn btn-outline-light btn-sm">Dashboard</a>
+</div>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+<div>
+{% for s, label in [('all','All'),('issued','Issued'),('draft','Draft'),('revoked','Revoked'),('expiring','Expiring'),('expired','Expired')] %}
+<a href="/furrwings/vet/certificates?status={{ s }}&search={{ search }}" class="btn btn-sm filter-btn btn-{{ 'primary' if status_filter==s else 'outline-primary' }} me-1">{{ label }}</a>
+{% endfor %}
+</div>
+<form class="d-flex" style="width:250px">
+<input type="hidden" name="status" value="{{ status_filter }}">
+<input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." value="{{ search }}">
+<button class="btn btn-sm btn-primary ms-1">Go</button>
+</form>
+</div>
+<div class="section-card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Certificate #</th><th>Pet</th><th>Owner</th><th>Destination</th><th>Issued</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+<tbody>
+{% for c in certs %}
+<tr>
+<td><small>{{ c[1] }}</small></td>
+<td><strong>{{ c[3] }}</strong> <small>({{ c[4] }})</small></td>
+<td>{{ c[8] }}</td>
+<td>{{ c[11] }}</td>
+<td>{{ c[13] }}</td><td>{{ c[14] }}</td>
+<td><span class="badge badge-{{ c[25] }}">{{ c[25] }}</span></td>
+<td><a href="/furrwings/vet/certificate/{{ c[0] }}" class="btn btn-sm btn-outline-primary">View</a></td>
+</tr>
+{% endfor %}
+{% if not certs %}<tr><td colspan="8" class="text-center text-muted">No certificates found</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

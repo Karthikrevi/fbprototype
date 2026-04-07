@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Detail - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.section-title{color:#1a3a5c;font-weight:700;border-bottom:2px solid #00897b;padding-bottom:0.5rem;margin-bottom:1rem}
+.detail-label{font-weight:600;color:#6b7280;font-size:0.85rem}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.5rem 1rem}
+.btn-clinical:hover{background:#00796b;color:white}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2>{{ member[1] }}</h2>
+<div>
+<a href="{{ url_for('furrvet.edit_staff', staff_id=member[0]) }}" class="btn btn-outline-light btn-sm me-2">Edit</a>
+<a href="{{ url_for('furrvet.staff_management') }}" class="btn btn-outline-light btn-sm">Back</a>
+</div>
+</div>
+</div>
+<div class="container py-4">
+<div class="row">
+<div class="col-md-6">
+<div class="section-card">
+<h5 class="section-title">Personal Information</h5>
+<div class="mb-2"><span class="detail-label">Role:</span> {{ member[4] }}</div>
+<div class="mb-2"><span class="detail-label">Department:</span> {{ member[5] or 'N/A' }}</div>
+<div class="mb-2"><span class="detail-label">Email:</span> {{ member[2] or 'N/A' }}</div>
+<div class="mb-2"><span class="detail-label">Phone:</span> {{ member[3] or 'N/A' }}</div>
+<div class="mb-2"><span class="detail-label">Hire Date:</span> {{ member[7] or 'N/A' }}</div>
+<div class="mb-2"><span class="detail-label">Shift:</span> {{ member[8] or 'N/A' }}</div>
+<div class="mb-2"><span class="detail-label">Qualifications:</span> {{ member[9] or 'N/A' }}</div>
+<div class="mb-2"><span class="detail-label">Emergency Contact:</span> {{ member[10] or 'N/A' }}</div>
+</div>
+</div>
+<div class="col-md-6">
+<div class="section-card">
+<div class="d-flex justify-content-between align-items-center mb-3">
+<h5 class="section-title mb-0">Certifications</h5>
+<a href="{{ url_for('furrvet.add_staff_certification', staff_id=member[0]) }}" class="btn-clinical btn-sm">+ Add</a>
+</div>
+{% for c in certs %}
+<div class="border rounded p-2 mb-2">
+<strong>{{ c[2] }}</strong><br>
+<small class="text-muted">{{ c[3] or '' }} | Expires: {{ c[5] or 'N/A' }}</small>
+<span class="badge bg-{{ 'success' if c[6]=='valid' else 'danger' }} float-end">{{ c[6] }}</span>
+</div>
+{% endfor %}
+{% if not certs %}<p class="text-muted">No certifications</p>{% endif %}
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

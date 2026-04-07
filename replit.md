@@ -74,6 +74,25 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **Admin template**: `admin_venues.html` (moderation dashboard)
 - **Venue column indices**: 0=id, 1=name, 2=venue_type, 3=address, 4=city, 5=state, 6=pincode, 7=phone, 8=website, 9=google_maps_url, 10=booking_url, 11=latitude, 12=longitude, 13=pet_policy, 14=max_pet_size, 15=pet_fee, 16=amenities, 17=rating, 18=review_count, 19=verified, 20=is_active, 21=added_by, 22=created_at, 23=submission_status, 24=submitted_by_email, 25=submission_notes, 26=admin_notes, 27=google_verified, 28=flag_reason
 
+## FurrWings Vet Portal
+- **Purpose**: Travel health certificate issuance portal for veterinarians, separate from FurrVet ERP
+- **Auth**: Independent session (`furrwings_vet_id`), registration requires admin approval
+- **DB tables** (in erp.db): `furrwings_vets`, `furrwings_health_certs`, `furrwings_cert_vaccinations`, `furrwings_cert_audit_log`
+- **Routes** (in main.py): `/furrwings/vet/register`, `/furrwings/vet/login`, `/furrwings/vet/logout`, `/furrwings/vet/pending`, `/furrwings/vet/dashboard`, `/furrwings/vet/certificates/new`, `/furrwings/vet/certificates/<id>`, `/furrwings/vet/certificates/<id>/print`, `/furrwings/vet/certificates/<id>/revoke`, `/furrwings/vet/certificates`, `/furrwings/vet/sync-furrvet`, `/verify/cert/<hash>`, `/furrwings/vet/search-pet`
+- **Admin routes**: `/admin/furrwings/vets`, `/admin/furrwings/vets/<id>/approve`, `/admin/furrwings/vets/<id>/reject`
+- **Templates**: `furrwings_vet_register.html`, `furrwings_vet_login.html`, `furrwings_vet_pending.html`, `furrwings_vet_dashboard.html`, `furrwings_vet_new_cert.html`, `furrwings_vet_cert_view.html`, `furrwings_vet_cert_print.html`, `furrwings_vet_cert_list.html`, `furrwings_vet_sync.html`, `verify_certificate.html`, `admin_furrwings_vets.html`
+- **Certificate verification**: Public route `/verify/cert/<hash>`, hash is SHA256[:32] of cert data, certs expire 10 days
+- **Vet column indices**: [0]=id, [1]=name, [2]=email, [3]=password, [4]=license_number, [5]=license_body, [6]=specialization, [7]=phone, [8]=clinic_name, [9]=clinic_address, [10]=city, [14]=approval_status
+
+## FurrVet ERP (Clinical Routes)
+- **Blueprint**: `furrvet_bp` in `furrvet.py`, prefix `/furrvet`
+- **All templates** in `templates/furrvet/` (render_template paths include `furrvet/` prefix)
+- **Clinical routes**: Patient CRUD, medical records (SOAP notes), vaccination management with certificates, lab tests with reference values, hospitalization with daily notes, invoicing with payment tracking, inventory/pharmacy management, staff management with certifications, appointment calendar, prescriptions
+- **CRM/HRM/Accounting routes**: Client management with reminders, marketing campaigns, financial dashboard with P&L/AR/AP/GST reports, staff dashboard with reviews/certifications
+- **Auth scoping**: Critical write operations (pay_invoice, update_appointment, lab_results, hospitalization, discharge) scoped by `vet_id` in WHERE clauses to prevent IDOR
+- **Session keys**: `furrvet_vet_id`, `furrvet_vet_name`, `furrvet_vet_email`, `furrvet_clinic_name`
+- **Credentials**: vet@furrvet.com / vet123
+
 # External Dependencies
 - **Core Frameworks**: Flask, React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, React Native, Expo.
 - **Database**: SQLite, PostgreSQL.

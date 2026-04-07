@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FurrWings Vet Applications - Admin</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.admin-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.table th{background:#f1f5f9;color:#1a3a5c}
+.badge-pending{background:#ffc107;color:#333}.badge-approved{background:#28a745}.badge-rejected{background:#dc3545}.badge-suspended{background:#6c757d}
+</style>
+</head>
+<body>
+<div class="admin-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2>FurrWings — Vet Applications</h2>
+<a href="/admin-dashboard" class="btn btn-outline-light btn-sm">Admin Dashboard</a>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<div class="mb-3">
+{% for s, label in [('all','All'),('pending','Pending'),('approved','Approved'),('rejected','Rejected'),('suspended','Suspended')] %}
+<a href="/admin/furrwings/vets?status={{ s }}" class="btn btn-sm btn-{{ 'primary' if status_filter==s else 'outline-primary' }}">{{ label }}</a>
+{% endfor %}
+</div>
+<div class="section-card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Name</th><th>Clinic</th><th>City</th><th>License</th><th>Body</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+{% for v in vets %}
+<tr>
+<td><strong>{{ v[1] }}</strong><br><small>{{ v[2] }}</small></td>
+<td>{{ v[8] }}</td><td>{{ v[10] }}</td>
+<td>{{ v[4] }}</td><td>{{ v[5] or '' }}</td>
+<td>{{ v[19] or '' }}</td>
+<td><span class="badge badge-{{ v[14] }}">{{ v[14] }}</span></td>
+<td>
+{% if v[14] == 'pending' %}
+<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/approve" style="display:inline"><button class="btn btn-sm btn-success">Approve</button></form>
+<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/reject" style="display:inline"><button class="btn btn-sm btn-danger">Reject</button></form>
+{% elif v[14] == 'approved' %}
+<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/suspend" style="display:inline"><button class="btn btn-sm btn-warning">Suspend</button></form>
+{% elif v[14] == 'suspended' %}
+<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/approve" style="display:inline"><button class="btn btn-sm btn-success">Reactivate</button></form>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+{% if not vets %}<tr><td colspan="8" class="text-center text-muted">No applications</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

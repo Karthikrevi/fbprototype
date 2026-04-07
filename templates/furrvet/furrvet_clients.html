@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clients - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.table th{background:#f1f5f9;color:#1a3a5c}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.5rem 1rem}
+.btn-clinical:hover{background:#00796b;color:white}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2><i class="fas fa-users"></i> Client Relations</h2>
+<div>
+<a href="{{ url_for('furrvet.client_reminders') }}" class="btn btn-outline-light btn-sm me-2">Reminders</a>
+<a href="{{ url_for('furrvet.campaigns') }}" class="btn btn-outline-light btn-sm me-2">Campaigns</a>
+<a href="{{ url_for('furrvet.dashboard') }}" class="btn btn-outline-light btn-sm">Dashboard</a>
+</div>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<div class="section-card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Owner</th><th>Phone</th><th>Email</th><th>Pets</th><th>Last Visit</th><th>Total Spend</th><th></th></tr></thead>
+<tbody>
+{% for o in owners %}
+<tr>
+<td><strong>{{ o[1] }}</strong></td>
+<td>{{ o[3] }}</td><td>{{ o[2] or '' }}</td>
+<td><span class="badge bg-primary">{{ o[-3] }}</span></td>
+<td>{{ o[-2] or 'Never' }}</td>
+<td>{{ "%.2f"|format(o[-1]) if o[-1] else '0.00' }}</td>
+<td><a href="{{ url_for('furrvet.client_detail', owner_id=o[0]) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+</tr>
+{% endfor %}
+{% if not owners %}<tr><td colspan="7" class="text-center text-muted">No clients yet</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

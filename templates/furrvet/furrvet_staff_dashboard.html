@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Management - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.nav-pills .nav-link{color:#1a3a5c;font-weight:600}.nav-pills .nav-link.active{background:#1a3a5c}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.5rem 1rem}
+.btn-clinical:hover{background:#00796b;color:white}
+.badge-expiring{background:#ffc107;color:#333}
+.table th{background:#f1f5f9;color:#1a3a5c}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2><i class="fas fa-users-cog"></i> Clinical Staff Management</h2>
+<a href="{{ url_for('furrvet.dashboard') }}" class="btn btn-outline-light btn-sm">Dashboard</a>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<ul class="nav nav-pills mb-4" role="tablist">
+<li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#staffTab">Staff</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#certsTab">Certifications</a></li>
+</ul>
+<div class="tab-content">
+<div class="tab-pane fade show active" id="staffTab">
+<div class="d-flex justify-content-end mb-3">
+<a href="{{ url_for('furrvet.add_staff') }}" class="btn-clinical"><i class="fas fa-plus"></i> Add Staff</a>
+</div>
+<div class="section-card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+{% for s in staff %}
+<tr>
+<td><strong>{{ s[1] }}</strong></td>
+<td>{{ s[4] }}</td><td>{{ s[5] or '' }}</td><td>{{ s[3] or '' }}</td>
+<td><span class="badge bg-{{ 'success' if s[11]=='active' else 'secondary' }}">{{ s[11] }}</span></td>
+<td>
+<a href="{{ url_for('furrvet.staff_detail', staff_id=s[0]) }}" class="btn btn-sm btn-outline-primary">View</a>
+<a href="{{ url_for('furrvet.edit_staff', staff_id=s[0]) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+</td>
+</tr>
+{% endfor %}
+{% if not staff %}<tr><td colspan="6" class="text-center text-muted">No staff members yet</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+<div class="tab-pane fade" id="certsTab">
+{% if expiring_certs %}
+<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> <strong>{{ expiring_certs|length }}</strong> certification(s) expiring within 60 days</div>
+{% endif %}
+<div class="section-card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Staff</th><th>Certification</th><th>Issuing Body</th><th>Issue Date</th><th>Expiry Date</th><th>Status</th></tr></thead>
+<tbody>
+{% for c in all_certs %}
+<tr>
+<td>{{ c[-1] if c|length > 8 else '' }}</td>
+<td>{{ c[2] }}</td><td>{{ c[3] or '' }}</td><td>{{ c[4] or '' }}</td>
+<td>{{ c[5] or 'N/A' }}</td>
+<td><span class="badge bg-{{ 'success' if c[6]=='valid' else 'danger' }}">{{ c[6] }}</span></td>
+</tr>
+{% endfor %}
+{% if not all_certs %}<tr><td colspan="6" class="text-center text-muted">No certifications recorded</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discharge Patient - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.75rem 2rem}
+.btn-clinical:hover{background:#00796b;color:white}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container"><h2>Discharge: {{ hosp[-3] }} ({{ hosp[-2] }})</h2><div>Admitted: {{ hosp[3] }} | Reason: {{ hosp[4] }}</div></div>
+</div>
+<div class="container py-4">
+<form method="POST">
+<div class="section-card">
+<div class="row g-3">
+<div class="col-md-4"><label class="form-label">Discharge Date</label><input type="date" name="discharge_date" class="form-control"></div>
+<div class="col-12"><label class="form-label">Discharge Summary *</label><textarea name="discharge_summary" class="form-control" rows="4" required></textarea></div>
+<div class="col-12"><label class="form-label">Discharge Instructions</label><textarea name="discharge_instructions" class="form-control" rows="3"></textarea></div>
+<div class="col-md-4"><label class="form-label">Follow Up Date</label><input type="date" name="follow_up_date" class="form-control"></div>
+<div class="col-md-4"><label class="form-label">Medications to Go</label><textarea name="medications_to_go" class="form-control" rows="2"></textarea></div>
+<div class="col-md-4"><label class="form-label">Dietary Restrictions</label><textarea name="dietary_restrictions" class="form-control" rows="2"></textarea></div>
+</div>
+</div>
+<div class="text-center">
+<a href="{{ url_for('furrvet.hospitalization_detail', hosp_id=hosp[0]) }}" class="btn btn-secondary me-2">Cancel</a>
+<button type="submit" class="btn-clinical">Discharge Patient</button>
+</div>
+</form>
+</div>
+<script>var today=new Date().toISOString().split('T')[0];document.querySelector('[name=discharge_date]').value=today;</script>
+</body>
+</html>

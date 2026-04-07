@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Invoice - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.section-title{color:#1a3a5c;font-weight:700;border-bottom:2px solid #00897b;padding-bottom:0.5rem;margin-bottom:1rem}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.75rem 2rem}
+.btn-clinical:hover{background:#00796b;color:white}
+.line-item{background:#f1f5f9;border-radius:0.5rem;padding:1rem;margin-bottom:0.5rem}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2>Create Invoice</h2>
+<a href="{{ url_for('furrvet.billing') }}" class="btn btn-outline-light btn-sm">Back</a>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<form method="POST" id="invoiceForm">
+<div class="section-card">
+<h5 class="section-title">Invoice Details</h5>
+<div class="row g-3">
+<div class="col-md-4"><label class="form-label">Patient *</label>
+<select name="pet_id" class="form-select" required>
+<option value="">Select</option>
+{% for p in pets %}<option value="{{ p[0] }}">{{ p[1] }} ({{ p[2] }}) - {{ p[3] }}</option>{% endfor %}
+</select></div>
+<div class="col-md-4"><label class="form-label">Invoice Date</label><input type="date" name="invoice_date" class="form-control" value="{{ today }}"></div>
+<div class="col-md-4"><label class="form-label">Due Date</label><input type="date" name="due_date" class="form-control" value="{{ due_date }}"></div>
+</div>
+</div>
+<div class="section-card">
+<h5 class="section-title">Line Items</h5>
+<div id="lineItems">
+<div class="line-item">
+<div class="row g-2">
+<div class="col-md-4"><input type="text" name="item_description[]" class="form-control" placeholder="Description" required></div>
+<div class="col-md-2"><select name="item_type[]" class="form-select">
+<option>Consultation</option><option>Vaccination</option><option>Medication</option><option>Lab Test</option>
+<option>Imaging</option><option>Surgery</option><option>Hospitalization</option><option>Grooming</option><option>Other</option>
+</select></div>
+<div class="col-md-2"><input type="number" name="quantity[]" class="form-control qty-input" placeholder="Qty" value="1" min="1" onchange="calcLine(this)"></div>
+<div class="col-md-2"><input type="number" name="unit_price[]" class="form-control price-input" placeholder="Unit Price" step="0.01" onchange="calcLine(this)"></div>
+<div class="col-md-1"><span class="line-total form-control-plaintext">0.00</span></div>
+<div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLine(this)">X</button></div>
+</div>
+</div>
+</div>
+<button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addLine()">+ Add Item</button>
+</div>
+<div class="section-card">
+<div class="row g-3">
+<div class="col-md-3"><label class="form-label">Subtotal</label><input type="text" id="subtotal" class="form-control" readonly value="0.00"></div>
+<div class="col-md-2"><label class="form-label">Tax Rate %</label><input type="number" name="tax_rate" class="form-control" value="18" step="0.1" onchange="calcTotals()"></div>
+<div class="col-md-2"><label class="form-label">Discount %</label><input type="number" name="discount_rate" class="form-control" value="0" step="0.1" onchange="calcTotals()"></div>
+<div class="col-md-3"><label class="form-label"><strong>Total</strong></label><input type="text" id="grandTotal" class="form-control fw-bold" readonly value="0.00"></div>
+</div>
+<div class="row g-3 mt-2">
+<div class="col-md-4"><label class="form-label">Payment Status</label>
+<select name="payment_status" class="form-select"><option>Pending</option><option>Paid</option><option>Partial</option><option>Waived</option></select></div>
+<div class="col-md-4"><label class="form-label">Payment Method</label>
+<select name="payment_method" class="form-select"><option value="">Select</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Insurance</option><option>Other</option></select></div>
+<div class="col-md-4"><label class="form-label">Notes</label><textarea name="notes" class="form-control" rows="1"></textarea></div>
+</div>
+</div>
+<div class="text-center"><button type="submit" class="btn-clinical">Create Invoice</button></div>
+</form>
+</div>
+<script>
+function addLine(){
+var t=document.querySelector('#lineItems .line-item').cloneNode(true);
+t.querySelectorAll('input').forEach(function(i){i.value=i.type=='number'&&i.name.includes('quantity')?'1':'';});
+t.querySelector('.line-total').textContent='0.00';
+document.getElementById('lineItems').appendChild(t);
+}
+function removeLine(btn){
+var items=document.querySelectorAll('.line-item');
+if(items.length>1){btn.closest('.line-item').remove();calcTotals();}
+}
+function calcLine(el){
+var row=el.closest('.line-item');
+var q=parseFloat(row.querySelector('.qty-input').value)||0;
+var p=parseFloat(row.querySelector('.price-input').value)||0;
+row.querySelector('.line-total').textContent=(q*p).toFixed(2);
+calcTotals();
+}
+function calcTotals(){
+var sub=0;
+document.querySelectorAll('.line-total').forEach(function(t){sub+=parseFloat(t.textContent)||0;});
+document.getElementById('subtotal').value=sub.toFixed(2);
+var tax=parseFloat(document.querySelector('[name=tax_rate]').value)||0;
+var disc=parseFloat(document.querySelector('[name=discount_rate]').value)||0;
+var total=sub+(sub*tax/100)-(sub*disc/100);
+document.getElementById('grandTotal').value=total.toFixed(2);
+}
+</script>
+</body>
+</html>

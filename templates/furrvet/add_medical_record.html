@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOAP Note - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.soap-section{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.soap-label{font-weight:700;font-size:1.1rem;padding:0.5rem 1rem;border-radius:0.5rem;color:white;display:inline-block;margin-bottom:1rem}
+.soap-s{background:#2196F3}.soap-o{background:#4CAF50}.soap-a{background:#FF9800}.soap-p{background:#9C27B0}
+.vital-input{position:relative}
+.vital-range{font-size:0.75rem;color:#6b7280;margin-top:0.2rem}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.75rem 2rem}
+.btn-clinical:hover{background:#00796b;color:white}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container">
+<h2>SOAP Medical Record</h2>
+<div class="mt-2">
+<strong>Patient:</strong> {{ pet[1] }} ({{ pet[2] }})
+&nbsp; <strong>Vet:</strong> {{ vet_name }}
+</div>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<form method="POST">
+<div class="soap-section">
+<div class="row g-3">
+<div class="col-md-4"><label class="form-label">Visit Date</label><input type="date" name="visit_date" class="form-control" value="{{ today if today else '' }}"></div>
+<div class="col-md-4"><label class="form-label">Link to Appointment</label>
+<select name="appointment_id" class="form-select"><option value="">None</option>
+{% for a in today_appointments %}<option value="{{ a[0] }}">{{ a[1] }} {{ a[2] }} - {{ a[3] }}</option>{% endfor %}
+</select></div>
+</div>
+</div>
+<div class="soap-section">
+<span class="soap-label soap-s">S - SUBJECTIVE</span>
+<div class="row g-3">
+<div class="col-12"><label class="form-label">Chief Complaint *</label><textarea name="chief_complaint" class="form-control" rows="3" required placeholder="What is the main reason for today's visit? e.g. Not eating for 2 days, limping on left front leg"></textarea></div>
+<div class="col-md-6"><label class="form-label">Owner Observations</label><textarea name="owner_observations" class="form-control" rows="2" placeholder="What has the owner noticed at home?"></textarea></div>
+<div class="col-md-6"><label class="form-label">Duration of Symptoms</label><input type="text" name="duration_symptoms" class="form-control" placeholder="How long has this been happening?"></div>
+<div class="col-12"><label class="form-label">Medical History Notes</label><textarea name="history_notes" class="form-control" rows="2" placeholder="Any relevant past conditions or medications?"></textarea></div>
+</div>
+</div>
+<div class="soap-section">
+<span class="soap-label soap-o">O - OBJECTIVE</span>
+<h6 class="mt-2 mb-3" style="color:#1a3a5c;font-weight:700">Vitals</h6>
+<div class="row g-3">
+<div class="col-md-3 vital-input"><label class="form-label">Temperature</label><div class="input-group"><input type="number" name="temperature" class="form-control" step="0.1" id="tempInput"><span class="input-group-text">°C</span></div><div class="vital-range">Normal: 37.5-39.2°C</div></div>
+<div class="col-md-3"><label class="form-label">Weight</label><div class="input-group"><input type="number" name="weight" class="form-control" step="0.1"><span class="input-group-text">kg</span></div></div>
+<div class="col-md-3"><label class="form-label">Heart Rate</label><div class="input-group"><input type="number" name="heart_rate" class="form-control"><span class="input-group-text">bpm</span></div><div class="vital-range">Normal: 60-140 bpm (dogs)</div></div>
+<div class="col-md-3"><label class="form-label">Respiratory Rate</label><div class="input-group"><input type="number" name="respiratory_rate" class="form-control"><span class="input-group-text">br/min</span></div></div>
+<div class="col-md-4"><label class="form-label">Body Condition Score</label>
+<select name="bcs_score" class="form-select">
+<option value="">Select</option>
+{% for i in range(1,10) %}<option value="{{ i }}">{{ i }}{% if i==1 %} - Emaciated{% elif i==5 %} - Ideal{% elif i==9 %} - Obese{% endif %}</option>{% endfor %}
+</select></div>
+<div class="col-md-4"><label class="form-label">Mucous Membranes</label>
+<select name="mucous_membranes" class="form-select">
+<option value="">Select</option>
+<option>Pink/Moist (Normal)</option><option>Pale</option><option>White</option><option>Yellow/Jaundiced</option><option>Blue/Cyanotic</option><option>Brick Red</option><option>Tacky</option>
+</select></div>
+<div class="col-md-4"><label class="form-label">Capillary Refill Time</label>
+<select name="capillary_refill_time" class="form-select">
+<option value="">Select</option>
+<option>&lt;2 seconds (Normal)</option><option>2-3 seconds</option><option>&gt;3 seconds</option>
+</select></div>
+<div class="col-12"><label class="form-label">Physical Examination</label><textarea name="physical_examination" class="form-control" rows="4" placeholder="Document findings from head to tail examination. Include: eyes, ears, nose, mouth, lymph nodes, thorax, abdomen, musculoskeletal, skin, neurological"></textarea></div>
+</div>
+</div>
+<div class="soap-section">
+<span class="soap-label soap-a">A - ASSESSMENT</span>
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">Diagnosis *</label><input type="text" name="diagnosis" class="form-control" required placeholder="Primary diagnosis"></div>
+<div class="col-md-6"><label class="form-label">Prognosis</label>
+<select name="prognosis" class="form-select">
+<option value="">Select</option>
+<option>Excellent</option><option>Good</option><option>Fair</option><option>Guarded</option><option>Poor</option><option>Grave</option>
+</select></div>
+<div class="col-12"><label class="form-label">Differential Diagnoses</label><textarea name="differential_diagnoses" class="form-control" rows="2" placeholder="Other possible diagnoses to consider"></textarea></div>
+</div>
+</div>
+<div class="soap-section">
+<span class="soap-label soap-p">P - PLAN</span>
+<div class="row g-3">
+<div class="col-12"><label class="form-label">Treatment Plan *</label><textarea name="treatment_plan" class="form-control" rows="3" required placeholder="What treatments are being administered today?"></textarea></div>
+<div class="col-12"><label class="form-label">Prescription</label><textarea name="prescription" class="form-control" rows="3" placeholder="Medications to send home. e.g. Amoxicillin 250mg 1 tablet twice daily for 7 days"></textarea></div>
+<div class="col-12"><label class="form-label">Follow Up Instructions</label><textarea name="follow_up_instructions" class="form-control" rows="2" placeholder="What should the owner watch for at home? When to return?"></textarea></div>
+<div class="col-md-4"><div class="form-check mt-3"><input type="checkbox" name="follow_up_required" class="form-check-input" id="followUp" onchange="document.getElementById('followUpDate').style.display=this.checked?'block':'none'"><label class="form-check-label" for="followUp">Follow Up Required</label></div></div>
+<div class="col-md-4" id="followUpDate" style="display:none"><label class="form-label">Follow Up Date</label><input type="date" name="follow_up_date" class="form-control"></div>
+<div class="col-md-6"><label class="form-label">Dietary Recommendations</label><textarea name="dietary_recommendations" class="form-control" rows="2"></textarea></div>
+<div class="col-md-6"><label class="form-label">Activity Restrictions</label><textarea name="activity_restrictions" class="form-control" rows="2"></textarea></div>
+</div>
+</div>
+<div class="text-center">
+<a href="{{ url_for('furrvet.patient_detail', pet_id=pet[0]) }}" class="btn btn-secondary me-2">Cancel</a>
+<button type="submit" class="btn-clinical">Save Medical Record</button>
+</div>
+</form>
+</div>
+<script>
+document.getElementById('tempInput').addEventListener('input',function(){
+  var v=parseFloat(this.value);
+  this.style.borderColor=(v&&(v<37.5||v>39.2))?'#dc3545':'';
+});
+</script>
+</body>
+</html>

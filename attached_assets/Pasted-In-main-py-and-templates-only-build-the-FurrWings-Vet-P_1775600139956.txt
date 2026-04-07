@@ -1,0 +1,575 @@
+In main.py and templates only,
+build the FurrWings Vet Portal
+as a completely separate portal
+from FurrVet ERP.
+Do not modify furrvet.py.
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+OVERVIEW:
+FurrWings Vet Portal is for vets
+who are registered as FurrWings
+approved veterinarians.
+These are vets who can issue
+internationally recognised health
+certificates for pet travel.
+This is separate from FurrVet ERP
+which is for daily clinical practice.
+
+A vet can be both a FurrVet user
+AND a FurrWings approved vet.
+Or they can be only one.
+Different registration process.
+Different portal.
+Different session keys.
+
+URL prefix: /furrwings/vet
+Session key: furrwings_vet_id
+
+PART 1 — Database tables in main.py:
+
+Add to init_erp_db():
+
+CREATE TABLE IF NOT EXISTS
+furrwings_vets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    license_number TEXT NOT NULL,
+    license_issuing_body TEXT,
+    specialization TEXT,
+    phone TEXT NOT NULL,
+    clinic_name TEXT NOT NULL,
+    clinic_address TEXT,
+    city TEXT NOT NULL,
+    state TEXT,
+    pincode TEXT,
+    furrvet_account_email TEXT,
+    approval_status TEXT DEFAULT 'pending'
+        CHECK(approval_status IN
+        ('pending','approved',
+        'suspended','rejected')),
+    approved_date TEXT,
+    approved_by TEXT,
+    certificate_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE IF NOT EXISTS
+health_certificates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    certificate_number TEXT UNIQUE NOT NULL,
+    vet_id INTEGER NOT NULL,
+    pet_name TEXT NOT NULL,
+    pet_species TEXT NOT NULL,
+    pet_breed TEXT,
+    pet_dob TEXT,
+    pet_microchip TEXT,
+    owner_name TEXT NOT NULL,
+    owner_email TEXT,
+    owner_phone TEXT,
+    destination_country TEXT NOT NULL,
+    purpose TEXT DEFAULT 'travel'
+        CHECK(purpose IN
+        ('travel','export','import',
+        'competition','breeding')),
+    issue_date TEXT NOT NULL,
+    expiry_date TEXT NOT NULL,
+    examination_date TEXT NOT NULL,
+    examination_findings TEXT,
+    vaccinations_verified TEXT,
+    parasites_treated BOOLEAN DEFAULT 0,
+    parasite_treatment_date TEXT,
+    parasite_product TEXT,
+    fit_for_travel BOOLEAN DEFAULT 1,
+    special_conditions TEXT,
+    vet_signature TEXT,
+    certificate_status TEXT
+        DEFAULT 'issued'
+        CHECK(certificate_status IN
+        ('draft','issued','revoked')),
+    linked_pawsport_pet_index INTEGER,
+    linked_user_email TEXT,
+    verification_hash TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vet_id)
+        REFERENCES furrwings_vets(id)
+)
+
+CREATE TABLE IF NOT EXISTS
+travel_vaccinations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    certificate_id INTEGER NOT NULL,
+    vaccine_name TEXT NOT NULL,
+    vaccination_date TEXT NOT NULL,
+    batch_number TEXT,
+    manufacturer TEXT,
+    next_due_date TEXT,
+    verified_by_vet BOOLEAN DEFAULT 1,
+    FOREIGN KEY (certificate_id)
+        REFERENCES health_certificates(id)
+)
+
+CREATE TABLE IF NOT EXISTS
+furrwings_vet_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vet_id INTEGER NOT NULL,
+    activity_type TEXT NOT NULL,
+    description TEXT,
+    certificate_id INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vet_id)
+        REFERENCES furrwings_vets(id)
+)
+
+PART 2 — Authentication routes:
+
+Add route /furrwings/vet/register
+GET and POST:
+GET: render furrwings_vet_register.html
+Show registration form:
+  Full name text required
+  Email text required
+  Password text required
+  Confirm password text required
+  Veterinary license number required
+  License issuing body dropdown:
+    Kerala Veterinary Council,
+    Tamil Nadu Veterinary Council,
+    Karnataka Veterinary Council,
+    Maharashtra Veterinary Council,
+    Veterinary Council of India,
+    Other State Council
+  If Other: text input
+  Specialization dropdown:
+    Small Animals, Large Animals,
+    Exotic Animals, Mixed Practice,
+    Wildlife, Aquatic, Other
+  Phone text required
+  Clinic name text required
+  Clinic address textarea
+  City text required
+  State dropdown: all Indian states
+  Pincode text
+  FurrVet account email optional:
+    "If you use FurrVet ERP enter
+    your FurrVet email to link
+    your accounts"
+  GDPR consent checkbox required
+  Submit application button
+
+POST:
+  Validate all required fields
+  Hash password with werkzeug
+  Insert into furrwings_vets
+  Set approval_status = pending
+  Send notification email to admin:
+    "New FurrWings vet application
+    from [name] at [clinic]"
+  Flash: "Application submitted.
+    Our team will review within
+    2-3 business days."
+  Redirect to /furrwings/vet/pending
+
+Add route /furrwings/vet/pending GET:
+Show pending approval page:
+  "Your application is under review"
+  "We verify all veterinary licenses
+  before granting access"
+  "You will receive an email when
+  your application is approved"
+  "Expected review time: 2-3 days"
+  Contact support link
+Render furrwings_vet_pending.html
+
+Add route /furrwings/vet/login
+GET and POST:
+GET: render furrwings_vet_login.html
+Separate login from FurrVet
+Different design — aviation/travel theme
+Blue and white not green and white
+
+POST:
+  Check furrwings_vets table
+  Check password hash
+  Check approval_status = approved
+  If pending: flash "Application
+    still under review"
+  If rejected: flash "Application
+    was not approved. Contact support"
+  If suspended: flash "Account
+    suspended. Contact support"
+  If approved: set session:
+    furrwings_vet_id = vet.id
+    furrwings_vet_name = vet.name
+    furrwings_vet_email = vet.email
+    furrwings_clinic = vet.clinic_name
+  Redirect to /furrwings/vet/dashboard
+
+Add route /furrwings/vet/logout GET:
+Clear only furrwings vet session keys:
+  furrwings_vet_id
+  furrwings_vet_name
+  furrwings_vet_email
+  furrwings_clinic
+Redirect to /furrwings/vet/login
+
+Add furrwings_vet_required decorator:
+def furrwings_vet_required(f):
+    Check furrwings_vet_id in session
+    If not redirect to
+    /furrwings/vet/login
+
+PART 3 — Dashboard route:
+
+Add route /furrwings/vet/dashboard GET:
+Requires furrwings_vet_required
+
+Pull stats:
+  Total certificates issued
+  Certificates this month
+  Pending/draft certificates
+  Recent activity log
+
+Pull recent certificates:
+  Last 10 health certificates
+  by this vet
+
+Render furrwings_vet_dashboard.html
+
+PART 4 — Health Certificate routes:
+
+Add route /furrwings/vet/certificate/new
+GET and POST:
+GET: render furrwings_vet_new_cert.html
+
+This is the most important form.
+Styled like an official form.
+White with blue borders.
+Form sections:
+
+Section 1 — Search for Pet:
+  Search by owner email or phone
+  to find if pet parent has
+  FurrButler account
+  If found: pre-fill pet details
+    and show "Linked to FurrButler
+    account" badge
+  If not found: manual entry
+
+Section 2 — Pet Details:
+  pet_name text required
+  pet_species dropdown required
+  pet_breed text
+  pet_date_of_birth date
+  pet_microchip text required
+    (microchip mandatory for travel)
+  pet_color text
+  pet_weight number with kg
+
+Section 3 — Owner Details:
+  owner_name text required
+  owner_email text
+  owner_phone text required
+  owner_address textarea
+  owner_passport_number text
+    (for international travel)
+
+Section 4 — Travel Details:
+  destination_country text required
+  purpose dropdown:
+    Leisure Travel, Permanent Export,
+    Temporary Export, Competition,
+    Breeding, Other
+  travel_date date
+  return_date date optional
+
+Section 5 — Clinical Examination:
+  examination_date date default today
+  examination_findings textarea required
+    placeholder: Describe findings
+    from clinical examination.
+    Animal is healthy and fit
+    for travel.
+
+Section 6 — Vaccinations Verified:
+  Dynamic table of vaccinations
+  For each vaccination:
+    vaccine_name dropdown
+    vaccination_date date
+    batch_number text
+    manufacturer text
+    next_due_date date
+    Verified by me checkbox
+  Add Vaccination button
+
+Section 7 — Parasite Treatment:
+  parasites_treated checkbox
+  If checked show:
+    treatment_date date
+    product_name text
+    dose text
+
+Section 8 — Certification:
+  fit_for_travel toggle default yes
+  If no: explain why textarea
+  special_conditions textarea optional
+
+  Declaration:
+  "I [vet name], a licensed veterinarian
+  registered with [license_body],
+  license number [license_no],
+  hereby certify that I have examined
+  the above described animal and
+  to the best of my knowledge
+  it is in good health and fit
+  for the purpose described above."
+
+  Vet name (auto-filled from session)
+  Vet license (auto-filled)
+  Date (auto-filled today)
+
+  Save as Draft button
+  Issue Certificate button
+
+POST for Issue Certificate:
+  Generate certificate_number:
+    FW-VET-{vet_id}-{year}-{sequence}
+  Generate verification_hash:
+    SHA256 of certificate data
+  Set expiry_date = issue_date + 10 days
+    (health certs valid 10 days for travel)
+  Insert into health_certificates
+  Insert all vaccinations into
+    travel_vaccinations table
+  If linked_user_email exists:
+    Update pawsport_documents in erp.db:
+      INSERT OR UPDATE document where
+      document_type = Health Certificate
+      pet_index = linked_pawsport_pet_index
+      verified = 1
+      verified_by = furrwings_vet
+      issued_by = clinic_name
+      file_url = /furrwings/vet/
+        certificate/<id>/view
+  Increment vet certificate_count
+  Log to furrwings_vet_activity
+  Flash: "Certificate issued successfully"
+  Redirect to certificate view
+
+Add route
+/furrwings/vet/certificate/<int:cert_id>
+GET: render furrwings_vet_cert_view.html
+Show formatted official certificate
+Print button → window.print()
+Download PDF button → print dialog
+Revoke button (with confirmation)
+
+Add route
+/furrwings/vet/certificate/<int:cert_id>/
+print
+GET: render furrwings_vet_cert_print.html
+Printable version:
+  Official letterhead
+  FurrWings logo and text
+  Certificate number prominent
+  QR code: /verify/cert/<hash>
+  All pet and travel details
+  Vaccination table
+  Vet signature block
+  Official stamp placeholder
+  "This certificate is valid for
+   10 days from date of issue"
+  Print CSS: removes all navigation
+
+Add route
+/furrwings/vet/certificates GET:
+List all certificates by this vet
+Filter: issued, draft, revoked,
+  expiring soon, expired
+Search by pet name or owner
+Render furrwings_vet_cert_list.html
+
+PART 5 — Certificate verification:
+
+Add route /verify/cert/<hash> GET:
+Public route — no login required
+Look up health_certificates
+by verification_hash
+If found and not revoked:
+  Show certificate details
+  Green verified badge
+  "This is an authentic FurrWings
+   health certificate issued by
+   [vet name] at [clinic]"
+  Show issue date and expiry
+  Show pet and owner details
+If not found:
+  Red warning
+  "Certificate not found.
+   This may be fraudulent."
+If revoked:
+  Orange warning
+  "This certificate has been revoked"
+
+Render verify_certificate.html
+Public facing clean white design
+No login required
+
+PART 6 — FurrButler Pet Passport bridge:
+
+Add route
+/furrwings/vet/search-pet POST:
+Body: email or phone
+Search erp.db for pet parent account
+Return JSON with pet list:
+{
+  found: true/false,
+  pets: [
+    {
+      index: 0,
+      name: "Luna",
+      species: "Dog",
+      breed: "Shih Tzu"
+    }
+  ],
+  user_email: email
+}
+
+This allows vet to link certificate
+to FurrButler pet passport
+
+Add route /furrwings/vet/sync-furrvet GET:
+If vet has furrvet_account_email:
+  Pull vaccinations from furrvet.db
+  for pets matching this vet
+  Show list: "Import from FurrVet ERP"
+  For each vaccination:
+    Import button → creates
+    travel_vaccination record
+  This bridges FurrVet and FurrWings
+
+PART 7 — Admin approval routes:
+
+Add route /admin/furrwings/vets GET:
+Admin only
+Show all furrwings_vets applications
+Filter: pending, approved, rejected
+
+For each application show:
+  Name, clinic, city
+  License number and body
+  Application date
+  Status badge
+
+Action buttons:
+  Approve → /admin/furrwings/vets/<id>/approve
+  Reject → /admin/furrwings/vets/<id>/reject
+  Suspend → /admin/furrwings/vets/<id>/suspend
+
+Add route
+/admin/furrwings/vets/<int:vid>/approve POST:
+Set approval_status = approved
+Set approved_date = today
+Set approved_by = admin session
+Send approval email to vet
+Flash success
+
+Add route
+/admin/furrwings/vets/<int:vid>/reject POST:
+Body: rejection_reason
+Set approval_status = rejected
+Send rejection email with reason
+Flash success
+
+PART 8 — Templates to create:
+
+All in templates/ folder (not furrvet):
+These are main app templates.
+
+furrwings_vet_register.html:
+Aviation/travel themed design
+Blue and white color scheme
+Professional registration form
+FurrWings logo at top
+"Become a FurrWings Approved Vet"
+
+furrwings_vet_login.html:
+Same aviation theme
+Clean login form
+"FurrWings Veterinary Portal"
+Link to register
+Link to FurrVet ERP login
+
+furrwings_vet_pending.html:
+Status page showing pending review
+Timeline of approval steps
+Contact information
+
+furrwings_vet_dashboard.html:
+Aviation themed dashboard
+Stats: certificates issued,
+  this month, pending
+Recent certificates table
+Quick actions:
+  + New Certificate
+  My Certificates
+  Activity Log
+Link to sync with FurrVet
+
+furrwings_vet_new_cert.html:
+Official form design
+White with blue borders
+Step indicator at top:
+  1 Pet Details
+  2 Owner Details
+  3 Travel Details
+  4 Clinical Examination
+  5 Vaccinations
+  6 Issue Certificate
+Each section clearly divided
+Official looking form fields
+
+furrwings_vet_cert_view.html:
+Certificate preview
+Official format
+Print and download buttons
+QR code display
+Revoke option
+
+furrwings_vet_cert_print.html:
+Print only template
+No navigation
+Official letterhead
+Certificate in formal format
+QR code for verification
+
+furrwings_vet_cert_list.html:
+List of all certificates
+Filter and search
+Status badges
+Quick actions per row
+
+verify_certificate.html:
+Public verification page
+Clean white design
+Large verified or rejected banner
+Certificate details if valid
+No login required
+
+admin_furrwings_vets.html:
+Admin panel for vet applications
+Approval workflow
+Do not modify any existing templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.

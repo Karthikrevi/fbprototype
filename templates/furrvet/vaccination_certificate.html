@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaccination Certificate - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.cert-page{background:white;max-width:700px;margin:2rem auto;padding:2.5rem;border:3px solid #1a3a5c;border-radius:1rem;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+.cert-header{text-align:center;border-bottom:2px solid #00897b;padding-bottom:1rem;margin-bottom:1.5rem}
+.cert-header h2{color:#1a3a5c;font-weight:800}
+.cert-header p{color:#6b7280;margin:0}
+.cert-detail{margin-bottom:0.5rem}
+.cert-detail strong{color:#1a3a5c;min-width:160px;display:inline-block}
+.cert-footer{border-top:2px solid #1a3a5c;padding-top:1rem;margin-top:2rem;text-align:center}
+.signature-line{border-top:1px solid #333;width:200px;margin:2rem auto 0.5rem;text-align:center}
+@media print{.no-print{display:none!important}body{background:white}.cert-page{box-shadow:none;margin:0;border:3px solid #1a3a5c}}
+</style>
+</head>
+<body>
+<div class="text-center no-print py-3">
+<button onclick="window.print()" class="btn btn-primary me-2">Print Certificate</button>
+<a href="{{ url_for('furrvet.patient_detail', pet_id=vacc[1]) }}" class="btn btn-secondary">Back to Patient</a>
+</div>
+<div class="cert-page">
+<div class="cert-header">
+<h2>{{ clinic_name }}</h2>
+<h4 style="color:#00897b">Vaccination Certificate</h4>
+</div>
+<div class="row">
+<div class="col-6">
+<div class="cert-detail"><strong>Pet Name:</strong> {{ vacc[-6] }}</div>
+<div class="cert-detail"><strong>Species:</strong> {{ vacc[-5] }}</div>
+<div class="cert-detail"><strong>Breed:</strong> {{ vacc[-4] or 'N/A' }}</div>
+<div class="cert-detail"><strong>Owner:</strong> {{ vacc[-3] }}</div>
+</div>
+<div class="col-6">
+<div class="cert-detail"><strong>Vaccine:</strong> {{ vacc[3] }}</div>
+<div class="cert-detail"><strong>Batch No:</strong> {{ vacc[5] or 'N/A' }}</div>
+<div class="cert-detail"><strong>Manufacturer:</strong> {{ vacc[6] or 'N/A' }}</div>
+<div class="cert-detail"><strong>Type:</strong> {{ vacc[4] or 'N/A' }}</div>
+</div>
+</div>
+<div class="row mt-3">
+<div class="col-6"><div class="cert-detail"><strong>Vaccination Date:</strong> {{ vacc[7] }}</div></div>
+<div class="col-6"><div class="cert-detail"><strong>Next Due Date:</strong> {{ vacc[8] or 'N/A' }}</div></div>
+<div class="col-6"><div class="cert-detail"><strong>Injection Site:</strong> {{ vacc[9] or 'N/A' }}</div></div>
+</div>
+<div class="cert-footer">
+<div class="signature-line"></div>
+<div><strong>{{ vacc[-2] }}</strong></div>
+<div style="color:#6b7280">License: {{ vacc[-1] }}</div>
+<div style="color:#6b7280">{{ clinic_name }}</div>
+<div class="mt-2" style="font-size:0.8rem;color:#9ca3af">This certificate is issued for veterinary purposes only</div>
+</div>
+</div>
+</body>
+</html>

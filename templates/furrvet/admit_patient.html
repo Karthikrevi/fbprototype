@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admit Patient - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.btn-clinical{background:#00897b;color:white;border:none;border-radius:0.5rem;padding:0.75rem 2rem}
+.btn-clinical:hover{background:#00796b;color:white}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<h2>Admit Patient for Hospitalization</h2>
+<a href="{{ url_for('furrvet.hospitalization') }}" class="btn btn-outline-light btn-sm">Back</a>
+</div>
+</div>
+<div class="container py-4">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<form method="POST">
+<div class="section-card">
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">Patient *</label>
+<select name="pet_id" class="form-select" required>
+<option value="">Select Patient</option>
+{% for p in pets %}<option value="{{ p[0] }}">{{ p[1] }} ({{ p[2] }})</option>{% endfor %}
+</select></div>
+<div class="col-md-6"><label class="form-label">Admission Date</label><input type="date" name="admission_date" class="form-control"></div>
+<div class="col-12"><label class="form-label">Reason for Admission *</label><textarea name="reason" class="form-control" rows="3" required></textarea></div>
+<div class="col-md-4"><label class="form-label">Bed Number</label><input type="text" name="bed_number" class="form-control"></div>
+<div class="col-md-4"><label class="form-label">Ward Type</label>
+<select name="ward_type" class="form-select"><option>General</option><option>ICU</option><option>Isolation</option><option>Post-Surgery</option><option>Maternity</option></select></div>
+<div class="col-md-6"><label class="form-label">Feeding Instructions</label><textarea name="feeding_instructions" class="form-control" rows="2"></textarea></div>
+<div class="col-md-6"><label class="form-label">Medication Schedule</label><textarea name="medication_schedule" class="form-control" rows="2"></textarea></div>
+<div class="col-12"><label class="form-label">Initial Notes</label><textarea name="initial_notes" class="form-control" rows="3"></textarea></div>
+</div>
+</div>
+<div class="text-center"><button type="submit" class="btn-clinical">Admit Patient</button></div>
+</form>
+</div>
+<script>var today=new Date().toISOString().split('T')[0];document.querySelector('[name=admission_date]').value=today;</script>
+</body>
+</html>

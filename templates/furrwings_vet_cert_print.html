@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Print Certificate - {{ cert[1] }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Times New Roman',serif;font-size:12pt;color:#000;background:white}
+.cert-container{max-width:700px;margin:0 auto;padding:30px;border:3px solid #1a3a6c}
+.letterhead{text-align:center;border-bottom:3px double #1a3a6c;padding-bottom:15px;margin-bottom:20px}
+.letterhead h1{font-size:28pt;color:#1a3a6c;font-weight:800;letter-spacing:2px}
+.letterhead h2{font-size:14pt;color:#2c5aa0;margin-top:5px}
+.letterhead .subtitle{font-size:10pt;color:#666}
+.cert-number{text-align:center;font-size:14pt;font-weight:bold;color:#1a3a6c;margin:10px 0;padding:8px;border:1px solid #1a3a6c;display:inline-block}
+.cert-number-wrap{text-align:center;margin-bottom:15px}
+.section{margin-bottom:15px}
+.section h3{font-size:12pt;color:#1a3a6c;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:8px}
+.field{margin-bottom:4px;font-size:11pt}
+.field strong{display:inline-block;min-width:140px}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10pt}
+table th{background:#f0f4f8;border:1px solid #ccc;padding:5px 8px;text-align:left;font-size:9pt}
+table td{border:1px solid #ccc;padding:5px 8px}
+.declaration{border:2px solid #1a3a6c;padding:15px;margin:20px 0;font-size:10pt;line-height:1.6}
+.signature-block{margin-top:30px;display:flex;justify-content:space-between}
+.sig-line{text-align:center;width:200px}
+.sig-line .line{border-top:1px solid #000;margin-bottom:5px;height:40px}
+.sig-line .label{font-size:9pt;color:#666}
+.validity{text-align:center;margin-top:15px;padding:8px;border:1px solid #dc3545;color:#dc3545;font-weight:bold;font-size:10pt}
+.qr-section{text-align:center;margin-top:15px;font-size:9pt;color:#666}
+@media print{body{margin:0}.cert-container{border:3px solid #1a3a6c}@page{margin:15mm}}
+@media screen{.no-screen{display:none}.print-btn{text-align:center;padding:15px;background:#f0f4f8}.print-btn button{background:#2c5aa0;color:white;border:none;padding:10px 30px;border-radius:5px;font-size:14px;cursor:pointer}}
+@media print{.print-btn{display:none}}
+</style>
+</head>
+<body>
+<div class="print-btn"><button onclick="window.print()">Print Certificate</button> <a href="/furrwings/vet/certificate/{{ cert[0] }}" style="margin-left:10px">Back</a></div>
+<div class="cert-container">
+<div class="letterhead">
+<h1>FurrWings</h1>
+<h2>International Pet Travel Health Certificate</h2>
+<div class="subtitle">Issued by FurrWings Approved Veterinarian</div>
+</div>
+<div class="cert-number-wrap"><div class="cert-number">{{ cert[1] }}</div></div>
+
+<div class="section">
+<h3>I. Animal Description</h3>
+<div class="field"><strong>Name:</strong> {{ cert[3] }}</div>
+<div class="field"><strong>Species:</strong> {{ cert[4] }}</div>
+<div class="field"><strong>Breed:</strong> {{ cert[5] or 'N/A' }}</div>
+<div class="field"><strong>Date of Birth:</strong> {{ cert[6] or 'N/A' }}</div>
+<div class="field"><strong>Microchip Number:</strong> {{ cert[7] or 'N/A' }}</div>
+</div>
+
+<div class="section">
+<h3>II. Owner Information</h3>
+<div class="field"><strong>Name:</strong> {{ cert[8] }}</div>
+<div class="field"><strong>Phone:</strong> {{ cert[10] or 'N/A' }}</div>
+<div class="field"><strong>Email:</strong> {{ cert[9] or 'N/A' }}</div>
+</div>
+
+<div class="section">
+<h3>III. Travel Details</h3>
+<div class="field"><strong>Destination:</strong> {{ cert[11] }}</div>
+<div class="field"><strong>Purpose:</strong> {{ cert[12]|title }}</div>
+<div class="field"><strong>Date of Issue:</strong> {{ cert[13] }}</div>
+<div class="field"><strong>Valid Until:</strong> {{ cert[14] }}</div>
+</div>
+
+<div class="section">
+<h3>IV. Clinical Examination</h3>
+<div class="field"><strong>Examination Date:</strong> {{ cert[15] }}</div>
+<div class="field"><strong>Findings:</strong> {{ cert[16] or 'N/A' }}</div>
+<div class="field"><strong>Fit for Travel:</strong> {{ 'Yes' if cert[22] else 'No' }}</div>
+{% if cert[23] %}<div class="field"><strong>Special Conditions:</strong> {{ cert[23] }}</div>{% endif %}
+</div>
+
+{% if vaccinations %}
+<div class="section">
+<h3>V. Vaccinations</h3>
+<table>
+<thead><tr><th>Vaccine</th><th>Date</th><th>Batch No.</th><th>Manufacturer</th><th>Next Due</th></tr></thead>
+<tbody>
+{% for v in vaccinations %}
+<tr><td>{{ v[2] }}</td><td>{{ v[3] }}</td><td>{{ v[4] or '' }}</td><td>{{ v[5] or '' }}</td><td>{{ v[6] or '' }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+
+{% if cert[19] %}
+<div class="section">
+<h3>VI. Parasite Treatment</h3>
+<div class="field"><strong>Treatment Date:</strong> {{ cert[20] or 'N/A' }}</div>
+<div class="field"><strong>Product Used:</strong> {{ cert[21] or 'N/A' }}</div>
+</div>
+{% endif %}
+
+<div class="declaration">
+<strong>DECLARATION</strong><br>
+I, <strong>{{ cert[-5] }}</strong>, a licensed veterinarian registered with {{ cert[-4] or 'the Veterinary Council' }}, hereby certify that I have examined the above described animal on {{ cert[15] }} and to the best of my knowledge it is in good health and fit for the purpose described above.
+</div>
+
+<div class="signature-block">
+<div class="sig-line">
+<div class="line"></div>
+<div class="label">Veterinarian Signature</div>
+<div style="font-weight:bold">Dr. {{ cert[-5] }}</div>
+<div class="label">License: {{ cert[-4] }}</div>
+</div>
+<div class="sig-line">
+<div class="line"></div>
+<div class="label">Official Stamp</div>
+<div>{{ cert[-3] }}</div>
+<div class="label">{{ cert[-2] or '' }}, {{ cert[-1] or '' }}</div>
+</div>
+</div>
+
+<div class="validity">This certificate is valid for 10 days from date of issue</div>
+
+<div class="qr-section">
+{% if cert[28] %}
+Verify: /verify/cert/{{ cert[28] }}
+{% endif %}
+</div>
+</div>
+</body>
+</html>

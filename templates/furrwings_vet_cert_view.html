@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificate - FurrWings</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+body{background:#f0f4f8;font-family:'Segoe UI',sans-serif}
+.fw-header{background:linear-gradient(135deg,#0a1628,#1a3a6c);color:white;padding:1rem 0}
+.cert-page{background:white;max-width:800px;margin:2rem auto;border:3px solid #1a3a6c;border-radius:1rem;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+.cert-header-bar{background:#1a3a6c;color:white;padding:1.5rem 2rem;text-align:center}
+.cert-header-bar h2{font-weight:800;margin:0}
+.cert-body{padding:2rem}
+.cert-number{font-size:1.2rem;font-weight:700;color:#2c5aa0;text-align:center;margin-bottom:1.5rem}
+.detail-row{margin-bottom:0.4rem}
+.detail-row strong{color:#1a3a6c;min-width:150px;display:inline-block}
+.section-label{color:#1a3a6c;font-weight:700;font-size:1rem;border-bottom:2px solid #2c5aa0;padding-bottom:0.3rem;margin:1.5rem 0 0.75rem}
+.status-issued{color:#28a745;font-weight:700}.status-draft{color:#6c757d;font-weight:700}.status-revoked{color:#dc3545;font-weight:700}
+.vacc-table th{background:#f0f4f8;color:#1a3a6c;font-size:0.85rem}
+@media print{.no-print{display:none!important}body{background:white}.cert-page{box-shadow:none;margin:0}}
+</style>
+</head>
+<body>
+<div class="fw-header no-print">
+<div class="container d-flex justify-content-between align-items-center">
+<h4 class="mb-0"><i class="fas fa-plane-departure"></i> FurrWings Certificate</h4>
+<div>
+<a href="/furrwings/vet/certificate/{{ cert[0] }}/print" class="btn btn-outline-light btn-sm me-1"><i class="fas fa-print"></i> Print</a>
+<button onclick="window.print()" class="btn btn-outline-light btn-sm me-1">Quick Print</button>
+{% if cert[25] != 'revoked' %}
+<form method="POST" action="/furrwings/vet/certificate/{{ cert[0] }}/revoke" style="display:inline" onsubmit="return confirm('Are you sure you want to revoke this certificate?')">
+<button class="btn btn-outline-danger btn-sm">Revoke</button>
+</form>
+{% endif %}
+<a href="/furrwings/vet/certificates" class="btn btn-outline-light btn-sm ms-1">Back</a>
+</div>
+</div>
+</div>
+<div class="cert-page">
+<div class="cert-header-bar">
+<h2><i class="fas fa-plane-departure"></i> FurrWings</h2>
+<div>International Pet Travel Health Certificate</div>
+</div>
+<div class="cert-body">
+<div class="cert-number">{{ cert[1] }}</div>
+<div class="text-center mb-3">
+<span class="status-{{ cert[25] }}" style="font-size:1.1rem">{{ cert[25]|upper }}</span>
+{% if cert[25] == 'issued' and cert[14] >= today_str|default('') %}
+<span class="badge bg-success ms-2">VALID</span>
+{% elif cert[25] == 'issued' %}
+<span class="badge bg-warning ms-2">EXPIRED</span>
+{% endif %}
+</div>
+
+<div class="row">
+<div class="col-md-6">
+<div class="section-label">Pet Details</div>
+<div class="detail-row"><strong>Name:</strong> {{ cert[3] }}</div>
+<div class="detail-row"><strong>Species:</strong> {{ cert[4] }}</div>
+<div class="detail-row"><strong>Breed:</strong> {{ cert[5] or 'N/A' }}</div>
+<div class="detail-row"><strong>DOB:</strong> {{ cert[6] or 'N/A' }}</div>
+<div class="detail-row"><strong>Microchip:</strong> {{ cert[7] or 'N/A' }}</div>
+</div>
+<div class="col-md-6">
+<div class="section-label">Owner Details</div>
+<div class="detail-row"><strong>Name:</strong> {{ cert[8] }}</div>
+<div class="detail-row"><strong>Email:</strong> {{ cert[9] or 'N/A' }}</div>
+<div class="detail-row"><strong>Phone:</strong> {{ cert[10] or 'N/A' }}</div>
+</div>
+</div>
+
+<div class="section-label">Travel Information</div>
+<div class="detail-row"><strong>Destination:</strong> {{ cert[11] }}</div>
+<div class="detail-row"><strong>Purpose:</strong> {{ cert[12]|title }}</div>
+<div class="detail-row"><strong>Issue Date:</strong> {{ cert[13] }}</div>
+<div class="detail-row"><strong>Expiry Date:</strong> {{ cert[14] }}</div>
+
+<div class="section-label">Clinical Examination</div>
+<div class="detail-row"><strong>Exam Date:</strong> {{ cert[15] }}</div>
+<div class="detail-row"><strong>Findings:</strong> {{ cert[16] or 'N/A' }}</div>
+<div class="detail-row"><strong>Fit for Travel:</strong> {{ 'Yes' if cert[22] else 'No' }}</div>
+{% if cert[23] %}<div class="detail-row"><strong>Special Conditions:</strong> {{ cert[23] }}</div>{% endif %}
+
+{% if cert[19] %}
+<div class="section-label">Parasite Treatment</div>
+<div class="detail-row"><strong>Treatment Date:</strong> {{ cert[20] or 'N/A' }}</div>
+<div class="detail-row"><strong>Product:</strong> {{ cert[21] or 'N/A' }}</div>
+{% endif %}
+
+{% if vaccinations %}
+<div class="section-label">Vaccinations</div>
+<table class="table table-sm vacc-table">
+<thead><tr><th>Vaccine</th><th>Date</th><th>Batch</th><th>Manufacturer</th><th>Next Due</th></tr></thead>
+<tbody>
+{% for v in vaccinations %}
+<tr><td>{{ v[2] }}</td><td>{{ v[3] }}</td><td>{{ v[4] or '' }}</td><td>{{ v[5] or '' }}</td><td>{{ v[6] or '' }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+
+<div class="section-label">Issuing Veterinarian</div>
+<div class="detail-row"><strong>Name:</strong> Dr. {{ cert[-5] }}</div>
+<div class="detail-row"><strong>License:</strong> {{ cert[-4] }}</div>
+<div class="detail-row"><strong>Clinic:</strong> {{ cert[-3] }}</div>
+<div class="detail-row"><strong>Location:</strong> {{ cert[-2] or '' }}, {{ cert[-1] or '' }}</div>
+
+{% if cert[28] %}
+<div class="text-center mt-3">
+<small class="text-muted">Verification: <a href="/verify/cert/{{ cert[28] }}">/verify/cert/{{ cert[28] }}</a></small>
+</div>
+{% endif %}
+</div>
+</div>
+</body>
+</html>

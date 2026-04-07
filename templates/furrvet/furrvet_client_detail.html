@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Detail - FurrVet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
+.clinical-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
+.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.section-title{color:#1a3a5c;font-weight:700;border-bottom:2px solid #00897b;padding-bottom:0.5rem;margin-bottom:1rem}
+.table th{background:#f1f5f9;color:#1a3a5c}
+</style>
+</head>
+<body>
+<div class="clinical-header">
+<div class="container d-flex justify-content-between align-items-center">
+<div><h2>{{ owner[1] }}</h2><div>{{ owner[3] }} {% if owner[2] %}| {{ owner[2] }}{% endif %}</div></div>
+<a href="{{ url_for('furrvet.clients') }}" class="btn btn-outline-light btn-sm">Back</a>
+</div>
+</div>
+<div class="container py-4">
+<div class="row">
+<div class="col-md-4">
+<div class="section-card">
+<h5 class="section-title">Contact Info</h5>
+<p><strong>Phone:</strong> {{ owner[3] }}</p>
+<p><strong>Email:</strong> {{ owner[2] or 'N/A' }}</p>
+<p><strong>Address:</strong> {{ owner[4] or 'N/A' }}</p>
+<p><strong>City:</strong> {{ owner[5] or 'N/A' }}</p>
+<p><strong>Emergency:</strong> {{ owner[6] or 'N/A' }}</p>
+</div>
+<div class="section-card">
+<h5 class="section-title">Pets</h5>
+{% for p in pets %}
+<div class="border rounded p-2 mb-2">
+<a href="{{ url_for('furrvet.patient_detail', pet_id=p[0]) }}"><strong>{{ p[1] }}</strong></a> ({{ p[2] }})
+<br><small class="text-muted">Last visit: {{ p[-1] or 'Never' }}</small>
+</div>
+{% endfor %}
+</div>
+</div>
+<div class="col-md-8">
+{% if due_vaccinations %}
+<div class="alert alert-warning"><strong>Vaccinations Due:</strong>
+{% for v in due_vaccinations %}
+<div>{{ v[-1] }}: {{ v[3] }} - Due {{ v[8] }}</div>
+{% endfor %}
+</div>
+{% endif %}
+<div class="section-card">
+<h5 class="section-title">Recent Appointments</h5>
+<table class="table table-sm mb-0">
+<thead><tr><th>Date</th><th>Pet</th><th>Type</th><th>Status</th></tr></thead>
+<tbody>
+{% for a in appointments[:10] %}
+<tr><td>{{ a[3] }}</td><td>{{ a[-1] }}</td><td>{{ a[5] }}</td><td><span class="badge bg-{{ 'success' if a[7]=='completed' else 'primary' }}">{{ a[7] }}</span></td></tr>
+{% endfor %}
+{% if not appointments %}<tr><td colspan="4" class="text-muted text-center">No appointments</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+<div class="section-card">
+<h5 class="section-title">Invoice History</h5>
+<table class="table table-sm mb-0">
+<thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+<tbody>
+{% for i in invoices %}
+<tr><td><a href="{{ url_for('furrvet.view_invoice', inv_id=i[0]) }}">{{ i[1] }}</a></td><td>{{ i[5] }}</td><td>{{ "%.2f"|format(i[12]) }}</td>
+<td><span class="badge bg-{{ 'success' if i[13]=='paid' else 'danger' }}">{{ i[13] }}</span></td></tr>
+{% endfor %}
+{% if not invoices %}<tr><td colspan="4" class="text-muted text-center">No invoices</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,257 @@
+In furrvet.py and furrvet templates only.
+Do not modify main.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create all new templates in
+templates/furrvet/ folder.
+
+OVERVIEW:
+Copy the logic from vendor ERP modules
+and adapt for clinical context.
+Replace vendor/grooming terminology
+with clinical/medical terminology.
+Use clean white clinical design
+not purple gradient.
+Navy blue accents (#1a3a5c)
+Teal highlights (#00897b) for
+clinical indicators.
+
+PART 1 — Clinical HRM:
+
+The vendor ERP has working HRM at
+/erp/time-slots covering:
+Employees, Timesheets, Payroll,
+Performance, Time Slots
+
+For FurrVet adapt this as
+Clinical Staff Management at
+/furrvet/staff-management
+
+Add these routes to furrvet.py:
+
+/furrvet/staff-management GET:
+Pull all staff from furrvet staff table
+Pull today's shift data
+Pull any certifications expiring
+  within 60 days
+Pass to furrvet_staff_dashboard.html
+
+Tab 1 — Staff:
+Same structure as vendor employees tab
+But show:
+  Name, Role, Department
+  Qualifications
+  License/Registration number
+  Certification status
+  View button → /furrvet/staff/<id>
+  Edit button → /furrvet/staff/<id>/edit
+
+Tab 2 — Shifts (instead of Timesheets):
+Show staff shift schedule
+Check in/out times
+Who is currently on duty
+Weekly schedule view
+
+Tab 3 — Payroll:
+Same as vendor payroll
+But uses furrvet staff table
+Salary, overtime, bonus, deductions
+Generate payslips same logic
+
+Tab 4 — Certifications:
+List all staff certifications
+Highlight expiring within 60 days
+Add certification button
+Upload certificate file
+
+Tab 5 — Training:
+Track CPD (Continuing Professional
+Development) hours per staff
+Required hours per year
+Completed training log
+Upcoming training schedule
+
+Create templates/furrvet/
+furrvet_staff_dashboard.html:
+White background clinical design
+Navy blue header
+Tab navigation same structure
+as vendor HRM
+
+PART 2 — Clinical CRM:
+
+The vendor ERP has CRM at /erp/crm
+For FurrVet adapt as
+Client Relations at /furrvet/clients
+
+This manages pet OWNER relationships
+not the pets themselves (those are
+in patients)
+
+Add routes to furrvet.py:
+
+/furrvet/clients GET:
+Pull all pet_owners from furrvet.db
+Show owner list with:
+  Owner name, phone, email
+  Number of pets
+  Last visit date
+  Total spend (from invoices)
+  Communication preferences
+
+/furrvet/clients/<int:owner_id> GET:
+Owner detail showing:
+  All their pets with last visit
+  Complete interaction history
+  Invoice history and total spend
+  Vaccination reminders due
+  Upcoming appointments
+  Communication log
+
+/furrvet/clients/reminders GET:
+All client_reminders from furrvet.db
+Filter: pending, sent, overdue
+For each reminder show:
+  Pet name, owner name
+  Reminder type (vaccination due,
+  checkup, medication refill)
+  Due date
+  Mark Sent button
+  Send via WhatsApp button
+    (Coming Soon badge)
+
+/furrvet/clients/campaigns GET and POST:
+Vaccination reminder campaigns:
+  Select: All dogs due for rabies
+  Select: All cats due for FVRCP
+  Select: All patients not seen
+    in 6 months
+  Generate reminder list
+  Send reminders (manual first,
+  WhatsApp when activated)
+
+Create templates/furrvet/
+furrvet_clients.html
+furrvet_client_detail.html
+furrvet_client_reminders.html
+furrvet_campaigns.html
+
+White clinical design
+Navy blue accents
+
+PART 3 — Clinical Accounting:
+
+The vendor ERP has full accounting
+at /erp/reports
+For FurrVet adapt as
+Clinic Financials at /furrvet/financials
+
+Add routes to furrvet.py:
+
+/furrvet/financials GET:
+Clinical finance dashboard showing:
+  Today's revenue (from invoices)
+  This month revenue
+  Outstanding invoices (AR)
+  Pending supplier payments (AP)
+  Quick links to all reports
+
+/furrvet/financials/pnl GET:
+Pull from furrvet invoices table
+for revenue
+Pull clinic expenses (if tracked)
+Show:
+  Total revenue by service type:
+    Consultations, Vaccinations,
+    Lab Tests, Surgery, Pharmacy
+  Total expenses
+  Gross profit per category
+  Net profit
+
+/furrvet/financials/ar GET:
+Accounts Receivable from invoices
+where payment_status = pending
+Group by:
+  0-30 days: current
+  31-60 days: overdue
+  60+ days: seriously overdue
+Show owner name, amount, days outstanding
+Record Payment button per invoice
+  → marks invoice as paid
+
+/furrvet/financials/ap GET:
+Supplier payments from furrvet.db
+purchase_orders table
+Outstanding orders
+Record payment functionality
+
+/furrvet/financials/gst GET:
+GST from invoices
+tax_amount collected
+GST on supplier purchases
+Net GST payable
+
+/furrvet/financials/export/pnl GET:
+Download P&L as CSV
+
+Create templates/furrvet/
+furrvet_financials.html
+furrvet_pnl.html
+furrvet_ar.html
+furrvet_ap.html
+furrvet_gst.html
+
+White clinical design
+Navy blue accents
+Professional printable format
+
+PART 4 — Clinical Dashboard enhancement:
+
+Update furrvet/furrvet_dashboard.html
+to add quick access to all modules:
+
+Navigation bar with links:
+🐾 Patients
+📅 Appointments
+🏥 Hospitalizations
+💉 Vaccinations
+🧪 Laboratory
+🏪 Inventory
+💊 Prescriptions
+👥 Staff
+👨‍👩‍👧 Clients
+💰 Financials
+📋 Compliance
+📊 Analytics
+🔬 Telehealth
+
+Quick Action buttons:
++ New Patient
++ New Appointment
++ New SOAP Note
++ New Invoice
++ Admit Patient
+
+Today's Schedule:
+Show today's appointments
+in timeline format
+Current time indicator line
+Color coded by status
+
+Alerts panel:
+Low stock medications (red)
+Expiring vaccines in inventory
+Certifications expiring (orange)
+Overdue invoices (yellow)
+Patients with overdue vaccinations
+
+Do not modify any vendor ERP templates.
+Do not modify main.py.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create all templates in
+templates/furrvet/ folder.
+After completing verify every new
+render_template() call has a
+corresponding template file.
