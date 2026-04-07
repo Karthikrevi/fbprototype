@@ -2154,9 +2154,30 @@ def init_furrvet_db():
     conn.commit()
     conn.close()
 
+def init_furrvet_gdpr_table():
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS furrvet_gdpr_consents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vet_id INTEGER,
+            medical_processing_consent BOOLEAN,
+            retention_acknowledged BOOLEAN,
+            referral_sharing_consent BOOLEAN,
+            research_consent BOOLEAN,
+            consent_date TEXT,
+            consent_version TEXT DEFAULT '1.0',
+            ip_address TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 # Run the DB setup on startup
 init_erp_db()
 init_furrvet_db()
+init_furrvet_gdpr_table()
 
 app = Flask(__name__)
 app.secret_key = 'furrbutler_secret_key'
@@ -15571,6 +15592,176 @@ def admin_gdpr_breach_log():
     breach_log = db.get("gdpr:breach_log") or []
     
     return render_template("gdpr_breach_log.html", deletion_log=deletion_log, breach_log=breach_log)
+
+
+@app.route('/furrvet/gdpr/privacy-notice')
+def furrvet_gdpr_privacy_notice():
+    return render_template('furrvet_privacy.html')
+
+@app.route('/furrvet/gdpr/consent', methods=["GET"])
+def furrvet_gdpr_consent_page():
+    if 'furrvet_vet_id' not in session:
+        return redirect(url_for('furrvet_login'))
+    vet_id = session['furrvet_vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    c.execute("SELECT medical_processing_consent, retention_acknowledged, referral_sharing_consent, research_consent, consent_date FROM furrvet_gdpr_consents WHERE vet_id = ? ORDER BY id DESC LIMIT 1", (vet_id,))
+    existing = c.fetchone()
+    conn.close()
+    return render_template('furrvet_consent.html', existing=existing)
+
+@app.route('/furrvet/gdpr/consent', methods=["POST"])
+def furrvet_gdpr_consent_save():
+    if 'furrvet_vet_id' not in session:
+        return redirect(url_for('furrvet_login'))
+    vet_id = session['furrvet_vet_id']
+    medical = 1 if request.form.get('medical_processing_consent') else 0
+    retention = 1 if request.form.get('retention_acknowledged') else 0
+    referral = 1 if request.form.get('referral_sharing_consent') else 0
+    research = 1 if request.form.get('research_consent') else 0
+    if not medical or not retention:
+        flash("You must accept the required consents (medical data processing and retention acknowledgement).")
+        return redirect(url_for('furrvet_gdpr_consent_page'))
+    consent_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    ip_address = request.remote_addr or 'unknown'
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO furrvet_gdpr_consents 
+        (vet_id, medical_processing_consent, retention_acknowledged, referral_sharing_consent, research_consent, consent_date, consent_version, ip_address)
+        VALUES (?, ?, ?, ?, ?, ?, '1.0', ?)""",
+        (vet_id, medical, retention, referral, research, consent_date, ip_address))
+    conn.commit()
+    conn.close()
+    flash("All consents have been saved successfully.")
+    return redirect(url_for('furrvet_gdpr_consent_page'))
+
+@app.route('/furrvet/gdpr/export-records')
+def furrvet_gdpr_export_records():
+    if 'furrvet_vet_id' not in session:
+        return redirect(url_for('furrvet_login'))
+    vet_id = session['furrvet_vet_id']
+    conn = sqlite3.connect('furrvet.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pets WHERE id IN (SELECT DISTINCT pet_id FROM medical_records WHERE vet_id = ?) OR id IN (SELECT DISTINCT pet_id FROM appointments WHERE vet_id = ?)", (vet_id, vet_id))
+    pets_cols = [desc[0] for desc in c.description]
+    pets_rows = c.fetchall()
+    pets_data = [dict(zip(pets_cols, row)) for row in pets_rows]
+    pet_ids = [p['id'] for p in pets_data] if pets_data else []
+    owner_ids = list(set(p.get('owner_id') for p in pets_data if p.get('owner_id')))
+    if owner_ids:
+        placeholders = ','.join('?' * len(owner_ids))
+        c.execute(f"SELECT * FROM pet_owners WHERE id IN ({placeholders})", owner_ids)
+    else:
+        c.execute("SELECT * FROM pet_owners WHERE 1=0")
+    owners_cols = [desc[0] for desc in c.description]
+    owners_rows = c.fetchall()
+    owners_data = [dict(zip(owners_cols, row)) for row in owners_rows]
+    c.execute("SELECT * FROM medical_records WHERE vet_id = ?", (vet_id,))
+    med_cols = [desc[0] for desc in c.description]
+    med_rows = c.fetchall()
+    med_data = [dict(zip(med_cols, row)) for row in med_rows]
+    if pet_ids:
+        placeholders = ','.join('?' * len(pet_ids))
+        c.execute(f"SELECT * FROM vaccinations WHERE pet_id IN ({placeholders})", pet_ids)
+    else:
+        c.execute("SELECT * FROM vaccinations WHERE 1=0")
+    vax_cols = [desc[0] for desc in c.description]
+    vax_rows = c.fetchall()
+    vax_data = [dict(zip(vax_cols, row)) for row in vax_rows]
+    conn.close()
+    export = {
+        "export_date": datetime.now().isoformat(),
+        "exported_by_vet_id": vet_id,
+        "clinic_name": session.get('furrvet_clinic_name', ''),
+        "patients": pets_data,
+        "pet_owners": owners_data,
+        "medical_records": med_data,
+        "vaccinations": vax_data
+    }
+    response = app.response_class(
+        response=json.dumps(export, indent=2, default=str),
+        status=200,
+        mimetype='application/json'
+    )
+    response.headers['Content-Disposition'] = 'attachment; filename=furrvet_records_export.json'
+    return response
+
+@app.route('/furrwings/privacy')
+def furrwings_privacy_notice():
+    return render_template('furrwings_privacy.html')
+
+@app.route('/erp/gdpr/dpa')
+def erp_gdpr_dpa():
+    if 'vendor' not in session:
+        return redirect(url_for('vendor_login'))
+    return render_template('erp_dpa.html')
+
+@app.route('/admin/gdpr/breach-log', methods=["POST"])
+def admin_gdpr_breach_log_post():
+    if "admin" not in session:
+        return redirect(url_for("login"))
+    detected_date = request.form.get('detected_date', '')
+    description = request.form.get('description', '')
+    affected_users = request.form.get('affected_users', '')
+    severity = request.form.get('severity', 'low')
+    reported_to_authority = True if request.form.get('reported_to_authority') else False
+    report_date = request.form.get('report_date', '')
+    resolution = request.form.get('resolution', '')
+    breach_entry = {
+        "detected_date": detected_date,
+        "description": description,
+        "affected_users": affected_users,
+        "severity": severity,
+        "reported_to_authority": reported_to_authority,
+        "report_date": report_date,
+        "resolution": resolution,
+        "logged_at": datetime.now().isoformat()
+    }
+    breach_log = db.get("gdpr:breach_log") or []
+    breach_log.append(breach_entry)
+    db["gdpr:breach_log"] = breach_log
+    flash("Breach record added successfully.")
+    return redirect(url_for('admin_gdpr_breach_log'))
+
+@app.route('/api/v1/gdpr/furrwings-notice')
+def api_gdpr_furrwings_notice():
+    return jsonify({
+        "success": True,
+        "furrwings_privacy_url": url_for("furrwings_privacy_notice", _external=True),
+        "transfer_notice": "FurrWings facilitates international pet travel. As part of this service, your pet's health and passport data may be transferred to and processed in countries outside India and the European Economic Area. Transfers are made under Article 49(1)(b) (contract performance) and legal obligations to destination country authorities. Standard contractual clauses apply where applicable.",
+        "data_transferred": [
+            "Pet passport information",
+            "Vaccination records",
+            "Health certificates",
+            "Owner contact details",
+            "Travel documentation"
+        ],
+        "retention": {
+            "travel_records": "7 years",
+            "pet_passport": "Life of pet + 5 years",
+            "health_certificates": "5 years"
+        },
+        "last_updated": "2026-04-07",
+        "version": "1.0"
+    })
+
+@app.route('/api/v1/gdpr/furrwings-consent', methods=["POST"])
+@token_required
+def api_gdpr_furrwings_consent(current_user, user_type):
+    data = request.get_json()
+    transfer_consent = data.get("transfer_consent", False)
+    user_data = db.get(f"user:{current_user}")
+    if not user_data:
+        return jsonify({"success": False, "message": "User not found"}), 404
+    if "gdpr_consents" not in user_data:
+        user_data["gdpr_consents"] = {}
+    user_data["gdpr_consents"]["furrwings_transfer"] = {
+        "accepted": transfer_consent,
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0"
+    }
+    db[f"user:{current_user}"] = user_data
+    return jsonify({"success": True, "message": "International transfer consent recorded"})
 
 
 # Run app

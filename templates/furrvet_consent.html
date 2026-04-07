@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medical Data Processing Consent - FurrVet</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: #f8f9fa; font-family: 'Poppins', sans-serif; color: #333; }
+    .header-bar { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 30px 0; }
+    .header-bar h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 0; }
+    .header-bar p { color: rgba(255,255,255,0.85); margin: 5px 0 0; }
+    .consent-container { max-width: 800px; margin: 30px auto; padding: 0 20px 40px; }
+    .consent-card { background: #fff; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    h3 { color: #e74c3c; font-size: 1.2rem; font-weight: 600; margin-bottom: 15px; }
+    .data-list { background: #fef9f9; border-left: 4px solid #e74c3c; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 15px 0; }
+    .data-list li { padding: 4px 0; font-size: 0.95rem; }
+    .legal-box { background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 10px; padding: 20px; margin: 15px 0; }
+    .retention-box { background: #fce4ec; border: 1px solid #f8bbd0; border-radius: 10px; padding: 20px; margin: 15px 0; }
+    .controller-box { background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 10px; padding: 20px; margin: 15px 0; }
+    .consent-check { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 10px; padding: 18px; margin: 12px 0; transition: border-color 0.2s; }
+    .consent-check:has(input:checked) { border-color: #28a745; background: #f0fff4; }
+    .consent-check label { cursor: pointer; font-size: 0.95rem; margin: 0; display: flex; align-items: flex-start; gap: 10px; }
+    .consent-check input[type="checkbox"] { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+    .required-tag { color: #e74c3c; font-size: 0.8rem; font-weight: 600; }
+    .optional-tag { color: #6c757d; font-size: 0.8rem; }
+    .btn-save { background: #e74c3c; border: none; color: #fff; padding: 14px 40px; border-radius: 10px; font-weight: 600; font-size: 1rem; }
+    .btn-save:hover { background: #c0392b; color: #fff; }
+    .btn-save:disabled { background: #ccc; }
+  </style>
+</head>
+<body>
+  <div class="header-bar text-center">
+    <div class="container">
+      <h1><i class="fas fa-hospital"></i> Medical Data Processing Consent</h1>
+      <p>FurrVet — Veterinary Records</p>
+    </div>
+  </div>
+
+  <div class="consent-container">
+    {% if get_flashed_messages() %}
+      {% for message in get_flashed_messages() %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="consent-card">
+      <h3><i class="fas fa-database"></i> Special Category Data Processing</h3>
+      <p>FurrVet processes the following special category data under GDPR Article 9(2)(h) — processing necessary for medical diagnosis, treatment and veterinary care:</p>
+      <ul class="data-list">
+        <li>Pet health records and diagnoses</li>
+        <li>Vaccination and treatment history</li>
+        <li>Laboratory test results</li>
+        <li>Surgical and procedure records</li>
+        <li>Prescribed medications</li>
+        <li>Medical imaging and documents</li>
+        <li>Hospitalization records</li>
+      </ul>
+    </div>
+
+    <div class="consent-card">
+      <h3><i class="fas fa-gavel"></i> Legal Basis</h3>
+      <div class="legal-box">
+        <p class="mb-2">This data is processed under:</p>
+        <ul class="mb-0">
+          <li><strong>Article 9(2)(h):</strong> Medical diagnosis and treatment</li>
+          <li><strong>Article 9(2)(a):</strong> Explicit consent where required</li>
+          <li><strong>Legal obligation</strong> to maintain veterinary records</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="consent-card">
+      <h3><i class="fas fa-clock"></i> Retention Notice</h3>
+      <div class="retention-box">
+        <p class="mb-0">Medical records are retained for a minimum of <strong>10 years</strong> as required by veterinary medical law. Records <strong>cannot be deleted</strong> during this retention period even upon request.</p>
+      </div>
+    </div>
+
+    <div class="consent-card">
+      <h3><i class="fas fa-building"></i> Data Controller Notice</h3>
+      <div class="controller-box">
+        <p class="mb-0">Your veterinary clinic is the <strong>data controller</strong> for all patient records. FurrVet acts as a <strong>data processor</strong> on behalf of your clinic.</p>
+      </div>
+    </div>
+
+    <div class="consent-card">
+      <h3><i class="fas fa-check-circle"></i> Your Explicit Consents</h3>
+      <form method="POST" action="/furrvet/gdpr/consent" id="consentForm">
+        <div class="consent-check">
+          <label>
+            <input type="checkbox" name="medical_processing_consent" value="1" required>
+            <span>I explicitly consent to FurrVet processing pet medical records including diagnoses, treatments, and health history <span class="required-tag">(required)</span></span>
+          </label>
+        </div>
+
+        <div class="consent-check">
+          <label>
+            <input type="checkbox" name="retention_acknowledged" value="1" required>
+            <span>I understand that medical records cannot be deleted for 10 years as required by law <span class="required-tag">(required)</span></span>
+          </label>
+        </div>
+
+        <div class="consent-check">
+          <label>
+            <input type="checkbox" name="referral_sharing_consent" value="1">
+            <span>I consent to medical records being shared with referral vets when necessary for treatment <span class="optional-tag">(optional but recommended)</span></span>
+          </label>
+        </div>
+
+        <div class="consent-check">
+          <label>
+            <input type="checkbox" name="research_consent" value="1">
+            <span>I consent to anonymised data being used for veterinary research purposes <span class="optional-tag">(optional)</span></span>
+          </label>
+        </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-save">
+            <i class="fas fa-save"></i> Save All Consents
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="text-center mb-4">
+      <a href="/furrvet/gdpr/privacy-notice" class="btn btn-outline-secondary btn-sm me-2">Privacy Notice</a>
+      <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">← Go Back</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

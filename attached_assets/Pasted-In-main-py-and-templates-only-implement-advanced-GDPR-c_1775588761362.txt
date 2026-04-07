@@ -1,0 +1,376 @@
+In main.py and templates only,
+implement advanced GDPR compliance
+for medical and international data.
+Do not modify any existing routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — FurrVet Medical Data:
+
+Create templates/furrvet_consent.html:
+Explicit consent form for medical
+data processing under GDPR Article 9.
+
+Must contain:
+Header: Medical Data Processing Consent
+Subheader: FurrVet — Veterinary Records
+
+Explanation section:
+"FurrVet processes the following
+special category data under
+GDPR Article 9(2)(h) — processing
+necessary for medical diagnosis,
+treatment and veterinary care:
+
+- Pet health records and diagnoses
+- Vaccination and treatment history
+- Laboratory test results
+- Surgical and procedure records
+- Prescribed medications
+- Medical imaging and documents
+- Hospitalization records"
+
+Legal basis section:
+"This data is processed under:
+- Article 9(2)(h): Medical diagnosis
+  and treatment
+- Article 9(2)(a): Explicit consent
+  where required
+- Legal obligation to maintain
+  veterinary records"
+
+Retention notice:
+"Medical records are retained for
+a minimum of 10 years as required
+by veterinary medical law. Records
+cannot be deleted during this
+retention period even upon request."
+
+Data controller notice:
+"Your veterinary clinic is the
+data controller for all patient
+records. FurrVet acts as a data
+processor on behalf of your clinic."
+
+Required explicit consents:
+☐ I explicitly consent to FurrVet
+  processing pet medical records
+  including diagnoses, treatments,
+  and health history (required)
+
+☐ I understand that medical records
+  cannot be deleted for 10 years
+  as required by law (required)
+
+☐ I consent to medical records
+  being shared with referral vets
+  when necessary for treatment
+  (optional but recommended)
+
+☐ I consent to anonymised data
+  being used for veterinary
+  research purposes (optional)
+
+Save All Consents button
+POSTs to /furrvet/gdpr/consent
+
+Add route /furrvet/gdpr/consent POST:
+Save all consent values to
+furrvet_gdpr_consents table:
+
+CREATE TABLE IF NOT EXISTS
+furrvet_gdpr_consents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vet_id INTEGER,
+    medical_processing_consent BOOLEAN,
+    retention_acknowledged BOOLEAN,
+    referral_sharing_consent BOOLEAN,
+    research_consent BOOLEAN,
+    consent_date TEXT,
+    consent_version TEXT DEFAULT '1.0',
+    ip_address TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+Add route /furrvet/gdpr/privacy-notice GET:
+Render furrvet_privacy.html
+
+Create templates/furrvet_privacy.html:
+Professional white design
+Navy blue headers
+
+Sections:
+1. Medical Data Controller Information
+   Clinic name and contact as controller
+   FurrButler as data processor
+
+2. Special Category Data We Process:
+   Full list of medical data types
+   Legal basis for each type
+
+3. Retention Schedule:
+   Active records: indefinitely
+   Inactive records: 10 years minimum
+   After 10 years: anonymised
+   Cannot be deleted on request
+   during retention period
+
+4. Who Accesses Medical Records:
+   Your veterinary clinic staff
+   FurrButler technical team
+   (limited, for system maintenance)
+   Referral vets (with consent)
+   Regulatory authorities (if required)
+
+5. Patient Rights with Medical Exceptions:
+   Right to access: YES — full access
+   Right to rectification: YES
+   Right to erasure: LIMITED
+   Cannot erase during 10 year
+   retention period
+   Right to portability: YES
+   Can export records at any time
+   Right to object: LIMITED
+   Cannot object to legally required
+   processing
+
+6. Data Security:
+   Encrypted storage
+   Access logging
+   Role-based access control
+   Regular security audits
+
+7. Cross-border Transfers:
+   Records stored in Replit servers
+   Standard contractual clauses apply
+   Adequacy decisions referenced
+
+8. Complaints:
+   Contact your national data
+   protection authority
+   In India: contact MeitY
+
+Add link to furrvet_privacy.html
+in furrvet_dashboard.html:
+"Privacy & Data Notice" link in footer
+
+Add GDPR section to furrvet_dashboard.html:
+Medical Data Compliance section showing:
+- Consent status for this clinic
+- Last consent date
+- Link to update consents
+- Export all patient records button
+  → /furrvet/gdpr/export-records
+
+Add route /furrvet/gdpr/export-records GET:
+Requires vet login
+Compile all patient records for
+this clinic from furrvet.db
+Return as JSON download
+Filename: furrvet_records_export.json
+
+PART 2 — FurrWings International
+Data Transfers:
+
+Create templates/furrwings_privacy.html:
+International data transfer notice
+
+Sections:
+1. International Transfer Notice:
+   "FurrWings facilitates international
+   pet travel. As part of this service,
+   your pet's health and passport data
+   may be transferred to and processed
+   in countries outside India and the
+   European Economic Area."
+
+2. Countries We Transfer Data To:
+   "Data is transferred to destination
+   country veterinary and customs
+   authorities as required by law.
+   The specific countries depend on
+   your pet's travel destination."
+
+3. Legal Basis for Transfer:
+   "Transfers are made under:
+   - Article 49(1)(b): Transfer
+     necessary for performance
+     of contract
+   - Legal obligation to destination
+     country authorities
+   - Standard contractual clauses
+     where applicable"
+
+4. What Data Is Transferred:
+   Pet passport information
+   Vaccination records
+   Health certificates
+   Owner contact details
+   Travel documentation
+
+5. Your Rights:
+   You can request details of
+   specific transfers made for
+   your pet's travel
+   Contact: privacy@furrbutler.com
+
+6. Data Retention:
+   Travel records: 7 years
+   Pet passport: life of pet + 5 years
+   Health certificates: 5 years
+
+Add route /furrwings/privacy GET:
+Renders furrwings_privacy.html
+
+Add to handler registration form:
+International data transfer notice:
+"By registering as a FurrWings handler,
+you acknowledge that pet travel data
+will be shared with destination country
+authorities as required by law.
+This is necessary for the performance
+of international pet transport services."
+
+Checkbox required:
+☐ I understand that pet travel data
+  will be shared with destination
+  country authorities as required
+  by applicable law
+
+Add link to furrwings_privacy.html
+in handler portal and booking pages
+
+Add to pet parent booking for handlers:
+Before confirming handler booking
+show notice:
+"By booking international pet travel,
+your pet's health and passport data
+will be shared with destination
+country customs and veterinary
+authorities. This is required
+by law for international pet travel."
+
+Confirm with checkbox before booking.
+
+PART 3 — Data Breach Response:
+
+Add route /admin/gdpr/breach-log GET:
+Admin only
+Show all entries in data_breach_log table
+Created in Phase 1
+
+Add route /admin/gdpr/breach-log POST:
+Admin only
+Add new breach record
+Fields:
+- detected_date
+- description
+- affected_users (count or description)
+- severity: low/medium/high/critical
+- reported_to_authority boolean
+- report_date
+- resolution description
+
+Create templates/admin_breach_log.html:
+Clean professional admin page
+Table of all breach records
+Add New Breach button
+For each breach show:
+- Date detected
+- Severity badge
+- Affected users
+- Reported to authority status
+- Resolution status
+
+Add note:
+"Under GDPR Article 33, data breaches
+must be reported to the supervisory
+authority within 72 hours of detection
+if they pose a risk to individuals.
+In India report to MeitY."
+
+PART 4 — Vendor Customer Data Notice:
+
+Add to vendor ERP dashboard
+a data processor notice box:
+
+"As a FurrButler vendor, you collect
+and process personal data from your
+customers including names, contact
+details, pet information and booking
+history. You are the data controller
+for this information.
+
+Your responsibilities:
+- Only collect data necessary for
+  your services
+- Keep customer data secure
+- Respond to customer data requests
+  within 30 days
+- Do not share customer data with
+  third parties without consent
+- Delete customer data when requested
+  unless legally required to retain
+
+FurrButler processes this data on
+your behalf as your data processor.
+Our Data Processing Agreement is
+available on request."
+
+Add Data Processing Agreement link:
+/erp/gdpr/dpa
+
+Add route /erp/gdpr/dpa GET:
+Render erp_dpa.html
+
+Create templates/erp_dpa.html:
+Data Processing Agreement between
+FurrButler (processor) and
+Vendor (controller)
+
+Professional legal document format:
+Sections:
+1. Parties
+2. Subject matter and duration
+3. Nature and purpose of processing
+4. Type of personal data
+5. Categories of data subjects
+6. Obligations of processor (FurrButler)
+7. Obligations of controller (vendor)
+8. Sub-processors
+9. International transfers
+10. Security measures
+11. Audit rights
+12. Deletion on termination
+13. Governing law
+
+PART 5 — GDPR API endpoints for React:
+
+Add these routes for React Native:
+
+GET /api/v1/gdpr/furrwings-notice:
+Returns the international transfer
+notice text as JSON for display
+in the React app before handler booking
+
+POST /api/v1/gdpr/furrwings-consent:
+Requires token
+Body: transfer_consent boolean
+Save to user record
+Return: { success }
+
+GET /api/v1/gdpr/privacy-policy:
+Returns privacy policy content as JSON
+For display in React app modal
+
+GET /api/v1/gdpr/terms:
+Returns terms content as JSON
+
+Do not modify any existing routes.
+Do not modify any existing templates
+except where explicitly stated above.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db
+except where explicitly stated.
+After creating each template verify
+it exists before moving on.

@@ -96,14 +96,24 @@ expo ~51.0.0, react-native 0.74.0, @react-navigation/*, axios, socket.io-client,
 Full GDPR compliance implemented across all portals:
 - **Privacy Policy** (`/privacy-policy`): Comprehensive data collection, legal basis, retention periods, user rights
 - **Terms of Service** (`/terms`): Platform usage terms, vendor responsibilities, governing law
-- **FurrVet Medical Data Privacy Notice** (`/furrvet/privacy`): Special category data processing under GDPR Article 9(2)(h)
 - **Cookie Consent Banner**: Essential cookies only, shown on all pages via `cookie_consent.html` include
 - **Registration Consent**: Required GDPR checkboxes on pet parent, vendor, and NGO registration forms
 - **Data Export**: Pet parent (`/gdpr/export-data`) and vendor (`/gdpr/vendor-export-data`) data download as JSON
 - **Account Deletion**: Pet parent (`/gdpr/delete-account`) and vendor (`/gdpr/vendor-delete-account`) with deletion logging
-- **GDPR Breach Log** (`/admin/gdpr/breach-log`): Admin view of deletion requests and data breach records
+- **GDPR Breach Log** (`/admin/gdpr/breach-log`): Admin breach log with POST form to add breach records; shows deletion log and breach entries with severity badges
 - **Mobile API**: Full GDPR consent, export, and deletion endpoints under `/api/v1/gdpr/`
 - **Settings Integration**: GDPR data tools in both pet parent (`app_settings.html`) and vendor ERP (`erp_settings.html`) settings pages
+
+### GDPR Phase 2 — Medical & International Data
+- **FurrVet Medical Consent** (`/furrvet/gdpr/consent`): Explicit consent form for medical data processing under GDPR Article 9, with 4 checkboxes (2 required, 2 optional), server-side validation, saved to `furrvet_gdpr_consents` table in `furrvet.db`
+- **FurrVet Privacy Notice** (`/furrvet/gdpr/privacy-notice` and `/furrvet/privacy`): Comprehensive medical data privacy notice with 8 sections covering data controller, retention, patient rights, security, cross-border transfers
+- **FurrVet Records Export** (`/furrvet/gdpr/export-records`): JSON export of clinic-scoped patient records (filtered by vet_id)
+- **FurrVet Dashboard**: Medical Data Compliance section showing consent status, update/export buttons, footer privacy links
+- **FurrWings International Transfer Notice** (`/furrwings/privacy`): GDPR cross-border data transfer notice for pet travel, covering legal basis (Article 49), data types, retention periods
+- **Handler Portal**: International data transfer notice on login page and booking page, required consent checkbox before booking
+- **Vendor ERP DPA** (`/erp/gdpr/dpa`): Full Data Processing Agreement (13 articles) between FurrButler (processor) and vendor (controller)
+- **ERP Dashboard**: Data processor notice box with vendor responsibilities and DPA link
+- **API Endpoints**: `GET /api/v1/gdpr/furrwings-notice` (transfer notice JSON), `POST /api/v1/gdpr/furrwings-consent` (record transfer consent)
 
 ## FurrVet Module
 The FurrVet module provides a dedicated interface for veterinarians. It includes dashboards, appointment management, patient records with detailed medical histories and vaccinations, billing, inventory management for vet supplies, laboratory services, and reporting tools. All templates share a consistent design with a fixed sidebar and are responsive. The module manages its own SQLite database (`furrvet.db`) for veterinary-specific data.

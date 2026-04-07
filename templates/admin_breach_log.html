@@ -60,21 +60,20 @@
             <tbody>
               {% for entry in breach_log|reverse %}
               <tr>
-                <td>{{ entry.detected_date or entry.date or '—' }}</td>
+                <td>{{ entry.detected_date }}</td>
                 <td>
-                  {% set sev = entry.severity or 'low' %}
-                  {% if sev == 'critical' %}
+                  {% if entry.severity == 'critical' %}
                     <span class="badge badge-critical">Critical</span>
-                  {% elif sev == 'high' %}
+                  {% elif entry.severity == 'high' %}
                     <span class="badge badge-high">High</span>
-                  {% elif sev == 'medium' %}
+                  {% elif entry.severity == 'medium' %}
                     <span class="badge badge-medium">Medium</span>
                   {% else %}
                     <span class="badge badge-low">Low</span>
                   {% endif %}
                 </td>
                 <td>{{ entry.description }}</td>
-                <td>{{ entry.affected_users or entry.users_affected or '—' }}</td>
+                <td>{{ entry.affected_users }}</td>
                 <td>
                   {% if entry.reported_to_authority %}
                     <span class="text-success"><i class="fas fa-check-circle"></i> Yes</span>
@@ -83,7 +82,7 @@
                   {% endif %}
                 </td>
                 <td>{{ entry.report_date or '—' }}</td>
-                <td>{{ entry.resolution or entry.status or 'Pending' }}</td>
+                <td>{{ entry.resolution or 'Pending' }}</td>
               </tr>
               {% endfor %}
             </tbody>

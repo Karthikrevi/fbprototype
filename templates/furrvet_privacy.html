@@ -5,67 +5,132 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Medical Data Privacy Notice - FurrVet</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     body { background: #fff; font-family: 'Poppins', sans-serif; color: #333; }
-    .header-bar { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 30px 0; }
+    .header-bar { background: #1a237e; padding: 40px 0; }
     .header-bar h1 { color: #fff; font-size: 2rem; font-weight: 700; margin: 0; }
-    .header-bar p { color: rgba(255,255,255,0.85); margin: 5px 0 0; }
-    .content { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-    h2 { color: #e74c3c; font-size: 1.4rem; font-weight: 600; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
-    h2:first-of-type { border-top: none; }
-    p, li { line-height: 1.7; font-size: 0.95rem; }
+    .header-bar p { color: rgba(255,255,255,0.8); margin: 5px 0 0; }
+    .content { max-width: 800px; margin: 0 auto; padding: 40px 20px 60px; }
+    h2 { color: #1a237e; font-size: 1.3rem; font-weight: 700; margin-top: 35px; padding-top: 25px; border-top: 2px solid #e8eaf6; }
+    h2:first-of-type { border-top: none; padding-top: 0; }
+    p, li { line-height: 1.8; font-size: 0.95rem; }
     ul { padding-left: 20px; }
-    .alert-box { background: #fef3e7; border-left: 4px solid #e74c3c; padding: 16px; border-radius: 6px; margin: 20px 0; }
-    a { color: #e74c3c; }
+    .info-box { background: #e8eaf6; border-left: 4px solid #1a237e; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 15px 0; }
+    .warning-box { background: #fff3e0; border-left: 4px solid #ef6c00; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 15px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th { background: #1a237e; color: #fff; padding: 10px 15px; text-align: left; font-size: 0.9rem; }
+    td { padding: 10px 15px; border-bottom: 1px solid #e0e0e0; font-size: 0.9rem; }
+    tr:nth-child(even) { background: #f5f5f5; }
+    .rights-table td:first-child { font-weight: 600; width: 200px; }
+    a { color: #1a237e; }
+    .last-updated { color: #6c757d; font-size: 0.85rem; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e8eaf6; }
   </style>
 </head>
 <body>
   <div class="header-bar text-center">
     <div class="container">
-      <h1>🏥 FurrVet Medical Data Privacy Notice</h1>
-      <p>Special category data processing notice</p>
+      <h1><i class="fas fa-hospital"></i> FurrVet Medical Data Privacy Notice</h1>
+      <p>Special category data processing under GDPR</p>
     </div>
   </div>
   <div class="content">
-    <div class="alert-box">
-      <strong>Important:</strong> FurrButler processes veterinary medical records as a data processor on behalf of your clinic. Medical data is processed under GDPR Article 9 with explicit patient consent. You remain the data controller for all patient records.
+
+    <h2>1. Medical Data Controller Information</h2>
+    <div class="info-box">
+      <p class="mb-1"><strong>Data Controller:</strong> Your veterinary clinic (the clinic using FurrVet)</p>
+      <p class="mb-1">The clinic is responsible for determining the purposes and means of processing patient medical data.</p>
+      <p class="mb-0"><strong>Data Processor:</strong> FurrButler (operating the FurrVet platform)</p>
+      <p class="mb-0">FurrButler processes medical data solely on behalf of and under the instructions of the veterinary clinic. Contact: <strong>privacy@furrbutler.com</strong></p>
     </div>
 
-    <h2>What Medical Data Is Collected</h2>
+    <h2>2. Special Category Data We Process</h2>
+    <table>
+      <thead>
+        <tr><th>Data Type</th><th>Legal Basis</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Patient identification and details</td><td>Contract performance / Legitimate interest</td></tr>
+        <tr><td>Medical history and diagnoses</td><td>Article 9(2)(h) — Medical treatment</td></tr>
+        <tr><td>Vaccination records</td><td>Article 9(2)(h) — Medical treatment / Legal obligation</td></tr>
+        <tr><td>Treatment records and prescriptions</td><td>Article 9(2)(h) — Medical treatment</td></tr>
+        <tr><td>Laboratory test results</td><td>Article 9(2)(h) — Medical diagnosis</td></tr>
+        <tr><td>Surgical and procedure records</td><td>Article 9(2)(h) — Medical treatment</td></tr>
+        <tr><td>Prescribed medications</td><td>Article 9(2)(h) — Medical treatment</td></tr>
+        <tr><td>Medical imaging and documents</td><td>Article 9(2)(h) — Medical diagnosis</td></tr>
+        <tr><td>Hospitalization records</td><td>Article 9(2)(h) — Medical treatment</td></tr>
+        <tr><td>Billing and insurance information</td><td>Contract performance / Legal obligation</td></tr>
+      </tbody>
+    </table>
+
+    <h2>3. Retention Schedule</h2>
+    <table>
+      <thead>
+        <tr><th>Record Type</th><th>Retention Period</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Active patient records</td><td>Retained indefinitely while patient is active</td></tr>
+        <tr><td>Inactive patient records</td><td>Minimum 10 years from last treatment</td></tr>
+        <tr><td>After 10-year retention period</td><td>Anonymised for research or securely deleted</td></tr>
+      </tbody>
+    </table>
+    <div class="warning-box">
+      <strong>Important:</strong> Medical records <strong>cannot be deleted on request</strong> during the mandatory 10-year retention period. This retention is required by veterinary medical law and supersedes the right to erasure under GDPR Article 17(3)(b).
+    </div>
+
+    <h2>4. Who Accesses Medical Records</h2>
     <ul>
-      <li>Patient (animal) identification and details</li>
-      <li>Medical history and diagnoses</li>
-      <li>Treatment records and prescriptions</li>
-      <li>Vaccination records</li>
-      <li>Laboratory test results</li>
-      <li>Hospitalisation records</li>
-      <li>Billing and insurance information</li>
+      <li><strong>Your veterinary clinic staff</strong> — Full access as data controller</li>
+      <li><strong>FurrButler technical team</strong> — Limited access for system maintenance only, under strict confidentiality obligations</li>
+      <li><strong>Referral veterinarians</strong> — With explicit consent from the clinic, when necessary for treatment continuity</li>
+      <li><strong>Regulatory authorities</strong> — If required by law or court order</li>
     </ul>
 
-    <h2>Legal Basis for Processing</h2>
-    <p>Medical data is processed under <strong>GDPR Article 9(2)(h)</strong> — processing necessary for medical diagnosis, the provision of health treatment, and the management of health systems and services. This applies to veterinary medical data by analogy under applicable data protection frameworks.</p>
+    <h2>5. Patient Rights with Medical Exceptions</h2>
+    <table class="rights-table">
+      <thead>
+        <tr><th>Right</th><th>Availability</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Right to Access</td><td><span style="color:green;font-weight:bold;">YES</span> — Full access</td><td>Pet owners can request full copies of their pet's medical records from the clinic</td></tr>
+        <tr><td>Right to Rectification</td><td><span style="color:green;font-weight:bold;">YES</span></td><td>Corrections must be verified by the treating veterinarian before being applied</td></tr>
+        <tr><td>Right to Erasure</td><td><span style="color:#ef6c00;font-weight:bold;">LIMITED</span></td><td>Cannot erase records during the mandatory 10-year retention period (Article 17(3)(b))</td></tr>
+        <tr><td>Right to Portability</td><td><span style="color:green;font-weight:bold;">YES</span></td><td>Records can be exported and transferred to another veterinary clinic at any time</td></tr>
+        <tr><td>Right to Object</td><td><span style="color:#ef6c00;font-weight:bold;">LIMITED</span></td><td>Cannot object to processing that is legally required for veterinary record-keeping</td></tr>
+      </tbody>
+    </table>
 
-    <h2>Data Retention</h2>
-    <p>Medical records are retained for a <strong>minimum of 10 years</strong> as required by medical legal obligations. This data <strong>cannot be deleted on request</strong> during the mandatory retention period due to legal retention obligations.</p>
-
-    <h2>Who Has Access to Records</h2>
+    <h2>6. Data Security</h2>
     <ul>
-      <li>The veterinary clinic staff who created the records (data controller)</li>
-      <li>FurrButler as data processor (for technical hosting only)</li>
-      <li>The pet owner, upon verified request to the clinic</li>
-      <li>Regulatory authorities where required by law</li>
+      <li><strong>Encrypted storage:</strong> All medical data is stored with encryption at rest</li>
+      <li><strong>Access logging:</strong> All access to patient records is logged with timestamp, user, and action</li>
+      <li><strong>Role-based access control:</strong> Only authorised clinic staff can access patient records</li>
+      <li><strong>Regular security audits:</strong> Periodic review of access controls and security measures</li>
     </ul>
 
-    <h2>Patient Rights</h2>
-    <p>Pet owners have the right to access their pet's medical records through their veterinary clinic. However, the following exceptions apply:</p>
+    <h2>7. Cross-border Transfers</h2>
+    <p>Medical records are stored on Replit servers. Where data is transferred internationally:</p>
     <ul>
-      <li>Medical records cannot be erased during the mandatory 10-year retention period</li>
-      <li>Rectification requests must be verified by the treating veterinarian</li>
-      <li>Data portability is available — records can be transferred to another clinic</li>
+      <li>Standard contractual clauses (SCCs) apply to ensure adequate protection</li>
+      <li>Adequacy decisions by the European Commission are referenced where applicable</li>
+      <li>Data is only transferred where necessary for the provision of the FurrVet service</li>
     </ul>
+
+    <h2>8. Complaints</h2>
+    <p>If you believe your data protection rights have been violated, you may:</p>
+    <ul>
+      <li>Contact your veterinary clinic directly (as data controller)</li>
+      <li>Contact FurrButler at <strong>privacy@furrbutler.com</strong></li>
+      <li>Lodge a complaint with your national data protection authority</li>
+      <li>In India: Contact the <strong>Ministry of Electronics and Information Technology (MeitY)</strong></li>
+      <li>In the EU: Contact your local Data Protection Authority</li>
+    </ul>
+
+    <p class="last-updated">Last updated: April 2026 | Version 1.0</p>
 
     <div class="text-center mt-4 mb-4">
-      <a href="/privacy-policy" class="btn btn-outline-danger me-2">Full Privacy Policy</a>
+      <a href="/furrvet/gdpr/consent" class="btn btn-outline-primary me-2">Update Consents</a>
+      <a href="/privacy-policy" class="btn btn-outline-secondary me-2">General Privacy Policy</a>
       <a href="javascript:history.back()" class="btn btn-outline-secondary">← Go Back</a>
     </div>
   </div>
