@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort, send_from_directory
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from replit_db_shim import db
 import os
@@ -2201,6 +2201,20 @@ def furrvet_login_required(f):
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
     return decorated_function
+
+# React Native Web App
+@app.route('/app')
+@app.route('/app/<path:path>')
+def react_app(path=''):
+    dist_path = os.path.join(
+        os.path.dirname(__file__),
+        'mobile', 'dist')
+    if path and os.path.exists(
+        os.path.join(dist_path, path)):
+        return send_from_directory(
+            dist_path, path)
+    return send_from_directory(
+        dist_path, 'index.html')
 
 # FurrVet Routes
 @app.route('/furrvet')

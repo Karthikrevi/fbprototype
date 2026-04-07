@@ -6,7 +6,7 @@
     "platforms": ["ios", "android", "web"],
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "single"
     },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
