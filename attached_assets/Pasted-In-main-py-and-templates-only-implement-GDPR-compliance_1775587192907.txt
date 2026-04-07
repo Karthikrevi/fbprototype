@@ -1,0 +1,380 @@
+In main.py and templates only,
+implement GDPR compliance across
+all portals and ERPs.
+Do not break any existing routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db
+except where explicitly stated.
+After each template change verify
+the file exists and works.
+
+PART 1 — Shared infrastructure:
+
+Create templates/privacy_policy.html:
+Clean white professional page
+FurrButler header
+Sections:
+1. Who we are and contact details
+2. What personal data we collect:
+   - Pet parents: name, email, phone,
+     pet information, location,
+     booking history, chat messages
+   - Vendors: business name, email,
+     phone, financial records,
+     customer data, employee data
+   - Vets: clinic name, email,
+     patient records (medical data
+     processed under Article 9 GDPR
+     with explicit consent)
+   - Handlers: name, email, phone,
+     travel and passport data
+   - NGOs: organisation name,
+     contact details, stray records
+3. Legal basis for processing:
+   - Contract performance
+   - Legitimate interests
+   - Legal obligation
+   - Consent (where stated)
+4. How long we keep your data:
+   - Account data: until deletion
+     requested + 30 days
+   - Booking records: 7 years
+     (legal requirement)
+   - Medical records: 10 years
+     (medical legal requirement)
+   - Chat messages: 2 years
+   - Financial records: 7 years
+     (tax legal requirement)
+5. Who we share data with:
+   - We do not sell your data
+   - Razorpay for payment processing
+     (when activated)
+   - SendGrid for email delivery
+   - No other third parties
+6. International transfers:
+   - Data stored in Replit servers
+   - Standard contractual clauses apply
+7. Your rights:
+   - Right to access your data
+   - Right to rectification
+   - Right to erasure (with exceptions
+     for legal retention requirements)
+   - Right to data portability
+   - Right to object to processing
+   - Right to withdraw consent
+8. How to exercise your rights:
+   - Email: privacy@furrbutler.com
+   - Or use the in-app data tools
+9. Cookie policy:
+   - We use essential cookies only
+   - No tracking or advertising cookies
+   - Session cookie for login only
+10. Complaints:
+    You have the right to complain
+    to your local data protection
+    authority
+Last updated: current date
+
+Create templates/terms.html:
+Clean white professional page
+Full terms of service covering:
+1. Acceptance of terms
+2. Description of service
+3. User accounts and responsibilities
+4. Vendor responsibilities
+5. Prohibited uses
+6. Intellectual property
+7. Limitation of liability
+8. Dispute resolution
+9. Changes to terms
+10. Governing law: India
+    Jurisdiction: Kerala High Court
+Last updated: current date
+
+Create templates/cookie_consent.html
+as a partial template (not full page):
+A fixed bottom banner:
+"We use essential cookies only to
+keep you logged in. No tracking
+or advertising cookies are used."
+Accept button — sets cookie_consent
+in session, hides banner
+Privacy Policy link
+Only shows if cookie_consent
+not in session
+
+Include this banner in:
+- base template if exists
+- Or add to index.html,
+  login.html, register.html,
+  erp_dashboard.html,
+  vendor_register.html
+
+PART 2 — Pet parent GDPR:
+
+In register.html:
+Add before submit button:
+Required checkbox:
+☐ I agree to the Privacy Policy
+  and Terms of Service (required)
+  Link opens privacy_policy in new tab
+
+Optional checkbox:
+☐ I agree to receive promotional
+  messages from vendors I book with
+
+In the register route in main.py:
+Check gdpr_consent is submitted
+If not return error:
+"Please agree to our Privacy Policy
+to create an account"
+Save marketing_consent to Replit db
+
+Add route /privacy-policy:
+Renders privacy_policy.html
+
+Add route /terms:
+Renders terms.html
+
+Add route /gdpr/download-data GET:
+Requires login
+Compile all data for this user:
+  From Replit db:
+    name, email, phone, join date
+    all pets and their details
+    marketing consent status
+  From SQLite:
+    all bookings
+    all orders
+    all chat messages
+    all reviews submitted
+Return as JSON file download
+Filename: my_furrbutler_data.json
+
+Add route /gdpr/delete-account POST:
+Requires login
+Set in Replit db:
+  deletion_requested = True
+  deletion_date = today + 30 days
+Send email notification:
+  "Your account deletion has been
+   scheduled for [date]. To cancel
+   visit [cancel link]."
+Flash message:
+  "Your account will be deleted in
+   30 days. You can cancel this
+   in Settings."
+Redirect to settings
+
+Add route /gdpr/cancel-deletion GET:
+Requires login
+Clear deletion_requested from Replit db
+Flash: "Account deletion cancelled."
+Redirect to dashboard
+
+Add link to privacy policy in footer
+of dashboard.html and settings.html
+
+Add GDPR section to settings.html:
+Section header: Your Data & Privacy
+Download My Data button
+  → /gdpr/download-data
+Delete My Account button (red)
+  → shows confirmation modal first:
+  "Are you sure? Your account will
+   be permanently deleted in 30 days.
+   This cannot be undone after 30 days."
+  Confirm button → /gdpr/delete-account
+Marketing preferences toggle
+  Shows current consent status
+  Update button saves to Replit db
+
+PART 3 — Vendor ERP GDPR:
+
+In vendor_register.html:
+Add before submit button:
+Required checkbox:
+☐ I agree to the Privacy Policy
+  and Terms of Service (required)
+
+In the vendor registration route:
+Check gdpr_consent submitted
+If not return error
+
+Add route /erp/gdpr/download-data GET:
+Requires vendor login
+Compile all vendor data:
+  From SQLite vendors table:
+    business name, email, phone,
+    address, registration date,
+    subscription details
+  From SQLite:
+    all bookings
+    all orders
+    all products
+    all employees (anonymised)
+    all ledger entries
+    all CRM customers (anonymised
+    — just counts not personal data
+    as that belongs to customers)
+Return as JSON download
+Filename: vendor_furrbutler_data.json
+
+Add route /erp/gdpr/delete-account POST:
+Requires vendor login
+Schedule vendor account deletion:
+  Set is_active = 0 in vendors table
+  Set deletion_date = today + 30 days
+  Set deletion_requested = 1
+Send confirmation email
+Flash message with 30 day notice
+
+Add GDPR section to
+erp_accounting_settings.html or
+erp_profiles.html:
+Download My Business Data button
+Delete My Account button with
+  30 day notice explanation
+Link to Privacy Policy
+
+Add notice about customer data:
+"As a vendor using FurrButler,
+you are a data controller for
+your customer data. You are
+responsible for ensuring your
+customers' data is handled in
+accordance with applicable laws.
+FurrButler processes this data
+on your behalf as a data processor."
+
+PART 4 — FurrVet GDPR:
+
+In furrvet registration or login:
+Add privacy notice prominently:
+"FurrButler processes veterinary
+medical records as a data processor
+on behalf of your clinic. Medical
+data is processed under GDPR Article
+9 with explicit patient consent.
+You remain the data controller
+for all patient records."
+
+Add route /furrvet/gdpr/privacy-notice:
+Renders furrvet_privacy.html with
+specific medical data privacy notice
+
+Create templates/furrvet_privacy.html:
+Medical data specific privacy notice:
+- What medical data is collected
+- Legal basis: Article 9(2)(h)
+  medical diagnosis and treatment
+- Retention: 10 years minimum
+  (medical legal requirement)
+- Cannot be deleted on request
+  due to legal retention obligation
+- Who has access to records
+- Patient rights with medical
+  data exceptions noted
+
+Add link to this notice in
+furrvet_dashboard.html
+
+PART 5 — Handler Portal GDPR:
+
+In handler registration:
+Add gdpr consent checkbox
+Same as vendor registration
+
+Add notice about international data:
+"As FurrWings handles international
+pet travel, your pet's passport and
+health data may be shared with
+destination country authorities
+as required by law. This is
+necessary for the performance
+of the travel contract."
+
+Add route /handler/gdpr/download-data:
+Compile handler profile and
+booking data as JSON download
+
+PART 6 — NGO Portal GDPR:
+
+In NGO registration:
+Add gdpr consent checkbox
+
+Add notice:
+"Stray animal records are not
+personal data under GDPR.
+Staff and volunteer personal
+data is processed for the
+legitimate interest of animal
+welfare management."
+
+Add route /ngo/gdpr/download-data:
+Compile NGO account data as JSON
+
+PART 7 — Admin data breach log:
+
+Create table in SQLite:
+CREATE TABLE IF NOT EXISTS
+data_breach_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    detected_date TEXT,
+    description TEXT,
+    affected_users TEXT,
+    severity TEXT,
+    reported_to_authority BOOLEAN DEFAULT 0,
+    report_date TEXT,
+    resolution TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+Add route /admin/gdpr/breach-log
+GET and POST:
+Admin only route
+Shows all breach log entries
+Form to add new entry
+This is for internal compliance only
+
+PART 8 — React Native API endpoints:
+
+Add these JSON API routes for React:
+
+POST /api/v1/gdpr/consent:
+Body: required_consent,
+      marketing_consent,
+      data_sharing_consent
+Requires token
+Save to Replit db
+Return: { success: true }
+
+GET /api/v1/gdpr/download-data:
+Requires token
+Return all user data as JSON
+
+POST /api/v1/gdpr/delete-account:
+Requires token
+Schedule deletion
+Return: { success, deletion_date }
+
+GET /api/v1/gdpr/cancel-deletion:
+Requires token
+Cancel scheduled deletion
+Return: { success }
+
+POST /api/v1/gdpr/update-preferences:
+Requires token
+Body: marketing_consent,
+      data_sharing_consent
+Update in Replit db
+Return: { success }
+
+Do not modify any existing routes
+except to add consent checkboxes
+to registration forms.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db
+except where explicitly stated above.
+After creating each template verify
+it exists before moving to next.

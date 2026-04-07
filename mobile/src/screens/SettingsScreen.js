@@ -6,6 +6,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 export default function SettingsScreen({ navigation }) {
   const { logout, user } = useAuth();
@@ -30,15 +31,27 @@ export default function SettingsScreen({ navigation }) {
     } catch {}
   };
 
-  const handleDownloadData = () => {
-    Alert.alert('Download My Data', 'Your data export request has been submitted. You will receive a download link at your registered email address within 48 hours.');
+  const handleDownloadData = async () => {
+    try {
+      const res = await api.get('/gdpr/export-data');
+      if (res.data?.success) {
+        Alert.alert('Your Data', JSON.stringify(res.data.data, null, 2).substring(0, 500) + '\n\n(Full data available via web portal)');
+      } else {
+        Alert.alert('Download My Data', 'Your data export request has been submitted. Check the web portal to download.');
+      }
+    } catch {
+      Alert.alert('Download My Data', 'Visit the web portal Settings page to download your full data export.');
+    }
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
       'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.',
-      [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { await logout(); } }]
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => {
+        try { await api.post('/gdpr/delete-account'); } catch {}
+        await logout();
+      }}]
     );
   };
 

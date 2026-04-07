@@ -217,5 +217,26 @@
             });
         }
     </script>
+
+    <div class="settings-container">
+        <div class="settings-card">
+            <h4 style="color:#667eea;margin-bottom:20px;">📋 GDPR & Data Rights</h4>
+            <p style="color:#555;font-size:0.9rem;">Under applicable data protection laws, you have the right to access, export, and delete your business data.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;">
+                <a href="/privacy-policy" class="btn btn-outline-primary btn-sm" target="_blank">Privacy Policy</a>
+                <a href="/terms" class="btn btn-outline-primary btn-sm" target="_blank">Terms of Service</a>
+            </div>
+            <hr>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <a href="/gdpr/vendor-export-data" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-download"></i> Download Business Data
+                </a>
+                <button class="btn btn-outline-danger btn-sm" onclick="if(confirm('Are you sure you want to schedule your vendor account for deletion? This cannot be undone.') && prompt('Type DELETE to confirm') === 'DELETE') { document.getElementById('vendorDeleteForm').submit(); }">
+                    <i class="fas fa-trash-alt"></i> Delete Vendor Account
+                </button>
+                <form id="vendorDeleteForm" method="POST" action="/gdpr/vendor-delete-account" style="display:none;"></form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

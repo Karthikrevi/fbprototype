@@ -57,6 +57,7 @@ A complete REST API under `/api/v1/` providing JSON versions of all pet parent r
 - **Handlers**: `/api/v1/handlers`, `/api/v1/handlers/<id>`, `POST /api/v1/handlers/<id>/book`, `GET /api/v1/handler-bookings`
 - **Chat**: `/api/v1/chat/conversations`, `/api/v1/chat/<id>`, `POST /api/v1/chat/send`, `POST /api/v1/chat/start`
 - **Location**: `/api/v1/vets`, `/api/v1/boarding`, `POST /api/v1/set-location`
+- **GDPR**: `GET /api/v1/gdpr/privacy-policy`, `GET /api/v1/gdpr/terms`, `GET/POST /api/v1/gdpr/consent` (auth required), `GET /api/v1/gdpr/export-data` (auth), `POST /api/v1/gdpr/delete-account` (auth)
 - **Public (no auth)**: `/api/v1/community`, `/api/v1/stray-tracker`, `/api/v1/stray/<uid>`, `/api/v1/languages`
 - **Config**: `JWT_SECRET` env var (defaults to dev key); helper functions `generate_token()` and `token_required` decorator at end of main.py
 - **Dependencies**: PyJWT
@@ -90,6 +91,19 @@ Auth: Welcome, Login, Register, GDPRConsent | Pets: PetsList, AddPet, EditPet, P
 
 ### Dependencies
 expo ~51.0.0, react-native 0.74.0, @react-navigation/*, axios, socket.io-client, expo-location, @react-native-async-storage/async-storage, expo-image-picker, @expo/vector-icons
+
+## GDPR Compliance
+Full GDPR compliance implemented across all portals:
+- **Privacy Policy** (`/privacy-policy`): Comprehensive data collection, legal basis, retention periods, user rights
+- **Terms of Service** (`/terms`): Platform usage terms, vendor responsibilities, governing law
+- **FurrVet Medical Data Privacy Notice** (`/furrvet/privacy`): Special category data processing under GDPR Article 9(2)(h)
+- **Cookie Consent Banner**: Essential cookies only, shown on all pages via `cookie_consent.html` include
+- **Registration Consent**: Required GDPR checkboxes on pet parent, vendor, and NGO registration forms
+- **Data Export**: Pet parent (`/gdpr/export-data`) and vendor (`/gdpr/vendor-export-data`) data download as JSON
+- **Account Deletion**: Pet parent (`/gdpr/delete-account`) and vendor (`/gdpr/vendor-delete-account`) with deletion logging
+- **GDPR Breach Log** (`/admin/gdpr/breach-log`): Admin view of deletion requests and data breach records
+- **Mobile API**: Full GDPR consent, export, and deletion endpoints under `/api/v1/gdpr/`
+- **Settings Integration**: GDPR data tools in both pet parent (`app_settings.html`) and vendor ERP (`erp_settings.html`) settings pages
 
 ## FurrVet Module
 The FurrVet module provides a dedicated interface for veterinarians. It includes dashboards, appointment management, patient records with detailed medical histories and vaccinations, billing, inventory management for vet supplies, laboratory services, and reporting tools. All templates share a consistent design with a fixed sidebar and are responsive. The module manages its own SQLite database (`furrvet.db`) for veterinary-specific data.

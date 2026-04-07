@@ -2393,16 +2393,24 @@ def register():
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
+        gdpr_consent = request.form.get("gdpr_consent")
 
         if not email or not password:
             return "Please enter both email and password."
+
+        if not gdpr_consent:
+            return "You must agree to the Privacy Policy and Terms of Service to register."
 
         if f"user:{email}" in db:
             return "User already exists. Try logging in."
 
         db[f"user:{email}"] = {
             "email": email,
-            "password": password
+            "password": password,
+            "gdpr_consents": {
+                "privacy_policy": {"accepted": True, "timestamp": datetime.now().isoformat(), "version": "1.0"},
+                "terms_of_service": {"accepted": True, "timestamp": datetime.now().isoformat(), "version": "1.0"}
+            }
         }
 
         return redirect(url_for("login"))
@@ -2476,8 +2484,13 @@ def vendor_register():
         bio = request.form.get("bio")
         image_url = request.form.get("image_url")
 
+        gdpr_consent = request.form.get("gdpr_consent")
+
         if not email or not password or not name or not category:
             return "Missing required fields."
+
+        if not gdpr_consent:
+            return "You must agree to the Privacy Policy and Terms of Service to register."
 
         vendor_key = f"vendor:{email}"
         if db.get(vendor_key):
@@ -4621,6 +4634,11 @@ def ngo_register():
     if request.method == "POST":
         import secrets
         
+        gdpr_consent = request.form.get("gdpr_consent")
+        if not gdpr_consent:
+            flash("You must agree to the Privacy Policy and Terms of Service to register.")
+            return render_template("ngo_register.html")
+
         form_data = {
             'name': request.form.get("name"),
             'email': request.form.get("email"),
@@ -15296,6 +15314,264 @@ def api_set_location(current_user, user_type):
 def api_languages():
     languages = get_supported_languages()
     return jsonify({'success': True, 'languages': languages})
+
+
+@app.route('/privacy-policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+
+@app.route('/terms')
+def terms_of_service():
+    return render_template('terms.html')
+
+@app.route('/furrvet/privacy')
+def furrvet_privacy():
+    return render_template('furrvet_privacy.html')
+
+@app.route('/accept-cookies', methods=["POST"])
+def accept_cookies():
+    session['cookie_consent'] = True
+    return redirect(request.referrer or url_for("dashboard"))
+
+@app.route('/gdpr/export-data')
+def gdpr_export_data():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    import json as json_mod
+    email = session["user"]
+    export = {"email": email, "exported_at": datetime.now().isoformat()}
+    
+    user_data = db.get(f"user:{email}")
+    if user_data:
+        safe_data = {k: v for k, v in user_data.items() if k != "password"}
+        export["profile"] = safe_data
+    
+    pets_data = db.get(f"pets:{email}")
+    if pets_data:
+        export["pets"] = pets_data
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, vendor_id, service, date, time, duration, status, pet_name FROM bookings WHERE user_email=?", (email,))
+    bookings = c.fetchall()
+    conn.close()
+    if bookings:
+        export["bookings"] = [{"id": b[0], "vendor_id": b[1], "service": b[2], "date": b[3], "time": b[4], "duration": b[5], "status": b[6], "pet_name": b[7]} for b in bookings]
+    
+    response = app.response_class(
+        response=json_mod.dumps(export, indent=2, default=str),
+        status=200,
+        mimetype='application/json'
+    )
+    response.headers["Content-Disposition"] = f"attachment; filename=furrbutler_data_{email}.json"
+    return response
+
+@app.route('/gdpr/delete-account', methods=["POST"])
+def gdpr_delete_account():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    email = session["user"]
+    
+    user_data = db.get(f"user:{email}")
+    if user_data:
+        user_data["gdpr_deletion_scheduled"] = datetime.now().isoformat()
+        user_data["gdpr_deletion_status"] = "scheduled"
+        db[f"user:{email}"] = user_data
+    
+    gdpr_log_entry = {
+        "action": "account_deletion_scheduled",
+        "user_type": "pet_parent",
+        "email": email,
+        "timestamp": datetime.now().isoformat(),
+        "status": "scheduled"
+    }
+    breach_log = db.get("gdpr:deletion_log") or []
+    breach_log.append(gdpr_log_entry)
+    db["gdpr:deletion_log"] = breach_log
+    
+    session.clear()
+    flash("Your account deletion has been scheduled. Your data will be removed within 30 days.")
+    return redirect(url_for("login"))
+
+@app.route('/gdpr/vendor-export-data')
+def gdpr_vendor_export_data():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    
+    import json as json_mod
+    email = session["vendor"]
+    export = {"email": email, "exported_at": datetime.now().isoformat(), "user_type": "vendor"}
+    
+    vendor_data = db.get(f"vendor:{email}")
+    if vendor_data:
+        safe_data = {k: v for k, v in vendor_data.items() if k != "password"}
+        export["profile"] = safe_data
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM vendors WHERE email=?", (email,))
+    vendor_row = c.fetchone()
+    if vendor_row:
+        cols = [desc[0] for desc in c.description]
+        vendor_dict = dict(zip(cols, vendor_row))
+        vendor_dict.pop("password", None)
+        export["vendor_record"] = vendor_dict
+        
+        vendor_id = vendor_row[0]
+        c.execute("SELECT id, user_email, service, date, time, duration, status, pet_name FROM bookings WHERE vendor_id=?", (vendor_id,))
+        bookings = c.fetchall()
+        if bookings:
+            export["bookings"] = [{"id": b[0], "user_email": b[1], "service": b[2], "date": b[3], "time": b[4], "duration": b[5], "status": b[6], "pet_name": b[7]} for b in bookings]
+    conn.close()
+    
+    response = app.response_class(
+        response=json_mod.dumps(export, indent=2, default=str),
+        status=200,
+        mimetype='application/json'
+    )
+    response.headers["Content-Disposition"] = f"attachment; filename=furrbutler_vendor_data_{email}.json"
+    return response
+
+@app.route('/gdpr/vendor-delete-account', methods=["POST"])
+def gdpr_vendor_delete_account():
+    if "vendor" not in session:
+        return redirect(url_for("vendor_login"))
+    
+    email = session["vendor"]
+    
+    vendor_data = db.get(f"vendor:{email}")
+    if vendor_data:
+        vendor_data["gdpr_deletion_scheduled"] = datetime.now().isoformat()
+        vendor_data["gdpr_deletion_status"] = "scheduled"
+        db[f"vendor:{email}"] = vendor_data
+    
+    gdpr_log_entry = {
+        "action": "account_deletion_scheduled",
+        "user_type": "vendor",
+        "email": email,
+        "timestamp": datetime.now().isoformat(),
+        "status": "scheduled"
+    }
+    breach_log = db.get("gdpr:deletion_log") or []
+    breach_log.append(gdpr_log_entry)
+    db["gdpr:deletion_log"] = breach_log
+    
+    session.clear()
+    flash("Your vendor account deletion has been scheduled. Your data will be removed within 30 days.")
+    return redirect(url_for("vendor_login"))
+
+
+@app.route('/api/v1/gdpr/privacy-policy')
+def api_gdpr_privacy_policy():
+    return jsonify({
+        "success": True,
+        "privacy_policy_url": url_for("privacy_policy", _external=True),
+        "last_updated": "2026-04-07",
+        "version": "1.0"
+    })
+
+@app.route('/api/v1/gdpr/terms')
+def api_gdpr_terms():
+    return jsonify({
+        "success": True,
+        "terms_url": url_for("terms_of_service", _external=True),
+        "last_updated": "2026-04-07",
+        "version": "1.0"
+    })
+
+@app.route('/api/v1/gdpr/consent', methods=["POST"])
+@token_required
+def api_gdpr_consent(current_user, user_type):
+    data = request.get_json()
+    consent_type = data.get("consent_type", "privacy_policy")
+    accepted = data.get("accepted", False)
+    
+    user_data = db.get(f"user:{current_user}")
+    if not user_data:
+        return jsonify({"success": False, "message": "User not found"}), 404
+    
+    if "gdpr_consents" not in user_data:
+        user_data["gdpr_consents"] = {}
+    
+    user_data["gdpr_consents"][consent_type] = {
+        "accepted": accepted,
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0"
+    }
+    db[f"user:{current_user}"] = user_data
+    
+    return jsonify({"success": True, "message": "Consent recorded"})
+
+@app.route('/api/v1/gdpr/consent', methods=["GET"])
+@token_required
+def api_gdpr_get_consent(current_user, user_type):
+    user_data = db.get(f"user:{current_user}")
+    if not user_data:
+        return jsonify({"success": False, "message": "User not found"}), 404
+    
+    consents = user_data.get("gdpr_consents", {})
+    return jsonify({"success": True, "consents": consents})
+
+@app.route('/api/v1/gdpr/export-data')
+@token_required
+def api_gdpr_export_data(current_user, user_type):
+    export = {"email": current_user, "exported_at": datetime.now().isoformat()}
+    
+    user_data = db.get(f"user:{current_user}")
+    if user_data:
+        safe_data = {k: v for k, v in user_data.items() if k != "password"}
+        export["profile"] = safe_data
+    
+    pets_data = db.get(f"pets:{current_user}")
+    if pets_data:
+        export["pets"] = pets_data
+    
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id, vendor_id, service, date, time, duration, status, pet_name FROM bookings WHERE user_email=?", (current_user,))
+    bookings = c.fetchall()
+    conn.close()
+    if bookings:
+        export["bookings"] = [{"id": b[0], "vendor_id": b[1], "service": b[2], "date": b[3], "time": b[4], "duration": b[5], "status": b[6], "pet_name": b[7]} for b in bookings]
+    
+    return jsonify({"success": True, "data": export})
+
+@app.route('/api/v1/gdpr/delete-account', methods=["POST"])
+@token_required
+def api_gdpr_delete_account(current_user, user_type):
+    user_data = db.get(f"user:{current_user}")
+    if user_data:
+        user_data["gdpr_deletion_scheduled"] = datetime.now().isoformat()
+        user_data["gdpr_deletion_status"] = "scheduled"
+        db[f"user:{current_user}"] = user_data
+    
+    gdpr_log_entry = {
+        "action": "account_deletion_scheduled",
+        "user_type": "pet_parent",
+        "email": current_user,
+        "timestamp": datetime.now().isoformat(),
+        "status": "scheduled",
+        "source": "mobile_app"
+    }
+    breach_log = db.get("gdpr:deletion_log") or []
+    breach_log.append(gdpr_log_entry)
+    db["gdpr:deletion_log"] = breach_log
+    
+    return jsonify({"success": True, "message": "Account deletion scheduled. Your data will be removed within 30 days."})
+
+
+@app.route('/admin/gdpr/breach-log')
+def admin_gdpr_breach_log():
+    if "admin" not in session:
+        return redirect(url_for("login"))
+    
+    deletion_log = db.get("gdpr:deletion_log") or []
+    breach_log = db.get("gdpr:breach_log") or []
+    
+    return render_template("gdpr_breach_log.html", deletion_log=deletion_log, breach_log=breach_log)
+
 
 # Run app
 if __name__ == '__main__':

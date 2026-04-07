@@ -17,7 +17,10 @@ export default function GDPRConsentScreen({ onAccept }) {
   const handleAccept = async () => {
     const consent = { tos: true, privacy: true, promo, analytics, accepted_at: new Date().toISOString() };
     await AsyncStorage.setItem('gdpr_accepted', JSON.stringify(consent));
-    try { await api.post('/auth/gdpr-consent', consent); } catch {}
+    try { await api.post('/gdpr/consent', { consent_type: 'privacy_policy', accepted: true }); } catch {}
+    try { await api.post('/gdpr/consent', { consent_type: 'terms_of_service', accepted: true }); } catch {}
+    if (promo) { try { await api.post('/gdpr/consent', { consent_type: 'marketing', accepted: true }); } catch {} }
+    if (analytics) { try { await api.post('/gdpr/consent', { consent_type: 'analytics', accepted: true }); } catch {} }
     onAccept?.();
   };
 

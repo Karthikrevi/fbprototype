@@ -187,6 +187,49 @@
         </label>
       </div>
     </div>
+
+    <div class="setting-section">
+      <div class="section-title">
+        📋 GDPR & Data Rights
+      </div>
+      <p style="color:#555;font-size:0.9rem;">Under applicable data protection laws, you have the right to access, export, and delete your personal data.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;">
+        <a href="/privacy-policy" class="btn btn-outline-primary btn-sm" target="_blank">Privacy Policy</a>
+        <a href="/terms" class="btn btn-outline-primary btn-sm" target="_blank">Terms of Service</a>
+      </div>
+      <hr>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/gdpr/export-data" class="btn btn-outline-success btn-sm">
+          <i class="fas fa-download"></i> Download My Data
+        </a>
+        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+          <i class="fas fa-trash-alt"></i> Delete My Account
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">Delete Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>This action cannot be undone.</strong></p>
+          <p>All your personal data, pet profiles, and booking history will be permanently deleted within 30 days. Some data may be retained for legal purposes (e.g., financial records for 7 years).</p>
+          <p>Type <strong>DELETE</strong> below to confirm:</p>
+          <input type="text" class="form-control" id="deleteConfirmInput" placeholder="Type DELETE">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form method="POST" action="/gdpr/delete-account" style="margin:0;" id="deleteAccountForm">
+            <button type="submit" class="btn btn-danger" id="deleteAccountBtn" disabled>Permanently Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -207,6 +250,13 @@
     document.getElementById('languageForm').addEventListener('change', function() {
       this.submit();
     });
+
+    var delInput = document.getElementById('deleteConfirmInput');
+    if (delInput) {
+      delInput.addEventListener('input', function() {
+        document.getElementById('deleteAccountBtn').disabled = this.value !== 'DELETE';
+      });
+    }
   </script>
 </body>
 </html>
