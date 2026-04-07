@@ -2494,39 +2494,10 @@ def login():
 
     return render_template("login.html")
 
-# Vendor Login
-@app.route('/vendor-login', methods=["GET", "POST"])
+# Vendor Login - redirect to unified ERP login
+@app.route('/vendor-login')
 def vendor_login():
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-
-        if not email or not password:
-            return "Please enter both email and password."
-
-        # Check SQLite database first
-        conn = sqlite3.connect('erp.db')
-        c = conn.cursor()
-        c.execute("SELECT * FROM vendors WHERE email=? AND password=?", (email, password))
-        vendor = c.fetchone()
-        conn.close()
-
-        if vendor:
-            session["vendor"] = email
-            return redirect(url_for("erp_dashboard"))
-        else:
-            # Fallback to old Replit database for backward compatibility
-            vendor_key = f"vendor:{email}"
-            vendor = db.get(vendor_key)
-            
-            if vendor and vendor["password"] == password:
-                session["vendor"] = email
-                return redirect(url_for("erp_dashboard"))
-            else:
-                return "Invalid vendor login."
-
-    return render_template("vendor_login.html")
-
+    return redirect(url_for("erp_login"))
 
 #Vendor Register
 @app.route('/vendor-register', methods=["GET", "POST"])
@@ -2564,7 +2535,7 @@ def vendor_register():
             "image_url": image_url or "https://images.unsplash.com/photo-1522075469751-3847ae47cab9?w=400&h=400&fit=crop&crop=face"
         }
 
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     return render_template("vendor_register.html")
 
@@ -6047,7 +6018,57 @@ def manage_employees():
     employees = c.fetchall()
 
     conn.close()
-    return redirect(url_for("manage_leaves"))
+    return render_template("manage_employees.html", employees=employees)
+
+@app.route('/erp/hr/employees/add', methods=["GET", "POST"])
+@require_module('hr_management')
+def add_employee():
+    if "vendor" not in session:
+        return redirect(url_for("erp_login"))
+
+    email = session["vendor"]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM vendors WHERE email=?", (email,))
+    vendor_result = c.fetchone()
+
+    if not vendor_result:
+        conn.close()
+        return redirect(url_for("erp_login"))
+
+    vendor_id = vendor_result[0]
+
+    if request.method == "POST":
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
+        name = f"{first_name} {last_name}".strip()
+        emp_email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        position = request.form.get("position", "").strip()
+        base_salary = float(request.form.get("base_salary", 0))
+        hourly_rate = float(request.form.get("hourly_rate", 0))
+        join_date = request.form.get("join_date", "")
+        emergency_contact = request.form.get("emergency_contact", "").strip()
+        skills = request.form.get("skills", "").strip()
+        certifications = request.form.get("certifications", "").strip()
+
+        if not name or not emp_email or not position or not join_date:
+            flash("Please fill in all required fields.")
+            conn.close()
+            return redirect(url_for("add_employee"))
+
+        c.execute("""
+            INSERT INTO employees
+            (vendor_id, name, email, phone, position, base_salary, hourly_rate, join_date, emergency_contact, skills, certifications)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (vendor_id, name, emp_email, phone, position, base_salary, hourly_rate, join_date, emergency_contact, skills, certifications))
+        conn.commit()
+        conn.close()
+        flash("Employee added successfully!")
+        return redirect(url_for("manage_employees"))
+
+    conn.close()
+    return render_template("employee_add.html")
 
 @app.route('/erp/hr/timesheets', methods=["GET", "POST"])
 def manage_timesheets():
@@ -7201,7 +7222,7 @@ def accounting_dashboard():
     # Check if user is logged in as vendor
     if "vendor" not in session:
         # If not logged in as vendor, redirect to vendor login
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7253,7 +7274,7 @@ def accounting_dashboard():
 @app.route('/erp/reports/ledger')
 def general_ledger():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn= sqlite3.connect('erp.db')
@@ -7274,7 +7295,7 @@ def general_ledger():
 @require_module('advanced_accounting')
 def profit_loss():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7338,7 +7359,7 @@ def profit_loss():
 @app.route('/erp/reports/pnl/export')
 def pnl_export_csv():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
@@ -7379,7 +7400,7 @@ def pnl_export_csv():
 @app.route('/erp/reports/ledger/export')
 def ledger_export_csv():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
@@ -7412,7 +7433,7 @@ def ledger_export_csv():
 @app.route('/erp/reports/inventory')
 def inventory_report():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7434,7 +7455,7 @@ def inventory_report():
 @app.route('/erp/reports/expenses', methods=["GET", "POST"])
 def manage_expenses():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7525,7 +7546,7 @@ def manage_expenses():
 @app.route('/erp/finance/journal-entry', methods=["GET", "POST"])
 def journal_entry():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7570,7 +7591,7 @@ def journal_entry():
 @app.route('/erp/finance/invoice/create', methods=["GET", "POST"])
 def create_invoice():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7657,7 +7678,7 @@ def create_invoice():
 @app.route('/erp/finance/gst-summary')
 def gst_summary():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -7761,7 +7782,7 @@ def gst_summary():
 @app.route('/erp/finance/ca-package')
 def ca_package():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
@@ -7905,7 +7926,7 @@ def _ca_get_vendor(session_obj):
 @app.route('/erp/finance/ca-package/export/zip')
 def ca_export_zip():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     import zipfile
     conn_result = _ca_get_vendor(session)
     conn, c, vendor_row = conn_result
@@ -8021,7 +8042,7 @@ def ca_export_zip():
 
 def _ca_single_csv(csv_name, header, row_fn):
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     conn_result = _ca_get_vendor(session)
     conn, c, vendor_row = conn_result
     if not conn:
@@ -8132,7 +8153,7 @@ def ca_export_sales():
 @app.route('/erp/reports/settings', methods=["GET", "POST"])
 def accounting_settings():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -8191,7 +8212,7 @@ def accounting_settings():
 @app.route('/erp/reports/sales')
 def sales_analytics():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -8262,7 +8283,7 @@ def sales_analytics():
 @require_module('advanced_inventory')
 def inventory_analytics():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -11576,7 +11597,7 @@ def on_leave(data):
 @app.route('/erp/finance/accounts-receivable', methods=["GET", "POST"])
 def accounts_receivable():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -11642,7 +11663,7 @@ def accounts_receivable():
 @app.route('/erp/finance/receivable/pay/<int:entry_id>', methods=["POST"])
 def receivable_pay(entry_id):
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -11700,7 +11721,7 @@ def receivable_pay(entry_id):
 @app.route('/erp/finance/accounts-payable', methods=["GET", "POST"])
 def accounts_payable():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -11766,7 +11787,7 @@ def accounts_payable():
 @app.route('/erp/finance/payable/pay/<int:entry_id>', methods=["POST"])
 def payable_pay(entry_id):
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -11823,7 +11844,7 @@ def payable_pay(entry_id):
 @app.route('/erp/finance/balance-sheet')
 def balance_sheet():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -11942,7 +11963,7 @@ def balance_sheet():
 @app.route('/erp/finance/cash-flow')
 def cash_flow_statement():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12018,7 +12039,7 @@ def cash_flow_statement():
 @app.route('/erp/finance/tax-management')
 def tax_management():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12065,7 +12086,7 @@ def tax_management():
 @app.route('/erp/finance/planning-analysis')
 def financial_planning():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12133,7 +12154,7 @@ def financial_planning():
 @app.route('/erp/finance/board-report')
 def board_report():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12347,7 +12368,7 @@ def board_report():
 @app.route('/erp/finance/budget', methods=["GET", "POST"])
 def budget_planning():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12431,7 +12452,7 @@ def budget_planning():
 @app.route('/erp/finance/kpi-dashboard')
 def kpi_dashboard():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12622,7 +12643,7 @@ def kpi_dashboard():
 @app.route('/erp/finance/kpi-dashboard/add-kpi', methods=["POST"])
 def kpi_add():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12655,7 +12676,7 @@ def kpi_add():
 @app.route('/erp/finance/kpi-dashboard/remove-kpi/<int:kpi_id>', methods=["POST"])
 def kpi_remove(kpi_id):
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12674,7 +12695,7 @@ def kpi_remove(kpi_id):
 @app.route('/erp/finance/kpi-dashboard/save-kpis', methods=["POST"])
 def kpi_save():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -12697,7 +12718,7 @@ def kpi_save():
 @app.route('/erp/finance/revenue-recognition')
 def revenue_recognition():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
 
     email = session["vendor"]
     conn = sqlite3.connect('erp.db')
@@ -15488,7 +15509,7 @@ def gdpr_delete_account():
 @app.route('/gdpr/vendor-export-data')
 def gdpr_vendor_export_data():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     
     import json as json_mod
     email = session["vendor"]
@@ -15527,7 +15548,7 @@ def gdpr_vendor_export_data():
 @app.route('/gdpr/vendor-delete-account', methods=["POST"])
 def gdpr_vendor_delete_account():
     if "vendor" not in session:
-        return redirect(url_for("vendor_login"))
+        return redirect(url_for("erp_login"))
     
     email = session["vendor"]
     
@@ -15550,7 +15571,7 @@ def gdpr_vendor_delete_account():
     
     session.clear()
     flash("Your vendor account deletion has been scheduled. Your data will be removed within 30 days.")
-    return redirect(url_for("vendor_login"))
+    return redirect(url_for("erp_login"))
 
 
 @app.route('/api/v1/gdpr/privacy-policy')
@@ -15762,7 +15783,7 @@ def furrwings_privacy_notice():
 @app.route('/erp/gdpr/dpa')
 def erp_gdpr_dpa():
     if 'vendor' not in session:
-        return redirect(url_for('vendor_login'))
+        return redirect(url_for('erp_login'))
     return render_template('erp_dpa.html')
 
 @app.route('/admin/gdpr/breach-log', methods=["POST"])

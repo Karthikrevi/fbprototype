@@ -1,0 +1,175 @@
+In main.py and templates only,
+fix these remaining route hygiene issues.
+Do not modify any existing templates
+except where explicitly stated.
+Create new templates where required.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Fix manage_employees.html:
+
+The route /erp/hr/employees currently
+redirects to employee_leaves.html
+which is wrong — that is a different page.
+
+Create templates/manage_employees.html:
+Same purple gradient styling as other
+HRM templates.
+Show list of all employees for this vendor
+pulled from {{ employees }} variable.
+
+Each employee card shows:
+- Employee name and position
+- Email and phone
+- Base salary
+- Join date
+- Attendance status today if available
+- View button → /erp/hr/employees/{{ e.id }}
+- Edit button → /erp/hr/employees/{{ e.id }}/edit
+
+Add Employee button at top linking to
+/erp/hr/employees/add or showing
+inline form with fields:
+first_name, last_name, email, phone,
+position, base_salary, join_date,
+hourly_rate, emergency_contact
+
+If no employees show empty state:
+"No employees yet. Add your first
+team member to get started."
+
+Back button to /erp/dashboard
+
+Update the /erp/hr/employees route
+in main.py to render manage_employees.html
+instead of redirecting to leaves page.
+
+PART 2 — Consolidate vendor login:
+
+Check if both /vendor-login and
+/erp/login exist as separate routes.
+If yes:
+Make /vendor-login redirect to /erp/login
+So there is only one vendor login page.
+Update any redirects in vendor routes
+that point to vendor_login to use
+erp_login instead.
+
+PART 3 — Verify portal login pages exist:
+
+Check these routes exist and render
+a proper login template:
+/vet/login → FurrWings vet login
+/isolation/login → Isolation center login
+
+If /vet/login does not exist:
+Add route that renders
+furrwings_vet_login.html or
+redirects to /furrvet/login
+whichever is more appropriate.
+
+If /isolation/login does not exist:
+Add route that renders
+isolation_login.html
+With same styling as other login pages.
+Fields: email, password
+On success set isolation session keys.
+
+PART 4 — Fix /erp redirect:
+
+Check if /erp alone (without /dashboard)
+redirects correctly.
+If /erp → /erp/dashboard → /erp/reports
+that is two hops — fix to:
+/erp → /erp/dashboard directly.
+
+PART 5 — Update back buttons in templates:
+
+In these templates only, update the
+back button href to use the correct
+portal dashboard:
+
+In all /erp/ templates:
+Back to Dashboard buttons should link to
+/erp/dashboard not /dashboard
+
+In all /furrvet/ templates:
+Back buttons should link to
+/furrvet/dashboard
+
+In all handler portal templates:
+Back buttons should link to
+/handler/dashboard
+
+In all NGO templates:
+Back buttons should link to
+/ngo/dashboard
+
+Specifically check and fix these files:
+general_ledger.html → back to /erp/reports
+accounts_payable.html → back to /erp/reports
+accounts_receivable.html → back to /erp/reports
+journal_entry.html → back to /erp/reports
+gst_summary.html → back to /erp/reports
+ca_package.html → back to /erp/reports
+manage_expenses.html → back to /erp/reports
+invoice_create.html → back to /erp/reports
+manage_time_slots.html → back to /erp/dashboard
+crm_dashboard.html → back to /erp/dashboard
+inventory_forecast.html → back to /erp/inventory
+
+PART 6 — Fix dead routes:
+
+Find any route in main.py that:
+- Has only pass as content
+- Returns empty string
+- Renders a template that does
+  not exist in templates folder
+
+For each one either:
+- Create the missing template
+- Or redirect to nearest working page
+- Document which ones were found
+
+PART 7 — Add employee add route:
+
+Add route /erp/hr/employees/add
+GET and POST:
+GET: Render employee_add.html with
+a form to add new employee.
+Fields:
+  first_name text required
+  last_name text required
+  email text required
+  phone text
+  position text required
+  base_salary number required
+  hourly_rate number
+  join_date date required
+  emergency_contact text
+  skills text
+  certifications text
+
+POST: Save to employees table
+with vendor_id from session
+Redirect to /erp/hr/employees
+on success
+
+Create templates/employee_add.html:
+Same purple gradient styling
+Form with all fields listed above
+Save Employee button
+Cancel button → /erp/hr/employees
+Back button → /erp/hr/employees
+
+Do not modify any existing templates
+except back button fixes in Part 5.
+Create new templates where required.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
