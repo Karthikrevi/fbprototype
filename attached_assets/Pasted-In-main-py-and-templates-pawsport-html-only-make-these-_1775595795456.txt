@@ -1,0 +1,132 @@
+In main.py and templates/pawsport.html
+only, make these specific fixes.
+Do not modify any other files.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+FIX 1 — Age calculation:
+
+In the pet_passport route in main.py:
+Calculate age dynamically from
+the pet's birthday field.
+
+from datetime import date
+
+def calculate_pet_age(birthday_str):
+    if not birthday_str:
+        return 'Unknown'
+    try:
+        birthday = date.fromisoformat(
+            birthday_str)
+        today = date.today()
+        years = today.year - birthday.year
+        months = today.month - birthday.month
+        if today.day < birthday.day:
+            months -= 1
+        if months < 0:
+            years -= 1
+            months += 12
+        if years == 0:
+            return f'{months} months old'
+        elif months == 0:
+            return f'{years} years old'
+        else:
+            return (f'{years} years '
+                    f'{months} months old')
+    except:
+        return 'Unknown'
+
+Pass calculated_age to pawsport.html
+Replace "Age calculated" text with
+{{ calculated_age }}
+
+FIX 2 — Document verification badges:
+
+In pawsport_documents table
+add verified_by column:
+ALTER TABLE pawsport_documents
+ADD COLUMN verified_by TEXT
+DEFAULT 'self';
+
+In pawsport.html for every
+uploaded document show:
+
+If document.verified = 1
+and document.verified_by = 'furrvet':
+  Show green badge:
+  "✓ Verified by FurrVet"
+
+If document.verified = 1
+and document.verified_by = 'handler':
+  Show blue badge:
+  "✓ Verified by Handler"
+
+If document.verified = 0
+or document.verified_by = 'self':
+  Show red badge:
+  "⚠ Unverified — Self Uploaded"
+
+FIX 3 — Upload disclaimer:
+
+In pawsport.html below every
+upload button add this text
+in small grey italic:
+"Self-uploaded documents are not
+verified by FurrButler"
+
+Add a notice box at top of
+Identity tab documents section:
+Yellow background notice:
+"📋 Document Verification
+Documents uploaded by verified vets
+on FurrVet show a green verified badge.
+Self-uploaded documents are marked
+as unverified. Always verify documents
+with the issuing authority."
+
+FIX 4 — Lock microchip field:
+
+In pet_detail.html and edit_pet.html:
+If pet has a microchip number
+already saved (not empty):
+  Show the microchip as read-only text
+  Do not show an editable input
+  Show note: "Contact a verified vet
+  to update microchip information"
+
+If microchip is empty:
+  Show editable input as normal
+
+In the edit pet route in main.py:
+If microchip field already has a value
+in the database ignore any submitted
+microchip value and keep existing
+Do not allow overwriting microchip
+once set
+
+FIX 5 — Completion percentage:
+
+In the pet_passport route:
+Only count documents as complete
+if document.verified = 1
+Not just if they exist
+
+Update the completion calculation:
+verified_docs = count of documents
+  where verified = 1
+total_required = 6
+completion_pct = int(
+  verified_docs / total_required * 100)
+
+Self-uploaded unverified documents
+do not count toward completion.
+
+Show tooltip on completion ring:
+"Completion based on verified
+documents only. Upload documents
+through FurrVet or registered
+handlers to increase your score."
+
+Do not modify any other files.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

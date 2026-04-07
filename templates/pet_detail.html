@@ -91,9 +91,17 @@
             <p><strong>Pet Parent:</strong> {{ pet.parent_name or 'Not specified' }}</p>
             <p><strong>Contact:</strong> {{ pet.parent_phone or 'Not specified' }}</p>
             <p><strong>Blood Type:</strong> {{ pet.blood or 'Not specified' }}</p>
+            <p><strong>Microchip:</strong>
+              {% if pet.get('microchip') and pet.microchip.strip() %}
+                🔒 {{ pet.microchip }}
+                <br><small class="text-muted">Contact a verified vet to update microchip information</small>
+              {% else %}
+                Not registered
+              {% endif %}
+            </p>
             <p><strong>Age:</strong> 
               {% if pet.birthday %}
-                {{ ((2024 - pet.birthday.split('-')[0]|int) if pet.birthday else 'Unknown') }} years old
+                {{ ((2026 - pet.birthday.split('-')[0]|int) if pet.birthday else 'Unknown') }} years old
               {% else %}
                 Unknown
               {% endif %}

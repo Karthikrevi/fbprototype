@@ -205,7 +205,15 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           </div>
           <div class="col-md-6">
-            <!-- Empty column for spacing -->
+            <div class="mb-3">
+              <label class="form-label">Microchip Number</label>
+              {% if pet.get('microchip') and pet.microchip.strip() %}
+              <input type="text" class="form-control" value="{{ pet.microchip }}" readonly disabled style="background:#f0f0f0">
+              <small class="form-text text-muted"><i class="fas fa-lock"></i> Contact a verified vet to update microchip information</small>
+              {% else %}
+              <input type="text" class="form-control" name="microchip" value="" placeholder="e.g. 900123456789012">
+              {% endif %}
+            </div>
           </div>
         </div>
         

@@ -3191,8 +3191,38 @@ def pet_passport(pet_index):
     from datetime import date as date_cls
     today = date_cls.today().isoformat()
 
+    def calculate_pet_age(birthday_str):
+        if not birthday_str:
+            return 'Unknown'
+        try:
+            birthday = date_cls.fromisoformat(birthday_str)
+            td = date_cls.today()
+            years = td.year - birthday.year
+            months = td.month - birthday.month
+            if td.day < birthday.day:
+                months -= 1
+            if months < 0:
+                years -= 1
+                months += 12
+            if years == 0:
+                return f'{months} months old'
+            elif months == 0:
+                return f'{years} years old'
+            else:
+                return f'{years} years {months} months old'
+        except:
+            return 'Unknown'
+
+    calculated_age = calculate_pet_age(pet.get('birthday', ''))
+
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
+
+    try:
+        c.execute("ALTER TABLE pawsport_documents ADD COLUMN verified_by TEXT DEFAULT 'self'")
+        conn.commit()
+    except:
+        pass
 
     c.execute("SELECT * FROM pawsport_documents WHERE pet_index=? AND user_email=? ORDER BY created_at DESC",
               (pet_index, user))
@@ -3206,7 +3236,7 @@ def pet_passport(pet_index):
 
     required_doc_types = ['Microchip Certificate', 'Vaccination Records', 'Health Certificate',
                           'DGFT Certificate', 'AQCS Certificate', 'Quarantine Clearance']
-    verified_count = sum(1 for dt in required_doc_types if dt in doc_map and doc_map[dt][9])
+    verified_count = sum(1 for dt in required_doc_types if dt in doc_map and doc_map[dt][9] == 1)
     completion_pct = int((verified_count / len(required_doc_types)) * 100) if required_doc_types else 0
 
     c.execute("""SELECT * FROM pet_reminders WHERE pet_index=? AND user_email=? AND reminder_type='Vaccination'
@@ -3247,6 +3277,7 @@ def pet_passport(pet_index):
                          pawsport_docs=pawsport_docs, doc_map=doc_map,
                          required_doc_types=required_doc_types,
                          completion_pct=completion_pct,
+                         calculated_age=calculated_age,
                          vaccination_records=vaccination_records,
                          active_medications=active_medications,
                          medical_history=medical_history,
@@ -3354,7 +3385,6 @@ def edit_pet(pet_index):
         return redirect(url_for("pet_profile"))
 
     if request.method == "POST":
-        # Update the pet information
         pets[pet_index]["name"] = request.form.get("name")
         pets[pet_index]["parent_name"] = request.form.get("parent_name")
         pets[pet_index]["parent_phone"] = request.form.get("parent_phone")
@@ -3362,6 +3392,12 @@ def edit_pet(pet_index):
         pets[pet_index]["species"] = request.form.get("species")
         pets[pet_index]["breed"] = request.form.get("breed")
         pets[pet_index]["blood"] = request.form.get("blood")
+
+        existing_microchip = (pets[pet_index].get("microchip") or "").strip()
+        if not existing_microchip:
+            new_microchip = request.form.get("microchip", "").strip()
+            if new_microchip:
+                pets[pet_index]["microchip"] = new_microchip
 
         # Handle photo upload
         file = request.files.get("photo")

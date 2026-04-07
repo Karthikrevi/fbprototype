@@ -1,0 +1,429 @@
+In main.py and templates only,
+build the pet insurance feature.
+Do not modify any existing templates
+except pet_detail.html and pawsport.html
+where explicitly stated.
+Create new templates where required.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Database:
+
+Add to init_erp_db() in main.py:
+
+CREATE TABLE IF NOT EXISTS
+pet_insurance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pet_index INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    provider_name TEXT NOT NULL,
+    policy_number TEXT,
+    coverage_type TEXT,
+    coverage_amount REAL,
+    premium_monthly REAL,
+    premium_annual REAL,
+    start_date TEXT,
+    end_date TEXT,
+    claims_contact TEXT,
+    policy_document_url TEXT,
+    status TEXT DEFAULT 'active'
+        CHECK(status IN
+        ('active','expired','cancelled')),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+PART 2 — Insurance providers data:
+
+Create /static/data/insurance_providers.json:
+{
+  "providers": [
+    {
+      "id": "digit",
+      "name": "Digit Insurance",
+      "logo_emoji": "🔵",
+      "tagline": "Simple pet insurance",
+      "species": ["Dog", "Cat"],
+      "affiliate_url": 
+        "https://www.godigit.com/pet-insurance?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Basic",
+          "coverage": "Accidents only",
+          "monthly_from": 199,
+          "annual_from": 1999,
+          "coverage_amount": 50000,
+          "highlights": [
+            "Accident cover up to ₹50,000",
+            "Emergency vet visits",
+            "24/7 vet helpline"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Routine checkups",
+            "Dental treatment"
+          ]
+        },
+        {
+          "name": "Standard",
+          "coverage": "Accidents + Illness",
+          "monthly_from": 399,
+          "annual_from": 3999,
+          "coverage_amount": 100000,
+          "highlights": [
+            "Illness cover up to ₹1,00,000",
+            "Hospitalisation",
+            "Surgery cover",
+            "24/7 vet helpline"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Cosmetic procedures",
+            "Breeding costs"
+          ]
+        },
+        {
+          "name": "Comprehensive",
+          "coverage": "Full cover",
+          "monthly_from": 699,
+          "annual_from": 6999,
+          "coverage_amount": 200000,
+          "highlights": [
+            "Full medical cover ₹2,00,000",
+            "Dental treatment",
+            "Alternative therapies",
+            "Boarding if owner hospitalised",
+            "Third party liability"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Elective procedures"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bajaj",
+      "name": "Bajaj Allianz",
+      "logo_emoji": "🟠",
+      "tagline": "Trusted pet protection",
+      "species": ["Dog"],
+      "affiliate_url":
+        "https://www.bajajallianz.com/pet-insurance.html?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Dog Shield Basic",
+          "coverage": "Accidents + Illness",
+          "monthly_from": 299,
+          "annual_from": 2999,
+          "coverage_amount": 75000,
+          "highlights": [
+            "Medical cover ₹75,000",
+            "Accident hospitalisation",
+            "Surgery cover",
+            "Vet consultation"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Elective surgery",
+            "Breeding"
+          ]
+        },
+        {
+          "name": "Dog Shield Premium",
+          "coverage": "Comprehensive",
+          "monthly_from": 599,
+          "annual_from": 5999,
+          "coverage_amount": 150000,
+          "highlights": [
+            "Full cover ₹1,50,000",
+            "Dental treatment",
+            "Physiotherapy",
+            "Emergency boarding",
+            "Death benefit"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Racing or working dogs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hdfc",
+      "name": "HDFC ERGO",
+      "logo_emoji": "🔴",
+      "tagline": "Reliable pet care cover",
+      "species": ["Dog", "Cat"],
+      "affiliate_url":
+        "https://www.hdfcergo.com/pet-insurance?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Pet Health Plan",
+          "coverage": "Illness + Accidents",
+          "monthly_from": 349,
+          "annual_from": 3499,
+          "coverage_amount": 100000,
+          "highlights": [
+            "Medical cover ₹1,00,000",
+            "In-patient treatment",
+            "Day care procedures",
+            "Emergency transport"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Grooming",
+            "Vitamins and supplements"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tata",
+      "name": "Tata AIG",
+      "logo_emoji": "🔷",
+      "tagline": "Complete pet protection",
+      "species": ["Dog", "Cat"],
+      "affiliate_url":
+        "https://www.tataaig.com/health-insurance/pet-insurance?ref=FURRBUTLER001",
+      "plans": [
+        {
+          "name": "Pet Secure",
+          "coverage": "Full medical cover",
+          "monthly_from": 449,
+          "annual_from": 4499,
+          "coverage_amount": 125000,
+          "highlights": [
+            "Medical cover ₹1,25,000",
+            "Accident and illness",
+            "Specialist consultations",
+            "Diagnostic tests",
+            "24/7 claims support"
+          ],
+          "exclusions": [
+            "Pre-existing conditions",
+            "Experimental treatments",
+            "Breeding costs"
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+PART 3 — Routes in main.py:
+
+Add route /pet/<int:pet_index>/insurance
+GET:
+Pull pet details from Replit db
+Pull existing policies from
+pet_insurance table for this pet
+Load insurance_providers.json
+Filter providers by pet species
+Pass all to pet_insurance.html
+
+Add route /pet/<int:pet_index>/insurance/add
+GET and POST:
+GET: render add_insurance.html
+POST: save policy to pet_insurance table
+  Create renewal reminder automatically
+  in pet_reminders table:
+    reminder_type = Other
+    title = Insurance Renewal Due
+    description = provider_name policy
+    due_date = end_date - 30 days
+    priority = high
+    source = system
+  Redirect to /pet/<pet_index>/insurance
+
+Add route
+/pet/<int:pet_index>/insurance/<int:pol_id>/cancel
+POST:
+Set status = cancelled in pet_insurance
+Flash message
+Redirect back to insurance page
+
+PART 4 — Create templates:
+
+Create templates/pet_insurance.html:
+
+Header: Navy blue gradient
+"🐾 Pet Insurance for {{ pet.name }}"
+Subtitle: "Protect {{ pet.name }}
+with the right insurance plan"
+
+SECTION 1 — Active Policies:
+If policies exist show each as a card:
+  Provider name and logo emoji
+  Policy number
+  Coverage type and amount
+  Premium per month
+  Valid until date
+  Days remaining badge:
+    Green if > 60 days
+    Yellow if 30-60 days
+    Red if < 30 days
+  Claims contact number
+  Cancel Policy button
+  View Document button if uploaded
+
+If no policies:
+"{{ pet.name }} is not insured yet.
+Compare plans below to get started."
+
+SECTION 2 — Compare Plans:
+
+Species filter notice:
+"Showing plans available for
+{{ pet.species }}"
+
+For each provider filtered by species:
+Provider card header:
+  Logo emoji, name, tagline
+  "Available for {{ pet.species }}" badge
+
+Plans in a row for this provider:
+For each plan show a card:
+  Plan name
+  Coverage description
+  Coverage amount in large text
+  From ₹{{ monthly_from }}/month
+  or ₹{{ annual_from }}/year
+
+  Highlights list with ✅ icons:
+    Show first 3 highlights
+    Show More toggle for rest
+
+  Exclusions list with ❌ icons:
+    Show first 2 exclusions
+    Show More toggle for rest
+
+  Two buttons:
+    Track Existing Policy button
+    → /pet/<index>/insurance/add
+      with provider pre-selected
+
+    Get Quote button
+    → Opens affiliate URL in new tab
+    → Shows disclaimer modal first:
+      "You are being redirected to
+      {{ provider.name }} to complete
+      your purchase. FurrButler may
+      receive a referral commission.
+      FurrButler does not handle
+      insurance claims."
+      Continue button opens URL
+      Cancel closes modal
+
+  Most popular badge on
+  Standard/middle plan of each provider
+
+SECTION 3 — Why Insure Your Pet:
+
+Clean info section:
+4 cards:
+  💰 Financial Protection
+  "Vet bills can reach ₹50,000-₹2,00,000
+  for serious conditions. Insurance
+  covers the unexpected."
+
+  🏥 Better Care
+  "With insurance you can choose
+  the best treatment without worrying
+  about cost."
+
+  🧘 Peace of Mind
+  "Know that {{ pet.name }} is covered
+  whatever happens."
+
+  📋 Easy Claims
+  "Direct claims with your insurer.
+  FurrButler helps you track your
+  policy and renewal dates."
+
+SECTION 4 — Disclaimer:
+
+Light grey box at bottom:
+"FurrButler is not an insurance company
+and does not sell or underwrite insurance
+policies. We help you compare and access
+insurance products from IRDAI registered
+insurers. FurrButler may receive a
+referral commission from insurers.
+For claims and policy queries contact
+your insurer directly.
+Insurance is subject to terms and
+conditions of the respective insurer."
+
+Back button to /pet/{{ pet_index }}
+
+Create templates/add_insurance.html:
+
+Header: "📋 Track Your Policy"
+Subtitle: "Add your existing policy details"
+
+Form POSTing to
+/pet/<pet_index>/insurance/add:
+
+Provider dropdown pre-filled
+if coming from insurance page:
+  Digit Insurance
+  Bajaj Allianz
+  HDFC ERGO
+  Tata AIG
+  Care Insurance
+  New India Assurance
+  Other (text input appears)
+
+Plan/Coverage Type text input
+Policy Number text input required
+Coverage Amount number input
+Monthly Premium number input
+Annual Premium number input
+Policy Start Date date picker
+Policy End Date date picker
+Claims Contact Number text input
+Upload Policy Document file input
+  accepting pdf jpg png
+
+Save Policy button
+Cancel button
+
+Note below form:
+"Your renewal reminder will be
+automatically set 30 days before
+your policy expires."
+
+Back button to insurance page
+
+PART 5 — Add insurance entry point:
+
+In templates/pet_detail.html only:
+Add a new Quick Action button:
+  🛡️ Insurance
+  → /pet/{{ pet_index }}/insurance
+
+In pawsport.html Medical tab only:
+Add insurance section at top
+of medical tab before vaccinations:
+
+Active Insurance:
+If pet has active insurance show:
+  Provider, coverage amount,
+  valid until date, days remaining
+  View Full Details button
+  → /pet/<pet_index>/insurance
+
+If no insurance:
+  "Not insured" with red badge
+  Get Insurance button
+  → /pet/<pet_index>/insurance
+
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.

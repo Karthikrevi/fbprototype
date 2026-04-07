@@ -1,0 +1,333 @@
+In main.py and templates only,
+build the pet friendly venues feature.
+Do not modify any existing templates
+except dashboard.html where explicitly
+stated.
+Create new templates where required.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Database:
+
+Add to init_erp_db():
+
+CREATE TABLE IF NOT EXISTS
+pet_friendly_venues (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    venue_type TEXT NOT NULL
+        CHECK(venue_type IN
+        ('restaurant','hotel','cafe',
+        'park','beach','resort',
+        'activity','other')),
+    address TEXT,
+    city TEXT NOT NULL,
+    state TEXT,
+    pincode TEXT,
+    phone TEXT,
+    website TEXT,
+    google_maps_url TEXT,
+    booking_url TEXT,
+    latitude REAL,
+    longitude REAL,
+    pet_policy TEXT,
+    max_pet_size TEXT
+        CHECK(max_pet_size IN
+        ('small','medium','large','all')),
+    pet_fee TEXT,
+    amenities TEXT,
+    rating REAL DEFAULT 0,
+    review_count INTEGER DEFAULT 0,
+    verified BOOLEAN DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    added_by TEXT DEFAULT 'admin',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE IF NOT EXISTS
+venue_bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    venue_id INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    pet_index INTEGER,
+    booking_reference TEXT,
+    booking_platform TEXT,
+    check_in_date TEXT,
+    check_out_date TEXT,
+    booking_url TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'confirmed',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (venue_id)
+        REFERENCES pet_friendly_venues(id)
+)
+
+CREATE TABLE IF NOT EXISTS
+venue_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    venue_id INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    pet_index INTEGER,
+    rating INTEGER
+        CHECK(rating >= 1
+        AND rating <= 5),
+    review_text TEXT,
+    pet_welcome_rating INTEGER,
+    amenities_rating INTEGER,
+    visit_date TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+PART 2 — Seed data:
+
+Insert sample pet friendly venues
+for Malappuram and Kerala:
+
+INSERT OR IGNORE INTO
+pet_friendly_venues VALUES:
+
+1. name: Casino Hotel Kochi
+   venue_type: hotel
+   city: Kochi
+   state: Kerala
+   pet_policy: Small pets allowed
+     with prior approval
+   max_pet_size: small
+   pet_fee: ₹500 per night
+   amenities: Pet bed, food bowls,
+     walking area
+   website: https://casinohotel.in
+   booking_url: https://casinohotel.in/
+     reservations
+   verified: 1
+
+2. name: Fragrant Nature Munnar
+   venue_type: resort
+   city: Munnar
+   state: Kerala
+   pet_policy: Pets welcome in
+     designated cottages
+   max_pet_size: medium
+   pet_fee: ₹300 per night
+   amenities: Garden walks, pet sitting
+   verified: 1
+
+3. name: The Postcard Cuelim Goa
+   venue_type: hotel
+   city: Goa
+   state: Goa
+   pet_policy: Pet friendly property
+   max_pet_size: all
+   pet_fee: No additional charge
+   amenities: Beach access, pet menu,
+     grooming on request
+   verified: 1
+
+4. name: Windflower Prakruthi Bangalore
+   venue_type: resort
+   city: Bangalore
+   state: Karnataka
+   pet_policy: Dogs welcome
+   max_pet_size: large
+   pet_fee: ₹1000 per stay
+   amenities: Large grounds,
+     pet pool, vet on call
+   verified: 1
+
+5. name: Cafe Noir Kochi
+   venue_type: cafe
+   city: Kochi
+   state: Kerala
+   pet_policy: Pets welcome at
+     outdoor seating
+   max_pet_size: all
+   pet_fee: None
+   amenities: Water bowls,
+     outdoor seating, pet snacks
+   verified: 1
+
+Add 10 more similar venues across
+Kerala, Goa, Bangalore, Mumbai, Delhi
+
+PART 3 — Routes:
+
+Add route /pet-friendly GET:
+Params: city, venue_type, pet_size
+Pull venues from pet_friendly_venues
+Apply filters if provided
+Pass to pet_friendly.html
+
+Add route /pet-friendly/<int:venue_id> GET:
+Pull venue details
+Pull reviews for this venue
+Calculate average rating
+Pass to venue_detail.html
+
+Add route /pet-friendly/<int:venue_id>/review
+POST:
+Save to venue_reviews
+Update rating and review_count
+in pet_friendly_venues
+Redirect back to venue detail
+
+Add route
+/pet-friendly/<int:venue_id>/log-booking
+GET and POST:
+GET: render log_booking.html
+POST: save to venue_bookings
+Redirect to venue detail
+
+Add route /my-venue-bookings GET:
+Requires login
+Pull all venue_bookings for this user
+Join with pet_friendly_venues
+Pass to my_venue_bookings.html
+
+PART 4 — Create templates:
+
+Create templates/pet_friendly.html:
+
+Header: Purple gradient
+"🐾 Pet Friendly Places"
+"Discover hotels restaurants and
+cafes that welcome your pets"
+
+Search and filter bar:
+City text input with search button
+Venue type filter tabs:
+  All, Hotels, Restaurants/Cafes,
+  Resorts, Parks, Activities
+Pet size filter:
+  All sizes, Small, Medium, Large
+
+Venue cards in grid:
+For each venue show:
+  Venue name
+  Venue type badge
+  City, State
+  Pet Policy summary
+  Pet Fee
+  Max pet size badge
+  Rating stars
+  Review count
+  Amenities tags
+  Verified badge if verified = 1
+  Two buttons:
+    View Details button
+    → /pet-friendly/<id>
+    Book via {{ platform }} button
+    → Opens booking_url in new tab
+    with disclaimer first
+
+If no venues in searched city:
+"No pet friendly venues found
+in {{ city }} yet.
+Know a pet friendly place?
+Suggest it below."
+Suggestion form:
+  Venue name
+  City
+  Type
+  Website
+POSTs to /pet-friendly/suggest
+
+Create templates/venue_detail.html:
+
+Venue name large header
+Verified badge if verified
+Venue type and city
+
+Info grid:
+  📍 Full address with map link
+  📞 Phone number
+  🌐 Website link
+  🐾 Pet policy full text
+  📏 Max pet size allowed
+  💰 Pet fee
+
+Amenities section:
+Tags for each amenity
+
+Book This Venue section:
+Prominent card:
+  "Book on their website"
+  → booking_url opens new tab
+  Disclaimer text:
+  "You will be redirected to
+  {{ venue.name }} or their booking
+  platform. FurrButler may receive
+  a referral commission.
+  FurrButler does not handle
+  bookings or cancellations."
+  Book Now button
+  Log Existing Booking button
+  → /pet-friendly/<id>/log-booking
+
+Reviews section:
+Average rating display
+Review cards with:
+  Rating stars
+  Review text
+  Visit date
+  Pet welcome rating
+  Amenities rating
+Write a Review button
+  → inline form at bottom
+
+Create templates/log_booking.html:
+
+"📋 Log Your Booking"
+Form with:
+  Venue name (pre-filled, read only)
+  Booking platform dropdown:
+    Direct booking
+    Booking.com
+    MakeMyTrip
+    Airbnb
+    Goibibo
+    Other
+  Booking Reference text input
+  Pet dropdown from user's pets
+  Check In date picker
+  Check Out date picker
+  Notes textarea
+  Booking URL text input optional
+  Save Booking button
+
+Create templates/my_venue_bookings.html:
+
+"🏨 My Pet Travel Bookings"
+Filter: Upcoming / Past / All
+Booking cards showing:
+  Venue name and type
+  Check in and out dates
+  Pet name
+  Booking reference
+  Platform
+  Status badge
+  Visit Again button
+  → venue detail page
+
+PART 5 — Add entry points:
+
+In templates/dashboard.html only:
+Add new tile to the grid:
+  🏨 Pet Friendly Places
+  "Hotels, cafes and restaurants
+  that welcome pets"
+  → /pet-friendly
+
+In templates/pet_detail.html only:
+Add Quick Action button:
+  🏨 Find Pet Friendly Places
+  → /pet-friendly
+
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.

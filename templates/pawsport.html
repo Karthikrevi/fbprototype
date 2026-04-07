@@ -201,19 +201,14 @@
     <div class="id-details">
       <span><i class="fas fa-dna"></i> {{ pet.get('species','') }} — {{ pet.get('breed','') }}</span>
       <span><i class="fas fa-birthday-cake"></i> {{ pet.get('birthday','N/A') }}</span>
-      {% if pet.get('birthday') %}
-      {% set parts = pet.birthday.split('-') %}
-      {% if parts|length == 3 %}
-      <span><i class="fas fa-hourglass-half"></i> Age calculated</span>
-      {% endif %}
-      {% endif %}
+      <span><i class="fas fa-hourglass-half"></i> {{ calculated_age }}</span>
       <span><i class="fas fa-tint"></i> {{ pet.get('blood','N/A') }}</span>
       <span><i class="fas fa-microchip"></i> {{ pet.get('microchip','N/A') }}</span>
     </div>
     <div class="id-meta">Owner: <span>{{ pet.get('parent_name','') }}</span> · Contact: <span>{{ pet.get('parent_phone','') }}</span> · Issued: <span>{{ today }}</span></div>
   </div>
   <div class="id-right">
-    <div class="completion-ring">
+    <div class="completion-ring" title="Completion based on verified documents only. Upload documents through FurrVet or registered handlers to increase your score.">
       <svg width="80" height="80">
         <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
         <circle cx="40" cy="40" r="34" fill="none"
@@ -223,7 +218,7 @@
       </svg>
       <div class="pct">{{ completion_pct }}%</div>
     </div>
-    <div class="completion-label">Complete</div>
+    <div class="completion-label">Verified</div>
   </div>
   {% if completion_pct >= 75 %}
   <div class="stamp stamp-valid">VALID</div>
@@ -274,13 +269,22 @@
           </div>
         </div>
         <div>
+          <div class="section-card" style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.25);margin-bottom:16px">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <span style="font-size:1.3rem">📋</span>
+              <div>
+                <div style="font-weight:600;color:var(--gold);margin-bottom:4px">Document Verification</div>
+                <p style="font-size:.82rem;color:rgba(255,255,255,.65);margin:0;line-height:1.5">Documents uploaded by verified vets on FurrVet show a green verified badge. Self-uploaded documents are marked as unverified. Always verify documents with the issuing authority.</p>
+              </div>
+            </div>
+          </div>
           <div class="section-card">
             <div class="section-title"><i class="fas fa-folder-open"></i> Required Documents</div>
             {% for dt in required_doc_types %}
             <div class="doc-item">
               <div class="doc-left">
                 {% if dt in doc_map %}
-                  {% if doc_map[dt][9] %}
+                  {% if doc_map[dt][9] == 1 %}
                   <span class="doc-icon">✅</span>
                   {% else %}
                   <span class="doc-icon">📎</span>
@@ -297,10 +301,12 @@
               </div>
               <div class="doc-actions">
                 {% if dt in doc_map %}
-                  {% if doc_map[dt][9] %}
-                  <span class="badge-status badge-verified">Verified</span>
+                  {% if doc_map[dt][9] == 1 and doc_map[dt]|length > 13 and doc_map[dt][13] == 'furrvet' %}
+                  <span class="badge-status badge-verified">✓ Verified by FurrVet</span>
+                  {% elif doc_map[dt][9] == 1 and doc_map[dt]|length > 13 and doc_map[dt][13] == 'handler' %}
+                  <span class="badge-status badge-furrvet">✓ Verified by Handler</span>
                   {% else %}
-                  <span class="badge-status badge-uploaded">Uploaded</span>
+                  <span class="badge-status badge-missing">⚠ Unverified — Self Uploaded</span>
                   {% endif %}
                   {% if doc_map[dt][5] %}
                   <a href="{{ doc_map[dt][5] }}" target="_blank" class="btn-outline btn-sm"><i class="fas fa-eye"></i></a>
@@ -308,6 +314,7 @@
                 {% else %}
                 <span class="badge-status badge-missing">Missing</span>
                 <button class="btn-outline btn-sm" onclick="openUploadModal('{{ dt }}')"><i class="fas fa-upload"></i> Upload</button>
+                <div style="width:100%"><small style="color:rgba(255,255,255,.35);font-style:italic;font-size:.7rem">Self-uploaded documents are not verified by FurrButler</small></div>
                 {% endif %}
               </div>
             </div>
