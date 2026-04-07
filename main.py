@@ -1929,6 +1929,44 @@ def init_erp_db():
     ''')
 
     c.execute('''
+        CREATE TABLE IF NOT EXISTS pet_travel_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_index INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            travel_type TEXT NOT NULL
+                CHECK(travel_type IN ('domestic','international')),
+            destination TEXT NOT NULL,
+            departure_date TEXT,
+            return_date TEXT,
+            handler_name TEXT,
+            handler_id INTEGER,
+            purpose TEXT,
+            airline TEXT,
+            flight_number TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pawsport_documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pet_index INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            document_type TEXT NOT NULL,
+            document_name TEXT NOT NULL,
+            file_url TEXT,
+            issue_date TEXT,
+            expiry_date TEXT,
+            issued_by TEXT,
+            verified BOOLEAN DEFAULT 0,
+            verification_hash TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS pet_reminders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             pet_index INTEGER NOT NULL,
@@ -3144,69 +3182,164 @@ def pet_passport(pet_index):
 
     user = session["user"]
     pets = db.get(f"pets:{user}", [])
-    
+
     if pet_index < 0 or pet_index >= len(pets):
         flash("Pet not found!")
         return redirect(url_for("pet_profile"))
 
     pet = pets[pet_index]
-    pet_id = pet_index + 1  # Simple ID mapping for now
+    from datetime import date as date_cls
+    today = date_cls.today().isoformat()
 
-    # Get passport documents for this pet
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    
-    c.execute("""
-        SELECT doc_type, uploaded_by_role, uploaded_by_user_id, filename, upload_time, status, comments
-        FROM passport_documents 
-        WHERE pet_id = ?
-        ORDER BY upload_time DESC
-    """, (pet_id,))
-    
-    documents = c.fetchall()
+
+    c.execute("SELECT * FROM pawsport_documents WHERE pet_index=? AND user_email=? ORDER BY created_at DESC",
+              (pet_index, user))
+    pawsport_docs = c.fetchall()
+
+    doc_map = {}
+    for d in pawsport_docs:
+        dtype = d[3]
+        if dtype not in doc_map:
+            doc_map[dtype] = d
+
+    required_doc_types = ['Microchip Certificate', 'Vaccination Records', 'Health Certificate',
+                          'DGFT Certificate', 'AQCS Certificate', 'Quarantine Clearance']
+    verified_count = sum(1 for dt in required_doc_types if dt in doc_map and doc_map[dt][9])
+    completion_pct = int((verified_count / len(required_doc_types)) * 100) if required_doc_types else 0
+
+    c.execute("""SELECT * FROM pet_reminders WHERE pet_index=? AND user_email=? AND reminder_type='Vaccination'
+                 ORDER BY due_date DESC""", (pet_index, user))
+    vaccination_records = c.fetchall()
+
+    c.execute("""SELECT * FROM pet_reminders WHERE pet_index=? AND user_email=? AND reminder_type='Medication'
+                 AND is_completed=0 ORDER BY due_date ASC""", (pet_index, user))
+    active_medications = c.fetchall()
+
+    c.execute("""SELECT * FROM pet_reminders WHERE pet_index=? AND user_email=? AND is_completed=1
+                 ORDER BY due_date DESC LIMIT 20""", (pet_index, user))
+    medical_history = c.fetchall()
+
+    pet_name_lower = pet.get('name', '').lower()
+    c.execute("""SELECT * FROM bookings WHERE user_email=? AND LOWER(pet_name)=? AND date>=?
+                 ORDER BY date ASC""", (user, pet_name_lower, today))
+    upcoming_bookings = c.fetchall()
+
+    c.execute("""SELECT * FROM handler_bookings WHERE pet_parent_email=? AND LOWER(pet_name)=?
+                 ORDER BY travel_date DESC""", (user, pet_name_lower))
+    handler_bookings_list = c.fetchall()
+
+    c.execute("""SELECT * FROM pet_travel_history WHERE pet_index=? AND user_email=? AND travel_type='domestic'
+                 ORDER BY departure_date DESC""", (pet_index, user))
+    domestic_travel = c.fetchall()
+
+    c.execute("""SELECT * FROM pet_travel_history WHERE pet_index=? AND user_email=? AND travel_type='international'
+                 ORDER BY departure_date DESC""", (pet_index, user))
+    international_travel = c.fetchall()
+
     conn.close()
 
-    # Organize documents by type
-    doc_status = {}
-    for doc in documents:
-        doc_type = doc[0]
-        if doc_type not in doc_status or doc[4] > doc_status[doc_type]['upload_time']:  # Keep latest
-            doc_status[doc_type] = {
-                'uploaded_by_role': doc[1],
-                'uploaded_by_user_id': doc[2],
-                'filename': doc[3],
-                'upload_time': doc[4],
-                'status': doc[5],
-                'comments': doc[6]
-            }
+    user_id = user.split('@')[0] if '@' in user else user
 
-    # Define required documents and their allowed uploaders
-    required_docs = {
-        'microchip': {'name': 'Microchip Certificate', 'allowed_roles': ['parent']},
-        'vaccine': {'name': 'Vaccination Records', 'allowed_roles': ['vet']},
-        'health_cert': {'name': 'Health Certificate', 'allowed_roles': ['vet']},
-        'dgft': {'name': 'DGFT Certificate', 'allowed_roles': ['handler']},
-        'aqcs': {'name': 'AQCS Certificate', 'allowed_roles': ['handler']},
-        'quarantine': {'name': 'Quarantine Clearance', 'allowed_roles': ['handler']}
-    }
+    return render_template("pawsport.html",
+                         pet=pet, pet_index=pet_index, user_id=user_id,
+                         pawsport_docs=pawsport_docs, doc_map=doc_map,
+                         required_doc_types=required_doc_types,
+                         completion_pct=completion_pct,
+                         vaccination_records=vaccination_records,
+                         active_medications=active_medications,
+                         medical_history=medical_history,
+                         upcoming_bookings=upcoming_bookings,
+                         handler_bookings=handler_bookings_list,
+                         domestic_travel=domestic_travel,
+                         international_travel=international_travel,
+                         today=today)
 
-    # Calculate completion percentage
-    completed_docs = sum(1 for doc_type in required_docs.keys() if doc_type in doc_status and doc_status[doc_type]['status'] == 'approved')
-    completion_percentage = int((completed_docs / len(required_docs)) * 100)
+@app.route('/pet/<int:pet_index>/passport/add-travel', methods=["POST"])
+def passport_add_travel(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+    travel_type = request.form.get("travel_type", "domestic")
+    destination = request.form.get("destination", "").strip()
+    departure_date = request.form.get("departure_date", "")
+    return_date = request.form.get("return_date", "")
+    handler_name = request.form.get("handler_name", "").strip()
+    purpose = request.form.get("purpose", "").strip()
+    airline = request.form.get("airline", "").strip()
+    flight_number = request.form.get("flight_number", "").strip()
+    notes = request.form.get("notes", "").strip()
+    if not destination:
+        flash("Destination is required.")
+        return redirect(url_for("pet_passport", pet_index=pet_index))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO pet_travel_history (pet_index, user_email, travel_type, destination,
+                 departure_date, return_date, handler_name, purpose, airline, flight_number, notes)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+              (pet_index, user, travel_type, destination, departure_date, return_date,
+               handler_name, purpose, airline, flight_number, notes))
+    conn.commit()
+    conn.close()
+    flash("Travel record added successfully!")
+    return redirect(url_for("pet_passport", pet_index=pet_index))
 
-    # Determine user role (simplified - with role switching for testing)
-    user_role = request.args.get('role', 'parent')
-    if user_role not in ['parent', 'vet', 'handler']:
-        user_role = 'parent'
-
-    return render_template("pet_passport.html", 
-                         pet=pet, 
-                         pet_index=pet_index,
-                         pet_id=pet_id,
-                         doc_status=doc_status,
-                         required_docs=required_docs,
-                         completion_percentage=completion_percentage,
-                         user_role=user_role)
+@app.route('/pet/<int:pet_index>/passport/upload-document', methods=["POST"])
+def passport_upload_document(pet_index):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    user = session["user"]
+    pets = db.get(f"pets:{user}", [])
+    if pet_index < 0 or pet_index >= len(pets):
+        flash("Pet not found!")
+        return redirect(url_for("pet_profile"))
+    doc_type = request.form.get("document_type", "").strip()
+    doc_name = request.form.get("document_name", "").strip()
+    issue_date = request.form.get("issue_date", "")
+    expiry_date = request.form.get("expiry_date", "")
+    issued_by = request.form.get("issued_by", "").strip()
+    notes = request.form.get("notes", "").strip()
+    file_url = ""
+    allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'}
+    if 'document_file' in request.files:
+        f = request.files['document_file']
+        if f and f.filename:
+            from werkzeug.utils import secure_filename as sec_fn
+            import uuid
+            safe_name = sec_fn(f.filename)
+            ext = os.path.splitext(safe_name)[1].lower()
+            if ext not in allowed_extensions:
+                flash("Invalid file type. Allowed: PDF, JPG, PNG, DOC.")
+                return redirect(url_for("pet_passport", pet_index=pet_index))
+            fname = f"{uuid.uuid4().hex}{ext}"
+            fpath = os.path.join("static", "uploads", "pawsport", fname)
+            fpath = os.path.normpath(fpath)
+            if not fpath.startswith(os.path.join("static", "uploads", "pawsport")):
+                flash("Invalid file path.")
+                return redirect(url_for("pet_passport", pet_index=pet_index))
+            f.save(fpath)
+            file_url = f"/static/uploads/pawsport/{fname}"
+    if not doc_type or not doc_name:
+        flash("Document type and name are required.")
+        return redirect(url_for("pet_passport", pet_index=pet_index))
+    import hashlib
+    vhash = hashlib.sha256(f"{pet_index}:{user}:{doc_type}:{doc_name}".encode()).hexdigest()[:16]
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO pawsport_documents (pet_index, user_email, document_type, document_name,
+                 file_url, issue_date, expiry_date, issued_by, verification_hash, notes)
+                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
+              (pet_index, user, doc_type, doc_name, file_url, issue_date, expiry_date,
+               issued_by, vhash, notes))
+    conn.commit()
+    conn.close()
+    flash("Document uploaded successfully!")
+    return redirect(url_for("pet_passport", pet_index=pet_index))
 
 @app.route('/pet/<int:pet_index>/edit', methods=["GET", "POST"])
 def edit_pet(pet_index):

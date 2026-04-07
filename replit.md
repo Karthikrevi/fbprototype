@@ -42,6 +42,16 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **FurrVet bridge**: `bridge_furrvet_to_reminder()` utility function to push FurrVet prescriptions as pet parent reminders (matches by owner email and pet name)
 - **Pet detail**: Shows real upcoming bookings from erp.db and active reminders; hardcoded 2024 data removed
 
+## Pawsport System
+- **Template**: `templates/pawsport.html` — multi-tab passport-style design with navy/gold theme
+- **Database tables**: `pet_travel_history` (domestic/international travel records), `pawsport_documents` (uploaded documents with verification)
+- **Routes**: `/pet/<id>/passport` (main pawsport view), `/pet/<id>/passport/add-travel` (POST log trip), `/pet/<id>/passport/upload-document` (POST upload doc)
+- **5 tabs**: Identity (pet details + required documents checklist), Medical (vaccinations, medications, history + manual record form), Travel Bookings (upcoming bookings + handler bookings + document requirements), Domestic Journeys (stats + timeline), International Journeys (stats + timeline with stamps)
+- **Required documents**: Microchip Certificate, Vaccination Records, Health Certificate, DGFT Certificate, AQCS Certificate, Quarantine Clearance — tracked for completion percentage
+- **Uploads stored in**: `static/uploads/pawsport/`
+- **Print support**: CSS print stylesheet formats Identity tab as A4 page
+- **Tab persistence**: Selected tab saved in localStorage per pet
+
 # External Dependencies
 - **Core Frameworks**: Flask, React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, React Native, Expo.
 - **Database**: SQLite, PostgreSQL.

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pawsport - {{ pet.name }} - FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--navy:#1a1f3a;--navy-light:#252b4a;--navy-mid:#2d345a;--gold:#c9a84c;--gold-light:#e0c872;--gold-dim:rgba(201,168,76,.15)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--navy);font-family:'Poppins',sans-serif;color:#fff;min-height:100vh}
+    .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--gold);text-decoration:none;padding:16px 24px;font-size:.9rem;transition:color .2s}
+    .back-link:hover{color:var(--gold-light)}
+
+    .passport-header{background:linear-gradient(135deg,#0f1328 0%,var(--navy) 50%,#1e2548 100%);padding:30px 0 20px;border-bottom:3px solid var(--gold);position:relative;overflow:hidden}
+    .passport-header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(201,168,76,.03) 30px,rgba(201,168,76,.03) 60px)}
+    .header-inner{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:relative}
+    .header-logo{font-size:1.3rem;color:var(--gold);display:flex;align-items:center;gap:8px}
+    .header-logo i{font-size:1.5rem}
+    .header-title{text-align:center}
+    .header-title h1{font-family:'Playfair Display',serif;color:var(--gold);font-size:2.2rem;letter-spacing:6px;font-weight:700;margin:0}
+    .header-title p{color:rgba(255,255,255,.6);font-size:.8rem;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+    .header-id{text-align:right;font-size:.8rem;color:rgba(255,255,255,.5);line-height:1.6}
+    .header-id span{color:var(--gold);font-weight:600;font-size:.9rem;display:block}
+    @media(max-width:640px){.header-inner{flex-direction:column;gap:10px;text-align:center}.header-title h1{font-size:1.6rem;letter-spacing:3px}.header-id{text-align:center}}
+
+    .id-card{max-width:1100px;margin:-1px auto 0;background:linear-gradient(135deg,var(--navy-light),var(--navy-mid));border:1px solid rgba(201,168,76,.25);border-top:none;border-radius:0 0 16px 16px;padding:28px;display:flex;gap:28px;align-items:center;position:relative;overflow:hidden}
+    .id-card::before{content:'🐾';position:absolute;right:20px;bottom:10px;font-size:5rem;opacity:.04}
+    @media(max-width:768px){.id-card{flex-direction:column;text-align:center;padding:20px}}
+    .id-photo{width:110px;height:110px;border-radius:50%;border:3px solid var(--gold);background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:3rem;color:var(--gold);overflow:hidden}
+    .id-photo img{width:100%;height:100%;object-fit:cover}
+    .id-info{flex:1}
+    .id-name{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--gold);font-weight:700;margin-bottom:4px}
+    .id-details{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:.85rem;color:rgba(255,255,255,.7)}
+    .id-details span{display:flex;align-items:center;gap:4px}
+    .id-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px}
+    @media(max-width:768px){.id-right{align-items:center}}
+    .completion-ring{position:relative;width:80px;height:80px}
+    .completion-ring svg{transform:rotate(-90deg)}
+    .completion-ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:var(--gold)}
+    .completion-label{font-size:.7rem;color:rgba(255,255,255,.5);text-transform:uppercase}
+    .id-meta{font-size:.78rem;color:rgba(255,255,255,.5);margin-top:2px}
+    .id-meta span{color:var(--gold)}
+
+    .tab-wrap{max-width:1100px;margin:20px auto 0;padding:0 24px}
+    .tab-nav{display:flex;gap:4px;border-bottom:2px solid rgba(201,168,76,.2);overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:0}
+    .tab-nav::-webkit-scrollbar{height:0}
+    .tab-btn{background:none;border:none;color:rgba(255,255,255,.5);padding:12px 20px;font-size:.85rem;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s;font-family:'Poppins',sans-serif}
+    .tab-btn:hover{color:rgba(255,255,255,.8)}
+    .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);background:var(--gold-dim)}
+    @media(max-width:640px){.tab-btn{padding:10px 14px;font-size:.8rem}}
+
+    .tab-content{max-width:1100px;margin:0 auto;padding:20px 24px 60px}
+    .tab-pane{display:none;animation:fadeTab .3s ease}
+    .tab-pane.active{display:block}
+    @keyframes fadeTab{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    .section-card{background:var(--navy-light);border:1px solid rgba(201,168,76,.12);border-radius:12px;padding:24px;margin-bottom:20px}
+    .section-title{font-family:'Playfair Display',serif;color:var(--gold);font-size:1.1rem;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(201,168,76,.15);display:flex;align-items:center;gap:8px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    @media(max-width:768px){.two-col{grid-template-columns:1fr}}
+
+    .detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.88rem}
+    .detail-row .lbl{color:rgba(255,255,255,.5)}
+    .detail-row .val{color:#fff;font-weight:500;text-align:right}
+
+    .doc-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;margin-bottom:8px;background:rgba(0,0,0,.15);transition:background .2s}
+    .doc-item:hover{background:rgba(201,168,76,.05)}
+    .doc-left{display:flex;align-items:center;gap:10px}
+    .doc-icon{font-size:1.2rem}
+    .doc-name{font-size:.88rem;font-weight:500}
+    .doc-date{font-size:.72rem;color:rgba(255,255,255,.4)}
+    .doc-actions{display:flex;gap:6px}
+
+    .badge-status{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+    .badge-verified{background:rgba(40,167,69,.2);color:#5ddb7a;border:1px solid rgba(40,167,69,.3)}
+    .badge-uploaded{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid rgba(255,193,7,.3)}
+    .badge-missing{background:rgba(220,53,69,.15);color:#ff6b7a;border:1px solid rgba(220,53,69,.3)}
+    .badge-furrvet{background:rgba(0,123,255,.15);color:#69b4ff;border:1px solid rgba(0,123,255,.3)}
+    .badge-manual{background:rgba(108,117,125,.2);color:#adb5bd;border:1px solid rgba(108,117,125,.3)}
+    .badge-handler{background:rgba(118,75,162,.15);color:#b88ee0;border:1px solid rgba(118,75,162,.3)}
+    .badge-isolation{background:rgba(255,152,0,.15);color:#ffb74d;border:1px solid rgba(255,152,0,.3)}
+    .badge-vet{background:rgba(0,150,136,.15);color:#4dd0c8;border:1px solid rgba(0,150,136,.3)}
+
+    .stamp{position:absolute;right:30px;top:50%;transform:translateY(-50%) rotate(-15deg);font-family:'Playfair Display',serif;font-size:1.8rem;letter-spacing:4px;padding:8px 20px;border:3px solid;border-radius:8px;opacity:.2;pointer-events:none}
+    .stamp-valid{color:#5ddb7a;border-color:#5ddb7a}
+    .stamp-incomplete{color:#ff6b7a;border-color:#ff6b7a}
+
+    .watermark{position:absolute;inset:0;opacity:.02;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='10' y='40' font-size='30'%3E🐾%3C/text%3E%3C/svg%3E");pointer-events:none}
+    .passport-border{position:relative;border:2px solid rgba(201,168,76,.15);border-radius:12px;padding:20px;overflow:hidden}
+    .passport-border .watermark{border-radius:12px}
+
+    .btn-gold{background:linear-gradient(135deg,var(--gold),#b8973f);color:var(--navy);border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+    .btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,168,76,.3);color:var(--navy)}
+    .btn-outline{background:none;border:1px solid var(--gold);color:var(--gold);padding:6px 14px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+    .btn-outline:hover{background:var(--gold-dim);color:var(--gold)}
+    .btn-sm{padding:4px 10px;font-size:.78rem}
+
+    table.passport-table{width:100%;border-collapse:collapse;font-size:.85rem}
+    .passport-table th{color:var(--gold);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid rgba(201,168,76,.2);font-size:.8rem;text-transform:uppercase;letter-spacing:.5px}
+    .passport-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05);color:rgba(255,255,255,.8)}
+    .passport-table tr:hover td{background:rgba(201,168,76,.03)}
+
+    .timeline{position:relative;padding-left:24px}
+    .timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:rgba(201,168,76,.2)}
+    .timeline-item{position:relative;margin-bottom:16px;padding:12px 16px;background:rgba(0,0,0,.15);border-radius:8px;border-left:2px solid var(--gold)}
+    .timeline-item::before{content:'';position:absolute;left:-22px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--navy)}
+    .timeline-date{font-size:.75rem;color:var(--gold);margin-bottom:4px}
+    .timeline-title{font-weight:600;font-size:.9rem;margin-bottom:2px}
+    .timeline-desc{font-size:.82rem;color:rgba(255,255,255,.6)}
+
+    .journey-card{background:rgba(0,0,0,.2);border:1px solid rgba(201,168,76,.1);border-radius:10px;padding:18px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start}
+    .journey-flag{font-size:2rem;flex-shrink:0}
+    .journey-info{flex:1}
+    .journey-dest{font-weight:600;font-size:1rem;margin-bottom:2px}
+    .journey-dates{font-size:.82rem;color:rgba(255,255,255,.5);margin-bottom:4px}
+    .journey-details{font-size:.82rem;color:rgba(255,255,255,.6)}
+    .journey-stamps{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+    .stamp-badge{background:var(--gold-dim);border:1px solid rgba(201,168,76,.3);color:var(--gold);padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+
+    .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+    @media(max-width:640px){.stat-grid{grid-template-columns:1fr}}
+    .stat-box{background:rgba(0,0,0,.2);border:1px solid rgba(201,168,76,.1);border-radius:10px;padding:16px;text-align:center}
+    .stat-num{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gold);font-weight:700}
+    .stat-label{font-size:.75rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px}
+
+    .med-card{background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:10px}
+    .med-name{font-weight:600;color:var(--gold);margin-bottom:4px}
+    .med-detail{font-size:.82rem;color:rgba(255,255,255,.6);margin-bottom:2px}
+
+    .empty-state{text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);font-size:.9rem}
+    .empty-state i{font-size:2.5rem;margin-bottom:10px;display:block;color:rgba(201,168,76,.3)}
+
+    .modal-dark .modal-content{background:var(--navy-light);border:1px solid rgba(201,168,76,.2);color:#fff}
+    .modal-dark .modal-header{border-bottom:1px solid rgba(201,168,76,.15)}
+    .modal-dark .modal-footer{border-top:1px solid rgba(201,168,76,.15)}
+    .modal-dark .form-control,.modal-dark .form-select{background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff}
+    .modal-dark .form-control:focus,.modal-dark .form-select:focus{border-color:var(--gold);box-shadow:0 0 0 .2rem rgba(201,168,76,.15)}
+    .modal-dark .form-label{color:rgba(255,255,255,.7);font-size:.85rem}
+    .modal-dark .btn-close{filter:invert(1)}
+
+    .collapsible-header{cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+    .collapsible-header .chevron{transition:transform .2s}
+    .collapsible-header.collapsed .chevron{transform:rotate(-90deg)}
+
+    .pawsport-footer{max-width:1100px;margin:0 auto 40px;padding:20px 24px;text-align:center;border-top:1px solid rgba(201,168,76,.1)}
+    .pawsport-footer p{font-size:.8rem;color:rgba(255,255,255,.35);margin:4px 0}
+    .qr-placeholder{width:80px;height:80px;border:1px solid rgba(201,168,76,.2);border-radius:8px;margin:10px auto;display:flex;align-items:center;justify-content:center;font-size:2rem;color:rgba(201,168,76,.3)}
+
+    @media print{
+      body{background:#fff !important;color:#1a1f3a !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .back-link,.tab-nav,.tab-btn,.btn-gold,.btn-outline,.modal,.no-print{display:none !important}
+      .tab-pane{display:none !important}
+      #tab-identity{display:block !important}
+      .passport-header,.id-card,.section-card{border-color:var(--gold) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .pawsport-footer{display:block !important}
+      @page{size:A4;margin:1cm}
+    }
+  </style>
+</head>
+<body>
+
+<a href="/pet/{{ pet_index }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to {{ pet.name }}'s Profile</a>
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<div style="max-width:1100px;margin:0 auto;padding:0 24px">
+{% for msg in messages %}
+<div class="alert alert-info alert-dismissible fade show" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold)">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert" style="filter:invert(1)"></button></div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="passport-header">
+  <div class="header-inner">
+    <div class="header-logo"><i class="fas fa-paw"></i> FurrButler</div>
+    <div class="header-title">
+      <h1>PAWSPORT</h1>
+      <p>International Pet Travel Document</p>
+    </div>
+    <div class="header-id">
+      <span>PAW-{{ pet_index }}-{{ user_id }}</span>
+      Document No.
+    </div>
+  </div>
+</div>
+
+<div class="id-card">
+  <div class="id-photo">
+    {% if pet.get('photo') %}
+    <img src="{{ pet.photo }}" alt="{{ pet.name }}">
+    {% else %}
+    🐾
+    {% endif %}
+  </div>
+  <div class="id-info">
+    <div class="id-name">{{ pet.get('name','Unknown') }}</div>
+    <div class="id-details">
+      <span><i class="fas fa-dna"></i> {{ pet.get('species','') }} — {{ pet.get('breed','') }}</span>
+      <span><i class="fas fa-birthday-cake"></i> {{ pet.get('birthday','N/A') }}</span>
+      {% if pet.get('birthday') %}
+      {% set parts = pet.birthday.split('-') %}
+      {% if parts|length == 3 %}
+      <span><i class="fas fa-hourglass-half"></i> Age calculated</span>
+      {% endif %}
+      {% endif %}
+      <span><i class="fas fa-tint"></i> {{ pet.get('blood','N/A') }}</span>
+      <span><i class="fas fa-microchip"></i> {{ pet.get('microchip','N/A') }}</span>
+    </div>
+    <div class="id-meta">Owner: <span>{{ pet.get('parent_name','') }}</span> · Contact: <span>{{ pet.get('parent_phone','') }}</span> · Issued: <span>{{ today }}</span></div>
+  </div>
+  <div class="id-right">
+    <div class="completion-ring">
+      <svg width="80" height="80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
+        <circle cx="40" cy="40" r="34" fill="none"
+          stroke="{% if completion_pct >= 75 %}#5ddb7a{% elif completion_pct >= 50 %}#ffc107{% else %}#ff6b7a{% endif %}"
+          stroke-width="6" stroke-linecap="round"
+          stroke-dasharray="{{ (completion_pct / 100) * 213.6 }} 213.6"/>
+      </svg>
+      <div class="pct">{{ completion_pct }}%</div>
+    </div>
+    <div class="completion-label">Complete</div>
+  </div>
+  {% if completion_pct >= 75 %}
+  <div class="stamp stamp-valid">VALID</div>
+  {% else %}
+  <div class="stamp stamp-incomplete">INCOMPLETE</div>
+  {% endif %}
+</div>
+
+<div class="tab-wrap">
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="identity">🛂 Identity</button>
+    <button class="tab-btn" data-tab="medical">💉 Medical</button>
+    <button class="tab-btn" data-tab="travel">✈️ Travel Bookings</button>
+    <button class="tab-btn" data-tab="domestic">🗺️ Domestic Journeys</button>
+    <button class="tab-btn" data-tab="international">🌍 International Journeys</button>
+  </div>
+</div>
+
+<div class="tab-content">
+
+  <!-- TAB 1: IDENTITY -->
+  <div class="tab-pane active" id="tab-identity">
+    <div class="passport-border">
+      <div class="watermark"></div>
+      <div class="two-col">
+        <div>
+          <div class="section-card">
+            <div class="section-title"><i class="fas fa-id-card"></i> Pet Details</div>
+            <div class="detail-row"><span class="lbl">Full Name</span><span class="val">{{ pet.get('name','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Species</span><span class="val">{{ pet.get('species','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Breed</span><span class="val">{{ pet.get('breed','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Date of Birth</span><span class="val">{{ pet.get('birthday','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Gender</span><span class="val">{{ pet.get('gender','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Colour / Markings</span><span class="val">{{ pet.get('colour', pet.get('color','—')) }}</span></div>
+            <div class="detail-row"><span class="lbl">Weight</span><span class="val">{{ pet.get('weight','—') }} kg</span></div>
+          </div>
+          <div class="section-card">
+            <div class="section-title"><i class="fas fa-fingerprint"></i> Identification</div>
+            <div class="detail-row"><span class="lbl">Microchip Number</span><span class="val">{{ pet.get('microchip','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Blood Type</span><span class="val">{{ pet.get('blood','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Special Needs</span><span class="val">{{ pet.get('special_needs','None') }}</span></div>
+          </div>
+          <div class="section-card">
+            <div class="section-title"><i class="fas fa-user"></i> Owner Details</div>
+            <div class="detail-row"><span class="lbl">Owner Name</span><span class="val">{{ pet.get('parent_name','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Contact</span><span class="val">{{ pet.get('parent_phone','—') }}</span></div>
+            <div class="detail-row"><span class="lbl">Emergency Contact</span><span class="val">{{ pet.get('emergency_contact','—') }}</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-card">
+            <div class="section-title"><i class="fas fa-folder-open"></i> Required Documents</div>
+            {% for dt in required_doc_types %}
+            <div class="doc-item">
+              <div class="doc-left">
+                {% if dt in doc_map %}
+                  {% if doc_map[dt][9] %}
+                  <span class="doc-icon">✅</span>
+                  {% else %}
+                  <span class="doc-icon">📎</span>
+                  {% endif %}
+                {% else %}
+                <span class="doc-icon">❌</span>
+                {% endif %}
+                <div>
+                  <div class="doc-name">{{ dt }}</div>
+                  {% if dt in doc_map %}
+                  <div class="doc-date">Issued: {{ doc_map[dt][6] or '—' }} · Expires: {{ doc_map[dt][7] or '—' }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="doc-actions">
+                {% if dt in doc_map %}
+                  {% if doc_map[dt][9] %}
+                  <span class="badge-status badge-verified">Verified</span>
+                  {% else %}
+                  <span class="badge-status badge-uploaded">Uploaded</span>
+                  {% endif %}
+                  {% if doc_map[dt][5] %}
+                  <a href="{{ doc_map[dt][5] }}" target="_blank" class="btn-outline btn-sm"><i class="fas fa-eye"></i></a>
+                  {% endif %}
+                {% else %}
+                <span class="badge-status badge-missing">Missing</span>
+                <button class="btn-outline btn-sm" onclick="openUploadModal('{{ dt }}')"><i class="fas fa-upload"></i> Upload</button>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <button class="btn-gold no-print" onclick="window.print()"><i class="fas fa-print"></i> Print Pawsport</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: MEDICAL -->
+  <div class="tab-pane" id="tab-medical">
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-syringe"></i> Vaccination History</div>
+      {% if vaccination_records %}
+      <div class="table-responsive">
+        <table class="passport-table">
+          <thead><tr><th>Vaccine</th><th>Date Given</th><th>Next Due</th><th>Given By</th><th>Source</th></tr></thead>
+          <tbody>
+          {% for v in vaccination_records %}
+          <tr>
+            <td>{{ v[4] }}</td>
+            <td>{{ v[14] or '—' }}</td>
+            <td>{{ v[6] }}</td>
+            <td>{{ v[9] or '—' }}</td>
+            <td>{% if v[8]=='furrvet' %}<span class="badge-status badge-furrvet">FurrVet</span>{% else %}<span class="badge-status badge-manual">Manual</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-syringe"></i>
+        No vaccination records yet.<br>Book a FurrVet appointment or add manually.
+      </div>
+      {% endif %}
+      <div class="mt-3">
+        <a href="/pet/{{ pet_index }}/reminder/add" class="btn-outline"><i class="fas fa-plus"></i> Add Vaccination Record</a>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-pills"></i> Current Medications</div>
+      {% if active_medications %}
+      {% for m in active_medications %}
+      <div class="med-card">
+        <div class="med-name">{{ m[10] or m[3] }}</div>
+        <div class="med-detail"><strong>Dosage:</strong> {{ m[11] or '—' }} · <strong>Frequency:</strong> {{ m[12] or '—' }}</div>
+        <div class="med-detail"><strong>Prescribed by:</strong> {{ m[9] or '—' }}</div>
+        <div class="med-detail"><strong>Next dose:</strong> {{ m[6] }}</div>
+        <div class="d-flex gap-2 mt-2">
+          {% if m[8]=='furrvet' %}<span class="badge-status badge-furrvet">FurrVet</span>{% else %}<span class="badge-status badge-manual">Manual</span>{% endif %}
+          <form method="POST" action="/pet/{{ pet_index }}/reminder/{{ m[0] }}/complete" class="d-inline">
+            <button type="submit" class="btn-outline btn-sm"><i class="fas fa-check"></i> Mark Administered</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state"><i class="fas fa-pills"></i>No active medications.</div>
+      {% endif %}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title collapsible-header" onclick="toggleCollapse('medHistory')">
+        <span><i class="fas fa-history"></i> Medical History</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </div>
+      <div id="medHistory" style="display:none">
+        {% if medical_history %}
+        <div class="timeline mt-3">
+          {% for h in medical_history %}
+          <div class="timeline-item">
+            <div class="timeline-date">{{ h[6] }} · {{ h[3] }}</div>
+            <div class="timeline-title">{{ h[4] }}</div>
+            <div class="timeline-desc">{{ h[5] or '' }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-history"></i>No medical history yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title collapsible-header collapsed" onclick="toggleCollapse('addMedRecord')">
+        <span><i class="fas fa-plus-circle"></i> Add Manual Record</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </div>
+      <div id="addMedRecord" style="display:none">
+        <form method="POST" action="/pet/{{ pet_index }}/reminder/add" class="mt-3">
+          <input type="hidden" name="reminder_type" value="Other">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label" style="color:rgba(255,255,255,.6);font-size:.85rem">Record Type</label>
+              <select name="reminder_type" class="form-select" style="background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff">
+                <option value="Vaccination">Vaccination</option>
+                <option value="Medication">Medication</option>
+                <option value="Deworming">Deworming</option>
+                <option value="Dental Care">Dental Care</option>
+                <option value="Vet Visit">Vet Visit</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="color:rgba(255,255,255,.6);font-size:.85rem">Priority</label>
+              <select name="priority" class="form-select" style="background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff">
+                <option value="low">Low</option><option value="medium" selected>Medium</option>
+                <option value="high">High</option><option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="color:rgba(255,255,255,.6);font-size:.85rem">Title</label>
+            <input type="text" name="title" class="form-control" required placeholder="e.g. Annual checkup" style="background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="color:rgba(255,255,255,.6);font-size:.85rem">Details</label>
+            <textarea name="description" class="form-control" rows="2" style="background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff"></textarea>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label" style="color:rgba(255,255,255,.6);font-size:.85rem">Date</label>
+              <input type="date" name="due_date" class="form-control" required style="background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="color:rgba(255,255,255,.6);font-size:.85rem">Vet Name</label>
+              <input type="text" name="vet_name" class="form-control" style="background:var(--navy);border:1px solid rgba(255,255,255,.15);color:#fff">
+            </div>
+          </div>
+          <button type="submit" class="btn-gold"><i class="fas fa-save"></i> Save Record</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: TRAVEL BOOKINGS -->
+  <div class="tab-pane" id="tab-travel">
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-plane-departure"></i> Upcoming Travel</div>
+      {% if upcoming_bookings or handler_bookings %}
+      {% for b in upcoming_bookings %}
+      <div class="journey-card">
+        <div class="journey-flag">✈️</div>
+        <div class="journey-info">
+          <div class="journey-dest">{{ b[3] }}</div>
+          <div class="journey-dates">{{ b[4] }} at {{ b[5] }}</div>
+          <div class="journey-details">Status: {{ b[7] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% for hb in handler_bookings %}
+      <div class="journey-card">
+        <div class="journey-flag">🐾</div>
+        <div class="journey-info">
+          <div class="journey-dest">{{ hb[4] }} → {{ hb[5] }}</div>
+          <div class="journey-dates">{{ hb[6] }}</div>
+          <div class="journey-details">
+            <span class="badge-status badge-handler">Handler</span>
+            Status: {{ hb[11] }}
+          </div>
+          <div class="journey-stamps">
+            {% for dt in required_doc_types[:3] %}
+            <span class="stamp-badge">{{ dt.split(' ')[0] }} {% if dt in doc_map %}✅{% else %}❌{% endif %}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state"><i class="fas fa-plane"></i>No upcoming travel bookings.</div>
+      {% endif %}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-file-alt"></i> Document Requirements</div>
+      <p style="font-size:.85rem;color:rgba(255,255,255,.6);margin-bottom:12px">Required documents for international pet travel from India:</p>
+      <div class="doc-item"><div class="doc-left"><span class="doc-icon">📋</span><div><div class="doc-name">Health Certificate</div><div class="doc-date">Issued by licensed veterinarian within 10 days of travel</div></div></div></div>
+      <div class="doc-item"><div class="doc-left"><span class="doc-icon">📋</span><div><div class="doc-name">DGFT Certificate</div><div class="doc-date">Directorate General of Foreign Trade - No Objection Certificate</div></div></div></div>
+      <div class="doc-item"><div class="doc-left"><span class="doc-icon">📋</span><div><div class="doc-name">AQCS Certificate</div><div class="doc-date">Animal Quarantine & Certification Services clearance</div></div></div></div>
+      <div class="doc-item"><div class="doc-left"><span class="doc-icon">📋</span><div><div class="doc-name">Quarantine Clearance</div><div class="doc-date">Destination country quarantine requirements</div></div></div></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-plus-circle"></i> Log Past Travel</div>
+      <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#travelModal"><i class="fas fa-plus"></i> Log a Trip</button>
+    </div>
+  </div>
+
+  <!-- TAB 4: DOMESTIC JOURNEYS -->
+  <div class="tab-pane" id="tab-domestic">
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-num">{{ domestic_travel|length }}</div>
+        <div class="stat-label">Total Domestic Trips</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">{{ domestic_travel|map(attribute=4)|list|unique|list|length if domestic_travel else 0 }}</div>
+        <div class="stat-label">Destinations Visited</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">{% if domestic_travel %}{{ domestic_travel[0][4] }}{% else %}—{% endif %}</div>
+        <div class="stat-label">Most Recent</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-map-marked-alt"></i> Domestic Travel Log</div>
+      {% if domestic_travel %}
+      {% for t in domestic_travel %}
+      <div class="journey-card">
+        <div class="journey-flag">🗺️</div>
+        <div class="journey-info">
+          <div class="journey-dest">{{ t[4] }}</div>
+          <div class="journey-dates">{{ t[5] or '—' }} → {{ t[6] or '—' }}</div>
+          <div class="journey-details">
+            {% if t[9] %}Purpose: {{ t[9] }}{% endif %}
+            {% if t[7] %} · Handler: {{ t[7] }}{% endif %}
+          </div>
+          {% if t[12] %}<div class="journey-details" style="margin-top:4px"><em>{{ t[12] }}</em></div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state"><i class="fas fa-map"></i>No domestic journeys recorded yet.</div>
+      {% endif %}
+    </div>
+    <button class="btn-gold" onclick="openTravelModal('domestic')"><i class="fas fa-plus"></i> Log Domestic Trip</button>
+  </div>
+
+  <!-- TAB 5: INTERNATIONAL JOURNEYS -->
+  <div class="tab-pane" id="tab-international">
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-num">{{ international_travel|length }}</div>
+        <div class="stat-label">Total International Trips</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">{{ international_travel|map(attribute=4)|list|unique|list|length if international_travel else 0 }}</div>
+        <div class="stat-label">Countries Visited</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">{% if international_travel %}{{ international_travel[0][4] }}{% else %}—{% endif %}</div>
+        <div class="stat-label">Most Recent</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><i class="fas fa-globe-americas"></i> International Travel Log</div>
+      {% if international_travel %}
+      {% for t in international_travel %}
+      <div class="journey-card">
+        <div class="journey-flag">🌍</div>
+        <div class="journey-info">
+          <div class="journey-dest">{{ t[4] }}</div>
+          <div class="journey-dates">{{ t[5] or '—' }} → {{ t[6] or '—' }}</div>
+          <div class="journey-details">
+            {% if t[7] %}Handler: {{ t[7] }}{% endif %}
+            {% if t[10] %} · Airline: {{ t[10] }}{% endif %}
+            {% if t[11] %} · Flight: {{ t[11] }}{% endif %}
+          </div>
+          <div class="journey-stamps">
+            <span class="stamp-badge">🛂 DEPARTED</span>
+            {% if t[6] %}<span class="stamp-badge">🛬 RETURNED</span>{% endif %}
+          </div>
+          {% if t[12] %}<div class="journey-details" style="margin-top:4px"><em>{{ t[12] }}</em></div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state"><i class="fas fa-globe"></i>No international journeys recorded yet.</div>
+      {% endif %}
+    </div>
+    <button class="btn-gold" onclick="openTravelModal('international')"><i class="fas fa-plus"></i> Log International Trip</button>
+  </div>
+
+</div>
+
+<div class="pawsport-footer">
+  <p>🐾 FurrButler Pawsport System</p>
+  <p>Secure International Pet Travel Documentation</p>
+  <div class="qr-placeholder">📱</div>
+  <p style="font-size:.7rem">Scan to verify this pawsport</p>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal fade modal-dark" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" style="color:var(--gold)"><i class="fas fa-upload"></i> Upload Document</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="POST" action="/pet/{{ pet_index }}/passport/upload-document" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" name="document_type" id="uploadDocType">
+          <div class="mb-3"><label class="form-label">Document Type</label><input type="text" id="uploadDocTypeDisplay" class="form-control" readonly></div>
+          <div class="mb-3"><label class="form-label">Document Name</label><input type="text" name="document_name" class="form-control" required placeholder="e.g. Rabies vaccination certificate"></div>
+          <div class="row mb-3">
+            <div class="col-6"><label class="form-label">Issue Date</label><input type="date" name="issue_date" class="form-control"></div>
+            <div class="col-6"><label class="form-label">Expiry Date</label><input type="date" name="expiry_date" class="form-control"></div>
+          </div>
+          <div class="mb-3"><label class="form-label">Issued By</label><input type="text" name="issued_by" class="form-control" placeholder="Vet clinic or authority name"></div>
+          <div class="mb-3"><label class="form-label">Upload File</label><input type="file" name="document_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></div>
+          <div class="mb-3"><label class="form-label">Notes</label><textarea name="notes" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn-gold">Upload</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Travel Modal -->
+<div class="modal fade modal-dark" id="travelModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" style="color:var(--gold)"><i class="fas fa-plane"></i> Log Travel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="POST" action="/pet/{{ pet_index }}/passport/add-travel">
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label">Travel Type</label>
+            <select name="travel_type" id="travelTypeSelect" class="form-select">
+              <option value="domestic">Domestic</option>
+              <option value="international">International</option>
+            </select>
+          </div>
+          <div class="mb-3"><label class="form-label">Destination</label><input type="text" name="destination" class="form-control" required placeholder="City, State or Country"></div>
+          <div class="row mb-3">
+            <div class="col-6"><label class="form-label">Departure Date</label><input type="date" name="departure_date" class="form-control"></div>
+            <div class="col-6"><label class="form-label">Return Date</label><input type="date" name="return_date" class="form-control"></div>
+          </div>
+          <div class="mb-3"><label class="form-label">Handler Name</label><input type="text" name="handler_name" class="form-control" placeholder="Optional"></div>
+          <div class="mb-3"><label class="form-label">Purpose</label><input type="text" name="purpose" class="form-control" placeholder="e.g. Relocation, Vacation, Show"></div>
+          <div id="intlFields" style="display:none">
+            <div class="row mb-3">
+              <div class="col-6"><label class="form-label">Airline</label><input type="text" name="airline" class="form-control"></div>
+              <div class="col-6"><label class="form-label">Flight Number</label><input type="text" name="flight_number" class="form-control"></div>
+            </div>
+          </div>
+          <div class="mb-3"><label class="form-label">Notes</label><textarea name="notes" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn-gold">Save Trip</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  var tabBtns=document.querySelectorAll('.tab-btn');
+  var tabPanes=document.querySelectorAll('.tab-pane');
+  var stored=localStorage.getItem('pawsport_tab_{{pet_index}}');
+
+  function switchTab(id){
+    tabBtns.forEach(function(b){b.classList.toggle('active',b.dataset.tab===id)});
+    tabPanes.forEach(function(p){p.classList.toggle('active',p.id==='tab-'+id)});
+    localStorage.setItem('pawsport_tab_{{pet_index}}',id);
+  }
+
+  tabBtns.forEach(function(b){b.addEventListener('click',function(){switchTab(this.dataset.tab)})});
+  if(stored){switchTab(stored)}
+
+  function openUploadModal(docType){
+    document.getElementById('uploadDocType').value=docType;
+    document.getElementById('uploadDocTypeDisplay').value=docType;
+    new bootstrap.Modal(document.getElementById('uploadModal')).show();
+  }
+
+  function openTravelModal(type){
+    document.getElementById('travelTypeSelect').value=type;
+    document.getElementById('intlFields').style.display=type==='international'?'block':'none';
+    new bootstrap.Modal(document.getElementById('travelModal')).show();
+  }
+
+  document.getElementById('travelTypeSelect').addEventListener('change',function(){
+    document.getElementById('intlFields').style.display=this.value==='international'?'block':'none';
+  });
+
+  function toggleCollapse(id){
+    var el=document.getElementById(id);
+    var hdr=el.previousElementSibling||el.parentElement.querySelector('.collapsible-header');
+    if(el.style.display==='none'){el.style.display='block';if(hdr)hdr.classList.remove('collapsed')}
+    else{el.style.display='none';if(hdr)hdr.classList.add('collapsed')}
+  }
+</script>
+</body>
+</html>
