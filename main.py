@@ -2204,17 +2204,25 @@ def furrvet_login_required(f):
 
 # React Native Web App
 @app.route('/app')
-@app.route('/app/<path:path>')
-def react_app(path=''):
+def react_app():
     dist_path = os.path.join(
         os.path.dirname(__file__),
         'mobile', 'dist')
-    if path and os.path.exists(
-        os.path.join(dist_path, path)):
-        return send_from_directory(
-            dist_path, path)
-    return send_from_directory(
-        dist_path, 'index.html')
+    return send_from_directory(dist_path, 'index.html')
+
+@app.route('/_expo/<path:path>')
+def react_static_expo(path):
+    dist_path = os.path.join(
+        os.path.dirname(__file__),
+        'mobile', 'dist', '_expo')
+    return send_from_directory(dist_path, path)
+
+@app.route('/assets/<path:path>')
+def react_static_assets(path):
+    dist_path = os.path.join(
+        os.path.dirname(__file__),
+        'mobile', 'dist', 'assets')
+    return send_from_directory(dist_path, path)
 
 # FurrVet Routes
 @app.route('/furrvet')
