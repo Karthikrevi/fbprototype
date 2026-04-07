@@ -2095,6 +2095,20 @@ def init_erp_db():
                 (name,venue_type,address,city,state,pincode,phone,website,google_maps_url,booking_url,latitude,longitude,pet_policy,max_pet_size,pet_fee,amenities,rating,review_count,verified,is_active,added_by)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", v)
 
+    venue_alter_cols = [
+        ("submission_status", "TEXT DEFAULT 'approved'"),
+        ("submitted_by_email", "TEXT"),
+        ("submission_notes", "TEXT"),
+        ("admin_notes", "TEXT"),
+        ("google_verified", "BOOLEAN DEFAULT 0"),
+        ("flag_reason", "TEXT"),
+    ]
+    for col_name, col_def in venue_alter_cols:
+        try:
+            c.execute(f"ALTER TABLE pet_friendly_venues ADD COLUMN {col_name} {col_def}")
+        except Exception:
+            pass
+
     conn.commit()
     conn.close()
 
@@ -3649,6 +3663,40 @@ def cancel_insurance(pet_index, pol_id):
     flash("Policy cancelled successfully.")
     return redirect(url_for("pet_insurance_page", pet_index=pet_index))
 
+def check_venue_submission(name, city, website, pet_policy):
+    flags = []
+    auto_approve = True
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""SELECT id FROM pet_friendly_venues
+        WHERE LOWER(name) = LOWER(?) AND LOWER(city) = LOWER(?)
+        AND (submission_status IN ('approved','auto_approved') OR added_by='admin')""",
+        (name, city))
+    if c.fetchone():
+        conn.close()
+        return {'approved': False, 'reason': 'duplicate', 'flags': ['Duplicate venue']}
+    conn.close()
+    spam_keywords = ['http://', 'https://', 'whatsapp', 'telegram', 'click here',
+                     'buy now', 'discount', 'offer', 'free', 'call now', 'contact us']
+    policy_lower = (pet_policy or '').lower()
+    for keyword in spam_keywords:
+        if keyword in policy_lower:
+            flags.append(f'Spam keyword: {keyword}')
+            auto_approve = False
+    if len(name) < 3 or len(name) > 100:
+        flags.append('Invalid name length')
+        auto_approve = False
+    if not city or len(city.strip()) < 2:
+        flags.append('Invalid city')
+        auto_approve = False
+    if website and website.strip():
+        from urllib.parse import urlparse
+        parsed = urlparse(website.strip())
+        if parsed.scheme not in ('http', 'https') or not parsed.netloc or '.' not in parsed.netloc:
+            flags.append('Invalid website URL')
+            auto_approve = False
+    return {'approved': auto_approve, 'flags': flags, 'status': 'auto_approved' if auto_approve else 'pending'}
+
 @app.route('/pet-friendly')
 def pet_friendly():
     city = request.args.get("city", "").strip()
@@ -3656,7 +3704,7 @@ def pet_friendly():
     pet_size = request.args.get("pet_size", "").strip()
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
-    query = "SELECT * FROM pet_friendly_venues WHERE is_active=1"
+    query = "SELECT * FROM pet_friendly_venues WHERE is_active=1 AND added_by='admin'"
     params = []
     if city:
         query += " AND LOWER(city) LIKE ?"
@@ -3670,12 +3718,73 @@ def pet_friendly():
     query += " ORDER BY verified DESC, rating DESC, name ASC"
     c.execute(query, params)
     venues = c.fetchall()
+    community_query = "SELECT * FROM pet_friendly_venues WHERE is_active=1 AND added_by='community' AND submission_status IN ('approved','auto_approved')"
+    community_params = []
+    if city:
+        community_query += " AND LOWER(city) LIKE ?"
+        community_params.append(f"%{city.lower()}%")
+    if venue_type and venue_type != "all":
+        community_query += " AND venue_type=?"
+        community_params.append(venue_type)
+    if pet_size and pet_size != "all":
+        community_query += " AND (max_pet_size=? OR max_pet_size='all')"
+        community_params.append(pet_size)
+    community_query += " ORDER BY rating DESC, created_at DESC LIMIT 20"
+    c.execute(community_query, community_params)
+    community_venues = c.fetchall()
     conn.close()
-    return render_template("pet_friendly.html", venues=venues, city=city, venue_type=venue_type, pet_size=pet_size)
+    return render_template("pet_friendly.html", venues=venues, community_venues=community_venues, city=city, venue_type=venue_type, pet_size=pet_size)
 
-@app.route('/pet-friendly/suggest', methods=["POST"])
+@app.route('/pet-friendly/suggest', methods=["GET", "POST"])
 def suggest_venue():
-    flash("Thank you for your suggestion! We'll review and add it soon.")
+    if request.method == "GET":
+        if "user" not in session:
+            flash("Please login to suggest a venue.")
+            return redirect(url_for("login"))
+        return render_template("suggest_venue.html")
+    user_email = session.get("user", "")
+    if not user_email:
+        flash("Please login to suggest a venue.")
+        return redirect(url_for("login"))
+    name = request.form.get("name", "").strip()
+    venue_type = request.form.get("venue_type", "").strip()
+    city = request.form.get("city", "").strip()
+    state = request.form.get("state", "").strip()
+    address = request.form.get("address", "").strip()
+    phone = request.form.get("phone", "").strip()
+    website = request.form.get("website", "").strip()
+    pet_policy = request.form.get("pet_policy", "").strip()
+    max_pet_size = request.form.get("max_pet_size", "all").strip()
+    pet_fee = request.form.get("pet_fee", "").strip()
+    amenities_list = request.form.getlist("amenities")
+    amenities = ", ".join(amenities_list)
+    submission_notes = request.form.get("submission_notes", "").strip()
+    if not name or not city or not venue_type:
+        flash("Venue name, type and city are required.")
+        return redirect(url_for("suggest_venue"))
+    result = check_venue_submission(name, city, website, pet_policy)
+    if not result.get('approved') and result.get('reason') == 'duplicate':
+        flash("This venue has already been suggested. Thank you!")
+        return redirect(url_for("pet_friendly"))
+    status = result.get('status', 'pending')
+    is_active = 1 if status == 'auto_approved' else 0
+    flag_reason = "; ".join(result.get('flags', []))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO pet_friendly_venues
+        (name, venue_type, address, city, state, phone, website, pet_policy,
+         max_pet_size, pet_fee, amenities, verified, is_active, added_by,
+         submission_status, submitted_by_email, submission_notes, flag_reason)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?)""",
+        (name, venue_type, address, city, state, phone, website, pet_policy,
+         max_pet_size, pet_fee, amenities, is_active, 'community',
+         status, user_email, submission_notes, flag_reason))
+    conn.commit()
+    conn.close()
+    if status == 'auto_approved':
+        flash("Thank you! Your venue has been added to the community list.")
+    else:
+        flash("Thank you for your suggestion! Our team will review it within 48 hours.")
     return redirect(url_for("pet_friendly"))
 
 @app.route('/pet-friendly/<int:venue_id>')
@@ -9927,6 +10036,66 @@ def update_vendor_status():
     except Exception as e:
         flash(f"Error updating vendor status: {str(e)}")
         return redirect(url_for("manage_vendors"))
+
+@app.route('/admin/venues')
+def admin_venues():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pet_friendly_venues WHERE added_by='community' ORDER BY created_at DESC")
+    all_venues = c.fetchall()
+    conn.close()
+    pending = [v for v in all_venues if v[23] == 'pending' if len(v) > 23]
+    flagged = [v for v in all_venues if len(v) > 23 and v[23] == 'flagged']
+    approved = [v for v in all_venues if len(v) > 23 and v[23] in ('approved', 'auto_approved')]
+    rejected = [v for v in all_venues if len(v) > 23 and v[23] == 'rejected']
+    try:
+        pending = [v for v in all_venues if v[23] == 'pending']
+        flagged = [v for v in all_venues if v[23] == 'flagged']
+        approved = [v for v in all_venues if v[23] in ('approved', 'auto_approved')]
+        rejected = [v for v in all_venues if v[23] == 'rejected']
+    except IndexError:
+        pending, flagged, approved, rejected = [], [], [], []
+    return render_template("admin_venues.html", pending=pending, flagged=flagged, approved=approved, rejected=rejected)
+
+@app.route('/admin/venues/<int:vid>/approve', methods=["POST"])
+def admin_venue_approve(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE pet_friendly_venues SET submission_status='approved', is_active=1, verified=0 WHERE id=?", (vid,))
+    conn.commit()
+    conn.close()
+    flash("Venue approved successfully.")
+    return redirect(url_for("admin_venues"))
+
+@app.route('/admin/venues/<int:vid>/reject', methods=["POST"])
+def admin_venue_reject(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    admin_notes = request.form.get("admin_notes", "").strip()
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE pet_friendly_venues SET submission_status='rejected', is_active=0, admin_notes=? WHERE id=?", (admin_notes, vid))
+    conn.commit()
+    conn.close()
+    flash("Venue rejected.")
+    return redirect(url_for("admin_venues"))
+
+@app.route('/admin/venues/<int:vid>/flag', methods=["POST"])
+def admin_venue_flag(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    flag_reason = request.form.get("flag_reason", "").strip()
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE pet_friendly_venues SET submission_status='flagged', is_active=0, flag_reason=? WHERE id=?", (flag_reason, vid))
+    conn.commit()
+    conn.close()
+    flash("Venue flagged for review.")
+    return redirect(url_for("admin_venues"))
 
 @app.route('/master/admin/logout')
 @app.route('/admin/logout')

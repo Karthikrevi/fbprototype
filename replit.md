@@ -68,7 +68,10 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **Routes**: `/pet-friendly` (browse/filter), `/pet-friendly/<id>` (detail + reviews), `/pet-friendly/<id>/review` (POST), `/pet-friendly/<id>/log-booking` (GET/POST), `/my-venue-bookings` (user's bookings), `/pet-friendly/suggest` (POST suggestion)
 - **Templates**: `pet_friendly.html` (grid with filters), `venue_detail.html` (detail + booking + reviews), `log_booking.html` (form), `my_venue_bookings.html` (booking list)
 - **Entry points**: Dashboard tile in dashboard.html, quick action in pet_detail.html
-- **Venue column indices**: 0=id, 1=name, 2=venue_type, 3=address, 4=city, 5=state, 6=pincode, 7=phone, 8=website, 9=google_maps_url, 10=booking_url, 11=latitude, 12=longitude, 13=pet_policy, 14=max_pet_size, 15=pet_fee, 16=amenities, 17=rating, 18=review_count, 19=verified, 20=is_active, 21=added_by, 22=created_at
+- **Community venue suggestions**: `/pet-friendly/suggest` (GET form + POST submit), `check_venue_submission()` for spam/duplicate detection, auto-approve clean submissions, pending queue for flagged ones
+- **Admin moderation**: `/admin/venues` dashboard with tabs (Pending/Flagged/Approved/Rejected), `/admin/venues/<id>/approve|reject|flag` actions
+- **Templates**: `suggest_venue.html` (form with Indian states dropdown, amenities checkboxes), `admin_venues.html` (moderation dashboard)
+- **Venue column indices**: 0=id, 1=name, 2=venue_type, 3=address, 4=city, 5=state, 6=pincode, 7=phone, 8=website, 9=google_maps_url, 10=booking_url, 11=latitude, 12=longitude, 13=pet_policy, 14=max_pet_size, 15=pet_fee, 16=amenities, 17=rating, 18=review_count, 19=verified, 20=is_active, 21=added_by, 22=created_at, 23=submission_status, 24=submitted_by_email, 25=submission_notes, 26=admin_notes, 27=google_verified, 28=flag_reason
 
 # External Dependencies
 - **Core Frameworks**: Flask, React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, React Native, Expo.

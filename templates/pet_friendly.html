@@ -183,24 +183,71 @@
       <div style="font-size:3em; margin-bottom:15px;">🐾</div>
       <h3 style="color:#4a148c;">No pet friendly venues found{% if city %} in {{ city }}{% endif %} yet.</h3>
       <p style="color:#666;">Know a pet friendly place? Suggest it below.</p>
-      <div class="suggest-form">
-        <form method="POST" action="/pet-friendly/suggest">
-          <input type="text" name="venue_name" placeholder="Venue name" required>
-          <input type="text" name="suggest_city" placeholder="City" required>
-          <select name="suggest_type">
-            <option value="hotel">Hotel</option>
-            <option value="restaurant">Restaurant</option>
-            <option value="cafe">Cafe</option>
-            <option value="resort">Resort</option>
-            <option value="park">Park</option>
-            <option value="other">Other</option>
-          </select>
-          <input type="text" name="suggest_website" placeholder="Website (optional)">
-          <button type="submit" class="btn-view" style="width:100%;">Submit Suggestion</button>
-        </form>
-      </div>
     </div>
     {% endif %}
+
+    <div style="margin-top:40px;">
+      <h3 style="color:#4a148c; font-size:1.4em; font-weight:700;">🌟 Community Recommended Venues</h3>
+      <p style="color:#666; font-size:0.9em; margin-bottom:20px;">Suggested and verified by FurrButler pet parents</p>
+
+      {% if community_venues %}
+      <div class="venue-grid">
+        {% for v in community_venues %}
+        <div class="venue-card" style="border-left:4px solid #ff9800;">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="venue-name">{{ v[1] }}</div>
+            <span style="background:#fff8e1; color:#f57f17; padding:2px 10px; border-radius:10px; font-size:0.7em; font-weight:700;">🌟 Community</span>
+          </div>
+          <div style="margin:5px 0;">
+            <span class="venue-type-badge type-{{ v[2] }}">{{ v[2] }}</span>
+            {% if v[14] %}<span class="size-badge" style="margin-left:5px;">{{ v[14] }} pets</span>{% endif %}
+          </div>
+          <div class="venue-meta">
+            <i class="fas fa-map-marker-alt"></i> {{ v[4] }}{% if v[5] %}, {{ v[5] }}{% endif %}
+          </div>
+          {% if v[13] %}
+          <div class="venue-meta"><i class="fas fa-paw"></i> {{ v[13] }}</div>
+          {% endif %}
+          {% if v[15] %}
+          <div class="pet-fee-tag"><i class="fas fa-tag"></i> {{ v[15] }}</div>
+          {% endif %}
+          {% if v[16] %}
+          <div style="margin:5px 0;">
+            {% for a in v[16].split(',') %}
+              <span class="amenity-tag">{{ a.strip() }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if v[17] and v[17] > 0 %}
+          <div style="margin:5px 0;">
+            <span class="rating-stars">
+              {% for i in range(5) %}{% if i < (v[17]|int) %}★{% else %}☆{% endif %}{% endfor %}
+            </span>
+            <small style="color:#999;">({{ v[18] }} reviews)</small>
+          </div>
+          {% endif %}
+          <div class="d-flex gap-2 mt-2">
+            <a href="/pet-friendly/{{ v[0] }}" class="btn-view">View Details</a>
+            <a href="https://www.google.com/maps/search/{{ v[1]|urlencode }}+{{ v[4]|urlencode }}" target="_blank" class="btn-book-ext"><i class="fas fa-map-marker-alt"></i> Maps</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="background:white; border-radius:16px; padding:30px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,.08); border:2px dashed #ff9800;">
+        <div style="font-size:2em; margin-bottom:10px;">🌟</div>
+        <h4 style="color:#e65100;">No community venues yet.</h4>
+        <p style="color:#666;">Be the first to suggest one!</p>
+        <a href="/pet-friendly/suggest" class="btn-view" style="display:inline-block; padding:10px 30px; margin-top:10px;">Suggest a Venue</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="background:linear-gradient(135deg,#f3e5f5,#e8eaf6); border-radius:16px; padding:30px; text-align:center; margin:30px 0;">
+      <h4 style="color:#4a148c; margin-bottom:8px;">🐾 Know a pet friendly place?</h4>
+      <p style="color:#666; font-size:0.9em; margin-bottom:15px;">Help the FurrButler community by suggesting venues you have personally visited with your pet</p>
+      <a href="/pet-friendly/suggest" class="btn-view" style="display:inline-block; padding:10px 30px;">Suggest a Venue</a>
+    </div>
 
     <div class="text-center" style="margin: 30px 0;">
       <a href="/dashboard" style="color:#7b1fa2; text-decoration:none; font-weight:600;">← Back to Dashboard</a>

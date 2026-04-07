@@ -1,0 +1,368 @@
+In main.py and templates only,
+add community venue suggestions
+to the pet friendly feature.
+Do not modify any existing routes
+except /pet-friendly where stated.
+Do not modify any other templates
+except pet_friendly.html where stated.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Update database tables:
+
+The pet_friendly_venues table
+already exists. Add these columns
+using ALTER TABLE IF NOT EXISTS:
+
+ALTER TABLE pet_friendly_venues
+ADD COLUMN submission_status TEXT
+DEFAULT 'pending'
+CHECK(submission_status IN
+('pending','approved','rejected',
+'auto_approved','flagged'));
+
+ALTER TABLE pet_friendly_venues
+ADD COLUMN submitted_by_email TEXT;
+
+ALTER TABLE pet_friendly_venues
+ADD COLUMN submission_notes TEXT;
+
+ALTER TABLE pet_friendly_venues
+ADD COLUMN admin_notes TEXT;
+
+ALTER TABLE pet_friendly_venues
+ADD COLUMN google_verified BOOLEAN
+DEFAULT 0;
+
+ALTER TABLE pet_friendly_venues
+ADD COLUMN flag_reason TEXT;
+
+PART 2 — Fake detection function:
+
+Add to main.py:
+
+def check_venue_submission(
+    name, city, website, pet_policy):
+
+    flags = []
+    auto_approve = True
+
+    # Check for duplicate
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""
+        SELECT id FROM pet_friendly_venues
+        WHERE LOWER(name) = LOWER(?)
+        AND LOWER(city) = LOWER(?)
+        AND submission_status = 'approved'
+    """, (name, city))
+    if c.fetchone():
+        conn.close()
+        return {
+            'approved': False,
+            'reason': 'duplicate',
+            'flags': ['Duplicate venue']
+        }
+    conn.close()
+
+    # Check for spam in pet_policy
+    spam_keywords = [
+        'http://', 'https://',
+        'whatsapp', 'telegram',
+        'click here', 'buy now',
+        'discount', 'offer',
+        'free', '₹', 'rs.',
+        'call now', 'contact us'
+    ]
+    policy_lower = (pet_policy or
+        '').lower()
+    for keyword in spam_keywords:
+        if keyword in policy_lower:
+            flags.append(
+                f'Spam keyword: {keyword}')
+            auto_approve = False
+
+    # Check name length
+    if len(name) < 3 or len(name) > 100:
+        flags.append('Invalid name length')
+        auto_approve = False
+
+    # Check city is provided
+    if not city or len(city) < 2:
+        flags.append('Invalid city')
+        auto_approve = False
+
+    # Check website if provided
+    if website:
+        import urllib.request
+        try:
+            urllib.request.urlopen(
+                website, timeout=3)
+        except:
+            flags.append(
+                'Website unreachable')
+            auto_approve = False
+
+    return {
+        'approved': auto_approve,
+        'flags': flags,
+        'status': 'auto_approved'
+            if auto_approve
+            else 'pending'
+    }
+
+PART 3 — Add submission route:
+
+Add route /pet-friendly/suggest
+GET and POST:
+
+GET: render suggest_venue.html
+
+POST:
+  Get form data:
+    name, venue_type, city, state,
+    address, phone, website,
+    pet_policy, max_pet_size,
+    pet_fee, amenities
+  
+  Run check_venue_submission()
+  
+  If result is duplicate:
+    Flash: "This venue has already
+    been suggested. Thank you!"
+    Redirect to /pet-friendly
+  
+  Insert into pet_friendly_venues:
+    All submitted fields
+    submitted_by_email = session email
+    added_by = community
+    submission_status = result status
+    flag_reason = join(result flags)
+    verified = 0
+    is_active = 0 if pending
+               1 if auto_approved
+  
+  If auto_approved:
+    Flash: "Thank you! Your venue
+    has been added to the community
+    list."
+  Else:
+    Flash: "Thank you for your
+    suggestion! Our team will
+    review it within 48 hours."
+  
+  Redirect to /pet-friendly
+
+Add route /admin/venues GET:
+Admin only (check master_admin session)
+Pull all venues from pet_friendly_venues
+grouped by status:
+  pending, flagged, approved, rejected
+Pass to admin_venues.html
+
+Add route /admin/venues/<int:vid>/approve
+POST: Admin only
+Set submission_status = approved
+Set is_active = 1
+Set verified = 0 (community not google)
+Flash success
+Redirect to /admin/venues
+
+Add route /admin/venues/<int:vid>/reject
+POST: Admin only
+Body: admin_notes (reason for rejection)
+Set submission_status = rejected
+Set is_active = 0
+Flash success
+Redirect to /admin/venues
+
+Add route /admin/venues/<int:vid>/flag
+POST: Admin only
+Body: flag_reason
+Set submission_status = flagged
+Set is_active = 0
+Flash success
+Redirect to /admin/venues
+
+PART 4 — Update pet_friendly route:
+
+In the /pet-friendly route
+add this query alongside affiliates:
+
+conn = sqlite3.connect('erp.db')
+c = conn.cursor()
+c.execute("""
+    SELECT * FROM pet_friendly_venues
+    WHERE submission_status IN
+    ('approved', 'auto_approved')
+    AND is_active = 1
+    ORDER BY rating DESC, 
+    created_at DESC
+    LIMIT 20
+""")
+community_venues = c.fetchall()
+conn.close()
+
+Pass community_venues to template.
+
+PART 5 — Update pet_friendly.html:
+
+Add a new section BELOW the
+affiliate cards section:
+
+Section header:
+"🌟 Community Recommended Venues"
+"Suggested and verified by
+FurrButler pet parents"
+
+If community_venues is empty:
+  Show empty state:
+  "No community venues yet.
+  Be the first to suggest one!"
+  Large suggest button
+
+If community_venues exist:
+  Show venue cards with:
+  Venue name
+  Type badge
+  City and state
+  Pet policy summary
+  Rating if > 0
+  "Community Recommended" gold badge
+  Google Maps search button:
+    Opens google.com/maps/search/
+    {{ venue name }} {{ city }}
+    in new tab
+  No booking on our site —
+  just maps link
+
+Below community venues section
+always show:
+Suggestion call to action card:
+  "Know a pet friendly place?"
+  "Help the FurrButler community
+  by suggesting venues you have
+  personally visited with your pet"
+  Suggest a Venue button
+  → /pet-friendly/suggest
+
+PART 6 — Create templates:
+
+Create templates/suggest_venue.html:
+
+Purple gradient header:
+"🐾 Suggest a Pet Friendly Venue"
+"Share a place you have personally
+visited with your pet"
+
+Important notice at top:
+Yellow box:
+"Please only suggest venues you
+have personally visited with your
+pet. Suggestions are reviewed
+before being published."
+
+Form POSTing to /pet-friendly/suggest:
+
+Venue name text input required
+Venue type dropdown required:
+  Restaurant, Cafe, Hotel,
+  Resort, Park, Beach,
+  Activity Centre, Other
+City text input required
+State dropdown:
+  All Indian states
+Address textarea optional
+Phone text input optional
+Website text input optional
+  placeholder: https://
+
+Pet Policy textarea required:
+  placeholder: Describe their
+  pet policy as you experienced it.
+  e.g. Dogs allowed at outdoor
+  seating. Water bowl provided.
+  No size restrictions.
+
+Max pet size dropdown:
+  Small only (under 10kg)
+  Medium (under 25kg)
+  Large (all sizes welcome)
+  Not sure
+
+Pet fee text input optional:
+  placeholder: e.g. No charge,
+  ₹200 per night, etc.
+
+Amenities checkboxes:
+  ☐ Water bowls provided
+  ☐ Outdoor seating
+  ☐ Pet menu available
+  ☐ Pet bed/bedding
+  ☐ Fenced area
+  ☐ Pet sitting available
+  ☐ Grooming available
+  ☐ Near walking trail
+
+Your experience textarea:
+  placeholder: Tell other pet
+  parents about your experience
+  visiting with your pet
+
+Submit Suggestion button
+
+Disclaimer below button:
+"By submitting you confirm that
+you have personally visited this
+venue with your pet and that all
+information is accurate to the
+best of your knowledge.
+False submissions may result in
+account restrictions."
+
+Back button to /pet-friendly
+
+Create templates/admin_venues.html:
+
+Professional admin page navy styling
+"🏨 Venue Moderation Dashboard"
+
+Stats row:
+Pending count, Flagged count,
+Approved count, Rejected count
+
+Tabs: Pending | Flagged | Approved | Rejected
+
+For each venue in selected tab:
+Card showing:
+  Venue name, type, city
+  Submitted by email
+  Submitted date
+  Pet policy text
+  Flag reasons if any
+  Website link if provided
+
+Action buttons:
+  Approve (green)
+  Reject with notes (red)
+  Flag (orange)
+
+Reject opens a small form:
+  Admin notes textarea
+  Confirm Reject button
+
+Back button to /admin/dashboard
+
+Do not modify any other routes.
+Do not modify any other templates
+except pet_friendly.html as stated.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+Improve on provided code if you feel its lacking

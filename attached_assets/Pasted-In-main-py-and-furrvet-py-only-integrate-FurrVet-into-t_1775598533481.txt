@@ -1,0 +1,148 @@
+In main.py and furrvet.py only,
+integrate FurrVet into the main
+Flask application as a Blueprint.
+Do not modify any templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Convert furrvet.py to Blueprint:
+
+In furrvet.py replace:
+furrvet_app = Flask(__name__,
+    template_folder='templates/furrvet',
+    static_folder='static/furrvet')
+furrvet_app.secret_key = '...'
+
+With:
+from flask import Blueprint
+furrvet_bp = Blueprint('furrvet',
+    __name__,
+    url_prefix='/furrvet')
+
+Replace all @furrvet_app.route with
+@furrvet_bp.route
+
+Remove the url_prefix from all routes
+since Blueprint handles the prefix:
+/furrvet/login → /login
+/furrvet/dashboard → /dashboard
+/furrvet/patients → /patients
+etc.
+
+Remove the if __name__ == '__main__'
+block at the bottom.
+
+Remove init_furrvet_db() call
+from furrvet.py — it will be called
+from main.py instead.
+
+PART 2 — Fix session keys in furrvet.py:
+
+The furrvet logout currently calls
+session.clear() which wipes all
+portal sessions.
+
+Replace session.clear() with:
+session.pop('vet_id', None)
+session.pop('vet_name', None)
+session.pop('vet_email', None)
+session.pop('clinic_name', None)
+
+Update login_required decorator:
+Check 'vet_id' not in session
+Redirect to url_for('furrvet.vet_login')
+
+PART 3 — Fix password hashing in furrvet.py:
+
+In the vet_login route:
+from werkzeug.security import
+check_password_hash
+
+Change login query to:
+c.execute("SELECT * FROM vets
+WHERE email=? AND is_active=1",
+(email,))
+vet = c.fetchone()
+if vet and check_password_hash(
+    vet[3], password):
+    # login successful
+
+For the demo vet account in
+init_furrvet_db():
+from werkzeug.security import
+generate_password_hash
+
+Replace plain text password:
+generate_password_hash('vet123')
+
+Add migration on login:
+If stored password does not start
+with 'pbkdf2:' or 'scrypt:'
+it is plain text — hash it
+and update the database
+
+PART 4 — Register Blueprint in main.py:
+
+In main.py add near the top
+after other imports:
+from furrvet import furrvet_bp,
+    init_furrvet_db
+
+Register the blueprint:
+app.register_blueprint(furrvet_bp)
+
+Call init_furrvet_db() inside
+the existing init function or
+alongside init_erp_db():
+init_furrvet_db()
+
+PART 5 — Fix template folder:
+
+The Blueprint uses templates from
+templates/furrvet/ subfolder.
+
+Update Blueprint definition:
+furrvet_bp = Blueprint('furrvet',
+    __name__,
+    template_folder='templates/furrvet',
+    url_prefix='/furrvet')
+
+Verify templates/furrvet/ folder
+exists with all furrvet templates.
+If not create the folder and move
+all furrvet_*.html templates there.
+
+PART 6 — Fix url_for references:
+
+All url_for() calls inside furrvet.py
+must use the blueprint name prefix:
+url_for('vet_login') →
+url_for('furrvet.vet_login')
+
+url_for('dashboard') →
+url_for('furrvet.dashboard')
+
+url_for('patients') →
+url_for('furrvet.patients')
+
+etc. for all routes
+
+PART 7 — Test integration:
+
+After changes verify:
+GET /furrvet returns redirect to
+/furrvet/login
+GET /furrvet/login returns 200
+POST /furrvet/login with correct
+credentials returns redirect to
+/furrvet/dashboard
+GET /furrvet/dashboard returns 200
+GET /furrvet/logout redirects to
+/furrvet/login only
+Main app routes still work
+/erp/dashboard still returns 200
+/dashboard still returns 200
+
+Do not modify any templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

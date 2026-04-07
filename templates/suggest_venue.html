@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suggest a Venue | FurrButler</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: #f5f7fa; font-family: 'Segoe UI', sans-serif; }
+    .suggest-header {
+      background: linear-gradient(135deg, #4a148c 0%, #7b1fa2 50%, #9c27b0 100%);
+      color: white; padding: 40px 0; text-align: center;
+    }
+    .suggest-header h1 { font-size: 1.8em; margin-bottom: 5px; }
+    .suggest-header p { opacity: 0.85; font-size: 1em; }
+    .form-container {
+      max-width: 700px; margin: -30px auto 40px; background: white;
+      border-radius: 16px; padding: 35px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      position: relative; z-index: 1;
+    }
+    .notice-box {
+      background: #fff8e1; border: 1px solid #ffe082; border-radius: 12px;
+      padding: 15px 20px; margin-bottom: 25px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .notice-box .icon { font-size: 1.3em; }
+    .notice-box p { margin: 0; font-size: 0.9em; color: #5d4037; line-height: 1.5; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { font-weight: 600; color: #333; margin-bottom: 5px; display: block; font-size: 0.9em; }
+    .form-group .required { color: #c62828; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 10px;
+      font-size: 0.95em; transition: border-color 0.3s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: #7b1fa2; outline: none;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .amenities-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .amenity-check {
+      display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: #333;
+    }
+    .amenity-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: #7b1fa2; }
+    .btn-submit {
+      background: #7b1fa2; color: white; border: none; padding: 14px 40px;
+      border-radius: 25px; font-size: 1em; font-weight: 600; cursor: pointer; width: 100%;
+    }
+    .btn-submit:hover { background: #6a1b9a; }
+    .disclaimer-box {
+      background: #f5f5f5; border-radius: 10px; padding: 15px; margin-top: 20px;
+      font-size: 0.8em; color: #666; line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="suggest-header">
+    <div class="container">
+      <h1>🐾 Suggest a Pet Friendly Venue</h1>
+      <p>Share a place you have personally visited with your pet</p>
+    </div>
+  </div>
+
+  <div class="form-container">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">{{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="notice-box">
+      <div class="icon">⚠️</div>
+      <p><strong>Important:</strong> Please only suggest venues you have personally visited with your pet. Suggestions are reviewed before being published. False or spam submissions may result in account restrictions.</p>
+    </div>
+
+    <form method="POST" action="/pet-friendly/suggest">
+      <div class="form-group">
+        <label>Venue Name <span class="required">*</span></label>
+        <input type="text" name="name" required placeholder="e.g. The Bark Cafe">
+      </div>
+
+      <div class="form-group">
+        <label>Venue Type <span class="required">*</span></label>
+        <select name="venue_type" required>
+          <option value="">Select type...</option>
+          <option value="restaurant">Restaurant</option>
+          <option value="cafe">Cafe</option>
+          <option value="hotel">Hotel</option>
+          <option value="resort">Resort</option>
+          <option value="park">Park</option>
+          <option value="beach">Beach</option>
+          <option value="activity">Activity Centre</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>City <span class="required">*</span></label>
+            <input type="text" name="city" required placeholder="e.g. Kochi">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>State</label>
+            <select name="state">
+              <option value="">Select state...</option>
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+              <option value="Assam">Assam</option>
+              <option value="Bihar">Bihar</option>
+              <option value="Chhattisgarh">Chhattisgarh</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Goa">Goa</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Haryana">Haryana</option>
+              <option value="Himachal Pradesh">Himachal Pradesh</option>
+              <option value="Jharkhand">Jharkhand</option>
+              <option value="Karnataka">Karnataka</option>
+              <option value="Kerala">Kerala</option>
+              <option value="Madhya Pradesh">Madhya Pradesh</option>
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Manipur">Manipur</option>
+              <option value="Meghalaya">Meghalaya</option>
+              <option value="Mizoram">Mizoram</option>
+              <option value="Nagaland">Nagaland</option>
+              <option value="Odisha">Odisha</option>
+              <option value="Punjab">Punjab</option>
+              <option value="Rajasthan">Rajasthan</option>
+              <option value="Sikkim">Sikkim</option>
+              <option value="Tamil Nadu">Tamil Nadu</option>
+              <option value="Telangana">Telangana</option>
+              <option value="Tripura">Tripura</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Uttarakhand">Uttarakhand</option>
+              <option value="West Bengal">West Bengal</option>
+              <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+              <option value="Chandigarh">Chandigarh</option>
+              <option value="Dadra and Nagar Haveli">Dadra and Nagar Haveli</option>
+              <option value="Daman and Diu">Daman and Diu</option>
+              <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+              <option value="Ladakh">Ladakh</option>
+              <option value="Lakshadweep">Lakshadweep</option>
+              <option value="Puducherry">Puducherry</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <textarea name="address" rows="2" placeholder="Full address (optional)"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" name="phone" placeholder="Contact number (optional)">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Website</label>
+            <input type="text" name="website" placeholder="https://...">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Pet Policy <span class="required">*</span></label>
+        <textarea name="pet_policy" required rows="3" placeholder="Describe their pet policy as you experienced it. e.g. Dogs allowed at outdoor seating. Water bowl provided. No size restrictions."></textarea>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Max Pet Size Allowed</label>
+            <select name="max_pet_size">
+              <option value="all">All sizes welcome</option>
+              <option value="small">Small only (under 10kg)</option>
+              <option value="medium">Medium (under 25kg)</option>
+              <option value="large">Large (all sizes)</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Pet Fee</label>
+            <input type="text" name="pet_fee" placeholder="e.g. No charge, ₹200 per night">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Amenities Available</label>
+        <div class="amenities-grid">
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Water bowls provided"> Water bowls provided</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Outdoor seating"> Outdoor seating</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Pet menu available"> Pet menu available</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Pet bed/bedding"> Pet bed/bedding</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Fenced area"> Fenced area</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Pet sitting available"> Pet sitting available</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Grooming available"> Grooming available</label>
+          <label class="amenity-check"><input type="checkbox" name="amenities" value="Near walking trail"> Near walking trail</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Your Experience</label>
+        <textarea name="submission_notes" rows="3" placeholder="Tell other pet parents about your experience visiting with your pet"></textarea>
+      </div>
+
+      <button type="submit" class="btn-submit">Submit Suggestion</button>
+    </form>
+
+    <div class="disclaimer-box">
+      By submitting you confirm that you have personally visited this venue with your pet and that all information is accurate to the best of your knowledge. False submissions may result in account restrictions.
+    </div>
+  </div>
+
+  <div class="text-center" style="margin-bottom:40px;">
+    <a href="/pet-friendly" style="color:#7b1fa2; text-decoration:none; font-weight:600;">← Back to Pet Friendly Places</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
