@@ -6,20 +6,55 @@
   <title>Add Reminder - FurrButler</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; font-family: 'Poppins', sans-serif; padding: 20px; }
-    .container { max-width: 700px; margin: 0 auto; }
-    .back-btn { background-color: #6c757d; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; margin-bottom: 20px; display: inline-block; }
-    .back-btn:hover { background-color: #5a6268; color: white; }
-    .form-container { background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 30px; }
-    .form-header { text-align: center; margin-bottom: 30px; }
-    .form-header h2 { color: #667eea; margin-bottom: 10px; }
-    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 12px 25px; border-radius: 8px; }
-    .btn-secondary { background-color: #6c757d; border: none; padding: 12px 25px; border-radius: 8px; }
+    *{box-sizing:border-box}
+    body{background:#f4f0fa;font-family:'Poppins',sans-serif;margin:0;padding:20px}
+    .page-wrap{max-width:860px;margin:0 auto}
+    .back-btn{background:#6c757d;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;display:inline-block;margin-bottom:16px;font-size:.9rem;transition:background .2s}
+    .back-btn:hover{background:#5a6268;color:#fff}
+    .header-bar{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:18px 18px 0 0;padding:28px 30px;text-align:center;color:#fff}
+    .header-bar h2{margin:0 0 4px;font-weight:700;font-size:1.5rem}
+    .header-bar p{margin:0;opacity:.85;font-size:.95rem}
+    .form-body{background:#fff;border-radius:0 0 18px 18px;box-shadow:0 6px 24px rgba(102,126,234,.12);padding:30px}
+    .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+    @media(max-width:640px){.type-grid{grid-template-columns:repeat(2,1fr)}}
+    .type-card{border:2px solid #e8e4f0;border-radius:14px;padding:18px 10px;text-align:center;cursor:pointer;transition:all .25s;background:#faf9fc}
+    .type-card:hover{border-color:#9b8ec4;background:#f3eefa;transform:translateY(-2px)}
+    .type-card.selected{border-color:#764ba2;background:linear-gradient(135deg,#f3eefa 0%,#ece5f8 100%);box-shadow:0 3px 12px rgba(118,75,162,.18)}
+    .type-card .icon{font-size:2rem;margin-bottom:6px;display:block}
+    .type-card .label{font-weight:600;font-size:.82rem;color:#444}
+    .step-label{font-weight:600;color:#764ba2;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+    .type-form{display:none;animation:fadeIn .35s ease}
+    .type-form.active{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .form-section{border:1px solid #eee;border-radius:12px;padding:22px;margin-bottom:18px}
+    .form-section h5{font-size:.95rem;font-weight:600;color:#555;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #f0f0f0}
+    .auto-calc{background:#eef6ff !important;border-color:#b8d9f5 !important}
+    .auto-calc-hint{font-size:.72rem;color:#5a9bd5;margin-top:2px}
+    label.form-label{font-weight:500;font-size:.88rem;color:#555;margin-bottom:4px}
+    .form-control,.form-select{border-radius:8px;border:1px solid #ddd;font-size:.9rem}
+    .form-control:focus,.form-select:focus{border-color:#764ba2;box-shadow:0 0 0 .2rem rgba(118,75,162,.15)}
+    .toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+    .toggle-switch input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:24px;cursor:pointer;transition:.3s}
+    .toggle-slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+    .toggle-switch input:checked+.toggle-slider{background:#764ba2}
+    .toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+    .toggle-label{font-size:.88rem;font-weight:500;color:#555}
+    .btn-save{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;padding:12px 28px;border-radius:10px;color:#fff;font-weight:600;font-size:.95rem;transition:all .2s}
+    .btn-save:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(118,75,162,.3);color:#fff}
+    .btn-cancel{background:#f0edf4;border:none;padding:12px 28px;border-radius:10px;color:#764ba2;font-weight:600;font-size:.95rem;text-decoration:none;transition:all .2s}
+    .btn-cancel:hover{background:#e5e0ec;color:#5a3a7e}
+    .field-error{border-color:#dc3545 !important;box-shadow:0 0 0 .2rem rgba(220,53,69,.15) !important}
+    .error-msg{color:#dc3545;font-size:.78rem;margin-top:2px;display:none}
+    .error-msg.show{display:block}
+    .priority-bar{margin-bottom:20px}
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="page-wrap">
     <a href="/pet/{{ pet_index }}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to {{ pet.name }}</a>
 
     {% with messages = get_flashed_messages() %}
@@ -30,89 +65,608 @@
     {% endif %}
     {% endwith %}
 
-    <div class="form-container">
-      <div class="form-header">
-        <h2>🔔 Add Reminder for {{ pet.name }}</h2>
-        <p>Set up a health or care reminder</p>
+    <div class="header-bar">
+      <h2>🔔 Add Reminder for {{ pet.name }}</h2>
+      <p>Set up a health or care reminder for your pet</p>
+    </div>
+
+    <div class="form-body">
+      <div class="step-label">Step 1 — Choose Reminder Type</div>
+      <div class="type-grid">
+        <div class="type-card" data-type="Vaccination"><span class="icon">💉</span><span class="label">Vaccination</span></div>
+        <div class="type-card" data-type="Medication"><span class="icon">💊</span><span class="label">Medication</span></div>
+        <div class="type-card" data-type="Deworming"><span class="icon">🐛</span><span class="label">Deworming</span></div>
+        <div class="type-card" data-type="Flea Treatment"><span class="icon">🦟</span><span class="label">Flea Treatment</span></div>
+        <div class="type-card" data-type="Dental Care"><span class="icon">🦷</span><span class="label">Dental Care</span></div>
+        <div class="type-card" data-type="Vet Visit"><span class="icon">🏥</span><span class="label">Vet Visit</span></div>
+        <div class="type-card" data-type="Grooming"><span class="icon">✂️</span><span class="label">Grooming</span></div>
+        <div class="type-card" data-type="Other"><span class="icon">📝</span><span class="label">Other</span></div>
       </div>
 
-      <form method="POST">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Reminder Type <span class="text-danger">*</span></label>
-            <select name="reminder_type" class="form-select" required>
-              <option value="">Select type</option>
-              <option value="Vaccination">Vaccination</option>
-              <option value="Medication">Medication</option>
-              <option value="Deworming">Deworming</option>
-              <option value="Flea Treatment">Flea Treatment</option>
-              <option value="Dental Care">Dental Care</option>
-              <option value="Vet Visit">Vet Visit</option>
-              <option value="Grooming">Grooming</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Priority <span class="text-danger">*</span></label>
-            <select name="priority" class="form-select" required>
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
+      <form id="reminderForm" method="POST" action="/pet/{{ pet_index }}/reminder/add" enctype="multipart/form-data" novalidate style="display:none">
+        <input type="hidden" name="reminder_type" id="hiddenType" value="">
+
+        <div class="step-label">Step 2 — Fill in Details</div>
+
+        <div class="priority-bar form-section">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <label class="form-label">Priority <span class="text-danger">*</span></label>
+              <select name="priority" class="form-select" required>
+                <option value="low">🟢 Low</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="high">🟠 High</option>
+                <option value="urgent">🔴 Urgent</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label">Title <span class="text-danger">*</span></label>
-          <input type="text" name="title" class="form-control" required placeholder="e.g. Annual rabies vaccination">
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Description</label>
-          <textarea name="description" class="form-control" rows="3" placeholder="Additional details..."></textarea>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" name="due_date" class="form-control" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Vet Name</label>
-          <input type="text" name="vet_name" class="form-control" placeholder="Optional">
-        </div>
-
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Medication Name</label>
-            <input type="text" name="medication_name" class="form-control" placeholder="Optional">
+        <!-- VACCINATION -->
+        <div class="type-form" id="form-Vaccination">
+          <div class="form-section">
+            <h5>💉 Vaccination Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Vaccine Name <span class="text-danger">*</span></label>
+              <select id="vaccineSelect" class="form-select" onchange="toggleOtherVaccine()">
+                <option value="">Select vaccine</option>
+                <option value="Rabies">Rabies</option>
+                <option value="Distemper">Distemper</option>
+                <option value="Parvovirus">Parvovirus</option>
+                <option value="Bordetella">Bordetella</option>
+                <option value="Leptospirosis">Leptospirosis</option>
+                <option value="Lyme Disease">Lyme Disease</option>
+                <option value="DHPP">DHPP</option>
+                <option value="FVRCP">FVRCP</option>
+                <option value="FeLV">FeLV</option>
+                <option value="Other">Other</option>
+              </select>
+              <div class="error-msg" id="err-vaccine">Please select a vaccine</div>
+            </div>
+            <div class="mb-3" id="otherVaccineWrap" style="display:none">
+              <label class="form-label">Other Vaccine Name <span class="text-danger">*</span></label>
+              <input type="text" id="otherVaccineInput" class="form-control" placeholder="Enter vaccine name">
+              <div class="error-msg" id="err-otherVaccine">Please enter the vaccine name</div>
+            </div>
+            <input type="hidden" name="title" id="vaccineTitle">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date Given</label>
+                <input type="date" id="vacDateGiven" class="form-control" onchange="autoCalcDate('vacDateGiven','vacNextDue',365)">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Next Due Date <span class="text-danger">*</span></label>
+                <input type="date" name="due_date" id="vacNextDue" class="form-control auto-calc" required>
+                <div class="auto-calc-hint">Auto-calculated: date given + 1 year</div>
+                <div class="error-msg" id="err-vacDue">Please set a due date</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Batch Number</label>
+                <input type="text" class="form-control" placeholder="Optional">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Vet / Clinic Name</label>
+                <input type="text" name="vet_name" class="form-control" placeholder="Optional">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Upload Certificate</label>
+              <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+            </div>
           </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Dosage</label>
-            <input type="text" name="dosage" class="form-control" placeholder="Optional">
+        </div>
+
+        <!-- MEDICATION -->
+        <div class="type-form" id="form-Medication">
+          <div class="form-section">
+            <h5>💊 Medication Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Medication Name <span class="text-danger">*</span></label>
+              <input type="text" id="medName" name="medication_name" class="form-control" placeholder="Enter medication name">
+              <div class="error-msg" id="err-medName">Please enter the medication name</div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Dosage Amount</label>
+                <input type="number" step="any" class="form-control" name="dosage" placeholder="e.g. 10">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Dosage Unit</label>
+                <select class="form-select">
+                  <option value="">Select unit</option>
+                  <option>mg</option><option>ml</option><option>tablet</option><option>capsule</option>
+                  <option>drops</option><option>teaspoon</option><option>Other</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Frequency</label>
+                <select name="frequency" class="form-select">
+                  <option value="">Select</option>
+                  <option>Once Only</option><option>Daily</option><option>Twice Daily</option>
+                  <option>Three Times Daily</option><option>Every 8 Hours</option><option>Every 12 Hours</option>
+                  <option>Weekly</option><option>As Needed</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" id="medStart" class="form-control">
+              </div>
+              <div class="col-md-6 mb-3" id="medEndWrap">
+                <label class="form-label">End Date</label>
+                <input type="date" name="due_date" id="medEnd" class="form-control">
+              </div>
+            </div>
+            <div class="toggle-row">
+              <label class="toggle-switch"><input type="checkbox" id="medOngoing" onchange="toggleMedOngoing()"><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Ongoing (no end date)</span>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Prescribed By</label>
+              <input type="text" name="vet_name" class="form-control" placeholder="Vet name">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Special Instructions</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="e.g. Give with food"></textarea>
+            </div>
+            <div class="toggle-row">
+              <label class="toggle-switch"><input type="checkbox" id="medRefillToggle" onchange="toggleRefill()"><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Refill Reminder</span>
+            </div>
+            <div class="mb-3" id="medRefillWrap" style="display:none">
+              <label class="form-label">Refill Date</label>
+              <input type="date" class="form-control">
+            </div>
+            <input type="hidden" name="title" id="medTitle">
           </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Frequency</label>
-            <select name="frequency" class="form-select">
-              <option value="">Select frequency</option>
-              <option value="Once">Once</option>
-              <option value="Daily">Daily</option>
-              <option value="Twice Daily">Twice Daily</option>
-              <option value="Weekly">Weekly</option>
-              <option value="Monthly">Monthly</option>
-              <option value="As Needed">As Needed</option>
-            </select>
+        </div>
+
+        <!-- DEWORMING -->
+        <div class="type-form" id="form-Deworming">
+          <div class="form-section">
+            <h5>🐛 Deworming Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Product Name <span class="text-danger">*</span></label>
+              <input type="text" id="dewormProduct" name="medication_name" class="form-control" placeholder="e.g. Drontal, Milbemax">
+              <div class="error-msg" id="err-dewormProduct">Please enter the product name</div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date Given</label>
+                <input type="date" id="dewormDate" class="form-control" onchange="autoCalcDate('dewormDate','dewormNext',90)">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Next Due Date <span class="text-danger">*</span></label>
+                <input type="date" name="due_date" id="dewormNext" class="form-control auto-calc" required>
+                <div class="auto-calc-hint">Auto-calculated: date given + 3 months</div>
+                <div class="error-msg" id="err-dewormDue">Please set a due date</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Weight at Treatment</label>
+                <div class="input-group">
+                  <input type="number" step="0.1" name="dosage" class="form-control" placeholder="e.g. 12.5">
+                  <span class="input-group-text">kg</span>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Vet / Clinic Name</label>
+                <input type="text" name="vet_name" class="form-control" placeholder="Optional">
+              </div>
+            </div>
+            <input type="hidden" name="title" id="dewormTitle">
+          </div>
+        </div>
+
+        <!-- FLEA TREATMENT -->
+        <div class="type-form" id="form-FleaTreatment">
+          <div class="form-section">
+            <h5>🦟 Flea Treatment Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Product Name <span class="text-danger">*</span></label>
+              <select id="fleaProductSelect" class="form-select" onchange="toggleOtherFlea()">
+                <option value="">Select product</option>
+                <option>Frontline</option><option>Advantage</option><option>Revolution</option>
+                <option>Bravecto</option><option>NexGard</option><option>Simparica</option>
+                <option>Comfortis</option><option value="Other">Other</option>
+              </select>
+              <div class="error-msg" id="err-fleaProduct">Please select a product</div>
+            </div>
+            <div class="mb-3" id="otherFleaWrap" style="display:none">
+              <label class="form-label">Other Product Name <span class="text-danger">*</span></label>
+              <input type="text" id="otherFleaInput" class="form-control" placeholder="Enter product name">
+              <div class="error-msg" id="err-otherFlea">Please enter the product name</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Application Type</label>
+              <select class="form-select">
+                <option value="">Select type</option>
+                <option>Topical Spot-On</option><option>Oral Tablet</option><option>Collar</option>
+                <option>Spray</option><option>Shampoo</option>
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date Applied</label>
+                <input type="date" id="fleaDate" class="form-control" onchange="autoCalcDate('fleaDate','fleaNext',30)">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Next Due Date <span class="text-danger">*</span></label>
+                <input type="date" name="due_date" id="fleaNext" class="form-control auto-calc" required>
+                <div class="auto-calc-hint">Auto-calculated: date applied + 1 month</div>
+                <div class="error-msg" id="err-fleaDue">Please set a due date</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <input type="hidden" name="title" id="fleaTitle">
+            <input type="hidden" name="medication_name" id="fleaMedName">
+          </div>
+        </div>
+
+        <!-- DENTAL CARE -->
+        <div class="type-form" id="form-DentalCare">
+          <div class="form-section">
+            <h5>🦷 Dental Care Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Procedure Type <span class="text-danger">*</span></label>
+              <select id="dentalProcedure" class="form-select">
+                <option value="">Select procedure</option>
+                <option>Professional Cleaning</option><option>Extraction</option><option>Dental Check</option>
+                <option>X-Ray</option><option>Home Brushing</option><option>Other</option>
+              </select>
+              <div class="error-msg" id="err-dentalProc">Please select a procedure</div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" id="dentalDate" class="form-control" onchange="autoCalcDate('dentalDate','dentalNext',180)">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Next Due Date <span class="text-danger">*</span></label>
+                <input type="date" name="due_date" id="dentalNext" class="form-control auto-calc" required>
+                <div class="auto-calc-hint">Auto-calculated: date + 6 months</div>
+                <div class="error-msg" id="err-dentalDue">Please set a due date</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Vet / Clinic Name</label>
+              <input type="text" name="vet_name" class="form-control" placeholder="Optional">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Teeth / Areas Affected</label>
+              <input type="text" class="form-control" placeholder="Optional">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <input type="hidden" name="title" id="dentalTitle">
+          </div>
+        </div>
+
+        <!-- VET VISIT -->
+        <div class="type-form" id="form-VetVisit">
+          <div class="form-section">
+            <h5>🏥 Vet Visit Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Reason for Visit <span class="text-danger">*</span></label>
+              <input type="text" id="vetReason" class="form-control" placeholder="e.g. Annual checkup, Not eating, Limping">
+              <div class="error-msg" id="err-vetReason">Please enter the reason for visit</div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date <span class="text-danger">*</span></label>
+                <input type="date" name="due_date" id="vetDate" class="form-control" required>
+                <div class="error-msg" id="err-vetDate">Please set a date</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Vet / Clinic Name</label>
+                <input type="text" name="vet_name" class="form-control" placeholder="Optional">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Diagnosis</label>
+              <input type="text" class="form-control" placeholder="Optional">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Treatment Given</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Optional"></textarea>
+            </div>
+            <div class="toggle-row">
+              <label class="toggle-switch"><input type="checkbox" id="vetFollowToggle" onchange="toggleFollowUp()"><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Follow Up Required</span>
+            </div>
+            <div id="vetFollowWrap" style="display:none">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Follow Up Date</label>
+                  <input type="date" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Follow Up Notes</label>
+                  <input type="text" class="form-control" placeholder="Optional">
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Documents</label>
+              <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+            </div>
+            <input type="hidden" name="title" id="vetTitle">
+          </div>
+        </div>
+
+        <!-- GROOMING -->
+        <div class="type-form" id="form-Grooming">
+          <div class="form-section">
+            <h5>✂️ Grooming Details</h5>
+            <div class="mb-3">
+              <label class="form-label">Services <span class="text-danger">*</span></label>
+              <select id="groomServices" class="form-select" multiple size="4">
+                <option>Bath</option><option>Haircut/Trim</option><option>Nail Trim</option>
+                <option>Ear Cleaning</option><option>Teeth Brushing</option><option>Deshedding</option>
+                <option>Full Groom</option><option>Other</option>
+              </select>
+              <div class="auto-calc-hint">Hold Ctrl/Cmd to select multiple</div>
+              <div class="error-msg" id="err-groomService">Please select at least one service</div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" id="groomDate" class="form-control" onchange="autoCalcDate('groomDate','groomNext',35)">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Next Appointment <span class="text-danger">*</span></label>
+                <input type="date" name="due_date" id="groomNext" class="form-control auto-calc" required>
+                <div class="auto-calc-hint">Auto-calculated: date + 5 weeks</div>
+                <div class="error-msg" id="err-groomDue">Please set a due date</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Groomer / Salon Name</label>
+              <input type="text" name="vet_name" class="form-control" placeholder="Optional">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Special Instructions</label>
+              <textarea class="form-control" rows="2" placeholder="Optional"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Optional"></textarea>
+            </div>
+            <input type="hidden" name="title" id="groomTitle">
+          </div>
+        </div>
+
+        <!-- OTHER -->
+        <div class="type-form" id="form-Other">
+          <div class="form-section">
+            <h5>📝 Other Reminder</h5>
+            <div class="mb-3">
+              <label class="form-label">Title <span class="text-danger">*</span></label>
+              <input type="text" name="title" id="otherTitle" class="form-control" placeholder="Enter reminder title">
+              <div class="error-msg" id="err-otherTitle">Please enter a title</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description <span class="text-danger">*</span></label>
+              <textarea name="description" id="otherDesc" class="form-control" rows="3" placeholder="Describe the reminder"></textarea>
+              <div class="error-msg" id="err-otherDesc">Please enter a description</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Due Date <span class="text-danger">*</span></label>
+              <input type="date" name="due_date" id="otherDue" class="form-control" required>
+              <div class="error-msg" id="err-otherDue">Please set a due date</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Reminder Notes</label>
+              <textarea class="form-control" rows="2" placeholder="Optional additional notes"></textarea>
+            </div>
           </div>
         </div>
 
         <div class="d-flex gap-3 mt-3">
-          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Reminder</button>
-          <a href="/pet/{{ pet_index }}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn-save"><i class="fas fa-save"></i> Save Reminder</button>
+          <a href="/pet/{{ pet_index }}" class="btn-cancel">Cancel</a>
         </div>
       </form>
     </div>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const today = new Date().toISOString().split('T')[0];
+    let selectedType = null;
+    const formIds = {
+      'Vaccination':'form-Vaccination','Medication':'form-Medication','Deworming':'form-Deworming',
+      'Flea Treatment':'form-FleaTreatment','Dental Care':'form-DentalCare','Vet Visit':'form-VetVisit',
+      'Grooming':'form-Grooming','Other':'form-Other'
+    };
+
+    document.querySelectorAll('[id$="Date"], #vacDateGiven, #medStart, #dewormDate, #fleaDate, #dentalDate, #groomDate').forEach(function(el){
+      if(!el.value) el.value = today;
+    });
+    document.getElementById('vacDateGiven').value = today;
+    document.getElementById('medStart').value = today;
+    document.getElementById('dewormDate').value = today;
+    document.getElementById('fleaDate').value = today;
+    document.getElementById('dentalDate').value = today;
+    document.getElementById('groomDate').value = today;
+    document.getElementById('vetDate').value = today;
+
+    document.querySelectorAll('.type-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        selectedType = this.dataset.type;
+        document.querySelectorAll('.type-card').forEach(function(c){c.classList.remove('selected')});
+        this.classList.add('selected');
+        document.getElementById('hiddenType').value = selectedType;
+        document.getElementById('reminderForm').style.display = 'block';
+        document.querySelectorAll('.type-form').forEach(function(f){f.classList.remove('active')});
+        var fid = formIds[selectedType];
+        if(fid) document.getElementById(fid).classList.add('active');
+        clearErrors();
+        if(selectedType==='Vaccination') autoCalcDate('vacDateGiven','vacNextDue',365);
+        if(selectedType==='Deworming') autoCalcDate('dewormDate','dewormNext',90);
+        if(selectedType==='Flea Treatment') autoCalcDate('fleaDate','fleaNext',30);
+        if(selectedType==='Dental Care') autoCalcDate('dentalDate','dentalNext',180);
+        if(selectedType==='Grooming') autoCalcDate('groomDate','groomNext',35);
+      });
+    });
+
+    function autoCalcDate(srcId, destId, days){
+      var src = document.getElementById(srcId);
+      var dest = document.getElementById(destId);
+      if(src && src.value && dest){
+        var d = new Date(src.value);
+        d.setDate(d.getDate() + days);
+        dest.value = d.toISOString().split('T')[0];
+      }
+    }
+
+    function toggleOtherVaccine(){
+      var v = document.getElementById('vaccineSelect').value;
+      document.getElementById('otherVaccineWrap').style.display = v==='Other'?'block':'none';
+    }
+
+    function toggleOtherFlea(){
+      var v = document.getElementById('fleaProductSelect').value;
+      document.getElementById('otherFleaWrap').style.display = v==='Other'?'block':'none';
+    }
+
+    function toggleMedOngoing(){
+      var on = document.getElementById('medOngoing').checked;
+      document.getElementById('medEndWrap').style.display = on?'none':'block';
+    }
+
+    function toggleRefill(){
+      var on = document.getElementById('medRefillToggle').checked;
+      document.getElementById('medRefillWrap').style.display = on?'block':'none';
+    }
+
+    function toggleFollowUp(){
+      var on = document.getElementById('vetFollowToggle').checked;
+      document.getElementById('vetFollowWrap').style.display = on?'block':'none';
+    }
+
+    function showErr(id, inputId){
+      var e = document.getElementById(id);
+      if(e) e.classList.add('show');
+      if(inputId){var i=document.getElementById(inputId);if(i)i.classList.add('field-error');}
+    }
+
+    function clearErrors(){
+      document.querySelectorAll('.error-msg').forEach(function(e){e.classList.remove('show')});
+      document.querySelectorAll('.field-error').forEach(function(e){e.classList.remove('field-error')});
+    }
+
+    function setHiddenTitle(id, val){
+      var el = document.getElementById(id);
+      if(el) el.value = val;
+    }
+
+    function disableUnusedNames(){
+      document.querySelectorAll('.type-form').forEach(function(f){
+        if(!f.classList.contains('active')){
+          f.querySelectorAll('[name]').forEach(function(inp){inp.removeAttribute('name')});
+          f.querySelectorAll('[required]').forEach(function(inp){inp.removeAttribute('required')});
+        }
+      });
+    }
+
+    document.getElementById('reminderForm').addEventListener('submit', function(e){
+      clearErrors();
+      var valid = true;
+
+      if(!selectedType){e.preventDefault();return;}
+
+      if(selectedType==='Vaccination'){
+        var vSel = document.getElementById('vaccineSelect');
+        if(!vSel.value){showErr('err-vaccine','vaccineSelect');valid=false;}
+        if(vSel.value==='Other'){
+          var ov=document.getElementById('otherVaccineInput');
+          if(!ov.value.trim()){showErr('err-otherVaccine','otherVaccineInput');valid=false;}
+          else setHiddenTitle('vaccineTitle', ov.value.trim()+' Vaccination');
+        } else if(vSel.value){
+          setHiddenTitle('vaccineTitle', vSel.value+' Vaccination');
+        }
+        if(!document.getElementById('vacNextDue').value){showErr('err-vacDue','vacNextDue');valid=false;}
+      }
+
+      if(selectedType==='Medication'){
+        var mn=document.getElementById('medName');
+        if(!mn.value.trim()){showErr('err-medName','medName');valid=false;}
+        else setHiddenTitle('medTitle', mn.value.trim()+' Medication');
+        var ongoing = document.getElementById('medOngoing').checked;
+        if(ongoing){
+          var dueFld = document.createElement('input');
+          dueFld.type='hidden'; dueFld.name='due_date'; dueFld.value='2099-12-31';
+          document.getElementById('reminderForm').appendChild(dueFld);
+        } else if(!document.getElementById('medEnd').value){
+          document.getElementById('medEnd').value = today;
+        }
+      }
+
+      if(selectedType==='Deworming'){
+        var dp=document.getElementById('dewormProduct');
+        if(!dp.value.trim()){showErr('err-dewormProduct','dewormProduct');valid=false;}
+        else setHiddenTitle('dewormTitle', dp.value.trim()+' Deworming');
+        if(!document.getElementById('dewormNext').value){showErr('err-dewormDue','dewormNext');valid=false;}
+      }
+
+      if(selectedType==='Flea Treatment'){
+        var fp=document.getElementById('fleaProductSelect');
+        if(!fp.value){showErr('err-fleaProduct','fleaProductSelect');valid=false;}
+        if(fp.value==='Other'){
+          var of2=document.getElementById('otherFleaInput');
+          if(!of2.value.trim()){showErr('err-otherFlea','otherFleaInput');valid=false;}
+          else{
+            setHiddenTitle('fleaTitle', of2.value.trim()+' Flea Treatment');
+            document.getElementById('fleaMedName').value = of2.value.trim();
+          }
+        } else if(fp.value){
+          setHiddenTitle('fleaTitle', fp.value+' Flea Treatment');
+          document.getElementById('fleaMedName').value = fp.value;
+        }
+        if(!document.getElementById('fleaNext').value){showErr('err-fleaDue','fleaNext');valid=false;}
+      }
+
+      if(selectedType==='Dental Care'){
+        var dpr=document.getElementById('dentalProcedure');
+        if(!dpr.value){showErr('err-dentalProc','dentalProcedure');valid=false;}
+        else setHiddenTitle('dentalTitle', dpr.value+' - Dental Care');
+        if(!document.getElementById('dentalNext').value){showErr('err-dentalDue','dentalNext');valid=false;}
+      }
+
+      if(selectedType==='Vet Visit'){
+        var vr=document.getElementById('vetReason');
+        if(!vr.value.trim()){showErr('err-vetReason','vetReason');valid=false;}
+        else setHiddenTitle('vetTitle', 'Vet Visit: '+vr.value.trim());
+        if(!document.getElementById('vetDate').value){showErr('err-vetDate','vetDate');valid=false;}
+      }
+
+      if(selectedType==='Grooming'){
+        var gs=document.getElementById('groomServices');
+        var sel=Array.from(gs.selectedOptions).map(function(o){return o.value});
+        if(!sel.length){showErr('err-groomService','groomServices');valid=false;}
+        else setHiddenTitle('groomTitle', sel.join(', ')+' - Grooming');
+        if(!document.getElementById('groomNext').value){showErr('err-groomDue','groomNext');valid=false;}
+      }
+
+      if(selectedType==='Other'){
+        if(!document.getElementById('otherTitle').value.trim()){showErr('err-otherTitle','otherTitle');valid=false;}
+        if(!document.getElementById('otherDesc').value.trim()){showErr('err-otherDesc','otherDesc');valid=false;}
+        if(!document.getElementById('otherDue').value){showErr('err-otherDue','otherDue');valid=false;}
+      }
+
+      if(!valid){e.preventDefault();return;}
+      disableUnusedNames();
+    });
+  </script>
 </body>
 </html>

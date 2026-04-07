@@ -1,0 +1,197 @@
+In templates/add_reminder.html only,
+redesign the form to be dynamic.
+Do not modify any Python files.
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+Replace the current single form with
+a dynamic multi-step form:
+
+STEP 1 — Choose reminder type:
+Show 8 large icon cards in a grid:
+  💉 Vaccination
+  💊 Medication  
+  🐛 Deworming
+  🦟 Flea Treatment
+  🦷 Dental Care
+  🏥 Vet Visit
+  ✂️ Grooming
+  📝 Other
+
+Each card is clickable.
+When clicked highlight it and
+show the specific form for that type.
+No page reload — pure JavaScript.
+
+STEP 2 — Type-specific forms:
+Each form shown below the grid.
+All forms have:
+  - Priority dropdown at top:
+    Low, Medium, High, Urgent
+  - Save Reminder button
+  - Cancel button
+
+VACCINATION form shows:
+  Vaccine name dropdown:
+    Rabies, Distemper, Parvovirus,
+    Bordetella, Leptospirosis,
+    Lyme Disease, DHPP, FVRCP,
+    FeLV, Other
+  If Other selected show text input
+  Date Given date picker
+    default today
+  Next Due Date date picker
+    auto-filled to date given + 1 year
+    using JavaScript
+    but editable
+  Batch Number text input optional
+  Vet/Clinic Name text input
+  Upload Certificate file input
+    accepting jpg png pdf
+
+MEDICATION form shows:
+  Medication Name text input required
+  Dosage Amount number input
+  Dosage Unit dropdown:
+    mg, ml, tablet, capsule,
+    drops, teaspoon, Other
+  Frequency dropdown:
+    Once Only, Daily, Twice Daily,
+    Three Times Daily, Every 8 Hours,
+    Every 12 Hours, Weekly,
+    As Needed
+  Start Date date picker default today
+  Ongoing toggle:
+    If off show End Date date picker
+    If on hide End Date
+  Prescribed By text input
+  Special Instructions textarea
+  Refill Reminder toggle:
+    If on show Refill Date date picker
+
+DEWORMING form shows:
+  Product Name text input required
+    placeholder: Drontal, Milbemax etc
+  Date Given date picker default today
+  Next Due Date date picker
+    auto-filled to date given + 3 months
+  Weight at Treatment number input
+    with kg label
+  Vet/Clinic Name text input optional
+
+FLEA TREATMENT form shows:
+  Product Name dropdown:
+    Frontline, Advantage, Revolution,
+    Bravecto, NexGard, Simparica,
+    Comfortis, Other
+  If Other show text input
+  Application Type dropdown:
+    Topical Spot-On, Oral Tablet,
+    Collar, Spray, Shampoo
+  Date Applied date picker default today
+  Next Due Date date picker
+    auto-filled to date applied + 1 month
+  Notes textarea optional
+
+DENTAL CARE form shows:
+  Procedure Type dropdown:
+    Professional Cleaning, Extraction,
+    Dental Check, X-Ray, Home Brushing,
+    Other
+  Date date picker default today
+  Next Due Date date picker
+    auto-filled to date + 6 months
+  Vet/Clinic Name text input
+  Teeth/Areas Affected text input optional
+  Notes textarea optional
+
+VET VISIT form shows:
+  Reason for Visit text input required
+    placeholder: Annual checkup,
+    Not eating, Limping etc
+  Date date picker default today
+  Vet/Clinic Name text input
+  Diagnosis text input optional
+  Treatment Given textarea optional
+  Follow Up Required toggle:
+    If on show Follow Up Date date picker
+    and Follow Up Notes text input
+  Documents upload optional
+
+GROOMING form shows:
+  Services dropdown (multi-select):
+    Bath, Haircut/Trim, Nail Trim,
+    Ear Cleaning, Teeth Brushing,
+    Deshedding, Full Groom, Other
+  Date date picker default today
+  Groomer/Salon Name text input
+  Next Appointment date picker
+    auto-filled to date + 5 weeks
+  Special Instructions textarea optional
+  Notes textarea optional
+
+OTHER form shows:
+  Title text input required
+  Description textarea required
+  Due Date date picker required
+  Reminder Notes textarea optional
+
+JAVASCRIPT requirements:
+1. Clicking a type card:
+   - Adds selected class to card
+   - Hides all other forms
+   - Shows the correct form
+   - Smooth fade transition
+
+2. Auto-calculate next due dates:
+   When date given changes:
+   - Vaccination: + 365 days
+   - Deworming: + 90 days
+   - Flea Treatment: + 30 days
+   - Dental Care: + 180 days
+   - Grooming: + 35 days
+
+3. Dynamic fields:
+   - Other vaccine/product name
+     shows when Other selected
+   - End date hides when
+     Ongoing toggled on
+   - Refill date shows when
+     Refill Reminder toggled on
+   - Follow up date shows when
+     Follow Up Required toggled on
+
+4. Form validation:
+   Before submit check required fields
+   for the selected type
+   Show inline error if empty
+   Do not submit if validation fails
+
+5. Hidden input for reminder_type:
+   Set to selected type value
+   on form submission so POST
+   route knows which type was submitted
+
+STYLING:
+Purple gradient header
+"Add Reminder for {{ pet.name }}"
+White clean form area below
+Type cards in 4x2 grid on desktop
+2x4 on mobile
+Selected card has purple border
+and purple background tint
+Form sections have subtle borders
+Auto-calculated fields shown in
+light blue background to indicate
+they are suggestions not locked
+
+Keep all form POSTs going to:
+/pet/{{ pet_index }}/reminder/add
+Same route handles all types
+The reminder_type hidden field
+tells the route which type it is
+
+Do not modify any Python files.
+Do not modify any other templates.
+Do not delete any accounts or data.

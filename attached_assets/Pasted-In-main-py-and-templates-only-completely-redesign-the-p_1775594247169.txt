@@ -1,0 +1,395 @@
+In main.py and templates only,
+completely redesign the pet passport
+page into a multi-tab Pawsport.
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Database additions:
+
+Add to init_erp_db() in main.py:
+
+CREATE TABLE IF NOT EXISTS 
+pet_travel_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pet_index INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    travel_type TEXT NOT NULL
+        CHECK(travel_type IN 
+        ('domestic','international')),
+    destination TEXT NOT NULL,
+    departure_date TEXT,
+    return_date TEXT,
+    handler_name TEXT,
+    handler_id INTEGER,
+    purpose TEXT,
+    airline TEXT,
+    flight_number TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE IF NOT EXISTS
+pawsport_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pet_index INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    document_type TEXT NOT NULL,
+    document_name TEXT NOT NULL,
+    file_url TEXT,
+    issue_date TEXT,
+    expiry_date TEXT,
+    issued_by TEXT,
+    verified BOOLEAN DEFAULT 0,
+    verification_hash TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+PART 2 — Update pet passport route:
+
+In main.py find the pet passport route
+/pet/<int:pet_index>/passport
+
+Update it to pull:
+1. Pet details from Replit db
+2. All pawsport_documents for this pet
+3. Vaccination records from
+   pet_reminders where
+   reminder_type = Vaccination
+   and source = furrvet
+4. All bookings for this pet
+   from bookings table
+5. Handler bookings from
+   handler_bookings table
+6. Domestic travel history from
+   pet_travel_history where
+   travel_type = domestic
+7. International travel history
+   where travel_type = international
+8. Completion percentage:
+   Count verified documents /
+   total required documents * 100
+   Required: Microchip, Vaccination,
+   Health Certificate, DGFT,
+   AQCS, Quarantine Clearance
+
+Pass all data to pawsport.html
+
+Add route
+/pet/<int:pet_index>/passport/
+add-travel POST:
+Save new travel record to
+pet_travel_history table
+Redirect back to passport
+
+Add route
+/pet/<int:pet_index>/passport/
+upload-document POST:
+Accept file upload
+Save to static/uploads/pawsport/
+Save record to pawsport_documents
+Redirect back to passport
+
+PART 3 — Create pawsport.html:
+
+Completely replace the existing
+pet_passport.html template with
+a new professional design.
+
+Overall design:
+Deep navy blue background (#1a1f3a)
+Gold accents (#c9a84c)
+White text
+Feels like a real passport
+Professional not childish
+
+HEADER SECTION:
+Large header bar:
+Left side: FurrButler paw logo
+Center: "PAWSPORT" in gold letters
+         "International Pet Travel Document"
+Right side: Pawsport number
+            (PAW-{{ pet_index }}-{{ user_id }})
+Background: dark navy with subtle
+            gold border at bottom
+
+PET IDENTITY CARD (always visible):
+Horizontal card below header
+Left side: Large circular pet photo
+           placeholder with paw icon
+           if no photo uploaded
+Middle: 
+  Pet name in large gold text
+  Species and Breed
+  Date of Birth
+  Age
+Right side:
+  Blood Type
+  Microchip Number
+  Owner: {{ parent_name }}
+  Contact: {{ parent_phone }}
+  Issued: {{ today's date }}
+Overall completion ring:
+  Circular progress indicator
+  {{ completion_pct }}% Complete
+  Green if > 75%, yellow if 50-75%
+  red if < 50%
+
+TAB NAVIGATION:
+5 tabs in gold on navy:
+Tab 1: 🛂 Identity
+Tab 2: 💉 Medical
+Tab 3: ✈️ Travel Bookings
+Tab 4: 🗺️ Domestic Journeys
+Tab 5: 🌍 International Journeys
+
+TAB 1 — Identity:
+Passport style layout with
+decorative border pattern.
+
+Two column layout:
+
+Left column — Personal Details:
+Section: Pet Details
+  Full Name: {{ pet.name }}
+  Species: {{ pet.species }}
+  Breed: {{ pet.breed }}
+  Date of Birth: {{ pet.birthday }}
+  Age: calculated from birthday
+  Gender: {{ pet.gender }}
+  Colour/Markings: {{ pet.colour }}
+  Weight: {{ pet.weight }} kg
+
+Section: Identification
+  Microchip Number: {{ pet.microchip }}
+  Blood Type: {{ pet.blood }}
+  Special Needs: {{ pet.special_needs }}
+
+Section: Owner Details
+  Owner Name: {{ pet.parent_name }}
+  Contact: {{ pet.parent_phone }}
+  Emergency Contact: separate field
+
+Right column — Documents:
+Required Documents checklist:
+For each required document show:
+  Document name
+  Status icon:
+    ✅ green if verified
+    📎 yellow if uploaded not verified
+    ❌ red if missing
+  Issue date if uploaded
+  Expiry date if applicable
+  Upload button if missing
+  View button if uploaded
+
+Required documents:
+  Microchip Certificate
+  Vaccination Records
+  Health Certificate
+  DGFT Certificate
+  AQCS Certificate
+  Quarantine Clearance
+
+Upload button for each document
+shows a file input modal
+POSTs to /pet/<index>/passport/
+upload-document
+
+Decorative passport elements:
+Subtle repeating paw print
+watermark pattern in background
+Gold line borders between sections
+"VALID" or "INCOMPLETE" stamp
+based on completion percentage
+
+TAB 2 — Medical:
+
+Section: Vaccination History
+Table showing all vaccinations:
+Columns:
+  Vaccine Name
+  Date Given
+  Batch Number (if from FurrVet)
+  Next Due Date
+  Given By (vet name)
+  Source badge: FurrVet blue
+               or Manual grey
+  Certificate upload/view button
+
+If no vaccinations:
+"No vaccination records yet.
+Book a FurrVet appointment or
+add manually."
++ Add Vaccination Record button
+
+Section: Current Medications:
+Cards for active medications
+from pet_reminders where
+reminder_type = Medication
+Each card shows:
+  Medication name
+  Dosage and frequency
+  Prescribed by (vet name)
+  Start date
+  Next dose due
+  Source badge
+  Mark Administered button
+
+Section: Medical History:
+Timeline of past vet visits
+pulled from pet_reminders
+where is_completed = 1
+Show date, type, description
+
+Section: Add Manual Record:
+Collapsible form to add
+medical record manually:
+  Record type dropdown:
+    Vaccination, Medication,
+    Surgery, Dental, Deworming,
+    Allergy, Other
+  Details text
+  Date
+  Vet name
+  Document upload
+POSTs to /pet/<index>/reminder/add
+with source = manual
+
+TAB 3 — Travel Bookings:
+
+Section: Upcoming Travel:
+Pull from bookings and
+handler_bookings where
+date > today
+For each upcoming travel booking:
+  Card showing:
+    Handler or service name
+    Destination
+    Travel date
+    Service type badge:
+      Handler purple
+      Isolation orange
+      Vet teal
+    Status badge
+    Required documents checklist
+    for this trip:
+      Health Certificate ✅/❌
+      DGFT Certificate ✅/❌
+      AQCS Certificate ✅/❌
+    Book Missing Services button
+
+Section: Document Requirements:
+By destination country if known
+Show what's required for travel
+to that country
+
+Section: Log Past Travel button:
+Opens form to manually log
+a completed trip:
+  Travel type: domestic/international
+  Destination
+  Departure date
+  Return date
+  Handler name
+  Notes
+POSTs to /pet/<index>/passport/
+add-travel
+
+TAB 4 — Domestic Journeys:
+
+Map placeholder showing India
+with pins for destinations visited
+
+Journey cards in timeline:
+For each domestic travel record:
+  Date range
+  Destination city/state
+  Purpose: grooming/boarding/vet/other
+  Service provider if applicable
+  Notes
+
+Stats at top:
+  Total domestic trips: count
+  States visited: count
+  Most visited city
+
++ Log Domestic Trip button
+  Opens quick form:
+    Destination city
+    Date range
+    Purpose dropdown
+    Notes
+
+TAB 5 — International Journeys:
+
+Globe or world map placeholder
+with visited countries highlighted
+
+Journey cards:
+For each international record:
+  Country flag emoji based on
+  destination country name
+  Destination country
+  Date range
+  Handler name
+  Airline and flight number if known
+  Documents used for this trip
+  Stamps section (decorative)
+
+Stats at top:
+  Countries visited: count
+  Total international trips
+  Most recent destination
+
++ Log International Trip button
+  Opens form:
+    Destination country
+    Departure date
+    Return date
+    Handler name
+    Airline
+    Flight number
+    Notes
+
+FOOTER:
+On all tabs show:
+"🐾 FurrButler Pawsport System"
+"Secure International Pet Travel Documentation"
+QR code placeholder for verification
+"Scan to verify this pawsport"
+
+PART 4 — Navigation:
+
+Back to Pet Profile button
+at top of every tab:
+← Back to Luna's Profile
+
+Tab switching using JavaScript
+No page reload between tabs
+Remember selected tab in
+localStorage so it persists
+on page refresh
+
+PART 5 — Print/Download:
+
+Add Print Pawsport button
+on Identity tab.
+CSS print stylesheet that:
+  Shows only Identity tab content
+  Removes navigation
+  Formats as A4 page
+  Keeps navy and gold design
+  Shows QR code
+
+Do not modify any other templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
