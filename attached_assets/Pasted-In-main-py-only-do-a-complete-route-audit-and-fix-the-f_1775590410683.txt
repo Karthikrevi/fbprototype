@@ -1,0 +1,147 @@
+In main.py only, do a complete 
+route audit and fix the following.
+Do not modify any templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Fix logout routes:
+
+Find all logout related routes.
+Ensure each portal has its own
+logout that redirects to the
+correct login page:
+
+/logout → redirect to /login
+  Clear pet parent session keys:
+  user_email, user_name, user_type
+
+/erp/logout → redirect to /erp/login
+  Clear vendor session keys:
+  vendor_email, vendor_id, vendor_name
+
+/furrvet/logout → redirect to /furrvet/login
+  Clear vet session keys:
+  vet_email, vet_id
+
+/handler/logout → redirect to /handler/login
+  Clear handler session keys:
+  handler_email, handler_id
+
+/ngo/logout → redirect to /ngo/login
+  Clear NGO session keys:
+  ngo_email, ngo_id
+
+/admin/logout → redirect to /admin/login
+  Clear admin session keys:
+  admin_email
+
+Each logout must only clear its own
+session keys — not wipe the entire
+session which would log out other
+portal users simultaneously.
+
+PART 2 — Fix duplicate routes:
+
+Find any routes that are defined
+more than once in main.py.
+Keep the most complete version.
+Remove the duplicate.
+Common duplicates to check:
+/erp/dashboard
+/erp/reports
+/dashboard
+/login
+/register
+
+PART 3 — Fix redirect chains:
+
+If /erp redirects to /erp/dashboard
+which redirects to /erp/reports
+simplify to /erp → /erp/dashboard
+directly.
+
+If any route redirects more than
+once before reaching final destination
+collapse into single redirect.
+
+PART 4 — Fix back button destinations:
+
+Add a referrer tracking system:
+When entering a portal store the
+portal name in session:
+current_portal = vendor/vet/handler/
+                 ngo/admin/pet_parent
+
+In templates the back button should
+use this to go to correct dashboard.
+
+In main.py add a helper function:
+def get_portal_dashboard():
+    if session.get('vendor_email'):
+        return '/erp/dashboard'
+    elif session.get('vet_email'):
+        return '/furrvet/dashboard'
+    elif session.get('handler_email'):
+        return '/handler/dashboard'
+    elif session.get('ngo_email'):
+        return '/ngo/dashboard'
+    elif session.get('admin_email'):
+        return '/admin/dashboard'
+    else:
+        return '/dashboard'
+
+Make this available as a template
+global using:
+app.jinja_env.globals['get_portal_dashboard'] 
+= get_portal_dashboard
+
+PART 5 — Fix dead routes:
+
+Find any routes that:
+- Return empty responses
+- Have pass as their only content
+- Redirect to a 404
+- Reference templates that don't exist
+
+For each dead route either:
+- Implement it properly
+- Or redirect to nearest working page
+- Or remove it if truly redundant
+
+PART 6 — Add missing login redirects:
+
+If a logged-in vendor visits /login
+redirect to /erp/dashboard
+
+If a logged-in pet parent visits
+/erp/login redirect to /dashboard
+
+If a logged-in vet visits /login
+redirect to /furrvet/dashboard
+
+Prevent cross-portal confusion.
+
+PART 7 — Standardise session checks:
+
+Each portal's protected routes
+should check for the correct
+session key:
+
+Vendor routes check vendor_email
+Vet routes check vet_email
+Handler routes check handler_email
+NGO routes check ngo_email
+Admin routes check admin_email
+Pet parent routes check user_email
+
+If wrong session key found
+redirect to correct portal login
+not to generic /login
+
+Print a list of all routes found
+and their status to console
+on startup for debugging.
+
+Do not modify any templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.

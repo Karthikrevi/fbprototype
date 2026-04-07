@@ -115,6 +115,16 @@ Full GDPR compliance implemented across all portals:
 - **ERP Dashboard**: Data processor notice box with vendor responsibilities and DPA link
 - **API Endpoints**: `GET /api/v1/gdpr/furrwings-notice` (transfer notice JSON), `POST /api/v1/gdpr/furrwings-consent` (record transfer consent)
 
+## Route Audit Fixes
+Completed route audit across all 8 portals:
+- **Logout routes**: Every portal now has a dedicated logout route (`/logout`, `/erp/logout`, `/vet/logout`, `/handler/logout`, `/ngo/logout`, `/furrvet/logout`, `/isolation/logout`, `/master/admin/logout` + `/admin/logout`)
+- **Session isolation**: Each logout only clears its own portal's session keys (no more `session.clear()` wiping cross-portal state)
+- **Admin auth fix**: `/admin/gdpr/breach-log` GET and POST now correctly check `session.get("master_admin")` instead of the broken `"admin" in session`
+- **Admin login alias**: `/admin/login` added as alias for `/master/admin/login`
+- **Cross-portal redirects**: `/login` and `/erp/login` redirect already-authenticated users to their correct dashboard (covers all 8 portals)
+- **Portal dashboard helper**: `get_portal_dashboard()` Jinja global returns the correct dashboard URL for the current session
+- **Missing template fix**: `/erp/hr/employees` now redirects to the leaves management page (original `manage_employees.html` template never existed)
+
 ## FurrVet Module
 The FurrVet module provides a dedicated interface for veterinarians. It includes dashboards, appointment management, patient records with detailed medical histories and vaccinations, billing, inventory management for vet supplies, laboratory services, and reporting tools. All templates share a consistent design with a fixed sidebar and are responsive. The module manages its own SQLite database (`furrvet.db`) for veterinary-specific data.
 

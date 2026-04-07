@@ -2188,13 +2188,32 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 setup_error_handlers(app)
 
 # Register i18n functions with Jinja2
+def get_portal_dashboard():
+    if session.get('vendor'):
+        return '/erp/dashboard'
+    elif session.get('furrvet_vet_id'):
+        return '/furrvet/dashboard'
+    elif session.get('vet'):
+        return '/vet/dashboard'
+    elif session.get('handler'):
+        return '/handler/dashboard'
+    elif session.get('ngo'):
+        return '/ngo/dashboard'
+    elif session.get('master_admin'):
+        return '/master/admin/dashboard'
+    elif session.get('user'):
+        return '/dashboard'
+    else:
+        return '/dashboard'
+
 app.jinja_env.globals.update(
     t=t,
     get_supported_languages=get_supported_languages,
     get_current_language=get_current_language,
     datetime=datetime,
     get_vendor_currency=get_vendor_currency,
-    get_vendor_id_from_email=get_vendor_id_from_email
+    get_vendor_id_from_email=get_vendor_id_from_email,
+    get_portal_dashboard=get_portal_dashboard
 )
 
 @app.context_processor
@@ -2440,6 +2459,23 @@ def register():
 # Login
 @app.route('/login', methods=["GET", "POST"])
 def login():
+    if session.get("user"):
+        return redirect(url_for("dashboard"))
+    if session.get("vendor"):
+        return redirect(url_for("erp_dashboard"))
+    if session.get("furrvet_vet_id"):
+        return redirect(url_for("furrvet_dashboard"))
+    if session.get("vet"):
+        return redirect(url_for("vet_dashboard"))
+    if session.get("handler"):
+        return redirect(url_for("handler_dashboard"))
+    if session.get("ngo"):
+        return redirect(url_for("ngo_dashboard"))
+    if session.get("isolation"):
+        return redirect(url_for("isolation_dashboard"))
+    if session.get("master_admin"):
+        return redirect(url_for("master_admin_dashboard"))
+
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
@@ -4306,11 +4342,11 @@ def my_bookings():
     conn.close()
     return render_template("my_bookings.html", bookings=bookings)
 
-# Logout
+# Logout - only clear pet parent session keys
 @app.route('/logout')
 def logout():
-    session.clear()
-    return redirect(url_for("home"))
+    session.pop("user", None)
+    return redirect(url_for("login"))
 
 # ---- MISSING NGO DASHBOARD ROUTES ----
 
@@ -5123,6 +5159,14 @@ def vet_login():
 
     return render_template("vet_login.html")
 
+@app.route('/vet/logout')
+def vet_logout():
+    session.pop("vet", None)
+    session.pop("vet_id", None)
+    session.pop("vet_name", None)
+    session.pop("vet_license", None)
+    return redirect(url_for("vet_login"))
+
 @app.route('/handler/login', methods=["GET", "POST"])
 def handler_login():
     if request.method == "POST":
@@ -5145,6 +5189,14 @@ def handler_login():
             flash("Invalid handler credentials")
 
     return render_template("handler_login.html")
+
+@app.route('/handler/logout')
+def handler_logout():
+    session.pop("handler", None)
+    session.pop("handler_id", None)
+    session.pop("handler_name", None)
+    session.pop("handler_license", None)
+    return redirect(url_for("handler_login"))
 
 @app.route('/isolation/login', methods=["GET", "POST"])
 def isolation_login():
@@ -5169,6 +5221,15 @@ def isolation_login():
 
     return render_template("isolation_login.html")
 
+@app.route('/isolation/logout')
+def isolation_logout():
+    session.pop("isolation", None)
+    session.pop("isolation_id", None)
+    session.pop("isolation_name", None)
+    session.pop("isolation_license", None)
+    flash("You have been logged out successfully")
+    return redirect(url_for("isolation_login"))
+
 # ---- ERP ROUTES ----
 
 @app.route('/erp')
@@ -5184,11 +5245,15 @@ def erp_login_redirect():
 
 @app.route('/erp/login', methods=["GET", "POST"])
 def erp_login():
+    if session.get("vendor"):
+        return redirect(url_for("erp_dashboard"))
+    if session.get("user"):
+        return redirect(url_for("dashboard"))
+
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]
 
-        # Check for admin login
         if email == "admin@furrbutler.com" and password == "admin123":
             session["master_admin"] = True
             return redirect(url_for("master_admin_dashboard"))
@@ -5982,7 +6047,7 @@ def manage_employees():
     employees = c.fetchall()
 
     conn.close()
-    return render_template("manage_employees.html", employees=employees)
+    return redirect(url_for("manage_leaves"))
 
 @app.route('/erp/hr/timesheets', methods=["GET", "POST"])
 def manage_timesheets():
@@ -6928,6 +6993,8 @@ def generate_time_slots(settings, date):
 @app.route('/erp/logout')
 def erp_logout():
     session.pop("vendor", None)
+    session.pop("vendor_id", None)
+    session.pop("vendor_name", None)
     return redirect(url_for("erp_login"))
 
 # ---- CRM ROUTES ----
@@ -8865,6 +8932,7 @@ def purchase_history():
 
 # Master Admin Routes (Platform Owner)
 @app.route('/master/admin/login', methods=["GET", "POST"])
+@app.route('/admin/login', methods=["GET", "POST"])
 def master_admin_login():
     if request.method == "POST":
         username = request.form.get("username")
@@ -9170,10 +9238,11 @@ def update_vendor_status():
         return redirect(url_for("manage_vendors"))
 
 @app.route('/master/admin/logout')
+@app.route('/admin/logout')
 def master_admin_logout():
     session.pop("master_admin", None)
     flash("You have been logged out successfully")
-    return redirect(url_for("home"))
+    return redirect(url_for("master_admin_login"))
 
 # ---- HANDLER ESCROW MANAGEMENT ROUTES ----
 
@@ -15585,8 +15654,8 @@ def api_gdpr_delete_account(current_user, user_type):
 
 @app.route('/admin/gdpr/breach-log')
 def admin_gdpr_breach_log():
-    if "admin" not in session:
-        return redirect(url_for("login"))
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
     
     deletion_log = db.get("gdpr:deletion_log") or []
     breach_log = db.get("gdpr:breach_log") or []
@@ -15698,8 +15767,8 @@ def erp_gdpr_dpa():
 
 @app.route('/admin/gdpr/breach-log', methods=["POST"])
 def admin_gdpr_breach_log_post():
-    if "admin" not in session:
-        return redirect(url_for("login"))
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
     detected_date = request.form.get('detected_date', '')
     description = request.form.get('description', '')
     affected_users = request.form.get('affected_users', '')
