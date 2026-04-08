@@ -2253,6 +2253,29 @@ def init_erp_db():
     ''')
 
     c.execute('''
+        CREATE TABLE IF NOT EXISTS furrwings_manual_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vet_id INTEGER NOT NULL,
+            pet_name TEXT NOT NULL,
+            pet_species TEXT NOT NULL,
+            pet_breed TEXT,
+            pet_dob TEXT,
+            owner_name TEXT NOT NULL,
+            owner_phone TEXT NOT NULL,
+            owner_email TEXT,
+            microchip TEXT,
+            record_type TEXT NOT NULL,
+            record_data TEXT,
+            file_url TEXT,
+            notes TEXT,
+            claimed BOOLEAN DEFAULT 0,
+            claimed_by_email TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vet_id) REFERENCES furrwings_vets(id)
+        )
+    ''')
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS erp_integration_requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             vet_id INTEGER NOT NULL,
@@ -2790,14 +2813,74 @@ def furrwings_vet_patients():
                     })
     return render_template('furrwings_vet_patients.html', query=query, results=results, searched=searched)
 
+@app.route('/furrwings/vet/upload/search', methods=['POST'])
+@furrwings_vet_required
+def furrwings_vet_upload_search():
+    query = request.form.get('q', '').strip()
+    results = []
+    if query:
+        all_users = _kv_prefix("user:")
+        for key, user in all_users:
+            if user and isinstance(user, dict):
+                user_email = key.replace("user:", "")
+                if (query.lower() in user.get('phone', '').lower() or
+                    query.lower() in user_email.lower() or
+                    query.lower() in user.get('name', '').lower()):
+                    pets_list = db.get(f"pets:{user_email}", [])
+                    pet_cards = []
+                    for idx, pet in enumerate(pets_list):
+                        if isinstance(pet, dict):
+                            pet_cards.append({
+                                'index': idx,
+                                'name': pet.get('name', 'Unknown'),
+                                'species': pet.get('species', ''),
+                                'breed': pet.get('breed', ''),
+                            })
+                    if pet_cards:
+                        results.append({
+                            'name': user.get('name', user_email),
+                            'email': user_email,
+                            'phone': user.get('phone', ''),
+                            'pets': pet_cards
+                        })
+    return render_template('furrwings_vet_upload.html',
+        search_results=results, search_query=query, searched=True,
+        pet_info=None, owner_info=None, pet_index=None, user_email=None,
+        manual_pet=session.get('furrwings_manual_pet'))
+
+@app.route('/furrwings/vet/upload/manual-pet', methods=['POST'])
+@furrwings_vet_required
+def furrwings_vet_manual_pet():
+    manual_pet = {
+        'pet_name': request.form.get('pet_name', '').strip(),
+        'pet_species': request.form.get('pet_species', '').strip(),
+        'pet_breed': request.form.get('pet_breed', '').strip(),
+        'pet_dob': request.form.get('pet_dob', '').strip(),
+        'owner_name': request.form.get('owner_name', '').strip(),
+        'owner_phone': request.form.get('owner_phone', '').strip(),
+        'owner_email': request.form.get('owner_email', '').strip(),
+        'microchip': request.form.get('microchip', '').strip(),
+    }
+    session['furrwings_manual_pet'] = manual_pet
+    flash('Manual pet details saved. Choose a record type to upload.')
+    return redirect('/furrwings/vet/upload?mode=manual')
+
+@app.route('/furrwings/vet/upload/clear-pet')
+@furrwings_vet_required
+def furrwings_vet_clear_pet():
+    session.pop('furrwings_manual_pet', None)
+    return redirect('/furrwings/vet/upload')
+
 @app.route('/furrwings/vet/upload', methods=['GET', 'POST'])
 @furrwings_vet_required
 def furrwings_vet_upload():
     vet_id = session['furrwings_vet_id']
     pet_index = request.args.get('pet_index')
     user_email = request.args.get('user_email', '')
+    mode = request.args.get('mode', '')
     pet_info = None
     owner_info = None
+    manual_pet = session.get('furrwings_manual_pet')
     if user_email and pet_index is not None:
         pets_list = db.get(f"pets:{user_email}", [])
         try:
@@ -2805,11 +2888,14 @@ def furrwings_vet_upload():
             if 0 <= idx < len(pets_list):
                 pet_info = pets_list[idx]
                 pet_info['index'] = idx
+                session.pop('furrwings_manual_pet', None)
+                manual_pet = None
         except (ValueError, IndexError):
             pass
         user_data = db.get(f"user:{user_email}")
         if user_data and isinstance(user_data, dict):
             owner_info = {'name': user_data.get('name', user_email), 'email': user_email}
+    is_manual_mode = manual_pet is not None and pet_info is None
     if request.method == 'POST':
         upload_type = request.form.get('upload_type', '')
         target_email = request.form.get('user_email', user_email)
@@ -2818,13 +2904,35 @@ def furrwings_vet_upload():
         file = request.files.get('document_file')
         file_path = None
         if file and file.filename:
-            safe_name = f"fw_{vet_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+            safe_name = f"fw_{vet_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
             file_path = f"static/uploads/furrwings/{safe_name}"
             file.save(file_path)
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
         activity_desc = ''
         pet_name_for_log = request.form.get('pet_name_display', 'Unknown Pet')
+        if is_manual_mode and manual_pet:
+            record_data_dict = {}
+            for k, v in request.form.items():
+                if k not in ('upload_type', 'user_email', 'pet_index', 'is_manual', 'pet_name_display'):
+                    record_data_dict[k] = v
+            c.execute("""INSERT INTO furrwings_manual_records
+                (vet_id, pet_name, pet_species, pet_breed, pet_dob, owner_name, owner_phone,
+                 owner_email, microchip, record_type, record_data, file_url, notes)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (vet_id, manual_pet.get('pet_name',''), manual_pet.get('pet_species',''),
+                 manual_pet.get('pet_breed',''), manual_pet.get('pet_dob',''),
+                 manual_pet.get('owner_name',''), manual_pet.get('owner_phone',''),
+                 manual_pet.get('owner_email',''), manual_pet.get('microchip',''),
+                 upload_type, _json_mod.dumps(record_data_dict),
+                 file_path, request.form.get('notes_to_parent','')))
+            activity_desc = f"{upload_type.replace('_',' ').title()} recorded for {manual_pet.get('pet_name','')} (manual entry)"
+            c.execute("INSERT INTO furrwings_vet_activity (vet_id, activity_type, description) VALUES (?,?,?)",
+                (vet_id, upload_type, activity_desc))
+            conn.commit()
+            conn.close()
+            flash('Record saved successfully! It will be matched when the pet parent joins FurrButler.')
+            return redirect('/furrwings/vet/upload?mode=manual')
         if upload_type == 'vaccine':
             conn2 = sqlite3.connect('erp.db')
             c2 = conn2.cursor()
@@ -2931,7 +3039,8 @@ def furrwings_vet_upload():
             return redirect(f'/furrwings/vet/upload?pet_index={target_pet_index}&user_email={target_email}')
         return redirect('/furrwings/vet/upload')
     return render_template('furrwings_vet_upload.html',
-        pet_info=pet_info, owner_info=owner_info, pet_index=pet_index, user_email=user_email)
+        pet_info=pet_info, owner_info=owner_info, pet_index=pet_index, user_email=user_email,
+        manual_pet=manual_pet, search_results=None, search_query='', searched=False)
 
 @app.route('/furrwings/vet/appointments')
 @furrwings_vet_required
@@ -3257,6 +3366,18 @@ def login():
 
         if user and user["password"] == password:
             session["user"] = email
+            try:
+                conn_mr = sqlite3.connect('erp.db')
+                c_mr = conn_mr.cursor()
+                c_mr.execute("""SELECT COUNT(*) FROM furrwings_manual_records
+                    WHERE claimed=0 AND (owner_email=? OR owner_phone=?)""",
+                    (email, user.get('phone', '')))
+                unclaimed = c_mr.fetchone()[0]
+                conn_mr.close()
+                if unclaimed > 0:
+                    session['has_unclaimed_records'] = unclaimed
+            except Exception:
+                pass
             return redirect(url_for("dashboard"))
         else:
             return "Invalid email or password."

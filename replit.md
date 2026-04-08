@@ -50,6 +50,9 @@ Handlers and isolation centers can apply through dedicated registration forms at
 ## FurrVet ERP (Clinical Routes)
 A dedicated blueprint provides comprehensive clinical routes for patient CRUD, medical records (SOAP notes), vaccination management, lab tests, hospitalization, invoicing, pharmacy management, staff management, and appointment scheduling. All data access is scoped by `vet_id` to prevent IDOR vulnerabilities.
 
+## FurrWings Vet Upload Center
+The Upload Center at `/furrwings/vet/upload` follows a step-by-step flow: Step 1 selects a pet (via FurrButler search or manual entry), Step 2 shows upload type cards only after pet confirmation, Step 3 is the upload form. Manual entry saves to `furrwings_manual_records` table (SQLite) and auto-matches when a pet parent joins FurrButler with matching phone/email. The `session['furrwings_manual_pet']` stores temporary manual pet details. Routes: `/furrwings/vet/upload/search` (POST), `/furrwings/vet/upload/manual-pet` (POST), `/furrwings/vet/upload/clear-pet` (GET). Sidebar order: Dashboard, Find Patient, Upload Center, Appointments, Certificates, Settings, Logout.
+
 ## Mobile/PWA Responsiveness
 - `static/css/mobile.css` provides responsive styles for all screen sizes including hamburger nav, bottom nav bar, table scroll, form fixes, PWA safe area, print styles, and grid stacking
 - All 250+ templates (including furrvet subdirectory) have viewport meta tag and mobile.css link injected

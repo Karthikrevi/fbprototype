@@ -1,0 +1,167 @@
+In main.py and templates only.
+Fix the FurrWings Vet Upload Center
+manual entry flow.
+Do not modify any other routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+
+PART 1 — Fix manual entry:
+
+In templates/furrwings_vet_upload.html:
+
+The current flow shows upload type
+cards immediately with no pet selected.
+This means data goes nowhere.
+
+Replace the current layout with
+this corrected flow:
+
+STEP 1 — Pet Selection (always first):
+Show at top of page before
+the upload type cards:
+
+Two options side by side:
+
+Option A — Search FurrButler:
+  Search input: phone or email
+  Search button
+  If found: shows pet cards to select
+  Pet card shows:
+    Pet name, species, breed
+    Owner name
+    "Linked to FurrButler ✓" badge
+    Select This Pet button
+
+Option B — Manual Entry:
+  Expandable form — collapsed by default
+  "Pet not on FurrButler? Enter manually"
+  Toggle button to expand
+
+  Manual entry form fields:
+    Pet name text required
+    Pet species dropdown required
+    Pet breed text optional
+    Date of birth date optional
+    Owner name text required
+    Owner phone text required
+    Owner email text optional
+    Microchip number text optional
+
+  Use These Details button
+  Saves to session temporarily
+  Does NOT create FurrButler account
+
+STEP 2 — Pet confirmed banner:
+Once pet is selected or manual
+details entered show a confirmation
+banner:
+
+Green banner:
+"📋 Uploading for: [Pet Name]
+Owner: [Owner Name]
+[FurrButler Linked ✓] or [Manual Entry]"
+
+Change Pet link to go back
+
+STEP 3 — Upload type cards:
+Only shown AFTER pet is confirmed
+Same 6 cards as before
+Vaccination, Prescription, Lab,
+Microchip, Health Certificate,
+Health Record
+
+STEP 4 — Upload form:
+Same forms as before
+But now clearly linked to the pet
+
+PART 2 — Manual entry data handling:
+
+In main.py in the upload POST route:
+
+If pet was found via FurrButler search:
+  Use pet_index and user_email
+  Update pawsport_documents
+  Create pet_reminder
+  Send SocketIO notification
+
+If pet was manual entry:
+  Save to a new table:
+  
+  CREATE TABLE IF NOT EXISTS
+  furrwings_manual_records (
+      id INTEGER PRIMARY KEY
+          AUTOINCREMENT,
+      vet_id INTEGER NOT NULL,
+      pet_name TEXT NOT NULL,
+      pet_species TEXT NOT NULL,
+      pet_breed TEXT,
+      owner_name TEXT NOT NULL,
+      owner_phone TEXT NOT NULL,
+      owner_email TEXT,
+      microchip TEXT,
+      record_type TEXT NOT NULL,
+      record_data TEXT,
+      file_url TEXT,
+      notes TEXT,
+      claimed BOOLEAN DEFAULT 0,
+      claimed_by_email TEXT,
+      created_at TEXT DEFAULT
+          CURRENT_TIMESTAMP,
+      FOREIGN KEY (vet_id)
+          REFERENCES furrwings_vets(id)
+  )
+
+  When pet parent later joins
+  FurrButler with same phone/email
+  Auto-match and import their
+  manual records into Pawsport
+  Show notification:
+  "We found health records from
+  [clinic name]. Import to your
+  Pawsport?"
+
+PART 3 — Fix sidebar navigation:
+
+In templates/furrwings_vet_dashboard.html
+and furrwings_vet_upload.html:
+
+Add Dashboard as first sidebar item:
+  🏠 Dashboard
+  → /furrwings/vet/dashboard
+
+Add Find Patient as second item:
+  🔍 Find Patient
+  → /furrwings/vet/patients
+
+Full sidebar order:
+  🏠 Dashboard
+  🔍 Find Patient
+  📤 Upload Center
+  📅 Appointments
+  📋 Certificates
+  ⚙️ Settings
+  Logout (bottom)
+
+PART 4 — Pet context in page header:
+
+When a pet is selected for upload
+show in the page header area:
+
+Small card below the main nav:
+"Currently uploading for:
+🐾 [Pet Name] ([Species])
+Owner: [Owner Name]
+[Change]"
+
+This persists across all upload
+type selections using session
+or JavaScript localStorage.
+
+Do not modify any other templates.
+Do not modify furrvet.py.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.

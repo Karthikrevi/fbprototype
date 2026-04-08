@@ -12,21 +12,60 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 .topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#616161}
 .topbar-right a{color:#c62828;text-decoration:none;font-weight:600}
 .layout{display:flex;min-height:calc(100vh - 56px)}
-.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0;display:flex;flex-direction:column}
 .sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#212121;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s}
 .sidebar a:hover,.sidebar a.active{background:#e3f2fd;color:#1565c0}
 .sidebar a span.icon{width:20px;text-align:center;font-size:15px}
+.sidebar .logout-link{margin-top:auto;border-top:1px solid #e0e0e0;padding-top:8px}
+.sidebar .logout-link a{color:#c62828}
 .main{flex:1;padding:28px 32px;overflow-y:auto}
 .flash-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
-.pet-banner{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px;display:flex;align-items:center;gap:16px}
-.pet-banner .avatar{width:48px;height:48px;border-radius:50%;background:#e3f2fd;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-.pet-banner h3{font-size:15px;color:#212121;margin-bottom:2px}
-.pet-banner p{font-size:13px;color:#616161}
-.search-prompt{background:#fff;border-radius:10px;padding:32px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}
-.search-prompt p{font-size:14px;color:#616161;margin-bottom:14px}
+h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
 .btn{display:inline-block;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;border:none;cursor:pointer}
 .btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{background:#0d47a1}
-h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
+.btn-outline{border:1px solid #1565c0;color:#1565c0;background:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-outline:hover{background:#e3f2fd}
+.pet-selection{background:#fff;border-radius:12px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}
+.pet-selection h2{font-size:17px;color:#0d47a1;margin-bottom:18px}
+.selection-options{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.option-card{border:2px solid #e0e0e0;border-radius:10px;padding:20px}
+.option-card h3{font-size:15px;color:#212121;margin-bottom:4px}
+.option-card p{font-size:13px;color:#616161;margin-bottom:14px}
+.search-row{display:flex;gap:8px;margin-bottom:14px}
+.search-row input{flex:1;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px}
+.search-row input:focus{outline:none;border-color:#1565c0}
+.search-row button{padding:9px 18px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.search-results{margin-top:12px}
+.pet-result-card{border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s}
+.pet-result-card:hover{border-color:#42a5f5}
+.pet-result-info{display:flex;align-items:center;gap:12px}
+.pet-avatar{width:40px;height:40px;border-radius:50%;background:#e3f2fd;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pet-result-name{font-size:14px;font-weight:600;color:#212121}
+.pet-result-detail{font-size:12px;color:#616161}
+.badge-linked{background:#e8f5e9;color:#2e7d32;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600}
+.select-pet-btn{padding:7px 16px;background:#1565c0;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none}
+.manual-toggle{background:none;border:1px dashed #1565c0;color:#1565c0;padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer;width:100%;margin-bottom:14px;font-weight:500}
+.manual-toggle:hover{background:#f5f9ff}
+.manual-form{display:none;margin-top:0}
+.manual-form.show{display:block}
+.manual-form .form-group{margin-bottom:12px}
+.manual-form label{display:block;font-size:13px;font-weight:600;color:#616161;margin-bottom:4px}
+.manual-form input,.manual-form select{width:100%;padding:8px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px}
+.manual-form input:focus,.manual-form select:focus{outline:none;border-color:#1565c0}
+.manual-form .form-row{display:flex;gap:10px}
+.manual-form .form-row .form-group{flex:1}
+.btn-submit-manual{display:block;width:100%;padding:10px;background:#2e7d32;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn-submit-manual:hover{background:#1b5e20}
+.confirmed-banner{background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border:2px solid #4caf50;border-radius:12px;padding:18px 22px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+.confirmed-info{display:flex;align-items:center;gap:14px}
+.confirmed-icon{width:48px;height:48px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+.confirmed-text h3{font-size:15px;color:#1b5e20;margin-bottom:2px}
+.confirmed-text p{font-size:13px;color:#2e7d32}
+.confirmed-text .source-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;margin-top:4px;display:inline-block}
+.source-badge.linked{background:#e8f5e9;color:#2e7d32}
+.source-badge.manual{background:#fff3e0;color:#e65100}
+.change-pet-link{font-size:13px;color:#1565c0;text-decoration:none;font-weight:600;white-space:nowrap}
+.change-pet-link:hover{text-decoration:underline}
 .type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
 .type-card{background:#fff;border:2px solid #e0e0e0;border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:border .2s,box-shadow .2s}
 .type-card:hover{border-color:#42a5f5;box-shadow:0 2px 12px rgba(21,101,192,0.1)}
@@ -54,7 +93,20 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
 .vacc-row input{flex:1;padding:8px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px}
 .vacc-row button{background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px}
 .add-vacc-btn{background:none;border:1px dashed #1565c0;color:#1565c0;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-bottom:14px}
-@media(max-width:768px){.sidebar{display:none}.type-grid{grid-template-columns:1fr}.form-row{flex-direction:column;gap:0}}
+.no-results{text-align:center;padding:16px;color:#616161;font-size:13px;background:#fafafa;border-radius:8px;margin-top:10px}
+.pet-context-bar{background:#fff;border-bottom:1px solid #e0e0e0;padding:8px 24px;display:flex;align-items:center;gap:12px;font-size:13px;color:#212121}
+.pet-context-bar .ctx-icon{font-size:18px}
+.pet-context-bar strong{color:#0d47a1}
+.pet-context-bar a{color:#1565c0;text-decoration:none;font-weight:600;margin-left:auto}
+@media(max-width:768px){
+    .sidebar{display:none}
+    .type-grid{grid-template-columns:1fr}
+    .form-row{flex-direction:column;gap:0}
+    .selection-options{grid-template-columns:1fr}
+    .confirmed-banner{flex-direction:column;gap:12px;text-align:center}
+    .confirmed-info{flex-direction:column;text-align:center}
+    .manual-form .form-row{flex-direction:column;gap:0}
+}
 </style>
 <link rel="stylesheet" href="/static/css/mobile.css">
 </head>
@@ -66,33 +118,161 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
         <a href="/furrwings/vet/logout">Logout</a>
     </div>
 </div>
+
+{% if pet_info or manual_pet %}
+<div class="pet-context-bar">
+    <span class="ctx-icon">🐾</span>
+    <span>Currently uploading for: <strong>
+        {% if pet_info %}{{ pet_info.get('name','') }} ({{ pet_info.get('species','') }}){% elif manual_pet %}{{ manual_pet.pet_name }} ({{ manual_pet.pet_species }}){% endif %}
+    </strong></span>
+    <span>Owner: {% if owner_info %}{{ owner_info.name }}{% elif manual_pet %}{{ manual_pet.owner_name }}{% endif %}</span>
+    <a href="/furrwings/vet/upload/clear-pet">[Change]</a>
+</div>
+{% endif %}
+
 <div class="layout">
     <nav class="sidebar">
-        <a href="/furrwings/vet/dashboard"><span class="icon">📊</span> Dashboard</a>
+        <a href="/furrwings/vet/dashboard"><span class="icon">🏠</span> Dashboard</a>
         <a href="/furrwings/vet/patients"><span class="icon">🔍</span> Find Patient</a>
         <a href="/furrwings/vet/upload" class="active"><span class="icon">📤</span> Upload Center</a>
         <a href="/furrwings/vet/appointments"><span class="icon">📅</span> Appointments</a>
         <a href="/furrwings/vet/certificates"><span class="icon">📋</span> Certificates</a>
         <a href="/furrwings/vet/settings"><span class="icon">⚙️</span> Settings</a>
+        <div class="logout-link">
+            <a href="/furrwings/vet/logout"><span class="icon">🚪</span> Logout</a>
+        </div>
     </nav>
     <div class="main">
         {% with messages = get_flashed_messages() %}{% if messages %}{% for m in messages %}<div class="flash-msg">{{ m }}</div>{% endfor %}{% endif %}{% endwith %}
         <h1>📤 Upload Center</h1>
+
         {% if pet_info %}
-        <div class="pet-banner">
-            <div class="avatar">🐾</div>
-            <div>
-                <h3>{{ pet_info.get('name','Unknown Pet') }}</h3>
-                <p>{{ pet_info.get('species','') }}{% if pet_info.get('breed') %} &middot; {{ pet_info.get('breed') }}{% endif %} &middot; Uploading to {{ pet_info.get('name','') }}'s Pawsport</p>
-                <p style="font-size:12px;color:#616161;margin-top:2px">Owner: {{ owner_info.name if owner_info else '' }}</p>
+        <div class="confirmed-banner">
+            <div class="confirmed-info">
+                <div class="confirmed-icon">🐾</div>
+                <div class="confirmed-text">
+                    <h3>📋 Uploading for: {{ pet_info.get('name','Unknown Pet') }}</h3>
+                    <p>{{ pet_info.get('species','') }}{% if pet_info.get('breed') %} · {{ pet_info.get('breed') }}{% endif %}</p>
+                    <p>Owner: {{ owner_info.name if owner_info else '' }}</p>
+                    <span class="source-badge linked">FurrButler Linked ✓</span>
+                </div>
+            </div>
+            <a href="/furrwings/vet/upload/clear-pet" class="change-pet-link">Change Pet →</a>
+        </div>
+
+        {% elif manual_pet %}
+        <div class="confirmed-banner">
+            <div class="confirmed-info">
+                <div class="confirmed-icon">🐾</div>
+                <div class="confirmed-text">
+                    <h3>📋 Uploading for: {{ manual_pet.pet_name }}</h3>
+                    <p>{{ manual_pet.pet_species }}{% if manual_pet.pet_breed %} · {{ manual_pet.pet_breed }}{% endif %}</p>
+                    <p>Owner: {{ manual_pet.owner_name }}</p>
+                    <span class="source-badge manual">Manual Entry</span>
+                </div>
+            </div>
+            <a href="/furrwings/vet/upload/clear-pet" class="change-pet-link">Change Pet →</a>
+        </div>
+
+        {% else %}
+        <div class="pet-selection">
+            <h2>Step 1 — Select a Pet</h2>
+            <p style="font-size:13px;color:#616161;margin-bottom:18px">Choose a pet before uploading records. Search FurrButler or enter details manually.</p>
+            <div class="selection-options">
+                <div class="option-card">
+                    <h3>🔍 Search FurrButler</h3>
+                    <p>Find a registered pet parent by phone or email</p>
+                    <form method="POST" action="/furrwings/vet/upload/search">
+                        <div class="search-row">
+                            <input type="text" name="q" placeholder="Phone number or email…" value="{{ search_query or '' }}" required>
+                            <button type="submit">Search</button>
+                        </div>
+                    </form>
+                    {% if searched %}
+                    <div class="search-results">
+                        {% if search_results %}
+                            {% for owner in search_results %}
+                                {% for pet in owner.pets %}
+                                <div class="pet-result-card">
+                                    <div class="pet-result-info">
+                                        <div class="pet-avatar">🐾</div>
+                                        <div>
+                                            <div class="pet-result-name">{{ pet.name }}</div>
+                                            <div class="pet-result-detail">{{ pet.species }}{% if pet.breed %} · {{ pet.breed }}{% endif %}</div>
+                                            <div class="pet-result-detail">Owner: {{ owner.name }}</div>
+                                            <span class="badge-linked">Linked to FurrButler ✓</span>
+                                        </div>
+                                    </div>
+                                    <a href="/furrwings/vet/upload?pet_index={{ pet.index }}&user_email={{ owner.email }}" class="select-pet-btn">Select This Pet</a>
+                                </div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                        <div class="no-results">No pets found matching "{{ search_query }}". Try a different search or use manual entry.</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="option-card">
+                    <h3>✏️ Manual Entry</h3>
+                    <p>Pet not on FurrButler? Enter details manually</p>
+                    <button class="manual-toggle" onclick="document.getElementById('manualForm').classList.toggle('show');this.textContent=this.textContent.includes('Expand')?'Collapse form ▲':'Expand form ▼'" type="button">Expand form ▼</button>
+                    <form id="manualForm" class="manual-form" method="POST" action="/furrwings/vet/upload/manual-pet">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Pet Name *</label>
+                                <input type="text" name="pet_name" required placeholder="e.g. Buddy">
+                            </div>
+                            <div class="form-group">
+                                <label>Species *</label>
+                                <select name="pet_species" required>
+                                    <option value="">Select…</option>
+                                    <option>Dog</option><option>Cat</option><option>Bird</option>
+                                    <option>Rabbit</option><option>Hamster</option><option>Fish</option>
+                                    <option>Reptile</option><option>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Breed</label>
+                                <input type="text" name="pet_breed" placeholder="e.g. Golden Retriever">
+                            </div>
+                            <div class="form-group">
+                                <label>Date of Birth</label>
+                                <input type="date" name="pet_dob">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Owner Name *</label>
+                                <input type="text" name="owner_name" required placeholder="Full name">
+                            </div>
+                            <div class="form-group">
+                                <label>Owner Phone *</label>
+                                <input type="tel" name="owner_phone" required placeholder="+91 98765 43210">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Owner Email</label>
+                                <input type="email" name="owner_email" placeholder="email@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Microchip Number</label>
+                                <input type="text" name="microchip" placeholder="15-digit ISO number">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit-manual">Use These Details →</button>
+                    </form>
+                </div>
             </div>
         </div>
-        {% elif not pet_index %}
-        <div class="search-prompt">
-            <p>Select a pet parent first, or proceed with manual entry</p>
-            <a href="/furrwings/vet/patients" class="btn btn-primary" style="margin-right:8px">Find Patient</a>
-        </div>
         {% endif %}
+
+        {% if pet_info or manual_pet %}
+        <h2 style="font-size:17px;color:#0d47a1;margin-bottom:16px">Step 2 — Choose Record Type</h2>
         <div class="type-grid">
             <div class="type-card" onclick="selectType('vaccine')"><div class="tc-icon">💉</div><h3>Vaccination Record</h3><p>Upload vaccination certificate to pet passport</p></div>
             <div class="type-card" onclick="selectType('prescription')"><div class="tc-icon">💊</div><h3>Prescription</h3><p>Send medication details and reminders to pet parent</p></div>
@@ -108,7 +288,8 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <input type="hidden" name="upload_type" value="vaccine">
                 <input type="hidden" name="user_email" value="{{ user_email or '' }}">
                 <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
-                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <input type="hidden" name="is_manual" value="{{ '1' if manual_pet else '0' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else (manual_pet.pet_name if manual_pet else '') }}">
                 <div class="form-row">
                     <div class="form-group"><label>Vaccine Name</label>
                         <select name="vaccine_name" required onchange="if(this.value==='Other')document.getElementById('vax_other').style.display='block'">
@@ -140,7 +321,7 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <div class="form-group"><label>Adverse Reactions (optional)</label><textarea name="adverse_reactions" placeholder="Note any reactions observed…"></textarea></div>
                 <div class="form-group"><label>Certificate File</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png" required><small>PDF, JPG, or PNG</small></div>
                 <div class="form-group"><label>Notes to Pet Parent (optional)</label><textarea name="notes_to_parent" placeholder="Any message for the pet parent…"></textarea></div>
-                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+                <button type="submit" class="btn-submit">{% if manual_pet %}Save Record{% else %}Send to Pet Parent{% endif %}</button>
             </form>
         </div>
 
@@ -150,7 +331,8 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <input type="hidden" name="upload_type" value="prescription">
                 <input type="hidden" name="user_email" value="{{ user_email or '' }}">
                 <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
-                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <input type="hidden" name="is_manual" value="{{ '1' if manual_pet else '0' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else (manual_pet.pet_name if manual_pet else '') }}">
                 <div class="form-row">
                     <div class="form-group"><label>Drug Name</label><input type="text" name="drug_name" required></div>
                     <div class="form-group"><label>Strength</label><input type="text" name="strength" placeholder="e.g. 250mg"></div>
@@ -170,7 +352,7 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <div class="form-group"><label>Start Date</label><input type="date" name="start_date" required></div>
                 <div class="form-group"><label>Special Instructions</label><textarea name="special_instructions" placeholder="Take with food, store in fridge, etc."></textarea></div>
                 <div class="form-group"><label>Prescription File (optional)</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"><small>PDF, JPG, or PNG</small></div>
-                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+                <button type="submit" class="btn-submit">{% if manual_pet %}Save Record{% else %}Send to Pet Parent{% endif %}</button>
             </form>
         </div>
 
@@ -180,7 +362,8 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <input type="hidden" name="upload_type" value="lab_results">
                 <input type="hidden" name="user_email" value="{{ user_email or '' }}">
                 <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
-                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <input type="hidden" name="is_manual" value="{{ '1' if manual_pet else '0' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else (manual_pet.pet_name if manual_pet else '') }}">
                 <div class="form-row">
                     <div class="form-group"><label>Test Name</label>
                         <select name="test_name" required onchange="if(this.value==='Other')document.getElementById('test_other').style.display='block'">
@@ -199,7 +382,7 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <div class="form-group" id="abnormal_detail" style="display:none"><label>Abnormal Values Detail</label><input type="text" name="abnormal_detail" placeholder="Which values are outside normal range"></div>
                 <div class="form-group"><label>Lab Report File</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"><small>PDF preferred</small></div>
                 <div class="form-group"><label>Notes to Pet Parent</label><textarea name="notes_to_parent"></textarea></div>
-                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+                <button type="submit" class="btn-submit">{% if manual_pet %}Save Record{% else %}Send to Pet Parent{% endif %}</button>
             </form>
         </div>
 
@@ -209,7 +392,8 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <input type="hidden" name="upload_type" value="microchip">
                 <input type="hidden" name="user_email" value="{{ user_email or '' }}">
                 <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
-                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <input type="hidden" name="is_manual" value="{{ '1' if manual_pet else '0' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else (manual_pet.pet_name if manual_pet else '') }}">
                 <div class="form-group"><label>Microchip Number</label><input type="text" name="microchip_number" required pattern="\d{15}" maxlength="15" placeholder="15-digit ISO chip number"><small>ISO 11784/11785 format — 15 digits</small></div>
                 <div class="form-row">
                     <div class="form-group"><label>Registration Date</label><input type="date" name="chip_date"></div>
@@ -217,7 +401,9 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 </div>
                 <div class="form-group"><label>Registration Body</label><input type="text" name="registration_body" placeholder="e.g. ICAR, AKC Reunite"></div>
                 <div style="background:#fff3e0;border-radius:8px;padding:12px 16px;margin-bottom:16px">
-                    <p style="font-size:12px;color:#e65100;line-height:1.5">Once submitted, this will lock the microchip number in the pet passport. Only a verified vet can update this.</p>
+                    <p style="font-size:12px;color:#e65100;line-height:1.5">
+                        {% if manual_pet %}This microchip data will be saved and linked when the pet parent joins FurrButler.{% else %}Once submitted, this will lock the microchip number in the pet passport. Only a verified vet can update this.{% endif %}
+                    </p>
                 </div>
                 <button type="submit" class="btn-submit">Confirm and Submit</button>
             </form>
@@ -229,16 +415,17 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <input type="hidden" name="upload_type" value="health_cert">
                 <input type="hidden" name="user_email" value="{{ user_email or '' }}">
                 <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <input type="hidden" name="is_manual" value="{{ '1' if manual_pet else '0' }}">
                 <div class="form-row">
-                    <div class="form-group"><label>Pet Name</label><input type="text" name="pet_name_cert" value="{{ pet_info.get('name','') if pet_info else '' }}" required></div>
-                    <div class="form-group"><label>Species</label><input type="text" name="pet_species_cert" value="{{ pet_info.get('species','') if pet_info else '' }}" required></div>
+                    <div class="form-group"><label>Pet Name</label><input type="text" name="pet_name_cert" value="{{ pet_info.get('name','') if pet_info else (manual_pet.pet_name if manual_pet else '') }}" required></div>
+                    <div class="form-group"><label>Species</label><input type="text" name="pet_species_cert" value="{{ pet_info.get('species','') if pet_info else (manual_pet.pet_species if manual_pet else '') }}" required></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Breed</label><input type="text" name="pet_breed_cert" value="{{ pet_info.get('breed','') if pet_info else '' }}"></div>
-                    <div class="form-group"><label>Microchip Number</label><input type="text" name="pet_microchip_cert" value="{{ pet_info.get('microchip_id','') if pet_info else '' }}"></div>
+                    <div class="form-group"><label>Breed</label><input type="text" name="pet_breed_cert" value="{{ pet_info.get('breed','') if pet_info else (manual_pet.pet_breed if manual_pet else '') }}"></div>
+                    <div class="form-group"><label>Microchip Number</label><input type="text" name="pet_microchip_cert" value="{{ pet_info.get('microchip_id','') if pet_info else (manual_pet.microchip if manual_pet else '') }}"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Owner Name</label><input type="text" name="owner_name_cert" value="{{ owner_info.name if owner_info else '' }}" required></div>
+                    <div class="form-group"><label>Owner Name</label><input type="text" name="owner_name_cert" value="{{ owner_info.name if owner_info else (manual_pet.owner_name if manual_pet else '') }}" required></div>
                     <div class="form-group"><label>Destination Country</label><input type="text" name="destination_country" required placeholder="e.g. United Kingdom"></div>
                 </div>
                 <div class="form-group"><label>Purpose</label>
@@ -267,17 +454,19 @@ h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
                 <input type="hidden" name="upload_type" value="general">
                 <input type="hidden" name="user_email" value="{{ user_email or '' }}">
                 <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
-                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <input type="hidden" name="is_manual" value="{{ '1' if manual_pet else '0' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else (manual_pet.pet_name if manual_pet else '') }}">
                 <div class="form-row">
-                    <div class="form-group"><label>Record Type</label><input type="text" name="record_type" required placeholder="e.g. X-Ray, Ultrasound, Dental"></div>
+                    <div class="form-group"><label>Record Type</label><input type="text" name="record_type_detail" required placeholder="e.g. X-Ray, Ultrasound, Dental"></div>
                     <div class="form-group"><label>Record Date</label><input type="date" name="record_date" required></div>
                 </div>
                 <div class="form-group"><label>Description</label><textarea name="description" required placeholder="Describe the record…"></textarea></div>
                 <div class="form-group"><label>File Upload</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"></div>
                 <div class="form-group"><label>Notes to Pet Parent</label><textarea name="notes_to_parent"></textarea></div>
-                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+                <button type="submit" class="btn-submit">{% if manual_pet %}Save Record{% else %}Send to Pet Parent{% endif %}</button>
             </form>
         </div>
+        {% endif %}
     </div>
 </div>
 <script>
