@@ -2994,20 +2994,6 @@ def register():
 def login():
     if session.get("user"):
         return redirect(url_for("dashboard"))
-    if session.get("vendor"):
-        return redirect(url_for("erp_dashboard"))
-    if session.get("furrvet_vet_id"):
-        return redirect(url_for("furrvet.dashboard"))
-    if session.get("vet"):
-        return redirect(url_for("vet_dashboard"))
-    if session.get("handler"):
-        return redirect(url_for("handler_dashboard"))
-    if session.get("ngo"):
-        return redirect(url_for("ngo_dashboard"))
-    if session.get("isolation"):
-        return redirect(url_for("isolation_dashboard"))
-    if session.get("master_admin"):
-        return redirect(url_for("master_admin_dashboard"))
 
     if request.method == "POST":
         email = request.form.get("email")

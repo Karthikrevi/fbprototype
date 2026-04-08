@@ -1,0 +1,101 @@
+In main.py and templates only.
+Do not modify any other files.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Fix landing page buttons:
+
+In templates/index.html or whichever
+template serves the / route:
+
+Find the Pet Parents section.
+The Login button must link to /login
+The Register button must link to /register
+
+Find the FurrWings Vet Portal button.
+It must link to /furrwings/vet/login
+
+Verify all other buttons link correctly:
+Vendor ERP → /erp/login
+Handler Portal → /handler/login
+Isolation Center → /isolation/login
+FurrVet ERP → /furrvet/login
+NGO Portal → /ngo/login
+
+PART 2 — Delete old FurrWings login:
+
+Find and delete or replace the old
+hardcoded FurrWings login template.
+It likely has hardcoded credentials
+like demo@furrwings.com or similar.
+
+Check which template the
+/furrwings/vet/login route renders.
+If it renders an old hardcoded template
+replace it with a clean simple login form:
+
+Clean white card centered on page
+"🐾🩺 FurrWings Vet Connect"
+"Connecting vets and pet parents"
+
+Email input
+Password input with show/hide
+Sign In button
+
+No hardcoded credentials.
+No auto-login.
+No demo account bypass.
+
+Below form:
+"Apply for access" link
+→ /furrwings/vet/register
+"Not a vet?" link → /
+
+PART 3 — Fix /login route:
+
+In main.py find the /login route.
+Make sure it only handles
+pet parent accounts from Replit db.
+It must NOT check furrwings_vets
+or any other table.
+Pet parent login only.
+
+If session already has user_email
+redirect to /dashboard immediately.
+
+After successful login:
+Redirect to /dashboard
+NOT to any FurrWings page.
+
+PART 4 — Remove demo auto-login:
+
+Search main.py and all templates
+for any auto-login logic:
+- Hardcoded session setting
+- Auto-fill of credentials
+- Bypass of password check
+- Any if debug: set session
+
+Remove all of these immediately.
+
+PART 5 — Verify routes:
+
+After changes verify:
+GET / → landing page with
+  correct buttons
+GET /login → pet parent login form
+  no auto-login
+POST /login with correct credentials
+  → /dashboard
+GET /furrwings/vet/login →
+  clean vet login form
+  no auto-login
+GET /erp/login → vendor login form
+GET /furrvet/login → furrvet login
+
+Do not modify any other templates.
+Do not modify any other routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify the landing
+page buttons all go to correct routes.
