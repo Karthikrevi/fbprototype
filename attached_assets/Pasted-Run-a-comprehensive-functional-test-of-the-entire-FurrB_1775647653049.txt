@@ -1,0 +1,1218 @@
+Run a comprehensive functional test of
+the entire FurrButler application.
+Test every feature and user flow.
+For each test report:
+- PASS or FAIL
+- Expected result
+- Actual result
+- HTTP status code
+- Any errors or exceptions
+
+Do not modify any files during testing.
+Do not delete any test data created.
+
+Create test accounts as needed or use
+existing ones. If creating test data
+clean it up after each section.
+
+SECTION 1 — Landing Page and Navigation:
+
+Test 1.1 — Root page loads:
+GET /
+Expected: 200, shows all portal buttons
+Report: all buttons visible and correct
+
+Test 1.2 — Pet Parents Login button:
+Check href of Pet Parents Login
+Expected: links to /login
+NOT to any FurrWings page
+
+Test 1.3 — Pet Parents Register button:
+Check href
+Expected: links to /register
+
+Test 1.4 — Vendor ERP button:
+Expected: links to /erp/login
+
+Test 1.5 — FurrWings Vet Portal button:
+Expected: links to /furrwings/vet/login
+
+Test 1.6 — Handler Portal button:
+Expected: links to /handler/login
+
+Test 1.7 — Isolation Center button:
+Expected: links to /isolation/login
+
+Test 1.8 — FurrVet ERP button:
+Expected: links to /furrvet/login
+
+Test 1.9 — NGO Portal button:
+Expected: links to /ngo/login
+
+Test 1.10 — Apply links visible:
+Check "Apply as vet" link visible
+Check "Apply as handler" link visible
+Check "Register facility" link visible
+
+SECTION 2 — Pet Parent Authentication:
+
+Test 2.1 — Register new pet parent:
+POST /register with:
+  email: testparent@test.com
+  password: TestPass123!
+  name: Test Parent
+Expected: 302 to /dashboard or
+  verification page
+
+Test 2.2 — Login pet parent:
+POST /login with same credentials
+Expected: 302 to /dashboard
+
+Test 2.3 — Dashboard loads:
+GET /dashboard
+Expected: 200, shows all tiles:
+  Marketplace, Grooming, Veterinary,
+  Boarding, My Bookings, My Orders,
+  Messages, FurrWings Handlers,
+  My Travel Bookings, FurrWings Services,
+  Stray Tracker, Community Posts,
+  Report Issues, FurrWings Management,
+  Pet Friendly Travel tile
+
+Test 2.4 — Wrong password:
+POST /login with wrong password
+Expected: 200 with error message
+  NOT a redirect
+
+Test 2.5 — Protected route without login:
+GET /logout first then GET /dashboard
+Expected: 302 to /login
+
+Test 2.6 — Logout:
+GET /logout
+Expected: 302 to /login
+Only pet parent session cleared
+Other portal sessions unaffected
+
+SECTION 3 — Pet Management:
+
+Login as test pet parent first.
+
+Test 3.1 — Add pet:
+GET /add-pet
+Expected: 200, form loads
+Species dropdown present
+Breed dropdown empty initially
+
+Test 3.2 — Breed dropdown loads:
+Check /static/data/breeds.json exists
+Expected: 200, JSON with 8 species
+Dog, Cat, Bird, Rabbit, Fish,
+Hamster, Reptile, Other
+
+Test 3.3 — Blood type JSON:
+Check /static/data/blood_types.json
+Expected: 200, JSON with blood types
+per species
+
+Test 3.4 — Submit add pet:
+POST /add-pet with:
+  name: Luna
+  species: Dog
+  breed: Shih Tzu
+  birthday: 2023-01-10
+  parent_name: Test Parent
+  parent_phone: 9876543210
+Expected: redirect to /pet-profile
+
+Test 3.5 — Pet profile:
+GET /pet-profile
+Expected: 200, shows Luna
+
+Test 3.6 — Pet detail:
+GET /pet/0
+Expected: 200, shows Luna details
+Upcoming appointments section present
+  (empty state if no bookings)
+Medical reminders section present
+Quick action buttons present:
+  Edit Pet, Book Grooming,
+  Book Vet Visit, Book Boarding,
+  Insurance, Find Pet Friendly Places
+
+Test 3.7 — Edit pet:
+GET /pet/0/edit
+Expected: 200, pre-filled form
+Species dropdown shows Dog
+Breed dropdown shows Shih Tzu
+
+Test 3.8 — Microchip lock:
+Add microchip to pet
+Then try to edit and change microchip
+Expected: microchip field read-only
+Cannot be changed by pet parent
+
+Test 3.9 — Add reminder:
+GET /pet/0/reminder/add
+Expected: 200, shows 8 type cards:
+  Vaccination, Medication, Deworming,
+  Flea Treatment, Dental Care,
+  Vet Visit, Grooming, Other
+
+Test 3.10 — Vaccination reminder form:
+Click Vaccination card
+Expected: Shows vaccination specific form:
+  Vaccine name dropdown
+  Date given
+  Next due date auto-calculated
+  Batch number
+  Vet name
+  Certificate upload
+
+Test 3.11 — Medication reminder form:
+Click Medication card
+Expected: Shows medication specific form:
+  Drug name, dosage, unit, frequency
+  Start date, ongoing toggle
+  End date hidden when ongoing on
+  Prescribed by, instructions
+  Refill reminder toggle
+
+Test 3.12 — Save reminder:
+POST /pet/0/reminder/add with
+  Vaccination type
+  vaccine_name: Rabies
+  vaccination_date: today
+  next_due_date: one year from today
+Expected: saves and redirects to /pet/0
+Reminder appears in pet detail
+
+Test 3.13 — Complete reminder:
+POST /pet/0/reminder/1/complete
+Expected: reminder marked done
+Disappears from active list
+
+SECTION 4 — Pawsport:
+
+Test 4.1 — Pawsport loads:
+GET /pet/0/passport
+Expected: 200, shows 5 tabs:
+  Identity, Medical, Travel Bookings,
+  Domestic Journeys, International Journeys
+
+Test 4.2 — Identity tab:
+Check pet details shown:
+  Name, species, breed, DOB
+  Age calculated dynamically
+  NOT "Age calculated" placeholder
+  Microchip, blood type, owner details
+
+Test 4.3 — Required documents:
+6 documents listed:
+  Microchip Certificate - Missing
+  Vaccination Records - Missing
+  Health Certificate - Missing
+  DGFT Certificate - Missing
+  AQCS Certificate - Missing
+  Quarantine Clearance - Missing
+All show Upload button
+
+Test 4.4 — Verification notice:
+Yellow notice box visible:
+"Documents uploaded by verified vets
+show a green verified badge"
+
+Test 4.5 — Completion ring:
+Shows 0% if no verified documents
+Tooltip explains only verified
+documents count
+
+Test 4.6 — Medical tab:
+Shows Vaccination History section
+Shows Current Medications section
+Shows Medical History section
+Shows Add Manual Record section
+Add Vaccination Record button present
+
+Test 4.7 — Travel Bookings tab:
+Shows Upcoming Travel section
+Shows Document Requirements section
+Shows Log Past Travel section
+
+Test 4.8 — Log travel:
+GET /pet/0/passport/add-travel
+or inline form
+POST travel record:
+  travel_type: domestic
+  destination: Kochi
+  departure_date: last month
+Expected: appears in Domestic tab
+
+Test 4.9 — Document upload:
+POST /pet/0/passport/upload-document
+with test file
+Expected: saves to pawsport_documents
+Shows as Unverified Self Uploaded badge
+
+Test 4.10 — Print Pawsport:
+Print button visible on Identity tab
+Expected: triggers window.print()
+
+SECTION 5 — Pet Insurance:
+
+Test 5.1 — Insurance page:
+GET /pet/0/insurance
+Expected: 200, shows:
+  Active Policies section (empty)
+  Compare Plans section
+  4 providers shown:
+    Digit Insurance
+    Bajaj Allianz
+    HDFC ERGO
+    Tata AIG
+
+Test 5.2 — Provider filtering:
+Luna is a Dog
+Expected: All providers shown
+  (all cover dogs)
+
+Test 5.3 — Disclaimer modal:
+Click Get Quote on any provider
+Expected: modal appears first:
+  "You are being redirected to..."
+  Continue and Cancel buttons
+
+Test 5.4 — Add existing policy:
+GET /pet/0/insurance/add
+Expected: 200, shows form:
+  Provider dropdown
+  Policy number
+  Coverage type
+  Premium fields
+  Date pickers
+  Document upload
+
+Test 5.5 — Save policy:
+POST /pet/0/insurance/add
+Expected: policy appears in list
+Renewal reminder auto-created
+  30 days before expiry
+
+SECTION 6 — Pet Friendly Travel:
+
+Test 6.1 — Page loads:
+GET /pet-friendly
+Expected: 200, shows:
+  Hotels section with 4 affiliates
+  Restaurants section with 2 affiliates
+  Activities section with 1 affiliate
+  Community Recommended section
+  Suggest a Venue section
+  Travel Tips section
+  Disclaimer at bottom
+
+Test 6.2 — Affiliate cards:
+Each card shows:
+  Logo emoji, name, description
+  Features list with checkmarks
+  Book/Search button
+
+Test 6.3 — Disclaimer modal:
+Click any affiliate button
+Expected: modal appears before redirect
+  "You are leaving FurrButler"
+  Continue opens new tab
+  Cancel closes modal
+
+Test 6.4 — Suggest venue:
+GET /pet-friendly/suggest
+Expected: 200, shows form:
+  Venue name, type, city, state
+  Pet policy textarea
+  Max pet size, amenities
+  Submit button with disclaimer
+
+Test 6.5 — Submit venue suggestion:
+POST /pet-friendly/suggest with:
+  name: Test Cafe
+  venue_type: cafe
+  city: Malappuram
+  pet_policy: Dogs allowed outdoors
+Expected: passes fake detection
+  Appears in community section
+  or goes to admin for review
+
+Test 6.6 — Duplicate detection:
+Submit same venue again
+Expected: rejected as duplicate
+
+Test 6.7 — Admin venue moderation:
+GET /admin/venues (as admin)
+Expected: 200, shows pending venues
+  Approve and Reject buttons
+
+SECTION 7 — Vendor ERP:
+
+Test 7.1 — Vendor login:
+GET /erp/login
+Expected: 200, shows login form
+POST with vendor credentials
+Expected: 302 to /erp/dashboard
+
+Test 7.2 — ERP dashboard:
+GET /erp/dashboard
+Expected: 200, all modules visible
+Stats cards show real data
+
+Test 7.3 — Add product:
+GET /erp/inventory/add
+Expected: 200, shows add form
+POST with test product data
+Expected: product in inventory
+
+Test 7.4 — Inventory list:
+GET /erp/inventory
+Expected: 200, shows product
+Low stock warnings if applicable
+Forecast button present
+
+Test 7.5 — Demand forecast:
+GET /erp/inventory/forecast
+Expected: 200, shows forecast page
+Disclaimer visible at bottom
+
+Test 7.6 — Add expense:
+POST /erp/reports/expenses with
+  category: Inventory
+  amount: 500
+  description: Test expense
+  date: today
+Expected: expense appears in list
+
+Test 7.7 — Journal entry:
+GET /erp/finance/journal-entry
+Expected: 200, form loads with:
+  Date, debit/credit radio
+  Account dropdown 15 options
+  Amount, description fields
+POST test entry
+Expected: appears in recent entries
+Manual badge shown
+
+Test 7.8 — GST Summary:
+GET /erp/finance/gst-summary
+Expected: 200, shows:
+  Date range filter
+  6 summary cards
+  Transactions table
+  Export CSV button
+
+Test 7.9 — Accounts Payable:
+GET /erp/finance/accounts-payable
+Expected: 200, shows:
+  Summary cards
+  Add New Payable button
+  Entries table
+POST new payable
+Click Pay button
+Expected: inline payment form appears
+
+Test 7.10 — Accounts Receivable:
+GET /erp/finance/accounts-receivable
+Expected: same structure as payable
+POST new receivable
+Record payment
+
+Test 7.11 — Balance Sheet:
+GET /erp/finance/balance-sheet
+Expected: 200
+Real data from database
+Not hardcoded values
+
+Test 7.12 — P&L Statement:
+GET /erp/reports/pnl
+Expected: 200
+Revenue, expenses, profit shown
+
+Test 7.13 — CA Package:
+GET /erp/finance/ca-package
+Expected: 200, shows 6 sections:
+  P&L, GST, Balance Sheet,
+  Ledger, Expenses, Sales
+Each with Download CSV button
+Download ZIP button at top
+
+Test 7.14 — Budget Planning:
+GET /erp/finance/budget
+Expected: 200, shows:
+  Revenue target section
+  Expense categories table
+  Budget vs actual bars
+POST budget values
+Expected: saved and bars update
+
+Test 7.15 — KPI Dashboard:
+GET /erp/finance/kpi-dashboard
+Expected: 200, shows:
+  Overall health score circle
+  10 default KPI cards each with:
+    Current value, target, trend arrow
+    On Target/At Risk/Off Track badge
+  Add KPI dropdown
+
+Test 7.16 — Board Report:
+GET /erp/finance/board-report
+Expected: 200, shows 6 pages:
+  Cover, Executive Summary,
+  Financial Performance,
+  Products and Services,
+  Balance Sheet Summary,
+  KPIs and Outlook
+Narrative text in each section
+Disclaimer at bottom
+Print button present
+
+Test 7.17 — Export buttons:
+GET /erp/reports/ledger/export/csv
+Expected: CSV downloads
+GET /erp/finance/ca-package/export/zip
+Expected: ZIP downloads with 6 CSVs
+
+SECTION 8 — CRM Module:
+
+Test 8.1 — CRM dashboard:
+GET /erp/crm
+Expected: 200, single dashboard
+  No duplicate HTML
+Stats cards visible
+
+Test 8.2 — Add customer:
+GET /erp/crm/add-customer
+Expected: 200, comprehensive form
+POST customer
+Expected: appears in customer list
+
+Test 8.3 — Customer list:
+GET /erp/crm/customers
+Expected: 200, shows customer
+Status badge correct
+Lifecycle stage correct
+
+Test 8.4 — Customer detail:
+GET /erp/crm/customers/1
+Expected: 200
+Inline interaction form present
+Log Interaction works without
+  page reload
+
+Test 8.5 — Tasks:
+GET /erp/crm/tasks
+Expected: 200, shows task list
+POST new task
+Start and Complete buttons work
+
+Test 8.6 — Opportunities:
+GET /erp/crm/opportunities
+Expected: 200, 6 stage pipeline
+  Prospecting through Closed Lost
+POST opportunity
+Move between stages works
+
+Test 8.7 — Promotions:
+GET /erp/crm/promotions
+Expected: 200, campaign form
+Segment options visible
+GDPR notice visible
+marketing_opt_out respected
+
+Test 8.8 — Messages:
+GET /erp/messages
+Expected: 200, two column layout
+  Conversation list left
+  Message thread right
+Send message works
+
+SECTION 9 — HRM Module:
+
+Test 9.1 — HRM dashboard:
+GET /erp/time-slots
+Expected: 200, employee tab shows
+No hardcoded Sarah Johnson or Mike Wilson
+Empty state if no employees
+
+Test 9.2 — Add employee:
+GET /erp/hr/employees/add
+Expected: 200, form loads
+POST employee data
+Expected: appears in list
+
+Test 9.3 — Employee detail:
+GET /erp/hr/employees/1
+Expected: 200
+All fields displayed
+Average rating from reviews shown
+
+Test 9.4 — Leave management:
+GET /erp/hr/leaves
+Expected: 200
+Leave application form
+Pending approvals table
+POST leave request
+Approve and Reject buttons work
+
+Test 9.5 — Timesheets:
+GET /erp/hr/timesheets
+Expected: 200
+Inline check-in/out fields per employee
+Save button per row
+Hours auto-calculated
+
+Test 9.6 — Payroll:
+GET /erp/hr/payroll
+Expected: 200
+Month picker present
+Editable bonus and deduction fields
+Total auto-calculated in JavaScript
+Generate Payslips button works
+
+Test 9.7 — Performance review:
+GET /erp/hr/performance/add
+Expected: 200, review form
+POST review
+Productivity score calculated
+
+SECTION 10 — Groomer Rating System:
+
+Test 10.1 — Groomer listing:
+GET /vendor/1/groomers
+Expected: 200, shows groomers
+Rating breakdown visible
+Book This Groomer button present
+
+Test 10.2 — Groomer profile:
+GET /groomer/1
+Expected: 200, shows:
+  Name, ratings breakdown
+  Service quality, punctuality,
+  Handling of pet ratings
+  Would book again percentage
+  All verified reviews
+  FurrButler Certified badge
+    if criteria met
+  Groomer of Month badge
+    if applicable
+
+Test 10.3 — Book specific groomer:
+GET /vendor/1/book?employee_id=1
+Expected: groomer pre-selected
+  Name and rating shown prominently
+
+Test 10.4 — Staff assignment on booking:
+As vendor confirm a booking
+Expected: employee dropdown appears
+  Only shows active staff
+Save with employee assigned
+
+Test 10.5 — Done button:
+POST /erp/bookings/done/1
+Expected: status changes to completed
+  SocketIO notification sent
+  CRM auto-updated
+
+Test 10.6 — Review form:
+GET /booking/1/review
+Expected: 200 only if:
+  Booking is completed
+  Session user is the booker
+  No existing review
+4 category star ratings present
+
+Test 10.7 — Submit review:
+POST review with all 4 ratings
+Expected: saved to employee_reviews
+Groomer avg rating updated
+
+Test 10.8 — Certification check:
+POST /erp/certifications/check
+Expected: runs check for all groomers
+Certifies if criteria met:
+  50+ reviews, 4.8+ avg,
+  85%+ would book again,
+  180+ days tenure
+
+SECTION 11 — Booking Flow:
+
+Test 11.1 — Search groomers:
+GET /groomers?location=Malappuram
+Expected: 200, vendors shown
+Sorted by distance
+Distance shown on each card
+
+Test 11.2 — Vendor profile:
+GET /vendor/1
+Expected: 200
+Services, reviews, groomer section
+Meet Our Groomers if groomers exist
+
+Test 11.3 — Book service:
+GET /vendor/1/book
+Expected: 200
+Time slot grid visible
+Pet selector shows Luna
+Groomer selector if available
+
+Test 11.4 — My bookings:
+GET /my-bookings
+Expected: 200
+Filter tabs: Upcoming/Past/All
+Booking cards with status badges
+
+SECTION 12 — Marketplace:
+
+Test 12.1 — Marketplace search:
+GET /marketplace?location=Malappuram
+Expected: 200, vendors shown
+Distance displayed
+
+Test 12.2 — Vendor shop:
+GET /marketplace/vendor/1
+Expected: 200
+Category filter tabs
+Products in grid
+Add to Cart buttons
+
+Test 12.3 — Cart:
+Add item to cart
+GET /checkout
+Expected: 200
+Item in cart
+Delivery type selector
+Fee summary
+
+Test 12.4 — My orders:
+GET /my-orders
+Expected: 200
+Order history list
+
+SECTION 13 — FurrWings Portals:
+
+Test 13.1 — Vet registration:
+GET /furrwings/vet/register
+Expected: 200, registration form
+Left panel with benefits
+Right panel with form sections
+ERP interest checkboxes present
+GDPR consent checkbox
+
+Test 13.2 — Vet login:
+GET /furrwings/vet/login
+Expected: 200, clean login form
+No hardcoded credentials
+Apply for access link present
+
+Test 13.3 — Handler registration:
+GET /handler/register
+Expected: 200, full form with:
+  Personal details
+  IATA certification
+  Countries served
+  Services offered checkboxes
+  About section
+
+Test 13.4 — Handler pending:
+After registration
+GET /handler/pending
+Expected: 200, timeline shown
+3 step process visible
+
+Test 13.5 — Isolation registration:
+GET /isolation/register
+Expected: 200, comprehensive form:
+  Facility details
+  License and AQCS
+  Capacity and species
+  Services and pricing
+  About section
+
+Test 13.6 — Isolation pending:
+GET /isolation/pending
+Expected: 200, 4 step timeline
+
+SECTION 14 — FurrWings Vet Portal:
+
+Login with approved vet account.
+
+Test 14.1 — Vet dashboard:
+GET /furrwings/vet/dashboard
+Expected: 200, shows:
+  Stats cards
+  Upload Center prominent
+  Recent activity
+  ERP integration status
+
+Test 14.2 — Find patient:
+GET /furrwings/vet/patients
+Expected: 200, search-first interface
+Search by phone or email
+If found shows linked pets
+If not found shows manual entry option
+
+Test 14.3 — Upload center:
+GET /furrwings/vet/upload
+Expected: 200, shows 6 type cards:
+  Vaccination, Prescription,
+  Lab Results, Microchip,
+  Health Certificate, General Record
+
+Test 14.4 — Vaccination upload form:
+Click Vaccination card
+Expected: vaccine-specific form:
+  Vaccine name dropdown
+  Date given, next due auto-calc
+  Batch number, manufacturer
+  Certificate file upload
+
+Test 14.5 — Prescription upload form:
+Click Prescription card
+Expected: medication form:
+  Drug name, strength, form
+  Dose, frequency, duration
+  Ongoing toggle, refill toggle
+
+Test 14.6 — Submit upload:
+POST vaccination record
+Expected: success response JSON
+Pet reminder created in erp.db
+Pawsport document updated
+  with verified = 1
+  verified_by = furrwings_vet
+SocketIO notification sent to owner
+
+Test 14.7 — Appointments:
+GET /furrwings/vet/appointments
+Expected: 200
+Today's bookings from FurrButler
+Manual appointment entry option
+
+Test 14.8 — Certificates list:
+GET /furrwings/vet/certificates
+Expected: 200
+Filter tabs by status
+Days remaining badges
+
+Test 14.9 — New certificate:
+GET /furrwings/vet/certificate/new
+Expected: 200, multi-section form:
+  Pet search section
+  Pet details section
+  Owner details section
+  Travel details section
+  Clinical examination section
+  Vaccinations verified section
+  Parasite treatment section
+  Certification declaration
+
+Test 14.10 — Issue certificate:
+POST certificate with all fields
+Expected: certificate_number generated
+  FW-VET-[id]-[year]-[sequence]
+Verification hash generated
+Expiry set to issue + 10 days
+Pawsport updated if linked
+
+Test 14.11 — Certificate verification:
+GET /verify/cert/[hash]
+Expected: 200, shows:
+  Green verified banner
+  Certificate details
+  Pet and vet info
+  Valid/expired/revoked status
+
+Test 14.12 — Settings:
+GET /furrwings/vet/settings
+Expected: 200
+ERP integration options
+  all show Coming Soon
+Notification preferences
+Profile edit form
+
+SECTION 15 — Admin Panel:
+
+Test 15.1 — Master admin dashboard:
+GET /master/admin/dashboard
+Expected: 200, shows:
+  Alerts bar with pending counts
+  Stats row
+  Commission management (existing)
+  Portal management 6 cards
+  Coming Soon section
+
+Test 15.2 — Alerts bar:
+If any pending applications:
+  Coloured pills show
+  Links to correct pages
+
+Test 15.3 — Notification bell:
+Bell icon in header
+Red badge if unread
+Click shows dropdown
+
+Test 15.4 — FurrWings vet applications:
+GET /admin/furrwings/vets
+Expected: 200
+Applications listed
+Progress bar per application
+Filter tabs working
+
+Test 15.5 — Vet verification checklist:
+GET /admin/furrwings/vets/1/verify
+Expected: 200, two column layout
+Left: applicant details + doc upload
+Right: 9 checklist items grouped
+  by category
+Each item has status dropdown
+  and notes field
+
+Test 15.6 — Handler applications:
+GET /admin/handlers
+Expected: 200, same structure
+14 checklist items per handler
+
+Test 15.7 — Isolation applications:
+GET /admin/isolation
+Expected: 200
+19 checklist items per center
+
+Test 15.8 — Approval enforcement:
+Try approving before all checks done
+Expected: error message
+Cannot approve with pending items
+
+Test 15.9 — Password setup link:
+After approving a vet:
+  Token generated in approval_tokens
+  Email sent or in pending_emails
+  Link format: /set-password/[token]
+
+Test 15.10 — Set password page:
+GET /set-password/[valid token]
+Expected: 200, clean form:
+  Portal type shown correctly
+  Email shown read-only
+  Password requirements shown
+  Requirements turn green as typed
+  Submit disabled until valid
+
+Test 15.11 — Invalid token:
+GET /set-password/invalidtoken
+Expected: 200, error page shown
+  Not 404 or 500
+
+Test 15.12 — Used token:
+Use token once to set password
+Then try same token again
+Expected: "already used" message
+
+Test 15.13 — Token no expiry:
+Tokens in approval_tokens table
+Should have NO expires_at column
+Or column should be null/empty
+Tokens only invalidated by
+  is_used or is_revoked
+
+Test 15.14 — Resend link:
+POST /admin/furrwings/vets/1/resend-link
+Expected: old token revoked
+  New token generated
+  Email sent or in pending_emails
+
+Test 15.15 — Pending emails:
+GET /admin/pending-emails
+Expected: 200
+Unsent emails listed
+Copy Setup Link button
+  if email contains /set-password/
+Mark as Sent button
+Retry button attempts SendGrid
+
+Test 15.16 — Pet parents list:
+GET /admin/users
+Expected: 200
+All pet parents listed
+Search working
+Export CSV button
+
+Test 15.17 — GDPR requests:
+GET /admin/gdpr/requests
+Expected: 200
+Deletion requests listed
+Cancel button works
+
+Test 15.18 — Venue moderation:
+GET /admin/venues
+Expected: 200
+Pending venues listed
+Approve, Reject, Flag buttons
+
+SECTION 16 — FurrVet ERP:
+
+Test 16.1 — FurrVet login:
+GET /furrvet/login
+Expected: 200, login form
+POST with vet credentials
+Expected: 302 to /furrvet/dashboard
+
+Test 16.2 — FurrVet dashboard:
+GET /furrvet/dashboard
+Expected: 200, all modules linked:
+  Patients, Appointments,
+  Hospitalizations, Vaccinations,
+  Lab, Inventory, Prescriptions,
+  Staff, Clients, Financials,
+  Compliance, Analytics, Telehealth
+
+Test 16.3 — Patients:
+GET /furrvet/patients
+Expected: 200, patient list
+Search working
+
+Test 16.4 — New patient:
+GET /furrvet/patients/new
+Expected: 200, form with:
+  Pet owner details section
+  Pet details section
+
+Test 16.5 — SOAP note:
+GET /furrvet/patients/1/medical/add
+Expected: 200, SOAP format:
+  Subjective section with
+    chief complaint, observations
+  Objective section with vitals:
+    Temperature, weight, heart rate,
+    respiratory rate, BCS, mucous
+    membranes, CRT
+  Physical examination
+  Assessment: diagnosis, differentials
+  Plan: treatment, prescription,
+    follow-up instructions
+
+Test 16.6 — Add vaccination:
+GET /furrvet/patients/1/vaccinations/add
+Expected: 200, form with:
+  Vaccine name species-specific
+  Batch number required
+  Site of injection dropdown
+  Auto-calculated next due date
+
+Test 16.7 — Vaccination certificate:
+GET /furrvet/patients/1/
+  vaccinations/1/certificate
+Expected: 200, printable certificate
+  Clinic letterhead
+  Pet and owner details
+  Vaccine details with batch
+  Vet signature line
+  Print button
+
+Test 16.8 — Lab test:
+GET /furrvet/lab/add
+Expected: 200, form with:
+  Pet search/dropdown
+  Test name from dropdown
+  External lab option
+
+Test 16.9 — Lab results entry:
+GET /furrvet/lab/1/results
+Expected: 200
+Results textarea
+Abnormal flags
+Mark complete checkbox
+
+Test 16.10 — Create invoice:
+GET /furrvet/billing/new
+Expected: 200
+Dynamic line items
+Add Item button works without reload
+Line item types dropdown
+Tax auto-calculated
+Total auto-calculated
+
+Test 16.11 — Hospitalization:
+GET /furrvet/hospitalize
+Expected: 200, admit form:
+  Pet dropdown
+  Ward type
+  Feeding instructions
+  Medication schedule
+
+Test 16.12 — Prescription writer:
+GET /furrvet/prescriptions/new
+Expected: 200
+Drug table with dynamic rows
+Drug name autocomplete from inventory
+Dose, frequency, duration per drug
+
+Test 16.13 — FurrVet financials:
+GET /furrvet/financials
+Expected: 200
+Revenue summary
+Outstanding invoices
+AP/AR sections
+
+Test 16.14 — FurrVet staff:
+GET /furrvet/staff-management
+Expected: 200
+Staff list with certifications
+Expiring certs highlighted
+
+SECTION 17 — Community Features:
+
+Test 17.1 — Community posts:
+GET /community
+Expected: 200, post feed visible
+
+Test 17.2 — Stray tracker:
+GET /stray-tracker
+Expected: 200
+Filter options visible
+Report New Stray button
+
+Test 17.3 — Stray detail:
+GET /stray/[uid]
+Expected: 200
+Vaccination history
+Update timeline
+Share button
+
+SECTION 18 — GDPR and Privacy:
+
+Test 18.1 — Privacy policy:
+GET /privacy-policy
+Expected: 200, all 10 sections
+
+Test 18.2 — Terms:
+GET /terms
+Expected: 200, all sections
+
+Test 18.3 — FurrVet privacy:
+GET /furrvet/gdpr/privacy-notice
+Expected: 200
+Article 9 reference visible
+10 year retention mentioned
+
+Test 18.4 — FurrWings privacy:
+GET /furrwings/privacy
+Expected: 200
+Article 49 reference visible
+International transfer notice
+
+Test 18.5 — Vendor DPA:
+GET /erp/gdpr/dpa
+Expected: 200, 13 article DPA
+
+Test 18.6 — Download my data:
+GET /gdpr/download-data (as pet parent)
+Expected: JSON file downloads
+Contains account, pets, bookings
+
+Test 18.7 — Delete account:
+POST /gdpr/delete-account
+Expected: deletion scheduled
+30 day grace period
+Confirmation email in pending_emails
+
+SECTION 19 — API Endpoints:
+
+Test 19.1 — API register:
+POST /api/v1/auth/register
+Expected: 200, returns JWT token
+
+Test 19.2 — API login:
+POST /api/v1/auth/login
+Expected: 200, JWT token in response
+
+Test 19.3 — API me:
+GET /api/v1/auth/me with token
+Expected: 200, user data
+
+Test 19.4 — API pets:
+GET /api/v1/pets with token
+Expected: 200, pets array
+
+Test 19.5 — API without token:
+GET /api/v1/pets without token
+Expected: 401 unauthorized
+
+Test 19.6 — API groomers:
+GET /api/v1/groomers?location=Malappuram
+with token
+Expected: 200, vendors array
+
+Test 19.7 — API bookings:
+GET /api/v1/bookings with token
+Expected: 200, bookings array
+
+Test 19.8 — API GDPR consent:
+POST /api/v1/gdpr/consent with token
+Expected: 200, consent saved
+
+Test 19.9 — API FurrWings notice:
+GET /api/v1/gdpr/furrwings-notice
+Expected: 200, notice text JSON
+
+SECTION 20 — Email System:
+
+Test 20.1 — Pending emails page:
+GET /admin/pending-emails
+Expected: 200
+Any queued emails shown
+
+Test 20.2 — SendGrid configured:
+Check os.environ for SENDGRID_API_KEY
+If set: test email sending works
+If not set: emails queue to
+  pending_emails table
+
+Test 20.3 — Retry email:
+POST /admin/pending-emails/1/retry
+Expected: attempts SendGrid
+  Reports success or failure
+
+Test 20.4 — Mark as sent:
+POST /admin/pending-emails/1/sent
+Expected: is_sent = 1
+Disappears from pending list
+
+FINAL REPORT:
+
+After all tests provide:
+
+1. Total tests run
+2. Tests passed with count
+3. Tests failed with count
+
+4. For each failure:
+   Test number and name
+   Expected result
+   Actual result
+   Error message
+   Suggested fix
+
+5. Critical failures:
+   Anything blocking real vendor
+   or pet parent usage
+
+6. Missing templates:
+   Any 404s on GET requests
+
+7. Security issues found:
+   Any routes without auth checks
+   Any data visible across vendors
+
+8. Overall health score:
+   Percentage passing
+   Ready for real users or not
+   What must be fixed first
+
+Do not modify any files.
+Do not delete test data.
