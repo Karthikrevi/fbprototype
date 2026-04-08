@@ -1317,9 +1317,10 @@ def add_medical_record(pet_id):
 def view_medical_record(pet_id, record_id):
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
+    vet_id = session['furrvet_vet_id']
     c.execute("""SELECT mr.*, v.name as vet_name, v.license_number
         FROM medical_records mr JOIN vets v ON mr.vet_id = v.id
-        WHERE mr.id=? AND mr.pet_id=?""", (record_id, pet_id))
+        WHERE mr.id=? AND mr.pet_id=? AND mr.vet_id=?""", (record_id, pet_id, vet_id))
     record = c.fetchone()
     if not record:
         conn.close()
@@ -1412,13 +1413,14 @@ def add_vaccination(pet_id):
 def vaccination_certificate(pet_id, vacc_id):
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
+    vet_id = session['furrvet_vet_id']
     c.execute("""SELECT v.*, p.name as pet_name, p.species, p.breed, po.name as owner_name,
         vt.name as vet_name, vt.license_number, vt.clinic_name
         FROM vaccinations v
         JOIN pets p ON v.pet_id = p.id
         JOIN pet_owners po ON p.owner_id = po.id
         JOIN vets vt ON v.vet_id = vt.id
-        WHERE v.id=? AND v.pet_id=?""", (vacc_id, pet_id))
+        WHERE v.id=? AND v.pet_id=? AND v.vet_id=?""", (vacc_id, pet_id, vet_id))
     vacc = c.fetchone()
     conn.close()
     if not vacc:
@@ -1687,6 +1689,7 @@ def create_invoice():
 def view_invoice(inv_id):
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
+    vet_id = session['furrvet_vet_id']
     c.execute("""SELECT i.*, p.name as pet_name, p.species, po.name as owner_name,
         po.phone as owner_phone, po.address as owner_address, po.email as owner_email,
         v.name as vet_name, v.license_number, v.clinic_name
@@ -1694,7 +1697,7 @@ def view_invoice(inv_id):
         JOIN pets p ON i.pet_id = p.id
         JOIN pet_owners po ON i.owner_id = po.id
         JOIN vets v ON i.vet_id = v.id
-        WHERE i.id=?""", (inv_id,))
+        WHERE i.id=? AND i.vet_id=?""", (inv_id, vet_id))
     invoice = c.fetchone()
     if not invoice:
         conn.close()
@@ -1944,13 +1947,14 @@ def new_prescription():
 def view_prescription(rx_id):
     conn = sqlite3.connect('furrvet.db')
     c = conn.cursor()
+    vet_id = session['furrvet_vet_id']
     c.execute("""SELECT mr.*, p.name as pet_name, p.species, p.breed, po.name as owner_name,
         po.phone as owner_phone, v.name as vet_name, v.license_number, v.clinic_name
         FROM medical_records mr
         JOIN pets p ON mr.pet_id = p.id
         JOIN pet_owners po ON p.owner_id = po.id
         JOIN vets v ON mr.vet_id = v.id
-        WHERE mr.id=? AND mr.chief_complaint='Prescription'""", (rx_id,))
+        WHERE mr.id=? AND mr.chief_complaint='Prescription' AND mr.vet_id=?""", (rx_id, vet_id))
     rx = c.fetchone()
     conn.close()
     if not rx:

@@ -74,22 +74,26 @@ The platform ensures full GDPR compliance across all portals, including privacy 
 - **Admin template**: `admin_venues.html` (moderation dashboard)
 - **Venue column indices**: 0=id, 1=name, 2=venue_type, 3=address, 4=city, 5=state, 6=pincode, 7=phone, 8=website, 9=google_maps_url, 10=booking_url, 11=latitude, 12=longitude, 13=pet_policy, 14=max_pet_size, 15=pet_fee, 16=amenities, 17=rating, 18=review_count, 19=verified, 20=is_active, 21=added_by, 22=created_at, 23=submission_status, 24=submitted_by_email, 25=submission_notes, 26=admin_notes, 27=google_verified, 28=flag_reason
 
-## FurrWings Vet Portal
-- **Purpose**: Travel health certificate issuance portal for veterinarians, separate from FurrVet ERP
-- **Auth**: Independent session (`furrwings_vet_id`), registration requires admin approval
-- **DB tables** (in erp.db): `furrwings_vets`, `furrwings_health_certs`, `furrwings_cert_vaccinations`, `furrwings_cert_audit_log`
-- **Routes** (in main.py): `/furrwings/vet/register`, `/furrwings/vet/login`, `/furrwings/vet/logout`, `/furrwings/vet/pending`, `/furrwings/vet/dashboard`, `/furrwings/vet/certificates/new`, `/furrwings/vet/certificates/<id>`, `/furrwings/vet/certificates/<id>/print`, `/furrwings/vet/certificates/<id>/revoke`, `/furrwings/vet/certificates`, `/furrwings/vet/sync-furrvet`, `/verify/cert/<hash>`, `/furrwings/vet/search-pet`
-- **Admin routes**: `/admin/furrwings/vets`, `/admin/furrwings/vets/<id>/approve`, `/admin/furrwings/vets/<id>/reject`
-- **Templates**: `furrwings_vet_register.html`, `furrwings_vet_login.html`, `furrwings_vet_pending.html`, `furrwings_vet_dashboard.html`, `furrwings_vet_new_cert.html`, `furrwings_vet_cert_view.html`, `furrwings_vet_cert_print.html`, `furrwings_vet_cert_list.html`, `furrwings_vet_sync.html`, `verify_certificate.html`, `admin_furrwings_vets.html`
-- **Certificate verification**: Public route `/verify/cert/<hash>`, hash is SHA256[:32] of cert data, certs expire 10 days
-- **Vet column indices**: [0]=id, [1]=name, [2]=email, [3]=password, [4]=license_number, [5]=license_body, [6]=specialization, [7]=phone, [8]=clinic_name, [9]=clinic_address, [10]=city, [14]=approval_status
+## FurrWings Vet Connect Portal (Rebuilt)
+- **Purpose**: Vet-facing portal for uploading pet health records, issuing travel certificates, connecting with pet parents
+- **Design**: Clean white/navy blue (#0d47a1) with sidebar layout, no purple gradients
+- **Auth**: Independent session (`furrwings_vet_id`, `furrwings_vet_name`, `furrwings_vet_email`, `furrwings_clinic`), registration requires admin approval
+- **DB tables** (in erp.db): `furrwings_vets` (with erp_interests, years_experience, state, pincode, rejection_reason columns), `health_certificates`, `travel_vaccinations`, `furrwings_vet_activity`, `erp_integration_requests`
+- **Routes** (in main.py): `/furrwings/vet/login`, `/furrwings/vet/register`, `/furrwings/vet/pending`, `/furrwings/vet/logout`, `/furrwings/vet/dashboard`, `/furrwings/vet/patients` (search), `/furrwings/vet/upload` (6 doc types), `/furrwings/vet/appointments`, `/furrwings/vet/certificates`, `/furrwings/vet/certificate/<id>`, `/furrwings/vet/certificate/<id>/print`, `/furrwings/vet/certificate/<id>/revoke`, `/furrwings/vet/settings`, `/furrwings/vet/erp-request` (POST), `/verify/cert/<hash>`
+- **Admin routes**: `/admin/furrwings/vets`, `/admin/furrwings/vets/<id>/approve`, `/admin/furrwings/vets/<id>/reject` (with rejection reason)
+- **Templates** (12 files, all in `templates/`): `furrwings_vet_login.html`, `furrwings_vet_register.html`, `furrwings_vet_pending.html`, `furrwings_vet_dashboard.html`, `furrwings_vet_patients.html`, `furrwings_vet_upload.html`, `furrwings_vet_appointments.html`, `furrwings_vet_cert_list.html`, `furrwings_vet_cert_view.html`, `furrwings_vet_cert_print.html`, `furrwings_vet_settings.html`, `verify_certificate.html`, `admin_furrwings_vets.html`
+- **Upload types**: vaccine, prescription, lab_results, microchip, health_cert, general — saves to pet_reminders or health_certificates
+- **health_certificates column indices**: [0]=id, [1]=certificate_number, [2]=vet_id, [3]=pet_name, [4]=pet_species, [5]=pet_breed, [6]=pet_dob, [7]=pet_microchip, [8]=owner_name, [9]=owner_email, [10]=owner_phone, [11]=destination_country, [12]=purpose, [13]=issue_date, [14]=expiry_date, [15]=examination_date, [16]=examination_findings, [17]=vaccinations_verified, [18]=parasites_treated, [19]=parasite_treatment_date, [20]=parasite_product, [21]=fit_for_travel, [22]=special_conditions, [23]=vet_signature, [24]=certificate_status, [25]=linked_pawsport_pet_index, [26]=linked_user_email, [27]=verification_hash, [28]=created_at
+- **furrwings_vets column indices**: [0]=id, [1]=name, [2]=email, [3]=password, [4]=license_number, [5]=license_issuing_body, [6]=specialization, [7]=phone, [8]=clinic_name, [9]=clinic_address, [10]=city, [11]=state, [12]=pincode, [13]=furrvet_account_email, [14]=approval_status, [15]=approved_date, [16]=approved_by, [17]=certificate_count, [18]=is_active, [19]=created_at, [20]=erp_interests, [21]=years_experience, [22]=rejection_reason
+- **Credentials**: vet@furrwings.com / vet123
+- **Static uploads**: `static/uploads/furrwings/`
 
 ## FurrVet ERP (Clinical Routes)
 - **Blueprint**: `furrvet_bp` in `furrvet.py`, prefix `/furrvet`
 - **All templates** in `templates/furrvet/` (render_template paths include `furrvet/` prefix)
 - **Clinical routes**: Patient CRUD, medical records (SOAP notes), vaccination management with certificates, lab tests with reference values, hospitalization with daily notes, invoicing with payment tracking, inventory/pharmacy management, staff management with certifications, appointment calendar, prescriptions
 - **CRM/HRM/Accounting routes**: Client management with reminders, marketing campaigns, financial dashboard with P&L/AR/AP/GST reports, staff dashboard with reviews/certifications
-- **Auth scoping**: Critical write operations (pay_invoice, update_appointment, lab_results, hospitalization, discharge) scoped by `vet_id` in WHERE clauses to prevent IDOR
+- **Auth scoping**: All object-detail routes (view_invoice, view_medical_record, vaccination_certificate, view_prescription, pay_invoice, update_appointment, lab_results, hospitalization, discharge) scoped by `vet_id` in WHERE clauses to prevent IDOR
 - **Session keys**: `furrvet_vet_id`, `furrvet_vet_name`, `furrvet_vet_email`, `furrvet_clinic_name`
 - **Credentials**: vet@furrvet.com / vet123
 

@@ -3,43 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - FurrWings Vet Portal</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<title>FurrWings Vet Connect — Sign In</title>
 <style>
-body{background:linear-gradient(135deg,#0a1628 0%,#1a3a6c 50%,#2c5aa0 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif}
-.login-card{background:white;border-radius:1.5rem;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
-.fw-logo{text-align:center;margin-bottom:2rem}
-.fw-logo i{color:#2c5aa0;font-size:3rem;margin-bottom:0.5rem;display:block}
-.fw-logo h1{color:#1a3a6c;font-weight:800;margin:0}
-.fw-logo p{color:#6b7280;margin-top:0.25rem}
-.btn-fw{background:#2c5aa0;color:white;border:none;border-radius:0.75rem;padding:0.75rem;font-weight:600;width:100%;font-size:1.05rem}
-.btn-fw:hover{background:#1a3a6c;color:white}
-.form-control{border-radius:0.5rem;padding:0.75rem}
-.links{text-align:center;margin-top:1.5rem;font-size:0.9rem}
-.links a{color:#2c5aa0;text-decoration:none}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:420px;width:100%;padding:40px 36px}
+.brand{text-align:center;margin-bottom:28px}
+.brand-icon{font-size:28px;margin-bottom:6px}
+.brand h1{font-size:20px;color:#0d47a1;font-weight:700;margin-bottom:4px}
+.brand p{font-size:13px;color:#616161}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#616161;margin-bottom:6px}
+.form-group input{width:100%;padding:10px 14px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;color:#212121;transition:border .2s}
+.form-group input:focus{outline:none;border-color:#1565c0;box-shadow:0 0 0 3px rgba(21,101,192,0.1)}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:42px}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#616161;cursor:pointer;font-size:13px;font-weight:500}
+.error-msg{background:#fce4ec;color:#c62828;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.btn-primary{display:block;width:100%;padding:12px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-primary:hover{background:#0d47a1}
+.divider{border:none;border-top:1px solid #e0e0e0;margin:24px 0}
+.links{text-align:center}
+.links p{font-size:13px;color:#616161;margin-bottom:8px}
+.links a{color:#1565c0;text-decoration:none;font-weight:500;font-size:13px}
 .links a:hover{text-decoration:underline}
-.divider{display:flex;align-items:center;margin:1rem 0}.divider::before,.divider::after{content:'';flex:1;border-bottom:1px solid #e5e7eb}.divider span{padding:0 0.5rem;color:#9ca3af;font-size:0.85rem}
+.alt-links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.alt-links a{color:#616161;font-size:12px;font-weight:500}
+.alt-links a:hover{color:#1565c0}
 </style>
 </head>
 <body>
 <div class="login-card">
-<div class="fw-logo">
-<i class="fas fa-plane-departure"></i>
-<h1>FurrWings</h1>
-<p>Veterinary Portal</p>
+    <div class="brand">
+        <div class="brand-icon">🐾🩺</div>
+        <h1>FurrWings Vet Connect</h1>
+        <p>Connecting vets and pet parents</p>
+    </div>
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required placeholder="you@clinic.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+                <input type="password" id="password" name="password" required placeholder="Enter password" autocomplete="current-password">
+                <button type="button" class="pw-toggle" onclick="togglePw()">Show</button>
+            </div>
+        </div>
+        <button type="submit" class="btn-primary">Sign In</button>
+    </form>
+    <hr class="divider">
+    <div class="links">
+        <p>New to FurrWings Vet Connect?</p>
+        <a href="/furrwings/vet/register">Apply for Access</a>
+    </div>
+    <hr class="divider">
+    <div class="links">
+        <p>Not a vet portal?</p>
+        <div class="alt-links">
+            <a href="/login">Pet Parent Login</a>
+            <a href="/erp/login">Vendor Login</a>
+            <a href="/furrvet/login">FurrVet ERP</a>
+        </div>
+    </div>
 </div>
-{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-warning alert-sm" style="font-size:0.9rem">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-<form method="POST">
-<div class="mb-3"><label class="form-label fw-bold">Email</label><input type="email" name="email" class="form-control" required placeholder="your@email.com"></div>
-<div class="mb-3"><label class="form-label fw-bold">Password</label><input type="password" name="password" class="form-control" required></div>
-<button type="submit" class="btn-fw"><i class="fas fa-sign-in-alt"></i> Sign In</button>
-</form>
-<div class="links">
-<a href="/furrwings/vet/register">Apply to become a FurrWings Vet</a>
-<div class="divider"><span>or</span></div>
-<a href="/furrvet/login" style="color:#00897b"><i class="fas fa-stethoscope"></i> FurrVet ERP Login</a>
-</div>
-</div>
+<script>
+function togglePw(){
+    const p=document.getElementById('password');
+    const b=document.querySelector('.pw-toggle');
+    if(p.type==='password'){p.type='text';b.textContent='Hide'}
+    else{p.type='password';b.textContent='Show'}
+}
+</script>
 </body>
 </html>

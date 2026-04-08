@@ -3,61 +3,118 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Certificates - FurrWings</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<title>Certificates — FurrWings Vet Connect</title>
 <style>
-body{background:#f0f4f8;font-family:'Segoe UI',sans-serif}
-.fw-header{background:linear-gradient(135deg,#0a1628,#1a3a6c);color:white;padding:1rem 0}
-.section-card{background:white;border-radius:1rem;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-.table th{background:#f0f4f8;color:#1a3a6c;font-size:0.85rem}
-.filter-btn{border-radius:2rem;font-size:0.85rem;font-weight:500}
-.badge-issued{background:#28a745}.badge-draft{background:#6c757d}.badge-revoked{background:#dc3545}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:16px;font-weight:700;color:#0d47a1}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#616161}
+.topbar-right a{color:#c62828;text-decoration:none;font-weight:600}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#212121;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s}
+.sidebar a:hover,.sidebar a.active{background:#e3f2fd;color:#1565c0}
+.sidebar a span.icon{width:20px;text-align:center;font-size:15px}
+.main{flex:1;padding:28px 32px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.page-header h1{font-size:20px;color:#0d47a1}
+.search-bar{display:flex;gap:8px}
+.search-bar input{padding:8px 14px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:220px}
+.search-bar button{padding:8px 14px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer}
+.filter-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.filter-tabs a{padding:7px 16px;border-radius:20px;font-size:13px;font-weight:500;text-decoration:none;color:#616161;background:#fff;border:1px solid #e0e0e0;transition:all .15s}
+.filter-tabs a.active,.filter-tabs a:hover{background:#1565c0;color:#fff;border-color:#1565c0}
+.cert-card{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.cert-info{flex:1;min-width:200px}
+.cert-info h3{font-size:14px;color:#212121;margin-bottom:3px}
+.cert-info p{font-size:12px;color:#616161;line-height:1.6}
+.cert-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600;margin-right:8px}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-orange{background:#fff3e0;color:#e65100}
+.badge-red{background:#ffebee;color:#c62828}
+.btn-sm{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;border:none;cursor:pointer}
+.btn-view{background:#e3f2fd;color:#1565c0}
+.btn-print{background:#f0f4f8;color:#212121}
+.btn-revoke{background:#ffebee;color:#c62828}
+.empty{background:#fff;border-radius:10px;padding:48px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.empty .emoji{font-size:48px;margin-bottom:12px}
+.empty h2{font-size:16px;color:#212121;margin-bottom:6px}
+.empty p{font-size:13px;color:#616161}
+.export-btn{padding:8px 16px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;color:#616161;cursor:pointer;text-decoration:none}
+@media(max-width:768px){.sidebar{display:none}}
 </style>
 </head>
 <body>
-<div class="fw-header">
-<div class="container d-flex justify-content-between align-items-center">
-<h4 class="mb-0"><i class="fas fa-plane-departure"></i> FurrWings — My Certificates</h4>
-<div>
-<a href="/furrwings/vet/certificate/new" class="btn btn-outline-light btn-sm me-1">+ New Certificate</a>
-<a href="/furrwings/vet/dashboard" class="btn btn-outline-light btn-sm">Dashboard</a>
+<div class="topbar">
+    <div class="topbar-brand">🐾🩺 FurrWings Vet Connect</div>
+    <div class="topbar-right">
+        <span>{{ session.get('furrwings_clinic','') }}</span>
+        <a href="/furrwings/vet/logout">Logout</a>
+    </div>
 </div>
-</div>
-</div>
-<div class="container py-4">
-{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-<div>
-{% for s, label in [('all','All'),('issued','Issued'),('draft','Draft'),('revoked','Revoked'),('expiring','Expiring'),('expired','Expired')] %}
-<a href="/furrwings/vet/certificates?status={{ s }}&search={{ search }}" class="btn btn-sm filter-btn btn-{{ 'primary' if status_filter==s else 'outline-primary' }} me-1">{{ label }}</a>
-{% endfor %}
-</div>
-<form class="d-flex" style="width:250px">
-<input type="hidden" name="status" value="{{ status_filter }}">
-<input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." value="{{ search }}">
-<button class="btn btn-sm btn-primary ms-1">Go</button>
-</form>
-</div>
-<div class="section-card">
-<table class="table table-hover mb-0">
-<thead><tr><th>Certificate #</th><th>Pet</th><th>Owner</th><th>Destination</th><th>Issued</th><th>Expires</th><th>Status</th><th></th></tr></thead>
-<tbody>
-{% for c in certs %}
-<tr>
-<td><small>{{ c[1] }}</small></td>
-<td><strong>{{ c[3] }}</strong> <small>({{ c[4] }})</small></td>
-<td>{{ c[8] }}</td>
-<td>{{ c[11] }}</td>
-<td>{{ c[13] }}</td><td>{{ c[14] }}</td>
-<td><span class="badge badge-{{ c[25] }}">{{ c[25] }}</span></td>
-<td><a href="/furrwings/vet/certificate/{{ c[0] }}" class="btn btn-sm btn-outline-primary">View</a></td>
-</tr>
-{% endfor %}
-{% if not certs %}<tr><td colspan="8" class="text-center text-muted">No certificates found</td></tr>{% endif %}
-</tbody>
-</table>
-</div>
+<div class="layout">
+    <nav class="sidebar">
+        <a href="/furrwings/vet/dashboard"><span class="icon">📊</span> Dashboard</a>
+        <a href="/furrwings/vet/patients"><span class="icon">🔍</span> Find Patient</a>
+        <a href="/furrwings/vet/upload"><span class="icon">📤</span> Upload Center</a>
+        <a href="/furrwings/vet/appointments"><span class="icon">📅</span> Appointments</a>
+        <a href="/furrwings/vet/certificates" class="active"><span class="icon">📋</span> Certificates</a>
+        <a href="/furrwings/vet/settings"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="main">
+        <div class="page-header">
+            <h1>📋 Health Certificates</h1>
+            <form method="GET" class="search-bar">
+                <input type="text" name="q" value="{{ search }}" placeholder="Search by pet, owner, or cert #">
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+        <div class="filter-tabs">
+            <a href="?status=all" class="{{ 'active' if status_filter=='all' }}">All</a>
+            <a href="?status=valid" class="{{ 'active' if status_filter=='valid' }}">Valid</a>
+            <a href="?status=expiring" class="{{ 'active' if status_filter=='expiring' }}">Expiring Soon</a>
+            <a href="?status=expired" class="{{ 'active' if status_filter=='expired' }}">Expired</a>
+            <a href="?status=revoked" class="{{ 'active' if status_filter=='revoked' }}">Revoked</a>
+        </div>
+        {% if certs|length > 0 %}
+        {% for cert in certs %}
+        {% set expiry = cert[14] %}
+        {% set status = cert[24] %}
+        {% set days_left = (expiry|string|truncate(10,True,'')).__len__() %}
+        <div class="cert-card">
+            <div class="cert-info">
+                <h3>{{ cert[1] }} — {{ cert[3] }} ({{ cert[4] }})</h3>
+                <p>Owner: {{ cert[8] }} &middot; Destination: {{ cert[11] }} &middot; Issued: {{ cert[13] }} &middot; Expires: {{ expiry }}</p>
+            </div>
+            <div class="cert-actions">
+                {% if status == 'revoked' %}
+                <span class="badge badge-red">Revoked</span>
+                {% elif expiry < today %}
+                <span class="badge badge-red">Expired</span>
+                {% else %}
+                <span class="badge badge-green">Valid</span>
+                {% endif %}
+                <a href="/furrwings/vet/certificate/{{ cert[0] }}" class="btn-sm btn-view">View</a>
+                <a href="/furrwings/vet/certificate/{{ cert[0] }}/print" class="btn-sm btn-print">Print</a>
+                {% if status != 'revoked' %}
+                <form method="POST" action="/furrwings/vet/certificate/{{ cert[0] }}/revoke" style="display:inline" onsubmit="return confirm('Revoke this certificate? This cannot be undone.')">
+                    <button type="submit" class="btn-sm btn-revoke">Revoke</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty">
+            <div class="emoji">📋</div>
+            <h2>No certificates found</h2>
+            <p>Issue your first health certificate from the Upload Center</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
 </body>
 </html>

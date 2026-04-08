@@ -3,116 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Certificate - FurrWings</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<title>Certificate Details — FurrWings Vet Connect</title>
 <style>
-body{background:#f0f4f8;font-family:'Segoe UI',sans-serif}
-.fw-header{background:linear-gradient(135deg,#0a1628,#1a3a6c);color:white;padding:1rem 0}
-.cert-page{background:white;max-width:800px;margin:2rem auto;border:3px solid #1a3a6c;border-radius:1rem;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
-.cert-header-bar{background:#1a3a6c;color:white;padding:1.5rem 2rem;text-align:center}
-.cert-header-bar h2{font-weight:800;margin:0}
-.cert-body{padding:2rem}
-.cert-number{font-size:1.2rem;font-weight:700;color:#2c5aa0;text-align:center;margin-bottom:1.5rem}
-.detail-row{margin-bottom:0.4rem}
-.detail-row strong{color:#1a3a6c;min-width:150px;display:inline-block}
-.section-label{color:#1a3a6c;font-weight:700;font-size:1rem;border-bottom:2px solid #2c5aa0;padding-bottom:0.3rem;margin:1.5rem 0 0.75rem}
-.status-issued{color:#28a745;font-weight:700}.status-draft{color:#6c757d;font-weight:700}.status-revoked{color:#dc3545;font-weight:700}
-.vacc-table th{background:#f0f4f8;color:#1a3a6c;font-size:0.85rem}
-@media print{.no-print{display:none!important}body{background:white}.cert-page{box-shadow:none;margin:0}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:16px;font-weight:700;color:#0d47a1}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#616161}
+.topbar-right a.logout{color:#c62828;text-decoration:none;font-weight:600}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#212121;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s}
+.sidebar a:hover,.sidebar a.active{background:#e3f2fd;color:#1565c0}
+.sidebar a span.icon{width:20px;text-align:center;font-size:15px}
+.main{flex:1;padding:28px 32px;max-width:900px}
+.flash-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.flash-warn{background:#ffebee;color:#c62828;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:#1565c0;text-decoration:none;font-size:13px;font-weight:500;margin-bottom:16px}
+.back-link:hover{text-decoration:underline}
+.cert-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.cert-header h1{font-size:20px;color:#0d47a1}
+.cert-actions{display:flex;gap:8px}
+.btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;border:none;cursor:pointer}
+.btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{background:#0d47a1}
+.btn-danger{background:#c62828;color:#fff}.btn-danger:hover{background:#b71c1c}
+.btn-outline{background:#fff;border:1px solid #e0e0e0;color:#212121}
+.badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:12px;font-weight:600}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-red{background:#ffebee;color:#c62828}
+.badge-orange{background:#fff3e0;color:#e65100}
+.card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:20px}
+.card h2{font-size:15px;color:#0d47a1;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e0e0e0}
+.detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 24px}
+.detail-item{margin-bottom:8px}
+.detail-item .label{font-size:11px;color:#616161;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.detail-item .value{font-size:14px;color:#212121}
+.vacc-table{width:100%;border-collapse:collapse;margin-top:8px}
+.vacc-table th,.vacc-table td{padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e0e0e0}
+.vacc-table th{color:#616161;font-weight:600;font-size:12px;text-transform:uppercase}
+.verify-link{background:#f0f4f8;border-radius:8px;padding:12px 16px;margin-top:12px}
+.verify-link p{font-size:12px;color:#616161}
+.verify-link code{font-size:12px;color:#1565c0;word-break:break-all}
+@media(max-width:768px){.sidebar{display:none}.detail-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="fw-header no-print">
-<div class="container d-flex justify-content-between align-items-center">
-<h4 class="mb-0"><i class="fas fa-plane-departure"></i> FurrWings Certificate</h4>
-<div>
-<a href="/furrwings/vet/certificate/{{ cert[0] }}/print" class="btn btn-outline-light btn-sm me-1"><i class="fas fa-print"></i> Print</a>
-<button onclick="window.print()" class="btn btn-outline-light btn-sm me-1">Quick Print</button>
-{% if cert[25] != 'revoked' %}
-<form method="POST" action="/furrwings/vet/certificate/{{ cert[0] }}/revoke" style="display:inline" onsubmit="return confirm('Are you sure you want to revoke this certificate?')">
-<button class="btn btn-outline-danger btn-sm">Revoke</button>
-</form>
-{% endif %}
-<a href="/furrwings/vet/certificates" class="btn btn-outline-light btn-sm ms-1">Back</a>
+<div class="topbar">
+    <div class="topbar-brand">🐾🩺 FurrWings Vet Connect</div>
+    <div class="topbar-right">
+        <span>{{ session.get('furrwings_clinic','') }}</span>
+        <a href="/furrwings/vet/logout" class="logout">Logout</a>
+    </div>
 </div>
-</div>
-</div>
-<div class="cert-page">
-<div class="cert-header-bar">
-<h2><i class="fas fa-plane-departure"></i> FurrWings</h2>
-<div>International Pet Travel Health Certificate</div>
-</div>
-<div class="cert-body">
-<div class="cert-number">{{ cert[1] }}</div>
-<div class="text-center mb-3">
-<span class="status-{{ cert[25] }}" style="font-size:1.1rem">{{ cert[25]|upper }}</span>
-{% if cert[25] == 'issued' and cert[14] >= today_str|default('') %}
-<span class="badge bg-success ms-2">VALID</span>
-{% elif cert[25] == 'issued' %}
-<span class="badge bg-warning ms-2">EXPIRED</span>
-{% endif %}
-</div>
-
-<div class="row">
-<div class="col-md-6">
-<div class="section-label">Pet Details</div>
-<div class="detail-row"><strong>Name:</strong> {{ cert[3] }}</div>
-<div class="detail-row"><strong>Species:</strong> {{ cert[4] }}</div>
-<div class="detail-row"><strong>Breed:</strong> {{ cert[5] or 'N/A' }}</div>
-<div class="detail-row"><strong>DOB:</strong> {{ cert[6] or 'N/A' }}</div>
-<div class="detail-row"><strong>Microchip:</strong> {{ cert[7] or 'N/A' }}</div>
-</div>
-<div class="col-md-6">
-<div class="section-label">Owner Details</div>
-<div class="detail-row"><strong>Name:</strong> {{ cert[8] }}</div>
-<div class="detail-row"><strong>Email:</strong> {{ cert[9] or 'N/A' }}</div>
-<div class="detail-row"><strong>Phone:</strong> {{ cert[10] or 'N/A' }}</div>
-</div>
-</div>
-
-<div class="section-label">Travel Information</div>
-<div class="detail-row"><strong>Destination:</strong> {{ cert[11] }}</div>
-<div class="detail-row"><strong>Purpose:</strong> {{ cert[12]|title }}</div>
-<div class="detail-row"><strong>Issue Date:</strong> {{ cert[13] }}</div>
-<div class="detail-row"><strong>Expiry Date:</strong> {{ cert[14] }}</div>
-
-<div class="section-label">Clinical Examination</div>
-<div class="detail-row"><strong>Exam Date:</strong> {{ cert[15] }}</div>
-<div class="detail-row"><strong>Findings:</strong> {{ cert[16] or 'N/A' }}</div>
-<div class="detail-row"><strong>Fit for Travel:</strong> {{ 'Yes' if cert[22] else 'No' }}</div>
-{% if cert[23] %}<div class="detail-row"><strong>Special Conditions:</strong> {{ cert[23] }}</div>{% endif %}
-
-{% if cert[19] %}
-<div class="section-label">Parasite Treatment</div>
-<div class="detail-row"><strong>Treatment Date:</strong> {{ cert[20] or 'N/A' }}</div>
-<div class="detail-row"><strong>Product:</strong> {{ cert[21] or 'N/A' }}</div>
-{% endif %}
-
-{% if vaccinations %}
-<div class="section-label">Vaccinations</div>
-<table class="table table-sm vacc-table">
-<thead><tr><th>Vaccine</th><th>Date</th><th>Batch</th><th>Manufacturer</th><th>Next Due</th></tr></thead>
-<tbody>
-{% for v in vaccinations %}
-<tr><td>{{ v[2] }}</td><td>{{ v[3] }}</td><td>{{ v[4] or '' }}</td><td>{{ v[5] or '' }}</td><td>{{ v[6] or '' }}</td></tr>
-{% endfor %}
-</tbody>
-</table>
-{% endif %}
-
-<div class="section-label">Issuing Veterinarian</div>
-<div class="detail-row"><strong>Name:</strong> Dr. {{ cert[-5] }}</div>
-<div class="detail-row"><strong>License:</strong> {{ cert[-4] }}</div>
-<div class="detail-row"><strong>Clinic:</strong> {{ cert[-3] }}</div>
-<div class="detail-row"><strong>Location:</strong> {{ cert[-2] or '' }}, {{ cert[-1] or '' }}</div>
-
-{% if cert[28] %}
-<div class="text-center mt-3">
-<small class="text-muted">Verification: <a href="/verify/cert/{{ cert[28] }}">/verify/cert/{{ cert[28] }}</a></small>
-</div>
-{% endif %}
-</div>
+<div class="layout">
+    <nav class="sidebar">
+        <a href="/furrwings/vet/dashboard"><span class="icon">📊</span> Dashboard</a>
+        <a href="/furrwings/vet/patients"><span class="icon">🔍</span> Find Patient</a>
+        <a href="/furrwings/vet/upload"><span class="icon">📤</span> Upload Center</a>
+        <a href="/furrwings/vet/appointments"><span class="icon">📅</span> Appointments</a>
+        <a href="/furrwings/vet/certificates" class="active"><span class="icon">📋</span> Certificates</a>
+        <a href="/furrwings/vet/settings"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="main">
+        {% with messages = get_flashed_messages() %}{% if messages %}{% for m in messages %}<div class="flash-msg">{{ m }}</div>{% endfor %}{% endif %}{% endwith %}
+        <a href="/furrwings/vet/certificates" class="back-link">← Back to Certificates</a>
+        <div class="cert-header">
+            <div>
+                <h1>Certificate {{ cert[1] }}</h1>
+                {% if cert[24] == 'revoked' %}
+                <span class="badge badge-red">Revoked</span>
+                {% elif cert[14] < today %}
+                <span class="badge badge-orange">Expired</span>
+                {% else %}
+                <span class="badge badge-green">Valid</span>
+                {% endif %}
+            </div>
+            <div class="cert-actions">
+                <a href="/furrwings/vet/certificate/{{ cert[0] }}/print" class="btn btn-outline">🖨 Print</a>
+                {% if cert[24] != 'revoked' %}
+                <form method="POST" action="/furrwings/vet/certificate/{{ cert[0] }}/revoke" style="display:inline" onsubmit="return confirm('Revoke this certificate? This cannot be undone.')">
+                    <button type="submit" class="btn btn-danger">Revoke</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <h2>Pet Details</h2>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="label">Pet Name</div><div class="value">{{ cert[3] }}</div></div>
+                <div class="detail-item"><div class="label">Species</div><div class="value">{{ cert[4] }}</div></div>
+                <div class="detail-item"><div class="label">Breed</div><div class="value">{{ cert[5] or '—' }}</div></div>
+                <div class="detail-item"><div class="label">Microchip</div><div class="value">{{ cert[7] or '—' }}</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Owner & Travel</h2>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="label">Owner Name</div><div class="value">{{ cert[8] }}</div></div>
+                <div class="detail-item"><div class="label">Owner Email</div><div class="value">{{ cert[9] or '—' }}</div></div>
+                <div class="detail-item"><div class="label">Destination</div><div class="value">{{ cert[11] }}</div></div>
+                <div class="detail-item"><div class="label">Purpose</div><div class="value">{{ cert[12]|capitalize }}</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Certificate Information</h2>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="label">Issue Date</div><div class="value">{{ cert[13] }}</div></div>
+                <div class="detail-item"><div class="label">Expiry Date</div><div class="value">{{ cert[14] }}</div></div>
+                <div class="detail-item"><div class="label">Examination Date</div><div class="value">{{ cert[15] }}</div></div>
+                <div class="detail-item"><div class="label">Fit for Travel</div><div class="value">{{ 'Yes' if cert[21] else 'No' }}</div></div>
+                <div class="detail-item"><div class="label">Issued By</div><div class="value">{{ cert[-3] }}</div></div>
+                <div class="detail-item"><div class="label">Clinic</div><div class="value">{{ cert[-2] }}</div></div>
+                <div class="detail-item"><div class="label">License #</div><div class="value">{{ cert[-1] }}</div></div>
+            </div>
+            {% if cert[16] %}
+            <div class="detail-item" style="margin-top:12px"><div class="label">Examination Findings</div><div class="value">{{ cert[16] }}</div></div>
+            {% endif %}
+        </div>
+        {% if vaccinations %}
+        <div class="card">
+            <h2>Verified Vaccinations</h2>
+            <table class="vacc-table">
+                <thead><tr><th>Vaccine</th><th>Date</th><th>Batch #</th><th>Manufacturer</th></tr></thead>
+                <tbody>
+                {% for v in vaccinations %}
+                <tr><td>{{ v[2] }}</td><td>{{ v[3] }}</td><td>{{ v[4] or '—' }}</td><td>{{ v[5] or '—' }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% if cert[27] %}
+        <div class="verify-link">
+            <p>Verification link for this certificate:</p>
+            <code>/verify/cert/{{ cert[27] }}</code>
+        </div>
+        {% endif %}
+    </div>
 </div>
 </body>
 </html>

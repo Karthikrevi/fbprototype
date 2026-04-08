@@ -3,57 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FurrWings Vet Applications - Admin</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>FurrWings Vet Applications — Admin</title>
 <style>
-body{background:#f8f9fa;font-family:'Segoe UI',sans-serif}
-.admin-header{background:#1a3a5c;color:white;padding:1.5rem;border-radius:0 0 1rem 1rem}
-.section-card{background:white;border-radius:1rem;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-.table th{background:#f1f5f9;color:#1a3a5c}
-.badge-pending{background:#ffc107;color:#333}.badge-approved{background:#28a745}.badge-rejected{background:#dc3545}.badge-suspended{background:#6c757d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh;padding:24px}
+.container{max-width:1100px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:22px;color:#0d47a1}
+.header a{color:#1565c0;text-decoration:none;font-size:13px;font-weight:500}
+.stats-row{display:flex;gap:14px;margin-bottom:24px}
+.stat{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);flex:1;text-align:center}
+.stat .num{font-size:24px;font-weight:700;color:#0d47a1}
+.stat .lbl{font-size:12px;color:#616161;margin-top:2px}
+.stat-pending .num{color:#f57f17}
+.stat-approved .num{color:#2e7d32}
+.stat-rejected .num{color:#c62828}
+.filter-tabs{display:flex;gap:6px;margin-bottom:20px}
+.filter-tabs a{padding:7px 16px;border-radius:20px;font-size:13px;font-weight:500;text-decoration:none;color:#616161;background:#fff;border:1px solid #e0e0e0}
+.filter-tabs a.active,.filter-tabs a:hover{background:#1565c0;color:#fff;border-color:#1565c0}
+.table-card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow-x:auto;margin-bottom:28px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 14px;text-align:left;font-size:13px;border-bottom:1px solid #e0e0e0}
+th{color:#616161;font-weight:600;font-size:12px;text-transform:uppercase;background:#f0f4f8}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-pending{background:#fff3e0;color:#e65100}
+.badge-approved{background:#e8f5e9;color:#2e7d32}
+.badge-rejected{background:#ffebee;color:#c62828}
+.badge-suspended{background:#fce4ec;color:#c62828}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;text-decoration:none}
+.btn-approve{background:#e8f5e9;color:#2e7d32}.btn-approve:hover{background:#c8e6c9}
+.btn-reject{background:#ffebee;color:#c62828}.btn-reject:hover{background:#ffcdd2}
+.btn-view{background:#e3f2fd;color:#1565c0}.btn-view:hover{background:#bbdefb}
+.erp-section{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.erp-section h2{font-size:16px;color:#0d47a1;margin-bottom:14px}
+.erp-bar{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.erp-bar .name{font-size:13px;color:#212121;width:120px}
+.erp-bar .bar{flex:1;height:20px;background:#e0e0e0;border-radius:4px;overflow:hidden}
+.erp-bar .fill{height:100%;background:#1565c0;border-radius:4px;min-width:20px}
+.erp-bar .count{font-size:12px;color:#616161;width:80px;text-align:right}
+.modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:28px;max-width:440px;width:90%;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.modal-box h3{font-size:16px;color:#0d47a1;margin-bottom:12px}
+.modal-box p{font-size:13px;color:#616161;margin-bottom:16px;line-height:1.5}
+.modal-box textarea{width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;height:80px;margin-bottom:14px;resize:vertical}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{background:#f0f4f8;color:#616161;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-confirm{background:#2e7d32;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.btn-confirm-reject{background:#c62828;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.detail-panel{display:none;position:fixed;top:0;right:0;width:400px;height:100vh;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,0.1);z-index:200;padding:28px;overflow-y:auto}
+.detail-panel.show{display:block}
+.detail-panel .close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#616161}
+.detail-panel h2{font-size:17px;color:#0d47a1;margin-bottom:16px}
+.detail-panel .field{margin-bottom:10px}
+.detail-panel .field .lbl{font-size:11px;color:#616161;font-weight:600;text-transform:uppercase}
+.detail-panel .field .val{font-size:14px;color:#212121}
+.flash-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
 </style>
 </head>
 <body>
-<div class="admin-header">
-<div class="container d-flex justify-content-between align-items-center">
-<h2>FurrWings — Vet Applications</h2>
-<a href="/admin-dashboard" class="btn btn-outline-light btn-sm">Admin Dashboard</a>
+<div class="container">
+    {% with messages = get_flashed_messages() %}{% if messages %}{% for m in messages %}<div class="flash-msg">{{ m }}</div>{% endfor %}{% endif %}{% endwith %}
+    <div class="header">
+        <h1>🐾🩺 FurrWings Vet Applications</h1>
+        <a href="/admin/dashboard">← Back to Admin</a>
+    </div>
+    <div class="stats-row">
+        <div class="stat stat-pending"><div class="num">{{ pending_count }}</div><div class="lbl">Pending</div></div>
+        <div class="stat stat-approved"><div class="num">{{ approved_count }}</div><div class="lbl">Approved</div></div>
+        <div class="stat stat-rejected"><div class="num">{{ rejected_count }}</div><div class="lbl">Rejected</div></div>
+    </div>
+    <div class="filter-tabs">
+        <a href="?status=all" class="{{ 'active' if status_filter=='all' }}">All</a>
+        <a href="?status=pending" class="{{ 'active' if status_filter=='pending' }}">Pending</a>
+        <a href="?status=approved" class="{{ 'active' if status_filter=='approved' }}">Approved</a>
+        <a href="?status=rejected" class="{{ 'active' if status_filter=='rejected' }}">Rejected</a>
+    </div>
+    <div class="table-card">
+        <table>
+            <thead><tr><th>Name</th><th>Clinic</th><th>City</th><th>License</th><th>ERP Interest</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for v in vets %}
+            <tr>
+                <td>{{ v[1] }}</td>
+                <td>{{ v[8] }}</td>
+                <td>{{ v[10] }}</td>
+                <td>{{ v[4] }}</td>
+                <td>{{ v[19] if v|length > 19 and v[19] else '—' }}</td>
+                <td>{{ v[18] if v|length > 18 else '—' }}</td>
+                <td>
+                    {% if v[14] == 'pending' %}<span class="badge badge-pending">Pending</span>
+                    {% elif v[14] == 'approved' %}<span class="badge badge-approved">Approved</span>
+                    {% elif v[14] == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
+                    {% elif v[14] == 'suspended' %}<span class="badge badge-suspended">Suspended</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="actions">
+                        <button class="btn-sm btn-view" onclick="viewVet({{ v[0] }},'{{ v[1] }}','{{ v[2] }}','{{ v[4] }}','{{ v[5] or '' }}','{{ v[6] or '' }}','{{ v[7] }}','{{ v[8] }}','{{ v[9] or '' }}','{{ v[10] }}','{{ v[14] }}')">View</button>
+                        {% if v[14] == 'pending' %}
+                        <button class="btn-sm btn-approve" onclick="showApprove({{ v[0] }},'{{ v[1] }}','{{ v[8] }}')">Approve</button>
+                        <button class="btn-sm btn-reject" onclick="showReject({{ v[0] }},'{{ v[1] }}')">Reject</button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if vets|length == 0 %}
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:#616161">No applications found</td></tr>
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% if erp_demand|length > 0 %}
+    <div class="erp-section">
+        <h2>ERP Integration Requests</h2>
+        {% set max_count = erp_demand[0][1] if erp_demand|length > 0 else 1 %}
+        {% for erp in erp_demand %}
+        <div class="erp-bar">
+            <span class="name">{{ erp[0] }}</span>
+            <div class="bar"><div class="fill" style="width:{{ (erp[1]/max_count*100)|int }}%"></div></div>
+            <span class="count">{{ erp[1] }} request{{ 's' if erp[1] != 1 else '' }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
+<div class="modal-bg" id="approveModal">
+    <div class="modal-box">
+        <h3>Approve Application</h3>
+        <p id="approveText"></p>
+        <form id="approveForm" method="POST">
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="document.getElementById('approveModal').classList.remove('show')">Cancel</button>
+                <button type="submit" class="btn-confirm">Confirm Approval</button>
+            </div>
+        </form>
+    </div>
 </div>
-<div class="container py-4">
-{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-<div class="mb-3">
-{% for s, label in [('all','All'),('pending','Pending'),('approved','Approved'),('rejected','Rejected'),('suspended','Suspended')] %}
-<a href="/admin/furrwings/vets?status={{ s }}" class="btn btn-sm btn-{{ 'primary' if status_filter==s else 'outline-primary' }}">{{ label }}</a>
-{% endfor %}
+<div class="modal-bg" id="rejectModal">
+    <div class="modal-box">
+        <h3>Reject Application</h3>
+        <p id="rejectText"></p>
+        <form id="rejectForm" method="POST">
+            <textarea name="reason" placeholder="Reason for rejection (optional)"></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="document.getElementById('rejectModal').classList.remove('show')">Cancel</button>
+                <button type="submit" class="btn-confirm-reject">Send Rejection</button>
+            </div>
+        </form>
+    </div>
 </div>
-<div class="section-card">
-<table class="table table-hover mb-0">
-<thead><tr><th>Name</th><th>Clinic</th><th>City</th><th>License</th><th>Body</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
-<tbody>
-{% for v in vets %}
-<tr>
-<td><strong>{{ v[1] }}</strong><br><small>{{ v[2] }}</small></td>
-<td>{{ v[8] }}</td><td>{{ v[10] }}</td>
-<td>{{ v[4] }}</td><td>{{ v[5] or '' }}</td>
-<td>{{ v[19] or '' }}</td>
-<td><span class="badge badge-{{ v[14] }}">{{ v[14] }}</span></td>
-<td>
-{% if v[14] == 'pending' %}
-<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/approve" style="display:inline"><button class="btn btn-sm btn-success">Approve</button></form>
-<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/reject" style="display:inline"><button class="btn btn-sm btn-danger">Reject</button></form>
-{% elif v[14] == 'approved' %}
-<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/suspend" style="display:inline"><button class="btn btn-sm btn-warning">Suspend</button></form>
-{% elif v[14] == 'suspended' %}
-<form method="POST" action="/admin/furrwings/vets/{{ v[0] }}/approve" style="display:inline"><button class="btn btn-sm btn-success">Reactivate</button></form>
-{% endif %}
-</td>
-</tr>
-{% endfor %}
-{% if not vets %}<tr><td colspan="8" class="text-center text-muted">No applications</td></tr>{% endif %}
-</tbody>
-</table>
+<div class="detail-panel" id="detailPanel">
+    <button class="close" onclick="document.getElementById('detailPanel').classList.remove('show')">✕</button>
+    <h2 id="dp-name"></h2>
+    <div class="field"><div class="lbl">Email</div><div class="val" id="dp-email"></div></div>
+    <div class="field"><div class="lbl">Phone</div><div class="val" id="dp-phone"></div></div>
+    <div class="field"><div class="lbl">License Number</div><div class="val" id="dp-license"></div></div>
+    <div class="field"><div class="lbl">Issuing Body</div><div class="val" id="dp-body"></div></div>
+    <div class="field"><div class="lbl">Specialization</div><div class="val" id="dp-spec"></div></div>
+    <div class="field"><div class="lbl">Clinic</div><div class="val" id="dp-clinic"></div></div>
+    <div class="field"><div class="lbl">Address</div><div class="val" id="dp-address"></div></div>
+    <div class="field"><div class="lbl">City</div><div class="val" id="dp-city"></div></div>
+    <div class="field"><div class="lbl">Status</div><div class="val" id="dp-status"></div></div>
 </div>
-</div>
+<script>
+function showApprove(id,name,clinic){
+    document.getElementById('approveText').textContent='Approve '+name+' from '+clinic+'? They will receive login access.';
+    document.getElementById('approveForm').action='/admin/furrwings/vets/'+id+'/approve';
+    document.getElementById('approveModal').classList.add('show');
+}
+function showReject(id,name){
+    document.getElementById('rejectText').textContent='Reject application from '+name+'?';
+    document.getElementById('rejectForm').action='/admin/furrwings/vets/'+id+'/reject';
+    document.getElementById('rejectModal').classList.add('show');
+}
+function viewVet(id,name,email,license,body,spec,phone,clinic,address,city,status){
+    document.getElementById('dp-name').textContent=name;
+    document.getElementById('dp-email').textContent=email;
+    document.getElementById('dp-phone').textContent=phone;
+    document.getElementById('dp-license').textContent=license;
+    document.getElementById('dp-body').textContent=body||'—';
+    document.getElementById('dp-spec').textContent=spec||'—';
+    document.getElementById('dp-clinic').textContent=clinic;
+    document.getElementById('dp-address').textContent=address||'—';
+    document.getElementById('dp-city').textContent=city;
+    document.getElementById('dp-status').textContent=status;
+    document.getElementById('detailPanel').classList.add('show');
+}
+</script>
 </body>
 </html>

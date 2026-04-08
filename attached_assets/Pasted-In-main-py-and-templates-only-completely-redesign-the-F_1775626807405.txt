@@ -1,0 +1,671 @@
+In main.py and templates only,
+completely redesign the FurrWings
+Vet Portal from scratch.
+Remove all existing FurrWings vet
+templates and replace with new ones.
+Keep the database tables created
+earlier — do not drop them.
+Keep the routes but rewrite them
+to match the new design.
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+DESIGN SYSTEM:
+Background: #f0f4f8 (light blue grey)
+Primary: #1565c0 (medical blue)
+Secondary: #0d47a1 (dark blue)
+Accent: #42a5f5 (light blue)
+Success: #2e7d32 (green)
+Warning: #f57f17 (amber)
+Danger: #c62828 (red)
+White: #ffffff
+Text: #212121
+Subtext: #616161
+Border: #e0e0e0
+Card shadow: 0 2px 8px rgba(0,0,0,0.08)
+
+Typography:
+Font: system-ui or Poppins
+Headings: bold, dark blue
+Body: regular, #212121
+Labels: medium, #616161
+
+All templates use this design system.
+No purple gradient anywhere.
+No aviation theme.
+Clean medical professional feel.
+
+PORTAL IDENTITY:
+Name: FurrWings Vet Connect
+Tagline: "Connecting vets and
+pet parents digitally"
+Logo: small paw + stethoscope emoji 🐾🩺
+
+PART 1 — Rewrite login page:
+
+Rewrite templates/furrwings_vet_login.html:
+
+Clean centred card on blue-grey background
+Card: white, rounded, subtle shadow
+Max width 420px
+
+Top of card:
+  🐾🩺 FurrWings Vet Connect
+  "Connecting vets and pet parents"
+  Blue text, not large
+
+Form:
+  Email label and input
+  Password label and input
+    with show/hide toggle
+  Login button: full width
+    primary blue background
+    white text
+    "Sign In" label
+
+Below form:
+  "New to FurrWings Vet Connect?"
+  Apply for Access link
+  → /furrwings/vet/register
+
+  "Not a vet portal?"
+  Pet Parent Login link → /login
+  Vendor Login link → /erp/login
+  FurrVet ERP link → /furrvet/login
+
+Error messages inline not flash.
+
+PART 2 — Rewrite registration page:
+
+Rewrite templates/furrwings_vet_register.html:
+
+Two column layout on desktop
+Single column on mobile
+
+Left column: benefits panel
+Blue background
+White text
+"Why join FurrWings Vet Connect?"
+Bullet points:
+  ✓ Send health records directly
+    to pet parents
+  ✓ Issue verified travel certificates
+  ✓ Reduce paper and phone calls
+  ✓ Connect to your existing ERP
+  ✓ Free to join
+
+Right column: registration form
+White card
+Section headers clearly divided
+
+Personal Details:
+  Full name
+  Email
+  Phone
+  Password + confirm password
+
+Professional Details:
+  Veterinary license number
+  License issuing body dropdown
+  Specialization dropdown
+  Years of experience number
+
+Clinic Details:
+  Clinic name
+  Clinic address
+  City
+  State dropdown
+  Pincode
+
+Integration (optional):
+  "Do you use any of these systems?"
+  Checkboxes:
+    ezyVet, VetLink, Provet Cloud,
+    Digitail, Intravet,
+    Custom/Other ERP, None
+  Note: "API integration coming soon.
+    We will contact you to set up
+    your connection."
+
+FurrVet Link (optional):
+  "Do you use FurrVet ERP?"
+  Email input
+  "Link your accounts to sync data"
+
+GDPR consent checkbox required
+Submit application button
+
+PART 3 — Pending page:
+
+Rewrite furrwings_vet_pending.html:
+
+Centered card design
+Large checkmark circle icon
+Blue checkmark on light blue background
+
+"Application Received!"
+"Thank you [name]"
+
+Timeline showing 3 steps:
+Step 1 ✅ Application submitted
+Step 2 ⏳ License verification
+  "We verify all veterinary licenses
+  with the issuing council"
+Step 3 ⏳ Account activation
+  "You will receive an email
+  within 2-3 business days"
+
+What to expect:
+"We will verify your license with
+[issuing body]. Once approved you
+will receive login credentials
+via email."
+
+Contact box:
+"Questions? Email us at
+vets@furrbutler.com"
+
+Back to home link
+
+PART 4 — Rewrite dashboard:
+
+Rewrite furrwings_vet_dashboard.html:
+
+Top bar:
+  Left: 🐾🩺 FurrWings Vet Connect
+  Center: Welcome back [vet name]
+  Right: Clinic name | Logout
+
+Side navigation (collapsible on mobile):
+  📊 Dashboard
+  🔍 Find Patient
+  📤 Upload Center
+  📅 Appointments
+  📋 Certificates
+  ⚙️ Settings
+
+Main content area:
+
+Stats row (4 cards):
+  Documents Sent This Month
+  Certificates Issued Total
+  Patients Connected
+  Pending Uploads
+
+Quick Action prominent section:
+Large centered card with blue border:
+"📤 Upload Health Records"
+"Send vaccination certificates
+prescriptions and health data
+directly to pet parents"
+Big blue button: "Start Upload →"
+→ /furrwings/vet/upload
+
+Recent Activity feed:
+Timeline of last 10 actions:
+  Certificate issued for [pet]
+  Vaccination uploaded for [pet]
+  Prescription sent to [owner]
+Each with timestamp and
+link to view
+
+Getting Started section
+(shown if certificate_count = 0):
+3 step guide:
+  1. Find your patient
+  2. Upload their records
+  3. Pet parent is notified
+
+API Integration status card:
+"Connect Your ERP"
+Shows which ERPs are connected
+If none: "No ERP connected yet"
+"We will help you set up your
+integration. Contact us to begin."
+Request Integration button
+→ shows a modal with a form:
+  Which ERP do you use?
+  Contact email
+  Submit interest
+Saves to a new table:
+erp_integration_requests
+
+PART 5 — Find Patient page:
+
+Add route /furrwings/vet/patients GET:
+Render furrwings_vet_patients.html
+
+New template — not a list of all patients.
+A search-first interface.
+
+Full page search:
+Large search input at top:
+"Search by pet parent phone or email"
+Search icon button
+
+Before search: empty state
+  Illustration placeholder (emoji)
+  "Search for a pet parent to
+  get started"
+  "You can search by their mobile
+  number or email address"
+
+After search: results appear below
+  If no account found:
+    "No FurrButler account found
+    for this contact"
+    "The pet parent may not have
+    a FurrButler account yet"
+    "You can still issue certificates
+    using manual entry"
+    Manual Entry button
+    → /furrwings/vet/certificate/new
+      ?manual=true
+
+  If account found:
+    Pet parent name and email
+    Their pets listed as cards:
+      Pet photo placeholder
+      Pet name, species, breed
+      Pawsport completion %
+      Last document received date
+      Select This Pet button
+
+When pet selected navigate to:
+/furrwings/vet/upload?pet_index=X
+  &user_email=Y
+
+PART 6 — Upload Center (most important):
+
+Add route /furrwings/vet/upload
+GET and POST:
+
+GET: render furrwings_vet_upload.html
+
+If pet_index and user_email in params:
+  Show pet details at top:
+    Pet name, species, breed
+    Owner name
+    "Uploading to: [pet name]'s Pawsport"
+
+If no params:
+  Show pet search first
+
+Upload type selector:
+6 large cards in 2x3 grid:
+Each card has icon, title, description
+
+Card 1 — Vaccine Certificate:
+  💉 icon
+  "Vaccination Record"
+  "Upload vaccination certificate
+  to pet passport"
+  Select button
+
+Card 2 — Prescription:
+  💊 icon
+  "Prescription"
+  "Send medication details and
+  reminders to pet parent"
+  Select button
+
+Card 3 — Lab Results:
+  🔬 icon
+  "Lab Results"
+  "Upload blood work or other
+  test results"
+  Select button
+
+Card 4 — Microchip Registration:
+  📡 icon
+  "Microchip Data"
+  "Register microchip details
+  in pet passport"
+  Select button
+
+Card 5 — Health Certificate:
+  📄 icon
+  "Travel Health Certificate"
+  "Issue certified health certificate
+  for international travel"
+  Select button
+  Note: "Requires FurrWings
+  certification"
+
+Card 6 — General Health Record:
+  ❤️ icon
+  "Health Record"
+  "Upload any other health
+  document or record"
+  Select button
+
+When a card is selected:
+Show the relevant upload form
+below the grid
+(No page reload — JavaScript)
+Other cards dim slightly
+
+VACCINE CERTIFICATE form:
+  vaccine_name dropdown (full list)
+  Other option shows text input
+  vaccination_date date required
+  next_due_date date required
+    auto-calc +1 year
+  batch_number text required
+  manufacturer text
+  site_of_injection dropdown
+  adverse_reactions textarea optional
+  Certificate file upload:
+    Accept PDF, JPG, PNG
+    Required
+  Notes to pet parent textarea optional
+  Send to Pet Parent button
+
+PRESCRIPTION form:
+  Drug name text required
+  Strength text (e.g. 250mg)
+  Form dropdown:
+    Tablet, Capsule, Liquid,
+    Injection, Topical, Drops
+  Dose text (e.g. 1 tablet)
+  Frequency dropdown:
+    Once, Twice Daily, Three Times
+    Daily, Every 8 Hours, Weekly,
+    As Needed
+  Duration text (e.g. 7 days)
+  Start date date required
+  Special instructions textarea
+  Refill reminder toggle:
+    If on: refill date auto-calculated
+  Prescription file upload optional
+  Send to Pet Parent button
+
+LAB RESULTS form:
+  Test name dropdown (common tests)
+  Other option shows text input
+  Test date date required
+  Results textarea required
+  Abnormal values toggle:
+    If on: show which values
+    are outside normal range
+    text input
+  Lab report file upload:
+    PDF preferred
+  Notes to pet parent textarea
+  Send to Pet Parent button
+
+MICROCHIP form:
+  Microchip number text required
+    15 digit ISO chip
+    Show format helper
+  Chip registration date date
+  Chip manufacturer text
+  Registration body text:
+    ICAR, AKC Reunite, etc.
+  Note: "Once submitted this will
+  lock the microchip number in
+  the pet passport. Only a verified
+  vet can update this."
+  Confirm and Submit button
+
+HEALTH CERTIFICATE form:
+  (full form as before — abbreviated)
+  Examination date
+  Examination findings
+  Fit for travel toggle
+  Vaccinations verified table
+  Destination country
+  Issue Certificate button
+
+GENERAL HEALTH RECORD form:
+  Record type text
+  Record date date
+  Description textarea
+  File upload
+  Notes textarea
+  Send button
+
+POST handler for all upload types:
+  Determine upload type from form
+  Save file to static/uploads/furrwings/
+  Based on type:
+    Vaccine: insert into pet_reminders
+      with source = furrwings_vet
+      insert into pawsport_documents
+      with verified = 1
+      verified_by = furrwings_vet
+    Prescription: insert into
+      pet_reminders for each drug
+      source = furrwings_vet
+    Microchip: update pet in Replit db
+      lock the field
+    Lab results: insert into
+      pet_reminders as reference
+    Health cert: insert into
+      health_certificates table
+      update pawsport_documents
+    General: insert into
+      pawsport_documents
+  Send SocketIO notification to
+  pet parent:
+    event: new_vet_document
+    message: "Dr [name] has sent
+    [document type] for [pet name]"
+  Log to furrwings_vet_activity
+  Return JSON:
+    success: true/false
+    message: confirmation text
+    redirect: next URL
+
+PART 7 — Appointments page:
+
+Add route /furrwings/vet/appointments
+GET: render furrwings_vet_appointments.html
+
+This shows bookings made by pet parents
+that were directed to this vet clinic
+from the FurrButler app
+
+Query bookings table in erp.db
+where vendor_id matches this vet's
+linked vendor account (if linked)
+OR where appointment is manual
+
+Show calendar style:
+  Today's appointments
+  Upcoming this week
+  Each appointment shows:
+    Pet name and species
+    Owner name and phone
+    Reason for visit
+    Time
+    Status badge
+    Mark Arrived button
+    Mark Complete button
+
+Manual appointment entry:
+  + Add Appointment button
+  Quick form:
+    Owner phone or email
+    Pet name
+    Date and time
+    Reason
+    Duration
+
+ERP Integration status:
+  If ERP connected show:
+    "Appointments syncing from
+    [ERP name]"
+    Last sync timestamp
+  If not connected:
+    "Connect your ERP to auto-sync
+    appointments"
+    Get Started link
+
+PART 8 — Certificates list:
+
+Rewrite furrwings_vet_cert_list.html:
+
+Search bar at top
+Filter tabs: All, Valid, Expiring, Expired, Revoked
+
+Certificate cards:
+  Certificate number
+  Pet name and species
+  Owner name
+  Destination country
+  Issue date
+  Expiry date
+  Days remaining badge:
+    Green > 5 days
+    Orange 2-5 days
+    Red < 2 days or expired
+  View button
+  Print button
+  Revoke button (with confirmation)
+
+Export button: Download all as CSV
+
+PART 9 — Settings page:
+
+Add route /furrwings/vet/settings
+GET and POST:
+Render furrwings_vet_settings.html
+
+Sections:
+
+Profile:
+  Edit name, phone, clinic details
+  Update password
+
+ERP Integration:
+  Current integration status
+  Connect/disconnect buttons
+  Each supported ERP:
+    ezyVet: Connect button
+      (Coming Soon badge)
+    VetLink: Connect button
+      (Coming Soon badge)
+    Provet Cloud: Connect button
+      (Coming Soon badge)
+    Digitail: Connect button
+      (Coming Soon badge)
+    Custom API: Contact Us button
+
+Notification Preferences:
+  Email on new booking: toggle
+  Daily summary email: toggle
+  Weekly report: toggle
+
+Clinic Stamp:
+  Upload clinic stamp image
+  Used on certificates
+
+Digital Signature:
+  Draw or upload signature
+  Used on certificates
+
+PART 10 — Rewrite verification page:
+
+Rewrite templates/verify_certificate.html:
+
+Public page no login required
+
+Large centered card:
+
+If certificate valid and not expired:
+  Large green circle with ✓
+  "Authentic Certificate"
+  "This is a verified FurrWings
+  health certificate"
+
+  Certificate details box:
+    Certificate Number
+    Issued by: [vet name]
+    Clinic: [clinic name]
+    License: [license number]
+    Issue Date
+    Expiry Date
+    Pet Name and Species
+    Owner Name (partial — privacy)
+    Destination Country
+    Vaccinations verified: list
+
+  "This certificate was issued
+  through FurrWings Vet Connect,
+  a FurrButler verified system"
+
+If expired:
+  Orange circle with !
+  "Certificate Expired"
+  Show details but with
+  expired watermark
+
+If revoked:
+  Red circle with ✗
+  "Certificate Revoked"
+  "This certificate has been
+  revoked by the issuing vet"
+
+If not found:
+  Red circle with ✗
+  "Certificate Not Found"
+  "This certificate could not
+  be verified. It may be fraudulent."
+  "Report suspicious certificate:
+  fraud@furrbutler.com"
+
+PART 11 — Admin approval page:
+
+Rewrite admin_furrwings_vets.html:
+
+Professional admin design
+White background, dark headers
+
+Stats: Pending, Approved, Rejected count
+
+Table of applications:
+  Name, Clinic, City, License
+  ERP Interest (which ERPs checked)
+  Applied date
+  Status
+  Actions: Approve, Reject, View
+
+Approve button:
+  Shows confirmation modal:
+  "Approve [name] from [clinic]?"
+  "They will receive login access"
+  Confirm button
+
+Reject button:
+  Shows modal with reason textarea
+  Send rejection with reason
+
+View button:
+  Shows full application details
+  in a slide-out panel
+
+ERP Integration Requests section:
+  List of vets who requested
+  API integration by ERP type
+  Shows demand per ERP:
+    ezyVet: 3 requests
+    VetLink: 1 request
+  Helps prioritise which to build first
+
+Do not modify any Python files
+except where routes need updating
+to match new template variable names.
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any database tables.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.

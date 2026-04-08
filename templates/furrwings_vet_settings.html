@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — FurrWings Vet Connect</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:16px;font-weight:700;color:#0d47a1}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#616161}
+.topbar-right a{color:#c62828;text-decoration:none;font-weight:600}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#212121;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s}
+.sidebar a:hover,.sidebar a.active{background:#e3f2fd;color:#1565c0}
+.sidebar a span.icon{width:20px;text-align:center;font-size:15px}
+.main{flex:1;padding:28px 32px;max-width:720px}
+h1{font-size:20px;color:#0d47a1;margin-bottom:24px}
+.flash-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.flash-warn{background:#ffebee;color:#c62828;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}
+.card h2{font-size:15px;color:#0d47a1;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e0e0e0}
+.form-row{display:flex;gap:14px}
+.form-row .form-group{flex:1}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#616161;margin-bottom:5px}
+.form-group input{width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;color:#212121}
+.form-group input:focus{outline:none;border-color:#1565c0}
+.btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer}
+.btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{background:#0d47a1}
+.erp-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.erp-item{border:1px solid #e0e0e0;border-radius:8px;padding:14px;display:flex;justify-content:space-between;align-items:center}
+.erp-item h4{font-size:13px;color:#212121}
+.erp-badge{font-size:11px;background:#fff3e0;color:#e65100;padding:3px 10px;border-radius:12px;font-weight:600}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f4f8}
+.toggle-row:last-child{border-bottom:none}
+.toggle-row label{font-size:13px;color:#212121}
+.toggle{width:42px;height:22px;background:#e0e0e0;border-radius:12px;position:relative;cursor:pointer;display:inline-block}
+.toggle::after{content:'';width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.toggle.on{background:#1565c0}
+.toggle.on::after{left:22px}
+@media(max-width:768px){.sidebar{display:none}.form-row{flex-direction:column;gap:0}.erp-list{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+    <div class="topbar-brand">🐾🩺 FurrWings Vet Connect</div>
+    <div class="topbar-right">
+        <span>{{ session.get('furrwings_clinic','') }}</span>
+        <a href="/furrwings/vet/logout">Logout</a>
+    </div>
+</div>
+<div class="layout">
+    <nav class="sidebar">
+        <a href="/furrwings/vet/dashboard"><span class="icon">📊</span> Dashboard</a>
+        <a href="/furrwings/vet/patients"><span class="icon">🔍</span> Find Patient</a>
+        <a href="/furrwings/vet/upload"><span class="icon">📤</span> Upload Center</a>
+        <a href="/furrwings/vet/appointments"><span class="icon">📅</span> Appointments</a>
+        <a href="/furrwings/vet/certificates"><span class="icon">📋</span> Certificates</a>
+        <a href="/furrwings/vet/settings" class="active"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="main">
+        {% with messages = get_flashed_messages() %}{% if messages %}{% for m in messages %}
+        <div class="flash-msg">{{ m }}</div>
+        {% endfor %}{% endif %}{% endwith %}
+        <h1>⚙️ Settings</h1>
+        <div class="card">
+            <h2>Profile</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="update_profile">
+                <div class="form-row">
+                    <div class="form-group"><label>Full Name</label><input type="text" name="name" value="{{ vet[1] }}" required></div>
+                    <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="{{ vet[7] }}" required></div>
+                </div>
+                <div class="form-group"><label>Clinic Name</label><input type="text" name="clinic_name" value="{{ vet[8] }}" required></div>
+                <div class="form-group"><label>Clinic Address</label><input type="text" name="clinic_address" value="{{ vet[9] or '' }}"></div>
+                <div class="form-group"><label>City</label><input type="text" name="city" value="{{ vet[10] }}"></div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Change Password</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="update_password">
+                <div class="form-group"><label>Current Password</label><input type="password" name="current_password" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>New Password</label><input type="password" name="new_password" required minlength="6"></div>
+                    <div class="form-group"><label>Confirm New Password</label><input type="password" name="confirm_new_password" required></div>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Password</button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>ERP Integration</h2>
+            <p style="font-size:13px;color:#616161;margin-bottom:14px">Connect your clinic management system to sync data automatically.</p>
+            <div class="erp-list">
+                <div class="erp-item"><h4>ezyVet</h4><span class="erp-badge">Coming Soon</span></div>
+                <div class="erp-item"><h4>VetLink</h4><span class="erp-badge">Coming Soon</span></div>
+                <div class="erp-item"><h4>Provet Cloud</h4><span class="erp-badge">Coming Soon</span></div>
+                <div class="erp-item"><h4>Digitail</h4><span class="erp-badge">Coming Soon</span></div>
+            </div>
+            <p style="font-size:12px;color:#616161;margin-top:12px">Custom API? <a href="mailto:vets@furrbutler.com" style="color:#1565c0">Contact Us</a></p>
+        </div>
+        <div class="card">
+            <h2>Notification Preferences</h2>
+            <div class="toggle-row"><label>Email on new booking</label><span class="toggle on" onclick="this.classList.toggle('on')"></span></div>
+            <div class="toggle-row"><label>Daily summary email</label><span class="toggle" onclick="this.classList.toggle('on')"></span></div>
+            <div class="toggle-row"><label>Weekly report</label><span class="toggle on" onclick="this.classList.toggle('on')"></span></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

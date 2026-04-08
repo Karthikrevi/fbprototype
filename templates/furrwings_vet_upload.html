@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Center — FurrWings Vet Connect</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:16px;font-weight:700;color:#0d47a1}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#616161}
+.topbar-right a{color:#c62828;text-decoration:none;font-weight:600}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#212121;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s}
+.sidebar a:hover,.sidebar a.active{background:#e3f2fd;color:#1565c0}
+.sidebar a span.icon{width:20px;text-align:center;font-size:15px}
+.main{flex:1;padding:28px 32px;overflow-y:auto}
+.flash-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.pet-banner{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px;display:flex;align-items:center;gap:16px}
+.pet-banner .avatar{width:48px;height:48px;border-radius:50%;background:#e3f2fd;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.pet-banner h3{font-size:15px;color:#212121;margin-bottom:2px}
+.pet-banner p{font-size:13px;color:#616161}
+.search-prompt{background:#fff;border-radius:10px;padding:32px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}
+.search-prompt p{font-size:14px;color:#616161;margin-bottom:14px}
+.btn{display:inline-block;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;border:none;cursor:pointer}
+.btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{background:#0d47a1}
+h1{font-size:20px;color:#0d47a1;margin-bottom:20px}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.type-card{background:#fff;border:2px solid #e0e0e0;border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:border .2s,box-shadow .2s}
+.type-card:hover{border-color:#42a5f5;box-shadow:0 2px 12px rgba(21,101,192,0.1)}
+.type-card.selected{border-color:#1565c0;background:#f5f9ff}
+.type-card .tc-icon{font-size:32px;margin-bottom:8px}
+.type-card h3{font-size:14px;color:#212121;margin-bottom:4px}
+.type-card p{font-size:12px;color:#616161;line-height:1.4}
+.type-card .note{font-size:11px;color:#f57f17;margin-top:6px;font-weight:500}
+.upload-form{background:#fff;border-radius:10px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:none}
+.upload-form.active{display:block}
+.upload-form h2{font-size:17px;color:#0d47a1;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #e0e0e0}
+.form-row{display:flex;gap:14px}
+.form-row .form-group{flex:1}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#616161;margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;color:#212121}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#1565c0}
+.form-group textarea{height:70px;resize:vertical}
+.form-group small{font-size:11px;color:#616161;margin-top:4px;display:block}
+.toggle-group{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.toggle-group label{font-size:13px;color:#212121}
+.btn-submit{display:block;width:100%;padding:12px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn-submit:hover{background:#0d47a1}
+.vacc-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.vacc-row input{flex:1;padding:8px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px}
+.vacc-row button{background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px}
+.add-vacc-btn{background:none;border:1px dashed #1565c0;color:#1565c0;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-bottom:14px}
+@media(max-width:768px){.sidebar{display:none}.type-grid{grid-template-columns:1fr}.form-row{flex-direction:column;gap:0}}
+</style>
+</head>
+<body>
+<div class="topbar">
+    <div class="topbar-brand">🐾🩺 FurrWings Vet Connect</div>
+    <div class="topbar-right">
+        <span>{{ session.get('furrwings_clinic','') }}</span>
+        <a href="/furrwings/vet/logout">Logout</a>
+    </div>
+</div>
+<div class="layout">
+    <nav class="sidebar">
+        <a href="/furrwings/vet/dashboard"><span class="icon">📊</span> Dashboard</a>
+        <a href="/furrwings/vet/patients"><span class="icon">🔍</span> Find Patient</a>
+        <a href="/furrwings/vet/upload" class="active"><span class="icon">📤</span> Upload Center</a>
+        <a href="/furrwings/vet/appointments"><span class="icon">📅</span> Appointments</a>
+        <a href="/furrwings/vet/certificates"><span class="icon">📋</span> Certificates</a>
+        <a href="/furrwings/vet/settings"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="main">
+        {% with messages = get_flashed_messages() %}{% if messages %}{% for m in messages %}<div class="flash-msg">{{ m }}</div>{% endfor %}{% endif %}{% endwith %}
+        <h1>📤 Upload Center</h1>
+        {% if pet_info %}
+        <div class="pet-banner">
+            <div class="avatar">🐾</div>
+            <div>
+                <h3>{{ pet_info.get('name','Unknown Pet') }}</h3>
+                <p>{{ pet_info.get('species','') }}{% if pet_info.get('breed') %} &middot; {{ pet_info.get('breed') }}{% endif %} &middot; Uploading to {{ pet_info.get('name','') }}'s Pawsport</p>
+                <p style="font-size:12px;color:#616161;margin-top:2px">Owner: {{ owner_info.name if owner_info else '' }}</p>
+            </div>
+        </div>
+        {% elif not pet_index %}
+        <div class="search-prompt">
+            <p>Select a pet parent first, or proceed with manual entry</p>
+            <a href="/furrwings/vet/patients" class="btn btn-primary" style="margin-right:8px">Find Patient</a>
+        </div>
+        {% endif %}
+        <div class="type-grid">
+            <div class="type-card" onclick="selectType('vaccine')"><div class="tc-icon">💉</div><h3>Vaccination Record</h3><p>Upload vaccination certificate to pet passport</p></div>
+            <div class="type-card" onclick="selectType('prescription')"><div class="tc-icon">💊</div><h3>Prescription</h3><p>Send medication details and reminders to pet parent</p></div>
+            <div class="type-card" onclick="selectType('lab_results')"><div class="tc-icon">🔬</div><h3>Lab Results</h3><p>Upload blood work or other test results</p></div>
+            <div class="type-card" onclick="selectType('microchip')"><div class="tc-icon">📡</div><h3>Microchip Data</h3><p>Register microchip details in pet passport</p></div>
+            <div class="type-card" onclick="selectType('health_cert')"><div class="tc-icon">📄</div><h3>Travel Health Certificate</h3><p>Issue certified health certificate for international travel</p><div class="note">Requires FurrWings certification</div></div>
+            <div class="type-card" onclick="selectType('general')"><div class="tc-icon">❤️</div><h3>Health Record</h3><p>Upload any other health document or record</p></div>
+        </div>
+
+        <div class="upload-form" id="form-vaccine">
+            <h2>💉 Vaccination Record</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="upload_type" value="vaccine">
+                <input type="hidden" name="user_email" value="{{ user_email or '' }}">
+                <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <div class="form-row">
+                    <div class="form-group"><label>Vaccine Name</label>
+                        <select name="vaccine_name" required onchange="if(this.value==='Other')document.getElementById('vax_other').style.display='block'">
+                            <option value="">Select…</option>
+                            <option>Rabies</option><option>DHPPi (Distemper combo)</option><option>Bordetella</option>
+                            <option>Leptospirosis</option><option>Canine Influenza</option><option>FVRCP (Cat combo)</option>
+                            <option>FeLV (Feline Leukemia)</option><option>FIV</option><option>Parvovirus</option>
+                            <option>Kennel Cough</option><option>Lyme Disease</option><option>Other</option>
+                        </select>
+                        <input type="text" id="vax_other" name="vaccine_name_other" placeholder="Specify vaccine" style="display:none;margin-top:6px">
+                    </div>
+                    <div class="form-group"><label>Vaccination Date</label><input type="date" name="vaccination_date" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Next Due Date</label><input type="date" name="next_due_date" required></div>
+                    <div class="form-group"><label>Batch Number</label><input type="text" name="batch_number" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Manufacturer</label><input type="text" name="manufacturer"></div>
+                    <div class="form-group"><label>Site of Injection</label>
+                        <select name="site_of_injection">
+                            <option value="">Select…</option>
+                            <option>Right forelimb</option><option>Left forelimb</option>
+                            <option>Right hindlimb</option><option>Left hindlimb</option>
+                            <option>Subcutaneous (scruff)</option><option>Intranasal</option><option>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label>Adverse Reactions (optional)</label><textarea name="adverse_reactions" placeholder="Note any reactions observed…"></textarea></div>
+                <div class="form-group"><label>Certificate File</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png" required><small>PDF, JPG, or PNG</small></div>
+                <div class="form-group"><label>Notes to Pet Parent (optional)</label><textarea name="notes_to_parent" placeholder="Any message for the pet parent…"></textarea></div>
+                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+            </form>
+        </div>
+
+        <div class="upload-form" id="form-prescription">
+            <h2>💊 Prescription</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="upload_type" value="prescription">
+                <input type="hidden" name="user_email" value="{{ user_email or '' }}">
+                <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <div class="form-row">
+                    <div class="form-group"><label>Drug Name</label><input type="text" name="drug_name" required></div>
+                    <div class="form-group"><label>Strength</label><input type="text" name="strength" placeholder="e.g. 250mg"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Form</label>
+                        <select name="form"><option>Tablet</option><option>Capsule</option><option>Liquid</option><option>Injection</option><option>Topical</option><option>Drops</option></select>
+                    </div>
+                    <div class="form-group"><label>Dose</label><input type="text" name="dose" placeholder="e.g. 1 tablet"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Frequency</label>
+                        <select name="frequency"><option>Once Daily</option><option>Twice Daily</option><option>Three Times Daily</option><option>Every 8 Hours</option><option>Weekly</option><option>As Needed</option></select>
+                    </div>
+                    <div class="form-group"><label>Duration</label><input type="text" name="duration" placeholder="e.g. 7 days"></div>
+                </div>
+                <div class="form-group"><label>Start Date</label><input type="date" name="start_date" required></div>
+                <div class="form-group"><label>Special Instructions</label><textarea name="special_instructions" placeholder="Take with food, store in fridge, etc."></textarea></div>
+                <div class="form-group"><label>Prescription File (optional)</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"><small>PDF, JPG, or PNG</small></div>
+                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+            </form>
+        </div>
+
+        <div class="upload-form" id="form-lab_results">
+            <h2>🔬 Lab Results</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="upload_type" value="lab_results">
+                <input type="hidden" name="user_email" value="{{ user_email or '' }}">
+                <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <div class="form-row">
+                    <div class="form-group"><label>Test Name</label>
+                        <select name="test_name" required onchange="if(this.value==='Other')document.getElementById('test_other').style.display='block'">
+                            <option value="">Select…</option>
+                            <option>Complete Blood Count (CBC)</option><option>Blood Chemistry Panel</option>
+                            <option>Urinalysis</option><option>Thyroid Panel</option><option>Liver Panel</option>
+                            <option>Kidney Panel</option><option>Electrolytes</option><option>Heartworm Test</option>
+                            <option>Fecal Examination</option><option>Skin Scraping</option><option>Other</option>
+                        </select>
+                        <input type="text" id="test_other" name="test_name_other" placeholder="Specify test" style="display:none;margin-top:6px">
+                    </div>
+                    <div class="form-group"><label>Test Date</label><input type="date" name="test_date" required></div>
+                </div>
+                <div class="form-group"><label>Results</label><textarea name="results" required placeholder="Enter test results…" style="height:100px"></textarea></div>
+                <div class="toggle-group"><input type="checkbox" name="abnormal_values" id="abnormal_toggle"><label for="abnormal_toggle">Abnormal values detected</label></div>
+                <div class="form-group" id="abnormal_detail" style="display:none"><label>Abnormal Values Detail</label><input type="text" name="abnormal_detail" placeholder="Which values are outside normal range"></div>
+                <div class="form-group"><label>Lab Report File</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"><small>PDF preferred</small></div>
+                <div class="form-group"><label>Notes to Pet Parent</label><textarea name="notes_to_parent"></textarea></div>
+                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+            </form>
+        </div>
+
+        <div class="upload-form" id="form-microchip">
+            <h2>📡 Microchip Registration</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="upload_type" value="microchip">
+                <input type="hidden" name="user_email" value="{{ user_email or '' }}">
+                <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <div class="form-group"><label>Microchip Number</label><input type="text" name="microchip_number" required pattern="\d{15}" maxlength="15" placeholder="15-digit ISO chip number"><small>ISO 11784/11785 format — 15 digits</small></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Registration Date</label><input type="date" name="chip_date"></div>
+                    <div class="form-group"><label>Chip Manufacturer</label><input type="text" name="chip_manufacturer"></div>
+                </div>
+                <div class="form-group"><label>Registration Body</label><input type="text" name="registration_body" placeholder="e.g. ICAR, AKC Reunite"></div>
+                <div style="background:#fff3e0;border-radius:8px;padding:12px 16px;margin-bottom:16px">
+                    <p style="font-size:12px;color:#e65100;line-height:1.5">Once submitted, this will lock the microchip number in the pet passport. Only a verified vet can update this.</p>
+                </div>
+                <button type="submit" class="btn-submit">Confirm and Submit</button>
+            </form>
+        </div>
+
+        <div class="upload-form" id="form-health_cert">
+            <h2>📄 Travel Health Certificate</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="upload_type" value="health_cert">
+                <input type="hidden" name="user_email" value="{{ user_email or '' }}">
+                <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <div class="form-row">
+                    <div class="form-group"><label>Pet Name</label><input type="text" name="pet_name_cert" value="{{ pet_info.get('name','') if pet_info else '' }}" required></div>
+                    <div class="form-group"><label>Species</label><input type="text" name="pet_species_cert" value="{{ pet_info.get('species','') if pet_info else '' }}" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Breed</label><input type="text" name="pet_breed_cert" value="{{ pet_info.get('breed','') if pet_info else '' }}"></div>
+                    <div class="form-group"><label>Microchip Number</label><input type="text" name="pet_microchip_cert" value="{{ pet_info.get('microchip_id','') if pet_info else '' }}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Owner Name</label><input type="text" name="owner_name_cert" value="{{ owner_info.name if owner_info else '' }}" required></div>
+                    <div class="form-group"><label>Destination Country</label><input type="text" name="destination_country" required placeholder="e.g. United Kingdom"></div>
+                </div>
+                <div class="form-group"><label>Purpose</label>
+                    <select name="purpose"><option value="travel">Travel</option><option value="export">Export</option><option value="import">Import</option><option value="competition">Competition</option><option value="breeding">Breeding</option></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Examination Date</label><input type="date" name="examination_date" required></div>
+                    <div class="form-group"><label>Fit for Travel</label><select name="fit_for_travel"><option value="1">Yes — Fit for Travel</option><option value="0">No — Not Fit</option></select></div>
+                </div>
+                <div class="form-group"><label>Examination Findings</label><textarea name="examination_findings" placeholder="Clinical examination findings…"></textarea></div>
+                <div style="margin-bottom:14px">
+                    <label style="font-size:13px;font-weight:600;color:#616161;margin-bottom:8px;display:block">Vaccinations Verified</label>
+                    <div id="vacc-list">
+                        <div class="vacc-row"><input type="text" name="vacc_name[]" placeholder="Vaccine name"><input type="date" name="vacc_date[]"><input type="text" name="vacc_batch[]" placeholder="Batch #"><button type="button" onclick="this.parentNode.remove()">✕</button></div>
+                    </div>
+                    <button type="button" class="add-vacc-btn" onclick="addVaccRow()">+ Add Vaccination</button>
+                </div>
+                <div class="form-group"><label>Certificate File (optional)</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"></div>
+                <button type="submit" class="btn-submit">Issue Certificate</button>
+            </form>
+        </div>
+
+        <div class="upload-form" id="form-general">
+            <h2>❤️ General Health Record</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="upload_type" value="general">
+                <input type="hidden" name="user_email" value="{{ user_email or '' }}">
+                <input type="hidden" name="pet_index" value="{{ pet_index or '' }}">
+                <input type="hidden" name="pet_name_display" value="{{ pet_info.get('name','') if pet_info else '' }}">
+                <div class="form-row">
+                    <div class="form-group"><label>Record Type</label><input type="text" name="record_type" required placeholder="e.g. X-Ray, Ultrasound, Dental"></div>
+                    <div class="form-group"><label>Record Date</label><input type="date" name="record_date" required></div>
+                </div>
+                <div class="form-group"><label>Description</label><textarea name="description" required placeholder="Describe the record…"></textarea></div>
+                <div class="form-group"><label>File Upload</label><input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png"></div>
+                <div class="form-group"><label>Notes to Pet Parent</label><textarea name="notes_to_parent"></textarea></div>
+                <button type="submit" class="btn-submit">Send to Pet Parent</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+function selectType(type){
+    document.querySelectorAll('.type-card').forEach((c,i)=>{
+        const types=['vaccine','prescription','lab_results','microchip','health_cert','general'];
+        c.classList.toggle('selected',types[i]===type);
+    });
+    document.querySelectorAll('.upload-form').forEach(f=>f.classList.remove('active'));
+    const form=document.getElementById('form-'+type);
+    if(form){form.classList.add('active');form.scrollIntoView({behavior:'smooth',block:'start'})}
+}
+document.getElementById('abnormal_toggle')?.addEventListener('change',function(){
+    document.getElementById('abnormal_detail').style.display=this.checked?'block':'none';
+});
+function addVaccRow(){
+    const row=document.createElement('div');row.className='vacc-row';
+    row.innerHTML='<input type="text" name="vacc_name[]" placeholder="Vaccine name"><input type="date" name="vacc_date[]"><input type="text" name="vacc_batch[]" placeholder="Batch #"><button type="button" onclick="this.parentNode.remove()">✕</button>';
+    document.getElementById('vacc-list').appendChild(row);
+}
+</script>
+</body>
+</html>

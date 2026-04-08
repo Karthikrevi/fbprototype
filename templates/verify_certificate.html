@@ -3,66 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verify Certificate - FurrWings</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<title>Verify Certificate — FurrWings Vet Connect</title>
 <style>
-body{background:#f8f9fa;font-family:'Segoe UI',sans-serif;min-height:100vh}
-.verify-card{max-width:600px;margin:3rem auto;background:white;border-radius:1.5rem;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
-.verify-header{background:#1a3a6c;color:white;text-align:center;padding:2rem}
-.verify-header h2{font-weight:800;margin:0}
-.verify-body{padding:2rem}
-.verified-banner{background:#d4edda;border:2px solid #28a745;color:#155724;text-align:center;padding:1.5rem;border-radius:1rem;margin-bottom:1.5rem}
-.verified-banner i{font-size:3rem;color:#28a745;display:block;margin-bottom:0.5rem}
-.revoked-banner{background:#f8d7da;border:2px solid #dc3545;color:#721c24;text-align:center;padding:1.5rem;border-radius:1rem;margin-bottom:1.5rem}
-.revoked-banner i{font-size:3rem;color:#dc3545;display:block;margin-bottom:0.5rem}
-.not-found-banner{background:#fff3cd;border:2px solid #ffc107;color:#856404;text-align:center;padding:1.5rem;border-radius:1rem}
-.not-found-banner i{font-size:3rem;color:#dc3545;display:block;margin-bottom:0.5rem}
-.detail-line{padding:0.4rem 0;border-bottom:1px solid #f1f1f1}
-.detail-line strong{color:#1a3a6c;min-width:130px;display:inline-block}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1);max-width:560px;width:100%;padding:40px;text-align:center}
+.status-circle{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px}
+.status-valid{background:#e8f5e9;color:#2e7d32}
+.status-expired{background:#fff3e0;color:#e65100}
+.status-revoked{background:#ffebee;color:#c62828}
+.status-notfound{background:#ffebee;color:#c62828}
+.card h1{font-size:20px;margin-bottom:6px}
+.h-valid{color:#2e7d32}
+.h-expired{color:#e65100}
+.h-revoked{color:#c62828}
+.h-notfound{color:#c62828}
+.card .subtitle{font-size:14px;color:#616161;margin-bottom:24px;line-height:1.5}
+.details{text-align:left;background:#f0f4f8;border-radius:8px;padding:20px;margin-bottom:20px}
+.detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e0e0e0;font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-row .lbl{color:#616161;font-weight:600}
+.detail-row .val{color:#212121}
+.vacc-section{text-align:left;margin-bottom:20px}
+.vacc-section h3{font-size:13px;color:#0d47a1;margin-bottom:8px;font-weight:600}
+.vacc-tag{display:inline-block;background:#e3f2fd;color:#1565c0;padding:4px 10px;border-radius:12px;font-size:12px;margin:2px 4px 2px 0}
+.brand-footer{font-size:12px;color:#616161;line-height:1.5;margin-top:12px}
+.expired-watermark{position:relative}
+.expired-watermark::after{content:'EXPIRED';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-20deg);font-size:40px;color:rgba(230,81,0,0.1);font-weight:900;pointer-events:none}
+.report-box{background:#ffebee;border-radius:8px;padding:12px 16px;margin-top:16px}
+.report-box p{font-size:12px;color:#c62828;line-height:1.5}
+.report-box a{color:#c62828;font-weight:600}
 </style>
 </head>
 <body>
-<div class="verify-card">
-<div class="verify-header">
-<h2><i class="fas fa-plane-departure"></i> FurrWings</h2>
-<div>Certificate Verification</div>
-</div>
-<div class="verify-body">
+<div class="card">
 {% if cert %}
-    {% if cert[25] == 'revoked' %}
-    <div class="revoked-banner">
-        <i class="fas fa-times-circle"></i>
-        <h4>Certificate Revoked</h4>
-        <p>This certificate has been revoked and is no longer valid.</p>
-    </div>
+    {% if cert[24] == 'revoked' %}
+    <div class="status-circle status-revoked">✗</div>
+    <h1 class="h-revoked">Certificate Revoked</h1>
+    <p class="subtitle">This certificate has been revoked by the issuing veterinarian</p>
+    {% elif cert[14] and cert[14] < today %}
+    <div class="status-circle status-expired">!</div>
+    <h1 class="h-expired">Certificate Expired</h1>
+    <p class="subtitle">This certificate is no longer valid</p>
     {% else %}
-    <div class="verified-banner">
-        <i class="fas fa-check-circle"></i>
-        <h4>Verified Authentic</h4>
-        <p>This is an authentic FurrWings health certificate issued by <strong>Dr. {{ cert[-4] }}</strong> at <strong>{{ cert[-2] }}</strong></p>
+    <div class="status-circle status-valid">✓</div>
+    <h1 class="h-valid">Authentic Certificate</h1>
+    <p class="subtitle">This is a verified FurrWings health certificate</p>
+    {% endif %}
+    <div class="details {% if cert[24] != 'revoked' and cert[14] and cert[14] < today %}expired-watermark{% endif %}">
+        <div class="detail-row"><span class="lbl">Certificate Number</span><span class="val">{{ cert[1] }}</span></div>
+        <div class="detail-row"><span class="lbl">Issued By</span><span class="val">{{ cert[-3] }}</span></div>
+        <div class="detail-row"><span class="lbl">Clinic</span><span class="val">{{ cert[-2] }}</span></div>
+        <div class="detail-row"><span class="lbl">License</span><span class="val">{{ cert[-1] }}</span></div>
+        <div class="detail-row"><span class="lbl">Issue Date</span><span class="val">{{ cert[13] }}</span></div>
+        <div class="detail-row"><span class="lbl">Expiry Date</span><span class="val">{{ cert[14] }}</span></div>
+        <div class="detail-row"><span class="lbl">Pet Name</span><span class="val">{{ cert[3] }} ({{ cert[4] }})</span></div>
+        <div class="detail-row"><span class="lbl">Owner</span><span class="val">{{ cert[8][:3] }}***</span></div>
+        <div class="detail-row"><span class="lbl">Destination</span><span class="val">{{ cert[11] }}</span></div>
+    </div>
+    {% if vaccinations %}
+    <div class="vacc-section">
+        <h3>Vaccinations Verified</h3>
+        {% for v in vaccinations %}<span class="vacc-tag">{{ v[2] }} ({{ v[3] }})</span>{% endfor %}
     </div>
     {% endif %}
-    <div class="detail-line"><strong>Certificate:</strong> {{ cert[1] }}</div>
-    <div class="detail-line"><strong>Status:</strong> {{ cert[25]|upper }}</div>
-    <div class="detail-line"><strong>Issue Date:</strong> {{ cert[13] }}</div>
-    <div class="detail-line"><strong>Expiry Date:</strong> {{ cert[14] }}</div>
-    <div class="detail-line"><strong>Pet Name:</strong> {{ cert[3] }}</div>
-    <div class="detail-line"><strong>Species:</strong> {{ cert[4] }}</div>
-    <div class="detail-line"><strong>Owner:</strong> {{ cert[8] }}</div>
-    <div class="detail-line"><strong>Destination:</strong> {{ cert[11] }}</div>
-    <div class="detail-line"><strong>Fit for Travel:</strong> {{ 'Yes' if cert[22] else 'No' }}</div>
-    <div class="detail-line"><strong>Issuing Vet:</strong> Dr. {{ cert[-4] }}</div>
-    <div class="detail-line"><strong>Clinic:</strong> {{ cert[-2] }}, {{ cert[-1] }}</div>
+    <p class="brand-footer">This certificate was issued through FurrWings Vet Connect, a FurrButler verified system</p>
 {% else %}
-    <div class="not-found-banner">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Certificate Not Found</h4>
-        <p>This certificate could not be verified. It may be fraudulent or the verification code is incorrect.</p>
+    <div class="status-circle status-notfound">✗</div>
+    <h1 class="h-notfound">Certificate Not Found</h1>
+    <p class="subtitle">This certificate could not be verified. It may be fraudulent.</p>
+    <div class="report-box">
+        <p>Report suspicious certificate: <a href="mailto:fraud@furrbutler.com">fraud@furrbutler.com</a></p>
     </div>
 {% endif %}
 </div>
-</div>
-<div class="text-center mt-3 text-muted" style="font-size:0.85rem">FurrWings Pet Travel Health Certification</div>
 </body>
 </html>

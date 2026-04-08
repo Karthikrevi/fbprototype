@@ -3,101 +3,161 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - FurrWings Vet Portal</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<title>Dashboard — FurrWings Vet Connect</title>
 <style>
-body{background:#f0f4f8;font-family:'Segoe UI',sans-serif}
-.fw-header{background:linear-gradient(135deg,#0a1628 0%,#1a3a6c 60%,#2c5aa0 100%);color:white;padding:1.5rem 0;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
-.fw-header .nav-link{color:rgba(255,255,255,0.8);font-weight:500}.fw-header .nav-link:hover{color:white}
-.stat-card{background:white;border-radius:1rem;padding:1.5rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-top:4px solid #2c5aa0}
-.stat-value{font-size:2rem;font-weight:800;color:#1a3a6c}
-.stat-label{color:#6b7280;font-size:0.9rem;margin-top:0.25rem}
-.quick-action{background:white;border-radius:1rem;padding:1.5rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);text-decoration:none;color:#1a3a6c;display:block;transition:all 0.2s}
-.quick-action:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,0.1);color:#2c5aa0}
-.quick-action i{font-size:2rem;color:#2c5aa0;margin-bottom:0.5rem;display:block}
-.section-card{background:white;border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-.section-title{color:#1a3a6c;font-weight:700;border-bottom:2px solid #2c5aa0;padding-bottom:0.5rem;margin-bottom:1rem}
-.table th{background:#f0f4f8;color:#1a3a6c;font-size:0.85rem}
-.badge-issued{background:#28a745}.badge-draft{background:#6c757d}.badge-revoked{background:#dc3545}.badge-expired{background:#ffc107;color:#333}
-.activity-item{padding:0.5rem 0;border-bottom:1px solid #f1f5f9;font-size:0.9rem}
-.activity-item:last-child{border:none}
-.activity-time{color:#9ca3af;font-size:0.8rem}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#0d47a1}
+.topbar-center{font-size:14px;color:#212121;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#616161}
+.topbar-right a{color:#c62828;text-decoration:none;font-weight:600;font-size:13px}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid #e0e0e0;padding:16px 0;flex-shrink:0}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#212121;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s}
+.sidebar a:hover,.sidebar a.active{background:#e3f2fd;color:#1565c0}
+.sidebar a span.icon{width:20px;text-align:center;font-size:15px}
+.main{flex:1;padding:28px 32px;overflow-y:auto}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.stat-card .label{font-size:12px;color:#616161;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700;color:#0d47a1}
+.quick-action{background:#fff;border:2px solid #1565c0;border-radius:12px;padding:32px;text-align:center;margin-bottom:28px}
+.quick-action .qa-icon{font-size:36px;margin-bottom:10px}
+.quick-action h2{font-size:18px;color:#0d47a1;margin-bottom:8px}
+.quick-action p{font-size:14px;color:#616161;margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.5}
+.btn{display:inline-block;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;border:none;transition:background .2s}
+.btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{background:#0d47a1}
+.section-title{font-size:16px;font-weight:700;color:#0d47a1;margin-bottom:14px}
+.activity-feed{background:#fff;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:28px}
+.activity-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f4f8}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;background:#42a5f5;margin-top:6px;flex-shrink:0}
+.activity-text{font-size:13px;color:#212121;line-height:1.5}
+.activity-time{font-size:11px;color:#616161;margin-top:2px}
+.getting-started{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:28px}
+.steps-row{display:flex;gap:20px;margin-top:14px}
+.gs-step{flex:1;text-align:center;padding:16px}
+.gs-step .num{width:36px;height:36px;border-radius:50%;background:#e3f2fd;color:#1565c0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin:0 auto 10px}
+.gs-step h4{font-size:14px;color:#212121;margin-bottom:4px}
+.gs-step p{font-size:12px;color:#616161}
+.erp-card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.erp-card h3{font-size:15px;color:#0d47a1;margin-bottom:8px}
+.erp-card p{font-size:13px;color:#616161;margin-bottom:14px;line-height:1.5}
+.btn-outline{border:1px solid #1565c0;color:#1565c0;background:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-outline:hover{background:#e3f2fd}
+.modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:32px;max-width:440px;width:90%;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.modal-box h3{font-size:16px;color:#0d47a1;margin-bottom:16px}
+.modal-box .form-group{margin-bottom:14px}
+.modal-box label{font-size:13px;font-weight:600;color:#616161;display:block;margin-bottom:5px}
+.modal-box input,.modal-box select,.modal-box textarea{width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px}
+.modal-box textarea{height:60px;resize:vertical}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{background:#f0f4f8;color:#616161;border:none;padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer}
+.flash-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+@media(max-width:768px){
+    .sidebar{display:none}
+    .stats-row{grid-template-columns:repeat(2,1fr)}
+    .steps-row{flex-direction:column}
+    .topbar-center{display:none}
+}
 </style>
 </head>
 <body>
-<div class="fw-header">
-<div class="container d-flex justify-content-between align-items-center">
-<div>
-<h3 class="mb-0"><i class="fas fa-plane-departure"></i> FurrWings</h3>
-<small>Veterinary Portal</small>
+<div class="topbar">
+    <div class="topbar-brand">🐾🩺 FurrWings Vet Connect</div>
+    <div class="topbar-center">Welcome back, {{ session.get('furrwings_vet_name','Doctor') }}</div>
+    <div class="topbar-right">
+        <span>{{ session.get('furrwings_clinic','') }}</span>
+        <a href="/furrwings/vet/logout">Logout</a>
+    </div>
 </div>
-<div class="d-flex align-items-center">
-<nav class="me-3">
-<a href="/furrwings/vet/dashboard" class="nav-link d-inline">Dashboard</a>
-<a href="/furrwings/vet/certificate/new" class="nav-link d-inline">New Certificate</a>
-<a href="/furrwings/vet/certificates" class="nav-link d-inline">My Certificates</a>
-<a href="/furrwings/vet/sync-furrvet" class="nav-link d-inline">Sync FurrVet</a>
-</nav>
-<div class="text-end">
-<div class="fw-bold">Dr. {{ session.get('furrwings_vet_name', '') }}</div>
-<small>{{ session.get('furrwings_clinic', '') }}</small>
+<div class="layout">
+    <nav class="sidebar">
+        <a href="/furrwings/vet/dashboard" class="active"><span class="icon">📊</span> Dashboard</a>
+        <a href="/furrwings/vet/patients"><span class="icon">🔍</span> Find Patient</a>
+        <a href="/furrwings/vet/upload"><span class="icon">📤</span> Upload Center</a>
+        <a href="/furrwings/vet/appointments"><span class="icon">📅</span> Appointments</a>
+        <a href="/furrwings/vet/certificates"><span class="icon">📋</span> Certificates</a>
+        <a href="/furrwings/vet/settings"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="main">
+        {% with messages = get_flashed_messages() %}{% if messages %}{% for m in messages %}<div class="flash-msg">{{ m }}</div>{% endfor %}{% endif %}{% endwith %}
+        <div class="stats-row">
+            <div class="stat-card"><div class="label">Documents This Month</div><div class="value">{{ docs_this_month }}</div></div>
+            <div class="stat-card"><div class="label">Certificates Issued</div><div class="value">{{ total_certs }}</div></div>
+            <div class="stat-card"><div class="label">Patients Connected</div><div class="value">{{ patients_connected }}</div></div>
+            <div class="stat-card"><div class="label">Pending Uploads</div><div class="value">0</div></div>
+        </div>
+        <div class="quick-action">
+            <div class="qa-icon">📤</div>
+            <h2>Upload Health Records</h2>
+            <p>Send vaccination certificates, prescriptions and health data directly to pet parents</p>
+            <a href="/furrwings/vet/upload" class="btn btn-primary">Start Upload →</a>
+        </div>
+        {% if activities %}
+        <h3 class="section-title">Recent Activity</h3>
+        <div class="activity-feed">
+            {% for act in activities %}
+            <div class="activity-item">
+                <div class="activity-dot"></div>
+                <div>
+                    <div class="activity-text">{{ act[3] }}</div>
+                    <div class="activity-time">{{ act[5] }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if total_certs == 0 %}
+        <div class="getting-started">
+            <h3 class="section-title">Getting Started</h3>
+            <div class="steps-row">
+                <div class="gs-step"><div class="num">1</div><h4>Find your patient</h4><p>Search by pet parent phone or email</p></div>
+                <div class="gs-step"><div class="num">2</div><h4>Upload their records</h4><p>Send vaccinations, prescriptions, or certificates</p></div>
+                <div class="gs-step"><div class="num">3</div><h4>Pet parent is notified</h4><p>Records appear in their Pawsport automatically</p></div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="erp-card">
+            <h3>Connect Your ERP</h3>
+            {% if has_erp_request %}
+            <p>Your integration request has been received. Our team will contact you to set up the connection.</p>
+            {% else %}
+            <p>No ERP connected yet. We will help you set up your integration. Contact us to begin.</p>
+            <button class="btn-outline" onclick="document.getElementById('erpModal').classList.add('show')">Request Integration</button>
+            {% endif %}
+        </div>
+    </div>
 </div>
-<a href="/furrwings/vet/logout" class="btn btn-outline-light btn-sm ms-3">Logout</a>
+<div class="modal-bg" id="erpModal">
+    <div class="modal-box">
+        <h3>Request ERP Integration</h3>
+        <form method="POST" action="/furrwings/vet/erp-request">
+            <div class="form-group">
+                <label>Which ERP do you use?</label>
+                <select name="erp_name" required>
+                    <option value="">Select…</option>
+                    <option>ezyVet</option><option>VetLink</option><option>Provet Cloud</option>
+                    <option>Digitail</option><option>Intravet</option><option>FurrVet ERP</option><option>Custom/Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Contact Email</label>
+                <input type="email" name="contact_email" value="{{ session.get('furrwings_vet_email','') }}" required>
+            </div>
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <textarea name="notes" placeholder="Any details about your setup…"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="document.getElementById('erpModal').classList.remove('show')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="padding:9px 18px;font-size:13px">Submit Interest</button>
+            </div>
+        </form>
+    </div>
 </div>
-</div>
-</div>
-
-<div class="container py-4">
-{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info">{% for m in messages %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-
-<div class="row g-3 mb-4">
-<div class="col-md-3"><div class="stat-card"><div class="stat-value">{{ total_certs }}</div><div class="stat-label">Total Certificates</div></div></div>
-<div class="col-md-3"><div class="stat-card" style="border-top-color:#28a745"><div class="stat-value" style="color:#28a745">{{ month_certs }}</div><div class="stat-label">This Month</div></div></div>
-<div class="col-md-3"><div class="stat-card" style="border-top-color:#6c757d"><div class="stat-value" style="color:#6c757d">{{ draft_certs }}</div><div class="stat-label">Drafts</div></div></div>
-<div class="col-md-3"><div class="stat-card" style="border-top-color:#f59e0b"><div class="stat-value" style="color:#f59e0b">{{ vet[17] if vet else 0 }}</div><div class="stat-label">Lifetime Count</div></div></div>
-</div>
-
-<div class="row g-3 mb-4">
-<div class="col-md-4"><a href="/furrwings/vet/certificate/new" class="quick-action"><i class="fas fa-file-medical"></i><strong>New Health Certificate</strong><br><small class="text-muted">Issue a travel health certificate</small></a></div>
-<div class="col-md-4"><a href="/furrwings/vet/certificates" class="quick-action"><i class="fas fa-list-alt"></i><strong>My Certificates</strong><br><small class="text-muted">View and manage issued certificates</small></a></div>
-<div class="col-md-4"><a href="/furrwings/vet/sync-furrvet" class="quick-action"><i class="fas fa-sync-alt"></i><strong>Sync with FurrVet</strong><br><small class="text-muted">Import vaccination records</small></a></div>
-</div>
-
-<div class="row">
-<div class="col-md-8">
-<div class="section-card">
-<h5 class="section-title"><i class="fas fa-history"></i> Recent Certificates</h5>
-<table class="table table-hover table-sm mb-0">
-<thead><tr><th>Certificate</th><th>Pet</th><th>Destination</th><th>Issued</th><th>Expires</th><th>Status</th><th></th></tr></thead>
-<tbody>
-{% for c in recent_certs %}
-<tr>
-<td><small>{{ c[1] }}</small></td><td>{{ c[3] }}</td><td>{{ c[11] }}</td>
-<td>{{ c[13] }}</td><td>{{ c[14] }}</td>
-<td><span class="badge badge-{{ c[25] }}">{{ c[25] }}</span></td>
-<td><a href="/furrwings/vet/certificate/{{ c[0] }}" class="btn btn-sm btn-outline-primary">View</a></td>
-</tr>
-{% endfor %}
-{% if not recent_certs %}<tr><td colspan="7" class="text-center text-muted">No certificates yet. Issue your first one!</td></tr>{% endif %}
-</tbody>
-</table>
-</div>
-</div>
-<div class="col-md-4">
-<div class="section-card">
-<h5 class="section-title"><i class="fas fa-bell"></i> Activity Log</h5>
-{% for a in activity %}
-<div class="activity-item">
-<div>{{ a[3] }}</div>
-<div class="activity-time">{{ a[5] }}</div>
-</div>
-{% endfor %}
-{% if not activity %}<p class="text-muted text-center">No activity yet</p>{% endif %}
-</div>
-</div>
-</div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
