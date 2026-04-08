@@ -137,11 +137,32 @@
       color: white;
     }
   </style>
+<link rel="stylesheet" href="/static/css/mobile.css">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FB ERP">
+<meta name="theme-color" content="#667eea">
 </head>
 <body>
-  <div class="dashboard-container">
-    <a href="/" class="back-btn">← Back to Home</a>
+  <nav class="erp-nav">
+    <a href="/erp/dashboard" class="erp-nav-brand">🐾 FurrButler ERP</a>
+    <div class="erp-nav-links">
+      <a href="/erp/inventory">📦 Inventory</a>
+      <a href="/erp/bookings">📅 Bookings</a>
+      <a href="/erp/reports">💰 Finance</a>
+      <a href="/erp/crm">👥 CRM</a>
+      <a href="/erp/time-slots">👤 HRM</a>
+      <a href="/erp/messages">💬 Messages</a>
+      <a href="/erp/settings">⚙️ Settings</a>
+      <a href="/">🏠 Home</a>
+    </div>
+    <div class="erp-hamburger">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
 
+  <div class="dashboard-container erp-content">
     <div class="header">
       <h2>🐾 ERP Control Center</h2>
       <div class="status-bar">
@@ -279,5 +300,54 @@
       <a href="/erp/gdpr/dpa" class="btn btn-outline-danger btn-sm"><i class="fas fa-file-contract"></i> View Data Processing Agreement</a>
     </div>
   </div>
+
+  <nav class="bottom-nav">
+    <a href="/erp/dashboard" class="bottom-nav-item active">
+      <span>🏠</span>
+      <span>Home</span>
+    </a>
+    <a href="/erp/inventory" class="bottom-nav-item">
+      <span>📦</span>
+      <span>Stock</span>
+    </a>
+    <a href="/erp/bookings" class="bottom-nav-item">
+      <span>📅</span>
+      <span>Bookings</span>
+    </a>
+    <a href="/erp/reports" class="bottom-nav-item">
+      <span>💰</span>
+      <span>Finance</span>
+    </a>
+    <a href="/erp/crm" class="bottom-nav-item">
+      <span>👥</span>
+      <span>CRM</span>
+    </a>
+  </nav>
+
+<script>
+const hamburger = document.querySelector('.erp-hamburger');
+const navLinks = document.querySelector('.erp-nav-links');
+if (hamburger) {
+  hamburger.addEventListener('click', function() {
+    hamburger.classList.toggle('active');
+    navLinks.classList.toggle('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+      navLinks.classList.remove('open');
+      hamburger.classList.remove('active');
+    }
+  });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('SW registered');
+    });
+  });
+}
+</script>
 </body>
 </html>

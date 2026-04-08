@@ -84,6 +84,7 @@
         .status-late { background: #ffc107; }
         .status-leave { background: #6f42c1; }
     </style>
+<link rel="stylesheet" href="/static/css/mobile.css">
 </head>
 <body>
     <div class="header">
@@ -293,7 +294,8 @@
 
                             <div class="table-responsive">
                                 {% if employees %}
-                                <table class="table table-hover">
+                                <div class="table-responsive-wrapper">
+<table class="table table-hover">
                                     <thead>
                                         <tr>
                                             <th>Employee</th>
@@ -320,6 +322,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+</div>
                                 {% else %}
                                 <div class="text-center py-5">
                                     <i class="fas fa-money-bill fa-3x text-muted mb-3"></i>

@@ -83,6 +83,8 @@
     }
     .overdue { color: #dc3545; font-weight: bold; }
   </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<link rel="stylesheet" href="/static/css/mobile.css">
 </head>
 <body>
   <a href="/erp/reports" class="back-btn">← Back to Finance</a>
@@ -154,7 +156,8 @@
       </form>
     </div>
 
-    <table>
+    <div class="table-responsive-wrapper">
+<table>
       <thead>
         <tr>
           <th>Payee</th>
@@ -247,6 +250,7 @@
         {% endif %}
       </tbody>
     </table>
+</div>
   </div>
 
   {% if payments %}
@@ -254,7 +258,8 @@
     <div class="section-header">
       <h4>💳 Payment History</h4>
     </div>
-    <table>
+    <div class="table-responsive-wrapper">
+<table>
       <thead>
         <tr>
           <th>Date</th>
@@ -278,6 +283,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% endif %}
 

@@ -50,6 +50,14 @@ Handlers and isolation centers can apply through dedicated registration forms at
 ## FurrVet ERP (Clinical Routes)
 A dedicated blueprint provides comprehensive clinical routes for patient CRUD, medical records (SOAP notes), vaccination management, lab tests, hospitalization, invoicing, pharmacy management, staff management, and appointment scheduling. All data access is scoped by `vet_id` to prevent IDOR vulnerabilities.
 
+## Mobile/PWA Responsiveness
+- `static/css/mobile.css` provides responsive styles for all screen sizes including hamburger nav, bottom nav bar, table scroll, form fixes, PWA safe area, print styles, and grid stacking
+- All 250+ templates (including furrvet subdirectory) have viewport meta tag and mobile.css link injected
+- `erp_dashboard.html` has: hamburger menu with JS toggle, bottom navigation bar (5 items), PWA manifest/meta tags, service worker registration
+- `static/sw.js` handles caching; served at `/sw.js` route in main.py with proper Service-Worker-Allowed header
+- `static/manifest.json` configured for standalone PWA with FurrButler branding
+- 10 finance/HR/report templates have `table-responsive-wrapper` divs around tables for horizontal scroll on mobile
+
 # External Dependencies
 - **Core Frameworks**: Flask, React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, React Native, Expo.
 - **Database**: SQLite, PostgreSQL.

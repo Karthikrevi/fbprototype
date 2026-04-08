@@ -104,6 +104,8 @@
       border-radius: 4px;
     }
   </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<link rel="stylesheet" href="/static/css/mobile.css">
 </head>
 <body>
   <a href="/erp/reports" class="back-btn">← Back to Reports</a>
@@ -166,7 +168,8 @@
       <button id="subLedgerBtn" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">View Sub-Ledger</button>
     </div>
     
-    <table id="ledgerTable">
+    <div class="table-responsive-wrapper">
+<table id="ledgerTable">
       <thead>
         <tr>
           <th>Date</th>
@@ -230,6 +233,7 @@
         {% endif %}
       </tbody>
     </table>
+</div>
   </div>
 
   <div style="margin-top: 40px; text-align: center;">

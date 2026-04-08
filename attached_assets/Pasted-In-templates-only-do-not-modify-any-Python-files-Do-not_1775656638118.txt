@@ -1,0 +1,718 @@
+In templates only — do not modify
+any Python files.
+Do not modify any existing routes.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+Make the entire vendor ERP mobile
+and tablet responsive.
+
+The ERP must work well on:
+- Android tablet with 8-10 inch screen
+- Mobile phone 5-6 inch screen
+- Desktop browser
+
+PART 1 — Create a shared mobile CSS file:
+
+Create /static/css/mobile.css with
+these styles:
+
+/* ================================
+   FURRBUTLER ERP MOBILE STYLES
+   Tablet and mobile responsive
+   ================================ */
+
+/* Base responsive fixes */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* ================================
+   NAVIGATION — Mobile hamburger
+   ================================ */
+
+.erp-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: linear-gradient(
+    135deg, #667eea, #764ba2);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.erp-nav-brand {
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+
+.erp-hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  padding: 4px;
+  gap: 5px;
+}
+
+.erp-hamburger span {
+  display: block;
+  width: 25px;
+  height: 2px;
+  background: white;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.erp-nav-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.erp-nav-links a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.erp-nav-links a:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* ================================
+   SIDEBAR — Mobile drawer
+   ================================ */
+
+.erp-sidebar {
+  transition: transform 0.3s ease;
+}
+
+/* ================================
+   MAIN CONTENT — Padding for
+   fixed nav
+   ================================ */
+
+.erp-content {
+  padding-top: 70px;
+}
+
+/* ================================
+   CARDS — Full width on mobile
+   ================================ */
+
+.stat-card,
+.summary-card,
+.content-section,
+.dashboard-card {
+  margin-bottom: 16px;
+}
+
+/* ================================
+   TABLES — Horizontal scroll
+   ================================ */
+
+.table-responsive-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+table {
+  min-width: 600px;
+}
+
+/* Smaller table text on mobile */
+@media (max-width: 768px) {
+  table {
+    font-size: 0.8rem;
+  }
+  th, td {
+    padding: 8px 10px !important;
+  }
+}
+
+/* ================================
+   FORMS — Full width on mobile
+   ================================ */
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column !important;
+  }
+  .form-group {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+  input, select, textarea {
+    width: 100% !important;
+    font-size: 16px !important;
+    /* 16px prevents iOS zoom on focus */
+    padding: 12px !important;
+  }
+  button[type="submit"],
+  .btn-primary-custom,
+  .btn-save-pay {
+    width: 100% !important;
+    padding: 14px !important;
+    font-size: 1rem !important;
+    margin-bottom: 8px !important;
+  }
+}
+
+/* ================================
+   BUTTONS — Touch friendly
+   ================================ */
+
+@media (max-width: 768px) {
+  .btn, button {
+    min-height: 44px;
+    /* Apple HIG minimum touch target */
+    padding: 10px 16px;
+  }
+  .btn-sm {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+}
+
+/* ================================
+   GRID — Stack on mobile
+   ================================ */
+
+@media (max-width: 768px) {
+  .summary-cards,
+  .stats-grid,
+  .dashboard-grid,
+  .card-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-cards,
+  .stats-grid,
+  .dashboard-grid,
+  .card-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ================================
+   FIXED BACK BUTTON — Mobile
+   ================================ */
+
+.back-btn {
+  position: fixed !important;
+  top: 12px !important;
+  left: 12px !important;
+  z-index: 1001 !important;
+  padding: 8px 16px !important;
+  font-size: 0.85rem !important;
+  border-radius: 20px !important;
+  white-space: nowrap !important;
+}
+
+/* ================================
+   TABS — Horizontal scroll on mobile
+   ================================ */
+
+.tab-nav,
+.nav-tabs,
+.tab-buttons {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  display: flex;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+
+.tab-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* ================================
+   MODALS — Full screen on mobile
+   ================================ */
+
+@media (max-width: 768px) {
+  .modal-content,
+  .pay-form,
+  .add-form {
+    width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* ================================
+   CHARTS — Responsive
+   ================================ */
+
+canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* ================================
+   ERP DASHBOARD GRID
+   ================================ */
+
+@media (max-width: 768px) {
+  .erp-modules-grid {
+    grid-template-columns:
+      repeat(2, 1fr) !important;
+  }
+  .erp-module-card {
+    padding: 16px 12px !important;
+    font-size: 0.85rem !important;
+  }
+  .erp-module-icon {
+    font-size: 1.8rem !important;
+  }
+}
+
+/* ================================
+   SIDEBAR NAV — Desktop only
+   ================================ */
+
+@media (max-width: 992px) {
+  .erp-hamburger {
+    display: flex !important;
+  }
+  .erp-nav-links {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    background: #764ba2;
+    flex-direction: column;
+    padding: 16px;
+    gap: 4px;
+    z-index: 999;
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  .erp-nav-links.open {
+    display: flex !important;
+  }
+  .erp-nav-links a {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+}
+
+/* ================================
+   INVOICE AND REPORTS — Print
+   ================================ */
+
+@media print {
+  .back-btn,
+  .erp-nav,
+  .erp-hamburger,
+  button:not(.print-show),
+  .no-print {
+    display: none !important;
+  }
+  body {
+    padding: 0 !important;
+  }
+  .erp-content {
+    padding-top: 0 !important;
+  }
+}
+
+/* ================================
+   PAWSPORT — Passport style mobile
+   ================================ */
+
+@media (max-width: 768px) {
+  .pawsport-identity {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+  .pawsport-tabs {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* ================================
+   CHAT — Full screen mobile
+   ================================ */
+
+@media (max-width: 768px) {
+  .chat-container {
+    flex-direction: column !important;
+  }
+  .chat-sidebar {
+    width: 100% !important;
+    height: 200px !important;
+    overflow-y: auto !important;
+  }
+  .chat-main {
+    flex: 1 !important;
+  }
+}
+
+/* ================================
+   QUICK ACTIONS — 2 column mobile
+   ================================ */
+
+@media (max-width: 768px) {
+  .quick-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .quick-action-btn {
+    padding: 12px 8px !important;
+    font-size: 0.8rem !important;
+    text-align: center !important;
+  }
+}
+
+/* ================================
+   INVENTORY — Mobile card view
+   ================================ */
+
+@media (max-width: 600px) {
+  .inventory-table-row {
+    display: block !important;
+    background: white !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    margin-bottom: 8px !important;
+    box-shadow: 0 2px 4px
+      rgba(0,0,0,0.08) !important;
+  }
+  .inventory-table-row td {
+    display: block !important;
+    border: none !important;
+    padding: 4px 0 !important;
+  }
+  .inventory-table-row td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: #666;
+    font-size: 0.75rem;
+    display: block;
+  }
+}
+
+/* ================================
+   FLOATING ACTION BUTTON
+   For mobile primary actions
+   ================================ */
+
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 16px
+    rgba(102, 126, 234, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: transform 0.2s;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+}
+
+/* ================================
+   BOTTOM NAVIGATION BAR
+   Mobile only — like an app
+   ================================ */
+
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #eee;
+  z-index: 1000;
+  padding: 8px 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex !important;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .erp-content {
+    padding-bottom: 70px !important;
+  }
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #999;
+  font-size: 0.65rem;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: color 0.2s;
+}
+
+.bottom-nav-item.active {
+  color: #667eea;
+}
+
+.bottom-nav-item span:first-child {
+  font-size: 1.3rem;
+}
+
+PART 2 — Add mobile CSS to all
+vendor ERP templates:
+
+In every template that contains
+</head> add before it:
+<link rel="stylesheet"
+  href="/static/css/mobile.css">
+<meta name="viewport"
+  content="width=device-width,
+  initial-scale=1.0,
+  maximum-scale=1.0">
+
+This applies to ALL templates in
+the templates/ folder that serve
+vendor ERP pages (all erp_*.html
+and accounting, crm, hrm templates)
+
+Also apply to:
+furrvet templates
+furrwings templates
+admin templates
+pet parent templates
+pawsport templates
+
+PART 3 — Add hamburger menu to
+ERP dashboard:
+
+In templates/erp_dashboard.html only:
+Add hamburger button to the header.
+When clicked toggles the navigation
+links visible/hidden.
+
+Add this JavaScript at bottom:
+<script>
+const hamburger = document.querySelector(
+  '.erp-hamburger');
+const navLinks = document.querySelector(
+  '.erp-nav-links');
+
+if (hamburger) {
+  hamburger.addEventListener(
+    'click', function() {
+    navLinks.classList.toggle('open');
+    // Animate hamburger to X
+    hamburger.classList.toggle('active');
+  });
+  // Close on outside click
+  document.addEventListener(
+    'click', function(e) {
+    if (!hamburger.contains(e.target)
+      && !navLinks.contains(e.target)) {
+      navLinks.classList.remove('open');
+      hamburger.classList.remove('active');
+    }
+  });
+}
+</script>
+
+PART 4 — Add bottom navigation to
+ERP dashboard:
+
+In templates/erp_dashboard.html only
+add bottom navigation bar before
+closing </body>:
+
+<nav class="bottom-nav">
+  <a href="/erp/dashboard"
+    class="bottom-nav-item active">
+    <span>🏠</span>
+    <span>Home</span>
+  </a>
+  <a href="/erp/inventory"
+    class="bottom-nav-item">
+    <span>📦</span>
+    <span>Stock</span>
+  </a>
+  <a href="/erp/bookings"
+    class="bottom-nav-item">
+    <span>📅</span>
+    <span>Bookings</span>
+  </a>
+  <a href="/erp/reports"
+    class="bottom-nav-item">
+    <span>💰</span>
+    <span>Finance</span>
+  </a>
+  <a href="/erp/crm"
+    class="bottom-nav-item">
+    <span>👥</span>
+    <span>CRM</span>
+  </a>
+</nav>
+
+PART 5 — PWA manifest:
+
+Create /static/manifest.json:
+{
+  "name": "FurrButler ERP",
+  "short_name": "FB ERP",
+  "description": "Pet business
+    management made simple",
+  "start_url": "/erp/dashboard",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
+Create /static/sw.js (service worker):
+const CACHE_NAME = 'furrbutler-erp-v1';
+const STATIC_ASSETS = [
+  '/erp/dashboard',
+  '/static/css/mobile.css',
+  '/static/manifest.json'
+];
+
+self.addEventListener('install',
+  function(event) {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(function(cache) {
+        return cache.addAll(
+          STATIC_ASSETS);
+      })
+  );
+});
+
+self.addEventListener('fetch',
+  function(event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then(function(response) {
+        return response ||
+          fetch(event.request);
+      })
+  );
+});
+
+Add to erp_dashboard.html
+in the <head> section:
+<link rel="manifest"
+  href="/static/manifest.json">
+<meta name="mobile-web-app-capable"
+  content="yes">
+<meta name="apple-mobile-web-app-capable"
+  content="yes">
+<meta name="apple-mobile-web-app-title"
+  content="FB ERP">
+<meta name="theme-color"
+  content="#667eea">
+
+Add before </body> in erp_dashboard.html:
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load',
+    function() {
+    navigator.serviceWorker
+      .register('/static/sw.js')
+      .then(function(reg) {
+        console.log('SW registered');
+      });
+  });
+}
+</script>
+
+Add Flask route in main.py to serve
+the service worker with correct
+content type:
+@app.route('/static/sw.js')
+def service_worker():
+    response = make_response(
+        open('static/sw.js').read())
+    response.headers['Content-Type'] = (
+        'application/javascript')
+    return response
+
+PART 6 — Make tables scroll
+horizontally:
+
+In these templates wrap all
+<table> elements with:
+<div class="table-responsive-wrapper">
+  [existing table code]
+</div>
+
+Templates to update:
+general_ledger.html
+accounts_payable.html
+accounts_receivable.html
+manage_expenses.html
+crm_customers.html
+crm_interactions.html
+manage_time_slots.html
+erp_bookings.html
+inventory_report.html
+manage_payroll.html
+
+Do not modify any Python files
+except adding the service worker
+route to main.py.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify mobile.css
+exists in static/css/ folder.

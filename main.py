@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort, send_from_directory
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort, send_from_directory, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from replit_db_shim import db
 import json as _json_mod
@@ -3172,6 +3172,13 @@ Verification URL: /verify/document/{signature_info['doc_hash']}
     return sig_filepath
 
 # Home
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(open('static/sw.js').read())
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
 @app.route('/')
 def home():
     if "user" in session:
