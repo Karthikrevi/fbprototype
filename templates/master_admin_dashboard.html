@@ -65,6 +65,37 @@
       margin-bottom: 20px;
       font-weight: bold;
     }
+    .alerts-bar{display:flex;gap:10px;overflow-x:auto;padding:4px 0;margin-bottom:24px;flex-wrap:wrap}
+    .alert-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:transform .15s,box-shadow .15s}
+    .alert-pill:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.12)}
+    .alert-pill.red{background:#ffebee;color:#c62828}
+    .alert-pill.yellow{background:#fff8e1;color:#e65100}
+    .alert-pill.green{background:#e8f5e9;color:#2e7d32}
+    .portal-card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 3px 12px rgba(0,0,0,0.08);text-align:center;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+    .portal-card .icon{font-size:32px;margin-bottom:8px}
+    .portal-card h6{font-size:15px;font-weight:700;color:#212529;margin-bottom:12px}
+    .portal-card .stat-line{font-size:13px;color:#666;margin-bottom:4px}
+    .portal-card .stat-line .count-red{color:#c62828;font-weight:700}
+    .portal-card .stat-line .count-yellow{color:#e65100;font-weight:700}
+    .portal-card.greyed{opacity:.5;pointer-events:none}
+    .coming-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:left}
+    .coming-card h6{font-size:14px;font-weight:600;color:#495057;margin-bottom:6px}
+    .coming-card p{font-size:12px;color:#999;margin-bottom:0}
+    .coming-badge{display:inline-block;background:#e9ecef;color:#868e96;font-size:10px;font-weight:700;padding:2px 10px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
+    .notif-bell{position:relative;cursor:pointer;font-size:20px;color:#fff;text-decoration:none}
+    .notif-bell .badge-count{position:absolute;top:-6px;right:-10px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;border-radius:50%;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+    .notif-dropdown{position:absolute;right:0;top:100%;width:340px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:1000;display:none;max-height:400px;overflow-y:auto;margin-top:8px}
+    .notif-dropdown.show{display:block}
+    .notif-dropdown .notif-item{padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#333;text-decoration:none;display:block;transition:background .1s}
+    .notif-dropdown .notif-item:hover{background:#f8f9fa}
+    .notif-dropdown .notif-item .notif-title{font-weight:600;margin-bottom:2px;font-size:13px}
+    .notif-dropdown .notif-item .notif-msg{color:#666;font-size:12px;margin-bottom:2px}
+    .notif-dropdown .notif-item .notif-time{color:#aaa;font-size:11px}
+    .notif-dropdown .notif-footer{text-align:center;padding:10px;border-top:1px solid #f0f0f0}
+    .notif-dropdown .notif-footer a{font-size:13px;font-weight:600;color:#667eea;text-decoration:none}
+    .btn-coming{position:relative;opacity:.6}
+    .btn-coming .tooltip-text{visibility:hidden;width:200px;background:#333;color:#fff;text-align:center;padding:6px 10px;border-radius:6px;font-size:11px;position:absolute;z-index:10;bottom:110%;left:50%;transform:translateX(-50%);pointer-events:none}
+    .btn-coming:hover .tooltip-text{visibility:visible}
   </style>
 </head>
 <body>
@@ -72,10 +103,31 @@
     <div class="container">
       <div class="d-flex justify-content-between align-items-center">
         <h1>🏢 FurrButler Master Admin Dashboard</h1>
-        <div>
-          <a href="/master/admin/vendors" class="btn btn-outline-primary">Manage Vendors</a>
-          <a href="/admin/escrow" class="btn btn-outline-success">Escrow Management</a>
-          <a href="/master/admin/logout" class="btn btn-outline-danger">Logout</a>
+        <div class="d-flex align-items-center gap-3">
+          <div style="position:relative">
+            <a href="#" class="notif-bell" onclick="toggleNotifDropdown(event)">
+              🔔
+              {% if unread_notifications > 0 %}
+              <span class="badge-count">{{ unread_notifications }}</span>
+              {% endif %}
+            </a>
+            <div class="notif-dropdown" id="notifDropdown">
+              {% if recent_notifications|length > 0 %}
+              {% for n in recent_notifications %}
+              <a href="{{ n[3] or '#' }}" class="notif-item" data-id="{{ n[0] }}" onclick="markRead(event, this)">
+                <div class="notif-title">{{ n[1] }}</div>
+                <div class="notif-msg">{{ n[2][:80] }}{% if n[2]|length > 80 %}...{% endif %}</div>
+                <div class="notif-time" data-ts="{{ n[6] }}">{{ n[6] }}</div>
+              </a>
+              {% endfor %}
+              {% else %}
+              <div class="notif-item" style="text-align:center;color:#999">No notifications</div>
+              {% endif %}
+              <div class="notif-footer"><a href="/admin/notifications">View All Notifications</a></div>
+            </div>
+          </div>
+          <a href="/master/admin/vendors" class="btn btn-outline-light btn-sm">Manage Vendors</a>
+          <a href="/master/admin/logout" class="btn btn-outline-danger btn-sm">Logout</a>
         </div>
       </div>
     </div>
@@ -93,37 +145,69 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Quick Actions Panel -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>📱 Admin Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex gap-3 flex-wrap">
-                            <a href="/whatsapp/dashboard" class="btn btn-success">
-                                📱 WhatsApp Business Dashboard
-                            </a>
-                            <a href="/whatsapp/simulate" class="btn btn-info">
-                                🧪 WhatsApp Simulator
-                            </a>
-                            <a href="/master/admin/vendors" class="btn btn-warning">
-                                👥 Manage Vendors
-                            </a>
-                            <a href="/admin/escrow" class="btn btn-primary">
-                                💰 Escrow Management
-                            </a>
-                            <a href="/research/dashboard" class="btn btn-secondary">
-                                🔬 Research Database
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Alerts Bar -->
+    <div class="alerts-bar">
+      {% if pending_vets > 0 %}
+      <a href="/admin/furrwings/vets" class="alert-pill red">🩺 {{ pending_vets }} Vet Application{{ 's' if pending_vets != 1 }} Pending</a>
+      {% endif %}
+      {% if pending_venues > 0 %}
+      <a href="/admin/venues" class="alert-pill yellow">🏨 {{ pending_venues }} Venue Suggestion{{ 's' if pending_venues != 1 }} Pending</a>
+      {% endif %}
+      {% if gdpr_pending > 0 %}
+      <a href="/admin/gdpr/requests" class="alert-pill red">🔒 {{ gdpr_pending }} GDPR Deletion Request{{ 's' if gdpr_pending != 1 }}</a>
+      {% endif %}
+      {% if pending_vets == 0 and pending_venues == 0 and gdpr_pending == 0 %}
+      <span class="alert-pill green">✅ All clear — no pending actions</span>
+      {% endif %}
+    </div>
 
-        <div class="row mb-4">
+    <!-- Quick Actions Panel -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>📱 Admin Quick Actions</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex gap-3 flex-wrap">
+              <a href="/master/admin/vendors" class="btn btn-warning">
+                👥 Manage Vendors
+              </a>
+              <a href="/admin/furrwings/vets" class="btn btn-primary">
+                🩺 FurrWings Vets
+              </a>
+              <a href="/admin/venues" class="btn btn-info">
+                🏨 Venue Moderation
+              </a>
+              <a href="/admin/users" class="btn btn-success">
+                👥 Pet Parents
+              </a>
+              <a href="/admin/gdpr/requests" class="btn btn-danger">
+                🔒 GDPR
+              </a>
+              <span class="btn btn-secondary btn-coming">
+                📱 WhatsApp Business Dashboard
+                <span class="tooltip-text">Coming Soon — Activate after OPC registration</span>
+              </span>
+              <span class="btn btn-secondary btn-coming">
+                🧪 WhatsApp Simulator
+                <span class="tooltip-text">Coming Soon — Activate after OPC registration</span>
+              </span>
+              <span class="btn btn-secondary btn-coming">
+                💰 Escrow Management
+                <span class="tooltip-text">Coming Soon — Requires Razorpay Route API</span>
+              </span>
+              <span class="btn btn-secondary btn-coming">
+                🔬 Research Database
+                <span class="tooltip-text">NGO research portal — launching with smart collar tracking system</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
       <div class="col-md-2">
         <div class="stat-card vendors">
           <h4>{{ stats.total_vendors }}</h4>
@@ -223,6 +307,72 @@
               </div>
             </div>
           {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Portal Management -->
+    <div class="settings-card">
+      <h3 class="section-title">🚪 Portal Management</h3>
+      <div class="row g-3">
+        <div class="col-md-4 col-lg-2">
+          <div class="portal-card">
+            <div>
+              <div class="icon">🩺</div>
+              <h6>FurrWings Vets</h6>
+              <div class="stat-line">Approved: {{ approved_vets }}</div>
+              <div class="stat-line">Pending: <span class="{% if pending_vets > 0 %}count-red{% endif %}">{{ pending_vets }}</span></div>
+            </div>
+            <a href="/admin/furrwings/vets" class="btn btn-sm btn-primary mt-2">Manage</a>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+          <div class="portal-card">
+            <div>
+              <div class="icon">👥</div>
+              <h6>Pet Parents</h6>
+              <div class="stat-line">Total: {{ total_pet_parents }}</div>
+            </div>
+            <a href="/admin/users" class="btn btn-sm btn-primary mt-2">Manage</a>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+          <div class="portal-card">
+            <div>
+              <div class="icon">🏨</div>
+              <h6>Community Venues</h6>
+              <div class="stat-line">Pending: <span class="{% if pending_venues > 0 %}count-yellow{% endif %}">{{ pending_venues }}</span></div>
+            </div>
+            <a href="/admin/venues" class="btn btn-sm btn-primary mt-2">Manage</a>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+          <div class="portal-card">
+            <div>
+              <div class="icon">🔒</div>
+              <h6>GDPR & Privacy</h6>
+              <div class="stat-line">Pending: <span class="{% if gdpr_pending > 0 %}count-red{% endif %}">{{ gdpr_pending }}</span></div>
+            </div>
+            <a href="/admin/gdpr/requests" class="btn btn-sm btn-primary mt-2">Manage</a>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+          <div class="portal-card">
+            <div>
+              <div class="icon">🚨</div>
+              <h6>Breach Log</h6>
+            </div>
+            <a href="/admin/gdpr/breach-log" class="btn btn-sm btn-outline-danger mt-2">View Log</a>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+          <div class="portal-card greyed">
+            <div>
+              <div class="icon">🏥</div>
+              <h6>FurrVet Clinics</h6>
+              <span class="coming-badge">Coming Soon</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -331,6 +481,48 @@
         </ul>
       </div>
     </div>
+
+    <!-- Coming Soon -->
+    <div class="settings-card">
+      <h3 class="section-title">🚀 Upcoming Features</h3>
+      <div class="row g-3">
+        <div class="col-md-4 col-lg">
+          <div class="coming-card">
+            <h6>📱 WhatsApp Integration</h6>
+            <span class="coming-badge">Coming Soon</span>
+            <p class="mt-2">Status: Activate after OPC registration</p>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg">
+          <div class="coming-card">
+            <h6>💰 Escrow Management</h6>
+            <span class="coming-badge">Coming Soon</span>
+            <p class="mt-2">Status: Requires Razorpay Route API</p>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg">
+          <div class="coming-card">
+            <h6>🔬 Research Database</h6>
+            <span class="coming-badge">Coming Soon</span>
+            <p class="mt-2">Status: Post NGO network launch</p>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg">
+          <div class="coming-card">
+            <h6>📡 Smart Collar Tracking</h6>
+            <span class="coming-badge">Coming Soon</span>
+            <p class="mt-2">Status: Post Series B — Hardware + GPS integration</p>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg">
+          <div class="coming-card">
+            <h6>🏛️ Govt Data Portal</h6>
+            <span class="coming-badge">Coming Soon</span>
+            <p class="mt-2">Status: Post DGFT registration</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -395,6 +587,41 @@
         alert('Error updating settings');
       });
     }
+
+    function toggleNotifDropdown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('notifDropdown').classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+      const dd = document.getElementById('notifDropdown');
+      if (dd && !dd.contains(e.target) && !e.target.closest('.notif-bell')) {
+        dd.classList.remove('show');
+      }
+    });
+
+    function markRead(e, el) {
+      var id = el.getAttribute('data-id');
+      if (id) {
+        navigator.sendBeacon('/admin/notifications/mark-read', new URLSearchParams({id: id}));
+      }
+    }
+
+    function timeAgo(dateStr) {
+      if (!dateStr) return '';
+      var d = new Date(dateStr.replace(' ', 'T'));
+      var now = new Date();
+      var diff = Math.floor((now - d) / 1000);
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
+    }
+    document.querySelectorAll('.notif-time[data-ts]').forEach(function(el) {
+      var ago = timeAgo(el.getAttribute('data-ts'));
+      if (ago) el.textContent = ago;
+    });
   </script>
 </body>
 </html>

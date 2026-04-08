@@ -1,6 +1,17 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, abort, send_from_directory
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from replit_db_shim import db
+import json as _json_mod
+
+def _kv_prefix(prefix):
+    conn = sqlite3.connect('kv_store.db')
+    c = conn.cursor()
+    c.execute("SELECT key, value FROM kv WHERE key LIKE ?", (prefix + '%',))
+    results = []
+    for row in c.fetchall():
+        results.append((row[0], _json_mod.loads(row[1])))
+    conn.close()
+    return results
 import os
 import json
 from werkzeug.utils import secure_filename
@@ -2188,6 +2199,18 @@ def init_erp_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS admin_notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            link TEXT,
+            category TEXT DEFAULT 'info',
+            is_read INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     for col_name, col_def in [
         ('erp_interests', 'TEXT'),
         ('years_experience', 'INTEGER'),
@@ -2493,9 +2516,8 @@ def furrwings_vet_patients():
     searched = False
     if query:
         searched = True
-        all_users = db.prefix("user:")
-        for key in all_users:
-            user = db.get(key)
+        all_users = _kv_prefix("user:")
+        for key, user in all_users:
             if user and isinstance(user, dict):
                 user_email = key.replace("user:", "")
                 if (query.lower() in user.get('phone', '').lower() or
@@ -9680,7 +9702,29 @@ def master_admin_dashboard():
     """)
     recent_transactions = c.fetchall()
 
+    c.execute("SELECT COUNT(*) FROM furrwings_vets WHERE approval_status = 'pending'")
+    pending_vets = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM furrwings_vets WHERE approval_status = 'approved'")
+    approved_vets = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM pet_friendly_venues WHERE submission_status = 'pending' AND is_active = 0")
+    pending_venues = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM admin_notifications WHERE is_read = 0")
+    unread_notifications = c.fetchone()[0]
+
+    c.execute("SELECT * FROM admin_notifications ORDER BY created_at DESC LIMIT 10")
+    recent_notifications = c.fetchall()
+
     conn.close()
+
+    total_pet_parents = 0
+    gdpr_pending = 0
+    for key, user in _kv_prefix("user:"):
+        total_pet_parents += 1
+        if user and isinstance(user, dict) and user.get('deletion_requested'):
+            gdpr_pending += 1
 
     stats = {
         'total_vendors': total_vendors,
@@ -9692,7 +9736,11 @@ def master_admin_dashboard():
         'recent_transactions': recent_transactions
     }
 
-    return render_template("master_admin_dashboard.html", settings=settings, stats=stats)
+    return render_template("master_admin_dashboard.html", settings=settings, stats=stats,
+        pending_vets=pending_vets, approved_vets=approved_vets,
+        pending_venues=pending_venues, gdpr_pending=gdpr_pending,
+        total_pet_parents=total_pet_parents, unread_notifications=unread_notifications,
+        recent_notifications=recent_notifications)
 
 @app.route('/master/admin/update-commission', methods=["POST"])
 def update_commission():
@@ -9757,6 +9805,102 @@ def update_platform_settings():
 
     except Exception as e:
         return {"success": False, "message": str(e)}, 500
+
+@app.route('/admin/notifications')
+def admin_notifications():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM admin_notifications ORDER BY created_at DESC")
+    notifications = c.fetchall()
+    c.execute("UPDATE admin_notifications SET is_read = 1 WHERE is_read = 0")
+    conn.commit()
+    conn.close()
+    return render_template("admin_notifications.html", notifications=notifications)
+
+@app.route('/admin/notifications/mark-read', methods=['POST'])
+def admin_mark_notification_read():
+    if not session.get("master_admin"):
+        return {"success": False, "message": "Unauthorized"}, 403
+    notif_id = request.form.get('id') or (request.get_json() or {}).get('id')
+    if notif_id:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("UPDATE admin_notifications SET is_read = 1 WHERE id = ?", (notif_id,))
+        conn.commit()
+        conn.close()
+    return {"success": True}
+
+@app.route('/admin/users')
+def admin_users():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    search = request.args.get('q', '').strip().lower()
+    users_list = []
+    for key, user in _kv_prefix("user:"):
+        if user and isinstance(user, dict):
+            email = key.replace("user:", "")
+            name = user.get('name', '')
+            if search and search not in email.lower() and search not in name.lower():
+                continue
+            pets_list = db.get(f"pets:{email}", [])
+            pet_count = len(pets_list) if isinstance(pets_list, list) else 0
+            bookings = db.get(f"bookings:{email}", [])
+            booking_count = len(bookings) if isinstance(bookings, list) else 0
+            users_list.append({
+                'email': email,
+                'name': name,
+                'phone': user.get('phone', ''),
+                'joined': user.get('gdpr_consents', {}).get('privacy_policy', {}).get('timestamp', ''),
+                'pet_count': pet_count,
+                'booking_count': booking_count,
+                'deletion_requested': user.get('deletion_requested', False),
+                'deletion_date': user.get('deletion_requested_date', ''),
+            })
+    users_list.sort(key=lambda u: u['email'])
+    if request.args.get('export') == 'csv':
+        import io, csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Email', 'Name', 'Phone', 'Joined', 'Pets', 'Bookings', 'GDPR Deletion Requested'])
+        for u in users_list:
+            writer.writerow([u['email'], u['name'], u['phone'], u.get('joined', '')[:10], u['pet_count'], u['booking_count'], 'Yes' if u['deletion_requested'] else 'No'])
+        from flask import Response
+        return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment;filename=pet_parents.csv'})
+    return render_template("admin_users.html", users=users_list, search=search)
+
+@app.route('/admin/gdpr/requests')
+def admin_gdpr_requests():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    gdpr_users = []
+    for key, user in _kv_prefix("user:"):
+        if user and isinstance(user, dict) and user.get('deletion_requested'):
+            email = key.replace("user:", "")
+            gdpr_users.append({
+                'email': email,
+                'name': user.get('name', ''),
+                'deletion_requested_date': user.get('deletion_requested_date', 'Unknown'),
+                'scheduled_deletion_date': user.get('scheduled_deletion_date', 'Not set'),
+            })
+    return render_template("admin_gdpr_requests.html", users=gdpr_users)
+
+@app.route('/admin/gdpr/requests/cancel', methods=['POST'])
+def admin_gdpr_cancel_deletion():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    email = request.form.get('email')
+    if email:
+        user_key = f"user:{email}"
+        user = db.get(user_key)
+        if user and isinstance(user, dict):
+            user['deletion_requested'] = False
+            user.pop('deletion_requested_date', None)
+            user.pop('scheduled_deletion_date', None)
+            db[user_key] = user
+            flash(f'GDPR deletion request cancelled for {email}')
+    return redirect(url_for('admin_gdpr_requests'))
 
 @app.route('/master/admin/vendors')
 def manage_vendors():

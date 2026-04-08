@@ -1,0 +1,259 @@
+In main.py and templates only.
+Improve the existing master admin
+dashboard without removing any
+existing functionality.
+Do not modify furrvet.py.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create new templates where required.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+
+PART 1 — Update master admin
+dashboard route:
+
+Find the master admin dashboard
+route in main.py.
+Add these additional queries:
+
+Pending FurrWings vet applications:
+c.execute("""
+    SELECT COUNT(*) FROM furrwings_vets
+    WHERE approval_status = 'pending'
+""")
+pending_vets = c.fetchone()[0]
+
+Pending venue suggestions:
+c.execute("""
+    SELECT COUNT(*) FROM
+    pet_friendly_venues
+    WHERE submission_status = 'pending'
+    AND is_active = 0
+""")
+pending_venues = c.fetchone()[0]
+
+GDPR deletion requests:
+Query Replit db for users where
+deletion_requested = True
+gdpr_pending = count
+
+Total pet parents:
+Count all users in Replit db
+total_pet_parents = count
+
+Admin notifications unread:
+c.execute("""
+    SELECT COUNT(*) FROM
+    admin_notifications
+    WHERE is_read = 0
+""")
+unread_notifications = c.fetchone()[0]
+
+Pass all new variables to template.
+
+PART 2 — Update master admin
+dashboard template:
+
+In templates/master_admin_dashboard.html
+ADD these sections WITHOUT removing
+any existing content:
+
+After the header, before Quick Actions
+add an ALERTS BAR:
+
+Only show if any count > 0:
+
+Horizontal scrollable alert pills:
+Each pill is clickable and links
+to relevant management page.
+
+If pending_vets > 0:
+  Red pill:
+  "🩺 {{ pending_vets }} Vet
+  Applications Pending"
+  → /admin/furrwings/vets
+
+If pending_venues > 0:
+  Yellow pill:
+  "🏨 {{ pending_venues }} Venue
+  Suggestions Pending"
+  → /admin/venues
+
+If gdpr_pending > 0:
+  Red pill:
+  "🔒 {{ gdpr_pending }} GDPR
+  Deletion Requests"
+  → /admin/gdpr/requests
+
+If all zero:
+  Green pill:
+  "✅ All clear — no pending actions"
+
+ADD a PORTAL MANAGEMENT section
+after existing commission section:
+
+Section header:
+"🚪 Portal Management"
+
+Grid of portal cards:
+
+Card 1 — FurrWings Vets:
+  🩺 FurrWings Vets
+  Approved: [count]
+  Pending: [count] in red if > 0
+  Manage button → /admin/furrwings/vets
+
+Card 2 — Pet Parents:
+  👥 Pet Parents
+  Total: [total_pet_parents]
+  Manage button → /admin/users
+
+Card 3 — Venue Moderation:
+  🏨 Community Venues
+  Pending: [pending_venues]
+    in yellow if > 0
+  Manage button → /admin/venues
+
+Card 4 — GDPR Requests:
+  🔒 GDPR & Privacy
+  Pending: [gdpr_pending]
+    in red if > 0
+  Manage button → /admin/gdpr/requests
+
+Card 5 — Data Breach Log:
+  🚨 Breach Log
+  View Log button
+  → /admin/gdpr/breach-log
+
+Card 6 — FurrVet Vets:
+  🏥 FurrVet Clinics
+  Coming Soon badge
+  Greyed out
+
+ADD a COMING SOON section
+at the bottom:
+
+Section header: "🚀 Upcoming Features"
+Small grey cards:
+
+WhatsApp Integration
+  Status: Activate after OPC
+  registration
+
+Escrow Management
+  Status: Requires Razorpay Route API
+
+Research Database
+  Status: Post NGO network launch
+
+Smart Collar Tracking
+  Status: Post Series B
+  Hardware + GPS integration
+
+Govt Data Portal
+  Status: Post DGFT registration
+
+Each card has a small grey
+"Coming Soon" badge.
+No buttons — just informational.
+
+PART 3 — Add notification bell:
+
+In master_admin_dashboard.html header
+add a notification bell icon
+next to the logout button:
+
+🔔 with red badge showing
+unread_notifications count
+if > 0
+
+Clicking it shows a dropdown
+of recent admin_notifications:
+  Each notification shows:
+    Title
+    Message preview
+    Time ago
+    Click marks as read and
+    navigates to link
+
+Add route /admin/notifications GET:
+Pull all admin_notifications
+ordered by created_at DESC
+Mark all as read on page load
+Render simple notifications list page
+
+Add route /admin/notifications/
+mark-read POST:
+Mark specific notification as read
+Return JSON success
+
+PART 4 — Fix Quick Actions:
+
+In the existing Quick Actions section
+update the buttons:
+
+Keep: Manage Vendors button
+Remove or grey out:
+  WhatsApp Business Dashboard
+  → add Coming Soon tooltip
+  WhatsApp Simulator
+  → add Coming Soon tooltip
+  Escrow Management
+  → add Coming Soon tooltip
+
+Add new working buttons:
+  🩺 FurrWings Vets
+  → /admin/furrwings/vets
+
+  🏨 Venue Moderation
+  → /admin/venues
+
+  👥 Pet Parents
+  → /admin/users
+
+  🔒 GDPR
+  → /admin/gdpr/requests
+
+Keep Research Database button
+but add Coming Soon tooltip:
+  Shows tooltip on hover:
+  "NGO research portal —
+  launching with smart collar
+  tracking system"
+
+PART 5 — Create missing admin pages:
+
+/admin/users GET:
+Admin only
+Pull all users from Replit db
+as a list of key-value pairs
+Show table:
+  Name, Email, Joined date,
+  Pet count, Booking count,
+  GDPR deletion requested (badge)
+Search input at top
+Export CSV button
+Create templates/admin_users.html
+
+/admin/gdpr/requests GET:
+Admin only
+Pull users from Replit db where
+deletion_requested = True
+Show table:
+  Name, Email,
+  Deletion requested date,
+  Scheduled deletion date,
+  Cancel Deletion button
+    POSTs to cancel the request
+Create templates/admin_gdpr_requests.html
+
+Do not remove any existing
+functionality from admin dashboard.
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
