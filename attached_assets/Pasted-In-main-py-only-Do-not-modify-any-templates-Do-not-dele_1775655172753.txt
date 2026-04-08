@@ -1,0 +1,380 @@
+In main.py only.
+Do not modify any templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+
+PART 1 — Add SendGrid helper:
+
+Add this email sending function
+near the top of main.py after
+the imports:
+
+def send_email(to_email, to_name,
+    subject, html_body,
+    email_type=None,
+    related_id=None,
+    related_type=None):
+
+    SENDGRID_KEY = os.environ.get(
+        'SENDGRID_API_KEY')
+    FROM_EMAIL = os.environ.get(
+        'FROM_EMAIL', 'info@furrbutler.com')
+    BASE_URL = os.environ.get(
+        'BASE_URL', 'https://furrbutler.com')
+
+    email_sent = False
+
+    if SENDGRID_KEY:
+        try:
+            import sendgrid
+            from sendgrid.helpers.mail
+                import Mail, To, From,
+                Subject, HtmlContent
+
+            sg = sendgrid.SendGridAPIClient(
+                api_key=SENDGRID_KEY)
+
+            message = Mail(
+                from_email=(
+                    FROM_EMAIL,
+                    'FurrButler'),
+                to_emails=to_email,
+                subject=subject,
+                html_content=html_body)
+
+            response = sg.send(message)
+            if response.status_code in
+                [200, 201, 202]:
+                email_sent = True
+
+        except Exception as e:
+            print(f'SendGrid error: {e}')
+            email_sent = False
+
+    if not email_sent:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO pending_emails
+            (recipient_email,
+             recipient_name,
+             subject, body,
+             email_type,
+             related_id,
+             related_type)
+            VALUES (?,?,?,?,?,?,?)
+        """, (to_email, to_name,
+              subject, html_body,
+              email_type,
+              related_id,
+              related_type))
+        conn.commit()
+        conn.close()
+
+    return email_sent
+
+PART 2 — Add pending_emails table:
+
+Add to init_erp_db():
+
+CREATE TABLE IF NOT EXISTS
+pending_emails (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipient_email TEXT NOT NULL,
+    recipient_name TEXT,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    email_type TEXT,
+    related_id INTEGER,
+    related_type TEXT,
+    is_sent BOOLEAN DEFAULT 0,
+    created_at TEXT DEFAULT
+        CURRENT_TIMESTAMP
+)
+
+PART 3 — Replace all email sending:
+
+Find every place in main.py that
+attempts to send an email.
+This includes:
+- Any sendgrid calls
+- Any flash messages that say
+  "email would be sent"
+- Any send_email stub functions
+
+Replace all of them with calls
+to the new send_email() function.
+
+For approval emails use this
+HTML template:
+
+def build_approval_email(
+    name, portal_name,
+    setup_link, features_list):
+
+    return f"""
+    <div style="font-family: Arial,
+      sans-serif; max-width: 600px;
+      margin: 0 auto;">
+
+      <div style="background: linear-gradient(
+        135deg, #667eea, #764ba2);
+        padding: 30px; text-align: center;">
+        <h1 style="color: white;
+          margin: 0;">
+          🐾 FurrButler
+        </h1>
+        <p style="color: rgba(255,255,255,0.9);
+          margin: 5px 0 0 0;">
+          {portal_name}
+        </p>
+      </div>
+
+      <div style="padding: 30px;
+        background: white;">
+        <h2 style="color: #333;">
+          Welcome, {name}!
+        </h2>
+        <p style="color: #666;
+          line-height: 1.6;">
+          Your application has been
+          approved after successful
+          verification.
+        </p>
+        <p style="color: #666;">
+          Click the button below to
+          set your password and access
+          your portal:
+        </p>
+
+        <div style="text-align: center;
+          margin: 30px 0;">
+          <a href="{setup_link}"
+            style="background: linear-gradient(
+              135deg, #667eea, #764ba2);
+              color: white;
+              padding: 15px 30px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: bold;
+              font-size: 16px;">
+            Set Your Password →
+          </a>
+        </div>
+
+        <p style="color: #999;
+          font-size: 12px;">
+          This link does not expire
+          but can only be used once.
+          If you need a new link
+          contact support@furrbutler.com
+        </p>
+
+        <hr style="border: none;
+          border-top: 1px solid #eee;
+          margin: 20px 0;">
+
+        <h3 style="color: #333;">
+          What you can do:
+        </h3>
+        <ul style="color: #666;
+          line-height: 2;">
+          {features_list}
+        </ul>
+      </div>
+
+      <div style="background: #f8f9fa;
+        padding: 20px;
+        text-align: center;">
+        <p style="color: #999;
+          font-size: 12px; margin: 0;">
+          © FurrButler |
+          info@furrbutler.com |
+          <a href="{BASE_URL}/privacy-policy"
+            style="color: #999;">
+            Privacy Policy
+          </a>
+        </p>
+      </div>
+    </div>
+    """
+
+Use build_approval_email() in
+all approval routes:
+
+FurrWings Vet approval:
+features = """
+<li>Upload vaccination certificates
+    directly to pet parents</li>
+<li>Issue verified travel health
+    certificates</li>
+<li>Send prescriptions securely</li>
+<li>Connect your existing ERP</li>
+"""
+html = build_approval_email(
+    vet_name,
+    'FurrWings Vet Connect',
+    setup_link,
+    features)
+
+send_email(
+    vet_email,
+    vet_name,
+    'Welcome to FurrWings Vet Connect',
+    html,
+    email_type='vet_approval',
+    related_id=vid,
+    related_type='furrwings_vet')
+
+Handler approval:
+features = """
+<li>Receive pet transport bookings</li>
+<li>Manage your booking calendar</li>
+<li>Issue handler invoices</li>
+<li>Build your verified profile</li>
+"""
+html = build_approval_email(
+    handler_name,
+    'FurrWings Handler Portal',
+    setup_link,
+    features)
+
+send_email(
+    handler_email,
+    handler_name,
+    'Welcome to FurrWings Handler Portal',
+    html,
+    email_type='handler_approval',
+    related_id=hid,
+    related_type='handler')
+
+Isolation center approval:
+features = """
+<li>Receive quarantine bookings</li>
+<li>Manage facility capacity</li>
+<li>Digital check in and out</li>
+<li>Verified facility badge</li>
+"""
+html = build_approval_email(
+    center_name,
+    'FurrWings Isolation Center Portal',
+    setup_link,
+    features)
+
+send_email(
+    center_email,
+    center_name,
+    'Welcome to FurrWings Isolation Portal',
+    html,
+    email_type='isolation_approval',
+    related_id=iid,
+    related_type='isolation')
+
+PART 4 — GDPR verification email:
+
+When pet parent registers add:
+html_body = f"""
+<div style="font-family: Arial,
+  sans-serif; max-width: 600px;
+  margin: 0 auto;">
+  <div style="background: linear-gradient(
+    135deg, #667eea, #764ba2);
+    padding: 30px; text-align: center;">
+    <h1 style="color: white;">
+      🐾 FurrButler
+    </h1>
+  </div>
+  <div style="padding: 30px;">
+    <h2>Welcome to FurrButler!</h2>
+    <p>Your verification code is:</p>
+    <div style="text-align: center;
+      margin: 20px 0;">
+      <span style="font-size: 36px;
+        font-weight: bold;
+        letter-spacing: 8px;
+        color: #667eea;">
+        {verification_code}
+      </span>
+    </div>
+    <p style="color: #666;">
+      Enter this code in the app
+      to verify your email address.
+    </p>
+    <p style="color: #999;
+      font-size: 12px;">
+      If you did not create a
+      FurrButler account please
+      ignore this email.
+    </p>
+  </div>
+</div>
+"""
+
+send_email(
+    user_email,
+    user_name,
+    'Verify your FurrButler account',
+    html_body,
+    email_type='email_verification')
+
+PART 5 — Pending emails admin page:
+
+Add route /admin/pending-emails GET:
+Admin only
+Pull all from pending_emails
+where is_sent = 0
+Order by created_at DESC
+Render admin_pending_emails.html
+
+Add route
+/admin/pending-emails/<int:eid>/sent POST:
+Set is_sent = 1
+Redirect back
+
+Add route
+/admin/pending-emails/<int:eid>/retry POST:
+Try sending via SendGrid again
+If success set is_sent = 1
+Flash result
+
+Create templates/admin_pending_emails.html:
+Purple gradient header
+"📧 Pending Emails"
+"Emails that need manual sending"
+
+For each pending email show:
+  Recipient name and email
+  Subject
+  Email type badge
+  Time since created
+  Body preview (first 100 chars)
+  View Full Email button
+    (expands body)
+  Copy Setup Link button
+    if body contains /set-password/
+    extracts the link and copies it
+  WhatsApp button:
+    wa.me/[phone] if phone available
+    Opens WhatsApp with the link
+    pre-typed
+  Mark as Sent button
+
+At top show notice:
+"These emails could not be sent
+automatically. Please send them
+manually via WhatsApp or phone
+call to the recipient."
+
+Add link in admin dashboard
+alerts bar:
+If pending emails count > 0:
+  Orange pill:
+  "📧 [count] emails need
+  manual sending"
+  → /admin/pending-emails
+
+Do not modify any templates
+except admin dashboard alerts bar.
+Do not modify furrvet.py.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
