@@ -1,0 +1,329 @@
+In main.py and templates only.
+Do not modify furrvet.py.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create ALL templates referenced.
+Verify each template exists before
+moving to the next.
+
+PART 1 — Handler application form:
+
+Add route /handler/register
+GET and POST:
+
+GET: render handler_register.html
+
+Create templates/handler_register.html:
+Purple gradient header bar
+"✈️ Become a FurrWings Handler"
+"Help pets travel safely across
+the world"
+
+Left panel — benefits:
+  ✓ Connect with pet owners
+    needing travel assistance
+  ✓ Manage bookings digitally
+  ✓ Build your verified profile
+  ✓ Free to join
+
+Right panel — form:
+
+Personal Details:
+  Full name text required
+  Email text required
+  Phone text required
+  Password text required
+  Confirm password text required
+  City text required
+  State dropdown required
+
+Professional Details:
+  Years of experience number
+  Previous employer text optional
+  Languages spoken text
+    placeholder: English, Malayalam etc
+
+Certifications:
+  IATA certification number text
+  Other certifications textarea optional
+
+Countries Served:
+  Multi-line text or tag input
+  placeholder: India, UAE, UK, USA
+  "List countries you can handle
+  pet transport to and from"
+
+Services Offered checkboxes:
+  ☐ International pet transport
+  ☐ Documentation assistance
+  ☐ Airport pickup and drop
+  ☐ Quarantine coordination
+  ☐ DGFT certificate assistance
+  ☐ Health certificate coordination
+  ☐ Custom clearance assistance
+
+About yourself textarea:
+  placeholder: Tell pet parents
+  about your experience and
+  why they should trust you
+  with their beloved pets
+
+Emergency contact text
+
+GDPR consent checkbox required
+
+Submit Application button
+
+Notice below button:
+"Applications are reviewed within
+2-3 business days. You will receive
+a login link via email once approved."
+
+Back to home link → /
+
+POST:
+  Validate all required fields
+  Check email not already registered
+  in handlers table
+  Hash password with werkzeug
+  Insert into handlers table with
+  approval_status = pending
+  Insert admin notification:
+    type: handler_application
+    title: New Handler Application
+    message: [name] from [city]
+      has applied
+    link: /admin/handlers
+  Flash: "Application submitted.
+    We will review within
+    2-3 business days."
+  Redirect to /handler/pending
+
+Add route /handler/pending GET:
+Render handler_pending.html
+
+Create templates/handler_pending.html:
+Same style as furrwings_vet_pending.html
+"✈️ Application Received!"
+Timeline:
+  Step 1 ✅ Application submitted
+  Step 2 ⏳ Background verification
+  Step 3 ⏳ Account activation
+"You will receive a password setup
+link via email once approved."
+Contact: handlers@furrbutler.com
+Back to home link
+
+Update /handler/login template:
+Add below the login form:
+"Want to become a FurrWings Handler?"
+Apply Now link → /handler/register
+
+PART 2 — Isolation Center
+application form:
+
+Add route /isolation/register
+GET and POST:
+
+GET: render isolation_register.html
+
+Create templates/isolation_register.html:
+Purple gradient header bar
+"🏠 Register Your Isolation Center"
+"Join FurrWings as a certified
+pet isolation facility"
+
+Left panel — benefits:
+  ✓ Receive bookings from pet owners
+    planning international travel
+  ✓ Digital booking management
+  ✓ Verified facility badge
+  ✓ Free to join
+
+Right panel — form:
+
+Facility Details:
+  Facility name text required
+  Email text required
+  Phone text required
+  Password text required
+  Confirm password text required
+  Address textarea required
+  City text required
+  State dropdown required
+  Pincode text
+
+Contact Person:
+  Contact person name text required
+  Designation text
+  Alternate phone text
+
+License and Certification:
+  License number text required
+  Issuing authority text required
+  License expiry date date
+  AQCS recognition boolean toggle:
+    "Recognised by Animal
+    Quarantine & Certification
+    Services (AQCS)"
+  Government registration number text
+
+Facility Details:
+  Total capacity number required
+    (how many animals at once)
+  Species accepted checkboxes:
+    ☐ Dogs
+    ☐ Cats
+    ☐ Birds
+    ☐ Rabbits
+    ☐ Exotic animals
+    ☐ All species
+
+Services Offered checkboxes:
+  ☐ Pre-travel quarantine
+  ☐ Post-travel quarantine
+  ☐ Health observation
+  ☐ Microchipping
+  ☐ Vaccination on premises
+  ☐ Veterinary on call
+  ☐ 24/7 monitoring
+
+Pricing:
+  Price per day per animal number
+  Currency: ₹ (pre-filled)
+  Minimum stay days number
+
+About facility textarea:
+  placeholder: Describe your
+  facility, staff qualifications,
+  and what makes you the right
+  choice for pet owners
+
+GDPR consent checkbox required
+
+Submit Application button
+
+Notice:
+"Applications are reviewed within
+3-5 business days. We may request
+a facility inspection before approval."
+
+Back to home link → /
+
+POST:
+  Validate required fields
+  Check email not already exists
+  in isolation_centers table
+  Hash password
+  Insert into isolation_centers table
+  with approval_status = pending
+  Insert admin notification:
+    type: isolation_application
+    title: New Isolation Center Application
+    message: [facility name] in [city]
+      has applied with capacity
+      of [capacity] animals
+    link: /admin/isolation
+  Flash: "Application submitted.
+    Our team will be in touch
+    within 3-5 business days."
+  Redirect to /isolation/pending
+
+Add route /isolation/pending GET:
+Render isolation_pending.html
+
+Create templates/isolation_pending.html:
+Same style as handler_pending.html
+"🏠 Application Received!"
+Timeline:
+  Step 1 ✅ Application submitted
+  Step 2 ⏳ Document verification
+  Step 3 ⏳ Facility review
+  Step 4 ⏳ Account activation
+"Isolation center applications
+require additional verification.
+This may take 3-5 business days."
+Contact: isolation@furrbutler.com
+
+Update /isolation/login template:
+Add below login form:
+"Want to register your facility?"
+Apply Now link → /isolation/register
+
+PART 3 — Update landing page:
+
+In the main landing page template
+(whichever serves / route):
+
+Under FURRWINGS — PET TRAVEL section
+update each portal button to show
+a secondary Apply link below it:
+
+Vet Portal button stays as is
+Add below it:
+"Apply as vet" → /furrwings/vet/register
+
+Handler Portal button stays as is
+Add below it:
+"Apply as handler" → /handler/register
+
+Isolation Center button stays as is
+Add below it:
+"Register facility" → /isolation/register
+
+Style the apply links as small
+grey text links not buttons
+So they don't clutter the landing page
+but are discoverable
+
+PART 4 — Add handlers table columns:
+
+The handlers table may be missing
+some columns needed for approval.
+Add using ALTER TABLE IF NOT EXISTS:
+
+ALTER TABLE handlers
+ADD COLUMN approval_status TEXT
+DEFAULT 'pending';
+
+ALTER TABLE handlers
+ADD COLUMN approved_date TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN approved_by TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN admin_notes TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN years_experience INTEGER;
+
+ALTER TABLE handlers
+ADD COLUMN languages TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN iata_certification TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN other_certifications TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN countries_served TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN services_offered TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN about_text TEXT;
+
+ALTER TABLE handlers
+ADD COLUMN emergency_contact TEXT;
+
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+After completing verify every new
+render_template() call has a
+corresponding template file.
+Create every template — do not skip.

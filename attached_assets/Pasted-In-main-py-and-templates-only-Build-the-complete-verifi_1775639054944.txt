@@ -1,0 +1,708 @@
+In main.py and templates only.
+Build the complete verification and
+approval workflow for FurrWings Vets,
+Handlers and Isolation Centers.
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create EVERY template referenced.
+Verify each template exists before
+moving to the next route.
+
+PART 1 — Database:
+
+Add to init_erp_db():
+
+CREATE TABLE IF NOT EXISTS
+approval_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT UNIQUE NOT NULL,
+    user_type TEXT NOT NULL
+        CHECK(user_type IN
+        ('furrwings_vet','handler',
+        'isolation')),
+    user_id INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    is_used BOOLEAN DEFAULT 0,
+    is_revoked BOOLEAN DEFAULT 0,
+    created_at TEXT
+        DEFAULT CURRENT_TIMESTAMP
+)
+
+Note: NO expiry column.
+Tokens only invalidated by
+is_used = 1 or is_revoked = 1.
+
+CREATE TABLE IF NOT EXISTS
+verification_checklists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_type TEXT NOT NULL,
+    application_id INTEGER NOT NULL,
+    checklist_item TEXT NOT NULL,
+    item_category TEXT NOT NULL,
+    status TEXT DEFAULT 'pending'
+        CHECK(status IN
+        ('pending','in_progress',
+        'passed','failed','waived')),
+    notes TEXT,
+    verified_by TEXT,
+    verified_date TEXT,
+    document_url TEXT,
+    created_at TEXT
+        DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE IF NOT EXISTS
+verification_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_type TEXT NOT NULL,
+    application_id INTEGER NOT NULL,
+    document_name TEXT NOT NULL,
+    document_type TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    uploaded_by TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT
+        DEFAULT CURRENT_TIMESTAMP
+)
+
+PART 2 — Checklist templates per type:
+
+Add helper function in main.py:
+
+def create_verification_checklist(
+    application_type, application_id):
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+
+    if application_type == 'furrwings_vet':
+        items = [
+            ('License Verification',
+             'License number verified with
+              issuing veterinary council'),
+            ('License Verification',
+             'License is current and
+              not expired or suspended'),
+            ('Identity Verification',
+             'Government issued photo ID
+              received and verified'),
+            ('Clinic Verification',
+             'Clinic existence confirmed
+              via Google Maps or call'),
+            ('Clinic Verification',
+             'Clinic address matches
+              registration documents'),
+            ('Professional',
+             'Professional indemnity
+              insurance confirmed'),
+            ('Professional',
+             'No disciplinary actions
+              on record'),
+            ('FurrWings Specific',
+             'Vet briefed on FurrWings
+              certificate standards'),
+            ('FurrWings Specific',
+             'Vet agreement to terms
+              received'),
+        ]
+
+    elif application_type == 'handler':
+        items = [
+            ('Identity',
+             'Aadhaar card verified'),
+            ('Identity',
+             'Passport verified if
+              handling international'),
+            ('Identity',
+             'Photo matches documents'),
+            ('Background',
+             'Police clearance certificate
+              received and verified'),
+            ('Background',
+             'No criminal record
+              related to animals'),
+            ('Professional',
+             'IATA certification
+              number verified'),
+            ('Professional',
+             'IATA certification
+              is current not expired'),
+            ('References',
+             'Previous employer reference
+              received and contacted'),
+            ('References',
+             'Reference confirms
+              employment history'),
+            ('Interview',
+             'Video call interview
+              completed'),
+            ('Interview',
+             'Handler demonstrated
+              knowledge of pet transport
+              regulations'),
+            ('Address',
+             'Physical address verified'),
+            ('Trial',
+             'Terms and conditions
+              agreed and signed'),
+            ('FurrWings Specific',
+             'Handler briefed on
+              FurrWings standards
+              and policies'),
+        ]
+
+    elif application_type == 'isolation':
+        items = [
+            ('License',
+             'Facility license
+              number verified'),
+            ('License',
+             'License is current
+              and valid'),
+            ('AQCS',
+             'AQCS recognition
+              confirmed if claimed'),
+            ('Facility Inspection',
+             'On-site inspection
+              scheduled'),
+            ('Facility Inspection',
+             'On-site inspection
+              completed'),
+            ('Facility Inspection',
+             'Inspection report
+              filed and passed'),
+            ('Facility',
+             'CCTV coverage verified
+              in all animal areas'),
+            ('Facility',
+             'Veterinary on-call
+              arrangement confirmed'),
+            ('Facility',
+             '24/7 staff coverage
+              confirmed'),
+            ('Facility',
+             'Quarantine separation
+              for different species
+              verified'),
+            ('Staff',
+             'Staff qualifications
+              checked'),
+            ('Staff',
+             'Staff animal handling
+              training verified'),
+            ('References',
+             'Minimum 2 client
+              references received'),
+            ('References',
+             'References contacted
+              and verified'),
+            ('Insurance',
+             'Liability insurance
+              confirmed'),
+            ('Insurance',
+             'Coverage amount
+              adequate for capacity'),
+            ('Capacity',
+             'Declared capacity
+              matches actual facility'),
+            ('FurrWings Specific',
+             'Facility briefed on
+              FurrWings standards'),
+            ('FurrWings Specific',
+             'Agreement signed'),
+        ]
+
+    for category, item in items:
+        c.execute("""
+            INSERT INTO
+            verification_checklists
+            (application_type,
+             application_id,
+             checklist_item,
+             item_category)
+            VALUES (?, ?, ?, ?)
+        """, (application_type,
+              application_id,
+              item, category))
+
+    conn.commit()
+    conn.close()
+
+Call this function when a new
+application is submitted:
+After inserting new vet/handler/
+isolation record call:
+create_verification_checklist(
+    'furrwings_vet', new_id)
+
+PART 3 — FurrWings Vet approval page:
+
+Add route /admin/furrwings/vets GET:
+Admin only
+Pull all from furrwings_vets
+Pull checklist completion per vet:
+  complete_count and total_count
+  per application
+
+Pass to admin_furrwings_vets.html
+
+Create templates/admin_furrwings_vets.html:
+
+Purple gradient header:
+"🩺 FurrWings Vet Applications"
+Back to admin dashboard button
+
+Stats: Pending, Approved,
+  Rejected, Suspended count cards
+
+Filter tabs: All | Pending |
+  In Verification | Approved |
+  Rejected
+
+For each vet show a card:
+
+Left side:
+  Name, clinic, city, state
+  Email, phone
+  License: [number] from [body]
+  Specialization
+  ERP Interest badge if filled
+  Applied date
+
+Middle:
+  Verification progress bar:
+  [X/9 checks complete]
+  Green if all done
+  Yellow if in progress
+  Red if any failed
+
+Right side based on status:
+
+If pending or in_verification:
+  View Checklist button (primary)
+    → /admin/furrwings/vets/<id>/verify
+  Reject button (outline red)
+    → shows reason modal
+
+If all checklist items passed:
+  Approve button glows green
+  "All checks complete — ready
+  to approve"
+
+If approved:
+  Green badge
+  Certificates issued count
+  Resend Login Link button
+  Suspend button
+
+PART 4 — Verification checklist page:
+
+Add route
+/admin/furrwings/vets/<int:vid>/verify
+GET and POST:
+
+GET:
+Pull vet details
+Pull all checklist items for this vet
+Group by item_category
+Pull verification documents uploaded
+
+Pass to admin_vet_verify.html
+
+Create templates/admin_vet_verify.html:
+
+Two column layout:
+
+Left column — Applicant Details:
+  All application fields displayed
+  Name, clinic, license, city
+  Email, phone, specialization
+  ERP system interest
+  About text if provided
+
+  Document Upload section:
+  List of uploaded verification docs
+  Upload new document button:
+    Document type dropdown:
+      Government ID, License Copy,
+      Insurance Certificate,
+      Reference Letter,
+      Inspection Report, Other
+    File upload input
+    Notes textarea
+    Upload button
+    POSTs to
+    /admin/verify/upload-document
+
+Right column — Checklist:
+  Grouped by category
+  Each category as a section:
+
+  Category header (e.g. Identity):
+  For each item in category:
+    Item description
+    Status dropdown:
+      ⚪ Pending
+      🔵 In Progress
+      ✅ Passed
+      ❌ Failed
+      ⚠️ Waived
+    Notes textarea (expandable)
+    Save button per item OR
+    one Save All button at bottom
+
+  Progress summary at top:
+    X of Y checks complete
+    Overall status badge
+
+  Notes section:
+  General notes about application
+  Textarea saved separately
+
+  Action buttons at bottom:
+    Only shown when ALL items
+    are Passed or Waived:
+    Approve Application button
+    → POSTs to approve route
+
+    Always shown:
+    Reject Application button
+    Request More Information button
+      → shows email compose modal
+
+Add route
+/admin/furrwings/vets/<int:vid>/
+checklist/update
+POST:
+Body: item_id, status, notes
+Update verification_checklists
+Set verified_by = admin name
+Set verified_date = today
+Return JSON success
+
+Add route /admin/verify/upload-document
+POST:
+Accept file upload
+Save to static/uploads/verification/
+Insert into verification_documents
+Return JSON with file URL
+
+PART 5 — Approve route (updated):
+
+Add route
+/admin/furrwings/vets/<int:vid>/approve
+POST:
+Admin only
+
+Check all checklist items are
+Passed or Waived before approving.
+If any still Pending or In Progress:
+  Return error:
+  "Cannot approve. [X] verification
+  checks still pending."
+
+Update furrwings_vets:
+  approval_status = approved
+  approved_date = today
+  approved_by = session admin name
+
+Generate token (no expiry):
+import secrets
+token = secrets.token_urlsafe(32)
+Insert into approval_tokens:
+  token, user_type = furrwings_vet,
+  user_id, user_email
+  is_used = 0
+  is_revoked = 0
+  NO expires_at column
+
+Construct setup link:
+setup_link = BASE_URL +
+  '/set-password/' + token
+
+Send approval email via SendGrid
+or flash the link if not configured:
+
+Subject: "Welcome to FurrWings
+Vet Connect — Set Your Password"
+
+Body:
+"Dear Dr [name],
+
+Congratulations! After completing
+our verification process your
+application to join FurrWings
+Vet Connect has been approved.
+
+Please click the link below to
+set your password and access
+your portal:
+
+[setup_link]
+
+This link does not expire but
+can only be used once. Please
+keep it safe.
+
+Once logged in you can:
+- Upload vaccination certificates
+  directly to pet parents
+- Issue travel health certificates
+- Send prescriptions and health
+  records securely
+- Connect your existing ERP system
+
+If you did not receive this email
+or need a new link contact us at
+vets@furrbutler.com
+
+Welcome to the FurrWings family!
+
+The FurrWings Team
+FurrButler"
+
+If SendGrid not configured:
+Flash both success and the link:
+flash('Approved. Setup link: ' +
+  setup_link, 'success')
+
+Redirect to /admin/furrwings/vets
+
+PART 6 — Resend link route:
+
+Add route
+/admin/furrwings/vets/<int:vid>/
+resend-link
+POST:
+Admin only
+
+Revoke any existing unused tokens:
+UPDATE approval_tokens
+SET is_revoked = 1
+WHERE user_type = furrwings_vet
+AND user_id = vid
+AND is_used = 0
+
+Generate new token
+Same as approve route but
+without changing approval_status
+
+Send email with new link
+Flash success with link as backup
+
+Redirect to /admin/furrwings/vets
+
+PART 7 — Password setup route:
+
+Add route /set-password/<token>
+GET and POST:
+No login required — public route
+
+GET:
+Look up token in approval_tokens
+If not found:
+  Render set_password_invalid.html:
+  "Invalid Link"
+  "This link is not valid."
+  "Contact support if you believe
+  this is an error."
+  support@furrbutler.com
+
+If is_revoked = 1:
+  Render set_password_invalid.html:
+  "Link No Longer Valid"
+  "This link has been replaced
+  with a new one. Please check
+  your email for the latest link
+  or contact support."
+
+If is_used = 1:
+  Check if user is already
+  logged in with correct session:
+  If yes: redirect to their dashboard
+  If no: render set_password_invalid.html:
+  "Link Already Used"
+  "This link has already been
+  used to set a password."
+  "Go to login page" button
+  linking to correct portal login
+  based on user_type
+
+If valid (not used, not revoked):
+  Render set_password.html
+  Pass: user_type, user_email, token
+
+POST:
+  Body: password, confirm_password
+  Validate:
+    Min 8 characters
+    At least 1 number
+    At least 1 letter
+    Passwords match
+  Show inline errors if invalid
+
+  Hash with werkzeug
+  Update correct table:
+    furrwings_vet → furrwings_vets
+    handler → handlers
+    isolation → isolation_centers
+  Set password = hashed
+
+  Mark token as used:
+  UPDATE approval_tokens
+  SET is_used = 1
+  WHERE token = token
+
+  Auto login:
+    Set session keys for user_type
+    furrwings_vet:
+      furrwings_vet_id
+      furrwings_vet_name
+      furrwings_vet_email
+      furrwings_clinic
+    handler:
+      handler_id
+      handler_name
+      handler_email
+    isolation:
+      isolation_id
+      isolation_name
+      isolation_email
+
+  Flash: "Welcome! Your password
+  has been set successfully."
+
+  Redirect to correct dashboard
+
+Create templates/set_password.html:
+Clean white card centered on page
+Purple gradient header
+"🔐 Set Your Password"
+
+Show portal type:
+  If furrwings_vet:
+    "Welcome to FurrWings Vet Connect"
+    🩺 icon
+  If handler:
+    "Welcome to FurrWings
+    Handler Portal"
+    ✈️ icon
+  If isolation:
+    "Welcome to FurrWings
+    Isolation Center Portal"
+    🏠 icon
+
+Show email (read only, greyed)
+"Setting password for: [email]"
+
+Password input:
+  Label: New Password
+  Show/hide toggle
+  Requirements shown below:
+    ✓ At least 8 characters
+    ✓ At least one number
+    ✓ At least one letter
+  Requirements turn green as typed
+  using JavaScript
+
+Confirm Password input:
+  Show/hide toggle
+  Shows ✓ when matches
+
+Set Password button
+  Disabled until all requirements
+  met and passwords match
+
+Below button:
+"Having trouble? Contact
+support@furrbutler.com"
+
+Create templates/set_password_invalid.html:
+Same layout as set_password.html
+But shows error state
+Large red or orange icon
+Error message
+Contact support text
+Relevant login link
+
+PART 8 — Handler verification:
+
+Add route /admin/handlers GET:
+Admin only
+Same structure as furrwings vets
+Pull handlers with checklist progress
+
+Create templates/admin_handlers.html:
+Same layout as admin_furrwings_vets.html
+Header: "✈️ Handler Applications"
+Checklist shows 14 items (handler list)
+
+Add route
+/admin/handlers/<int:hid>/verify GET:
+Create templates/admin_handler_verify.html:
+Same as admin_vet_verify.html
+Shows handler specific checklist items
+
+Add route
+/admin/handlers/<int:hid>/approve POST:
+Same as vet approve but:
+  user_type = handler
+  Email says Handler Portal
+  Setup link goes to /set-password/<token>
+  Redirect to handler dashboard
+    on password set
+
+Add route
+/admin/handlers/<int:hid>/resend-link POST:
+Same as vet resend
+
+PART 9 — Isolation verification:
+
+Add route /admin/isolation GET:
+Admin only
+Same structure with isolation data
+Checklist has 19 items
+
+Create templates/admin_isolation.html:
+Header: "🏠 Isolation Center Applications"
+
+Add route
+/admin/isolation/<int:iid>/verify GET:
+Create templates/admin_isolation_verify.html:
+Same layout with isolation checklist
+Note: Shows inspection scheduling section
+  Date of on-site inspection
+  Inspector name
+  Inspection report upload
+  Pass/Fail toggle
+
+Add route
+/admin/isolation/<int:iid>/approve POST:
+Same flow as handler
+
+Add route
+/admin/isolation/<int:iid>/resend-link POST:
+Same as others
+
+PART 10 — Update admin dashboard:
+
+In templates/master_admin_dashboard.html:
+Update portal cards to link correctly:
+  FurrWings Vets → /admin/furrwings/vets
+  Handlers → /admin/handlers
+  Isolation Centers → /admin/isolation
+
+Show verification progress on cards:
+  "X applications in verification"
+  not just "X pending"
+
+Do not modify furrvet.py.
+Do not modify vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create EVERY template referenced.
+Do not skip any templates.
+Verify each file exists before
+moving to the next route.

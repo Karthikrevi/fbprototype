@@ -33,6 +33,16 @@ The platform features a system for pet-friendly venues, allowing community sugge
 ## FurrWings Vet Connect Portal
 This vet-facing portal allows veterinarians to upload pet health records, issue travel certificates, and connect with pet parents. It includes vet registration with admin approval, patient management, document uploads, appointment tracking, and certificate generation with verification.
 
+## FurrWings Handler & Isolation Center Registration
+Handlers and isolation centers can apply through dedicated registration forms at /handler/register and /isolation/register. Applications go through a multi-step verification workflow managed by admin via /admin/handlers and /admin/isolation. Each application type has its own verification checklist (9 items for vets, 14 for handlers, 19 for isolation centers) stored in verification_checklists table. Admin can upload verification documents, update checklist status, approve/reject applications, and generate password setup tokens (approval_tokens table). The /set-password/<token> route allows approved users to set their password and auto-login to their portal.
+
+### Key DB tables added:
+- approval_tokens: token-based password setup (no expiry, invalidated by is_used or is_revoked)
+- verification_checklists: per-application checklist items with status tracking
+- verification_documents: uploaded verification files
+- handlers table: extended with approval_status, languages, iata_certification, countries_served, services_offered, etc.
+- isolation_centers table: extended with approval_status, contact_person, license details, capacity, species, services, pricing, etc.
+
 ## FurrVet ERP (Clinical Routes)
 A dedicated blueprint provides comprehensive clinical routes for patient CRUD, medical records (SOAP notes), vaccination management, lab tests, hospitalization, invoicing, pharmacy management, staff management, and appointment scheduling. All data access is scoped by `vet_id` to prevent IDOR vulnerabilities.
 

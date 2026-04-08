@@ -1,0 +1,474 @@
+In main.py and templates only.
+Build approval workflow for
+FurrWings Vets, Handlers and
+Isolation Centers.
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create ALL templates referenced
+by new routes — do not skip any.
+Verify each template exists before
+moving to the next route.
+
+PART 1 — Database additions:
+
+Add to init_erp_db() in main.py:
+
+CREATE TABLE IF NOT EXISTS
+approval_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT UNIQUE NOT NULL,
+    user_type TEXT NOT NULL
+        CHECK(user_type IN
+        ('furrwings_vet','handler',
+        'isolation')),
+    user_id INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    is_used BOOLEAN DEFAULT 0,
+    expires_at TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)
+
+Also add these columns to
+furrwings_vets table if not exist:
+ALTER TABLE furrwings_vets
+ADD COLUMN erp_system TEXT;
+
+ALTER TABLE furrwings_vets
+ADD COLUMN erp_api_key TEXT;
+
+ALTER TABLE furrwings_vets
+ADD COLUMN erp_connected BOOLEAN
+DEFAULT 0;
+
+PART 2 — Token generation helper:
+
+Add helper function in main.py:
+
+import secrets
+from datetime import datetime, timedelta
+
+def generate_approval_token(
+    user_type, user_id, user_email):
+
+    token = secrets.token_urlsafe(32)
+    expires_at = (
+        datetime.now() +
+        timedelta(hours=24)
+    ).isoformat()
+
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO approval_tokens
+        (token, user_type, user_id,
+         user_email, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (token, user_type,
+          user_id, user_email,
+          expires_at))
+    conn.commit()
+    conn.close()
+    return token
+
+PART 3 — FurrWings Vet approval page:
+
+Add route /admin/furrwings/vets GET:
+Admin only — check master_admin session
+Pull all applications from
+furrwings_vets table grouped by status
+
+Pull counts:
+  pending count
+  approved count
+  rejected count
+  suspended count
+
+Pull all vets ordered by:
+  pending first
+  then approved
+  then rejected
+
+For each vet pull:
+  id, name, email, phone,
+  clinic_name, city, state,
+  license_number, license_issuing_body,
+  specialization, erp_system,
+  approval_status, approved_date,
+  created_at, certificate_count
+
+Pass to admin_furrwings_vets.html
+
+Create templates/admin_furrwings_vets.html:
+
+Purple gradient header:
+"🩺 FurrWings Vet Applications"
+Back button → /master/admin/dashboard
+
+Stats row:
+  Pending (yellow), Approved (green),
+  Rejected (red), Suspended (orange)
+
+Filter tabs:
+  All | Pending | Approved |
+  Rejected | Suspended
+
+Search input by name, clinic, city
+
+For each vet show a card with:
+
+Left side:
+  Name bold
+  Clinic name
+  City, State
+  Email and phone
+  License: [number] from [body]
+  Specialization
+  ERP Interest: [erp_system]
+    if filled
+  Applied: [date]
+
+Right side based on status:
+
+If pending:
+  Three action buttons:
+
+  Approve button (green):
+    POSTs to
+    /admin/furrwings/vets/<id>/approve
+    Shows confirmation modal first:
+    "Approve [name] from [clinic]?
+    They will receive a one-time
+    password setup link via email."
+    Confirm → submits form
+
+  Reject button (red):
+    Opens inline form:
+    Reason textarea required
+    Confirm Reject button
+    POSTs to
+    /admin/furrwings/vets/<id>/reject
+
+  Request More Info button (blue):
+    Opens inline form:
+    Message textarea
+    Send button
+    POSTs to
+    /admin/furrwings/vets/<id>/info-request
+
+If approved:
+  Green Approved badge
+  Approved date
+  Certificates issued count
+  ERP Connected badge if connected
+  Suspend button (orange)
+  View Portal button
+    → /furrwings/vet/dashboard
+    (admin view)
+
+If rejected:
+  Red Rejected badge
+  Rejection reason shown
+  Reconsider button → sets back
+    to pending
+
+PART 4 — Approve route:
+
+Add route
+/admin/furrwings/vets/<int:vid>/approve
+POST:
+Admin only
+
+Update furrwings_vets:
+  approval_status = approved
+  approved_date = today
+  approved_by = session admin name
+
+Generate token:
+  token = generate_approval_token(
+    'furrwings_vet', vid, vet_email)
+
+Send email via SendGrid
+(or flash the link if SendGrid
+not configured):
+
+Subject:
+"Your FurrWings Vet Connect
+application has been approved"
+
+Body:
+"Dear [name],
+
+Congratulations! Your application
+to join FurrWings Vet Connect has
+been approved.
+
+Click the link below to set your
+password and access your portal:
+
+[BASE_URL]/set-password/[token]
+
+This link expires in 24 hours.
+
+Once logged in you can:
+- Upload vaccination certificates
+  directly to pet parents
+- Issue travel health certificates
+- Send prescriptions and lab results
+- Connect your existing ERP system
+
+If you have any questions contact
+us at vets@furrbutler.com
+
+The FurrWings Team"
+
+If SendGrid not configured:
+Flash the setup link directly:
+flash(f'Approval sent. Setup link:
+/set-password/{token}', 'info')
+
+Add admin notification:
+INSERT INTO admin_notifications:
+  type: vet_approved
+  title: Vet Approved
+  message: [name] from [clinic]
+    approved and notified
+  link: /admin/furrwings/vets
+
+Redirect to /admin/furrwings/vets
+with success flash
+
+PART 5 — Reject route:
+
+Add route
+/admin/furrwings/vets/<int:vid>/reject
+POST:
+Admin only
+Body: reason textarea
+
+Update furrwings_vets:
+  approval_status = rejected
+  admin_notes = reason
+
+Send rejection email:
+"Dear [name],
+
+Thank you for your interest in
+FurrWings Vet Connect.
+
+After reviewing your application
+we are unable to approve it
+at this time.
+
+Reason: [reason]
+
+If you believe this is an error
+or wish to provide additional
+information please contact us at
+vets@furrbutler.com
+
+The FurrWings Team"
+
+Redirect to /admin/furrwings/vets
+
+PART 6 — Password setup route:
+
+Add route /set-password/<token>
+GET and POST:
+No login required — public route
+
+GET:
+Look up token in approval_tokens
+If not found:
+  Flash: "Invalid or expired link"
+  Redirect to /
+If is_used = 1:
+  Flash: "This link has already
+  been used"
+  Redirect to correct portal login
+If expires_at < now:
+  Flash: "This link has expired.
+  Contact support for a new link."
+  Redirect to /
+If valid:
+  Render set_password.html
+  Pass: user_type, user_email,
+    token, user name
+
+POST:
+Body: password, confirm_password
+Validate:
+  Password minimum 8 characters
+  Contains at least one number
+  Passwords match
+If invalid: show errors inline
+
+Hash password with werkzeug
+Update correct table based on
+user_type:
+  furrwings_vet → furrwings_vets
+  handler → handlers
+  isolation → isolation_centers
+
+Set is_used = 1 on token
+
+Log in the user automatically:
+  Set correct session keys
+  based on user_type
+
+Flash: "Password set successfully.
+Welcome to FurrWings!"
+
+Redirect to correct dashboard:
+  furrwings_vet → /furrwings/vet/dashboard
+  handler → /handler/dashboard
+  isolation → /isolation/dashboard
+
+Create templates/set_password.html:
+
+Clean white card centered
+Purple gradient header bar
+"🔐 Set Your Password"
+"Welcome to FurrButler [portal name]"
+
+Show user email (read only)
+Password input with requirements shown:
+  ✓ At least 8 characters
+  ✓ At least one number
+  ✓ At least one letter
+  Requirements turn green as met
+  using JavaScript
+Confirm password input
+Set Password button
+
+Below:
+"Having trouble? Contact
+support@furrbutler.com"
+
+PART 7 — Handler approval page:
+
+Add route /admin/handlers GET:
+Admin only
+Pull all handlers from handlers table
+Same structure as vet approval page
+
+Create templates/admin_handlers.html:
+Same layout as admin_furrwings_vets.html
+But for handlers
+
+Header: "✈️ Handler Applications"
+
+For each handler show:
+  Name, email, phone
+  License/certification number
+  Countries served
+  Experience years
+  Applied date
+  Status
+
+Same approve/reject/info-request
+buttons as vet approval
+
+Approve action:
+  Generate token with user_type
+  = handler
+  Send approval email with
+  /set-password/<token> link
+
+PART 8 — Isolation Center approval:
+
+Add route /admin/isolation GET:
+Admin only
+Pull all isolation centers from
+isolation_centers table if exists
+Or create the table:
+
+CREATE TABLE IF NOT EXISTS
+isolation_centers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT,
+    contact_person TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    address TEXT NOT NULL,
+    city TEXT NOT NULL,
+    state TEXT,
+    license_number TEXT,
+    capacity INTEGER,
+    species_accepted TEXT,
+    approval_status TEXT
+        DEFAULT 'pending',
+    approved_date TEXT,
+    created_at TEXT DEFAULT
+        CURRENT_TIMESTAMP
+)
+
+Create templates/admin_isolation.html:
+Same structure as handler approval
+Header: "🏠 Isolation Center Applications"
+
+PART 9 — ERP connection interest:
+
+When approving a FurrWings vet
+check if erp_system is filled.
+If yes add a second email:
+
+"We noticed you use [ERP system].
+Our team will contact you separately
+to set up your ERP integration.
+This will allow automatic syncing
+of vaccination and health records
+to pet parents."
+
+Also on the admin approval card
+show an ERP INTEREST badge
+if erp_system is not empty:
+  "[ERP name] Integration Requested"
+  Yellow badge
+
+This helps admin prioritise
+which ERP to build first.
+
+Add route /admin/erp-requests GET:
+Admin only
+Pull all furrwings_vets where
+erp_system is not null and
+not empty
+Group by erp_system and count:
+Shows: ezyVet: 3 requests,
+  VetLink: 1 request etc
+Render admin_erp_requests.html
+
+Create templates/admin_erp_requests.html:
+Simple table showing demand per ERP
+Most requested at top
+Helps decide build priority
+
+PART 10 — Update admin dashboard
+links:
+
+In templates/master_admin_dashboard.html:
+Update FurrWings Vets card to link to
+/admin/furrwings/vets
+
+Update Pet Parents card to link to
+/admin/users
+
+Add new cards:
+  Handlers → /admin/handlers
+  Isolation Centers → /admin/isolation
+  ERP Integration Requests →
+    /admin/erp-requests
+
+Do not modify furrvet.py.
+Do not modify any vendor ERP templates.
+Do not delete any accounts or data.
+Do not modify the Replit key-value db.
+Create EVERY template referenced
+by every new route.
+Verify each template file exists
+before moving to the next route.
+Do not skip template creation
+under any circumstances.

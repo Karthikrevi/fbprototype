@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Become a FurrWings Handler</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
+.header-bar{background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);color:#fff;padding:40px 20px;text-align:center}
+.header-bar h1{font-size:28px;margin-bottom:8px}
+.header-bar p{font-size:16px;opacity:0.9}
+.content{max-width:1100px;margin:0 auto;padding:30px 20px;display:flex;gap:30px;flex-wrap:wrap}
+.benefits{flex:1;min-width:280px;max-width:350px}
+.benefits h3{font-size:18px;color:#7c3aed;margin-bottom:16px}
+.benefit-item{display:flex;gap:12px;margin-bottom:16px;align-items:flex-start}
+.benefit-item .icon{color:#22c55e;font-size:18px;flex-shrink:0;margin-top:2px}
+.benefit-item p{font-size:14px;color:#4b5563;line-height:1.5}
+.form-panel{flex:2;min-width:300px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:32px}
+.form-panel h3{font-size:18px;color:#1f2937;margin:24px 0 12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
+.form-panel h3:first-child{margin-top:0}
+.form-label{font-size:13px;font-weight:600;color:#374151}
+.services-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.services-grid label{font-size:13px;color:#4b5563}
+.btn-submit{background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;padding:14px 40px;font-size:16px;border-radius:8px;color:#fff;width:100%}
+.notice{font-size:13px;color:#6b7280;text-align:center;margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px}
+.back-link{display:block;text-align:center;margin-top:12px;color:#7c3aed;font-size:14px}
+@media(max-width:768px){.content{flex-direction:column}.benefits{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="header-bar">
+<h1>✈️ Become a FurrWings Handler</h1>
+<p>Help pets travel safely across the world</p>
+</div>
+<div class="content">
+<div class="benefits">
+<h3>Why Join FurrWings?</h3>
+<div class="benefit-item"><span class="icon">✓</span><p>Connect with pet owners needing travel assistance</p></div>
+<div class="benefit-item"><span class="icon">✓</span><p>Manage bookings digitally</p></div>
+<div class="benefit-item"><span class="icon">✓</span><p>Build your verified profile</p></div>
+<div class="benefit-item"><span class="icon">✓</span><p>Free to join</p></div>
+</div>
+<div class="form-panel">
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+{% for m in messages %}<div class="alert alert-danger">{{ m }}</div>{% endfor %}
+{% endif %}
+{% endwith %}
+<form method="POST">
+<h3>Personal Details</h3>
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">Full Name *</label><input type="text" class="form-control" name="name" required></div>
+<div class="col-md-6"><label class="form-label">Email *</label><input type="email" class="form-control" name="email" required></div>
+<div class="col-md-6"><label class="form-label">Phone *</label><input type="tel" class="form-control" name="phone" required></div>
+<div class="col-md-6"><label class="form-label">Password *</label><input type="password" class="form-control" name="password" required minlength="6"></div>
+<div class="col-md-6"><label class="form-label">Confirm Password *</label><input type="password" class="form-control" name="confirm_password" required></div>
+<div class="col-md-6"><label class="form-label">City *</label><input type="text" class="form-control" name="city" required></div>
+<div class="col-md-6">
+<label class="form-label">State *</label>
+<select class="form-select" name="state" required>
+<option value="">Select State</option>
+{% for s in states %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+</select>
+</div>
+</div>
+
+<h3>Professional Details</h3>
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">Years of Experience</label><input type="number" class="form-control" name="years_experience" min="0"></div>
+<div class="col-md-6"><label class="form-label">Previous Employer</label><input type="text" class="form-control" name="previous_employer" placeholder="Optional"></div>
+<div class="col-12"><label class="form-label">Languages Spoken</label><input type="text" class="form-control" name="languages" placeholder="English, Malayalam etc"></div>
+</div>
+
+<h3>Certifications</h3>
+<div class="row g-3">
+<div class="col-md-6"><label class="form-label">IATA Certification Number</label><input type="text" class="form-control" name="iata_certification"></div>
+<div class="col-12"><label class="form-label">Other Certifications</label><textarea class="form-control" name="other_certifications" rows="2" placeholder="Optional"></textarea></div>
+</div>
+
+<h3>Countries Served</h3>
+<div class="mb-3">
+<label class="form-label">List countries you can handle pet transport to and from</label>
+<textarea class="form-control" name="countries_served" rows="2" placeholder="India, UAE, UK, USA"></textarea>
+</div>
+
+<h3>Services Offered</h3>
+<div class="services-grid mb-3">
+<label><input type="checkbox" name="services_offered" value="International pet transport"> International pet transport</label>
+<label><input type="checkbox" name="services_offered" value="Documentation assistance"> Documentation assistance</label>
+<label><input type="checkbox" name="services_offered" value="Airport pickup and drop"> Airport pickup and drop</label>
+<label><input type="checkbox" name="services_offered" value="Quarantine coordination"> Quarantine coordination</label>
+<label><input type="checkbox" name="services_offered" value="DGFT certificate assistance"> DGFT certificate assistance</label>
+<label><input type="checkbox" name="services_offered" value="Health certificate coordination"> Health certificate coordination</label>
+<label><input type="checkbox" name="services_offered" value="Custom clearance assistance"> Custom clearance assistance</label>
+</div>
+
+<h3>About Yourself</h3>
+<div class="mb-3">
+<textarea class="form-control" name="about_text" rows="3" placeholder="Tell pet parents about your experience and why they should trust you with their beloved pets"></textarea>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Emergency Contact</label>
+<input type="text" class="form-control" name="emergency_contact" placeholder="Name and phone number">
+</div>
+
+<div class="mb-3 form-check">
+<input type="checkbox" class="form-check-input" name="gdpr_consent" id="gdpr" required>
+<label class="form-check-label" for="gdpr" style="font-size:13px">I consent to the processing of my personal data as described in the <a href="/furrwings/privacy" target="_blank">Privacy Policy</a>. I understand my data will be used for verification and platform operations.</label>
+</div>
+
+<button type="submit" class="btn btn-submit">Submit Application</button>
+</form>
+<div class="notice">Applications are reviewed within 2-3 business days. You will receive a login link via email once approved.</div>
+<a href="/" class="back-link">← Back to Home</a>
+</div>
+</div>
+</body>
+</html>

@@ -2211,6 +2211,49 @@ def init_erp_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS approval_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT UNIQUE NOT NULL,
+            user_type TEXT NOT NULL CHECK(user_type IN ('furrwings_vet','handler','isolation')),
+            user_id INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            is_used BOOLEAN DEFAULT 0,
+            is_revoked BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS verification_checklists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            application_type TEXT NOT NULL,
+            application_id INTEGER NOT NULL,
+            checklist_item TEXT NOT NULL,
+            item_category TEXT NOT NULL,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending','in_progress','passed','failed','waived')),
+            notes TEXT,
+            verified_by TEXT,
+            verified_date TEXT,
+            document_url TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS verification_documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            application_type TEXT NOT NULL,
+            application_id INTEGER NOT NULL,
+            document_name TEXT NOT NULL,
+            document_type TEXT NOT NULL,
+            file_url TEXT NOT NULL,
+            uploaded_by TEXT NOT NULL,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     for col_name, col_def in [
         ('erp_interests', 'TEXT'),
         ('years_experience', 'INTEGER'),
@@ -2223,6 +2266,119 @@ def init_erp_db():
         except Exception:
             pass
 
+    for col_name, col_def in [
+        ('approval_status', "TEXT DEFAULT 'pending'"),
+        ('approved_date', 'TEXT'),
+        ('approved_by', 'TEXT'),
+        ('admin_notes', 'TEXT'),
+        ('years_experience', 'INTEGER'),
+        ('languages', 'TEXT'),
+        ('iata_certification', 'TEXT'),
+        ('other_certifications', 'TEXT'),
+        ('countries_served', 'TEXT'),
+        ('services_offered', 'TEXT'),
+        ('about_text', 'TEXT'),
+        ('emergency_contact', 'TEXT'),
+        ('state', 'TEXT'),
+        ('rejection_reason', 'TEXT'),
+        ('created_at', "TEXT DEFAULT CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            c.execute(f"ALTER TABLE handlers ADD COLUMN {col_name} {col_def}")
+        except Exception:
+            pass
+
+    for col_name, col_def in [
+        ('approval_status', "TEXT DEFAULT 'pending'"),
+        ('approved_date', 'TEXT'),
+        ('approved_by', 'TEXT'),
+        ('admin_notes', 'TEXT'),
+        ('state', 'TEXT'),
+        ('pincode', 'TEXT'),
+        ('contact_person', 'TEXT'),
+        ('designation', 'TEXT'),
+        ('alternate_phone', 'TEXT'),
+        ('license_issuing_authority', 'TEXT'),
+        ('license_expiry', 'TEXT'),
+        ('aqcs_recognition', 'BOOLEAN DEFAULT 0'),
+        ('govt_registration_number', 'TEXT'),
+        ('total_capacity', 'INTEGER'),
+        ('species_accepted', 'TEXT'),
+        ('services_offered', 'TEXT'),
+        ('price_per_day', 'REAL'),
+        ('minimum_stay_days', 'INTEGER'),
+        ('about_text', 'TEXT'),
+        ('rejection_reason', 'TEXT'),
+        ('created_at', "TEXT DEFAULT CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            c.execute(f"ALTER TABLE isolation_centers ADD COLUMN {col_name} {col_def}")
+        except Exception:
+            pass
+
+    conn.commit()
+    conn.close()
+
+def create_verification_checklist(application_type, application_id):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    if application_type == 'furrwings_vet':
+        items = [
+            ('License Verification', 'License number verified with issuing veterinary council'),
+            ('License Verification', 'License is current and not expired or suspended'),
+            ('Identity Verification', 'Government issued photo ID received and verified'),
+            ('Clinic Verification', 'Clinic existence confirmed via Google Maps or call'),
+            ('Clinic Verification', 'Clinic address matches registration documents'),
+            ('Professional', 'Professional indemnity insurance confirmed'),
+            ('Professional', 'No disciplinary actions on record'),
+            ('FurrWings Specific', 'Vet briefed on FurrWings certificate standards'),
+            ('FurrWings Specific', 'Vet agreement to terms received'),
+        ]
+    elif application_type == 'handler':
+        items = [
+            ('Identity', 'Aadhaar card verified'),
+            ('Identity', 'Passport verified if handling international'),
+            ('Identity', 'Photo matches documents'),
+            ('Background', 'Police clearance certificate received and verified'),
+            ('Background', 'No criminal record related to animals'),
+            ('Professional', 'IATA certification number verified'),
+            ('Professional', 'IATA certification is current not expired'),
+            ('References', 'Previous employer reference received and contacted'),
+            ('References', 'Reference confirms employment history'),
+            ('Interview', 'Video call interview completed'),
+            ('Interview', 'Handler demonstrated knowledge of pet transport regulations'),
+            ('Address', 'Physical address verified'),
+            ('Trial', 'Terms and conditions agreed and signed'),
+            ('FurrWings Specific', 'Handler briefed on FurrWings standards and policies'),
+        ]
+    elif application_type == 'isolation':
+        items = [
+            ('License', 'Facility license number verified'),
+            ('License', 'License is current and valid'),
+            ('AQCS', 'AQCS recognition confirmed if claimed'),
+            ('Facility Inspection', 'On-site inspection scheduled'),
+            ('Facility Inspection', 'On-site inspection completed'),
+            ('Facility Inspection', 'Inspection report filed and passed'),
+            ('Facility', 'CCTV coverage verified in all animal areas'),
+            ('Facility', 'Veterinary on-call arrangement confirmed'),
+            ('Facility', '24/7 staff coverage confirmed'),
+            ('Facility', 'Quarantine separation for different species verified'),
+            ('Staff', 'Staff qualifications checked'),
+            ('Staff', 'Staff animal handling training verified'),
+            ('References', 'Minimum 2 client references received'),
+            ('References', 'References contacted and verified'),
+            ('Insurance', 'Liability insurance confirmed'),
+            ('Insurance', 'Coverage amount adequate for capacity'),
+            ('Capacity', 'Declared capacity matches actual facility'),
+            ('FurrWings Specific', 'Facility briefed on FurrWings standards'),
+            ('FurrWings Specific', 'Agreement signed'),
+        ]
+    else:
+        conn.close()
+        return
+    for category, item in items:
+        c.execute("INSERT INTO verification_checklists (application_type, application_id, checklist_item, item_category) VALUES (?, ?, ?, ?)",
+                  (application_type, application_id, item, category))
     conn.commit()
     conn.close()
 
@@ -2444,9 +2600,20 @@ def furrwings_vet_register():
                  specialization, phone, clinic_name, clinic_address, city, state, pincode,
                  furrvet_email or None, erp_interests or None, int(years_exp) if years_exp else 0))
             conn.commit()
+            new_id = c.lastrowid
+            conn.close()
+            create_verification_checklist('furrwings_vet', new_id)
+            try:
+                nconn = sqlite3.connect('erp.db')
+                nc = nconn.cursor()
+                nc.execute("INSERT INTO admin_notifications (title, message, link, category) VALUES (?,?,?,?)",
+                    ('New Vet Application', f'{name} from {city} has applied as a FurrWings vet', '/admin/furrwings/vets', 'handler_application'))
+                nconn.commit()
+                nconn.close()
+            except Exception:
+                pass
             session['furrwings_pending_name'] = name
             session['furrwings_pending_body'] = license_body
-            conn.close()
             return redirect('/furrwings/vet/pending')
         except sqlite3.IntegrityError:
             conn.close()
@@ -2837,58 +3004,6 @@ def verify_certificate(hash_val):
     today = datetime.now().strftime('%Y-%m-%d')
     return render_template('verify_certificate.html', cert=cert, vaccinations=vaccinations, hash_val=hash_val, today=today)
 
-@app.route('/admin/furrwings/vets')
-def admin_furrwings_vets():
-    if 'admin' not in session:
-        return redirect('/admin-login')
-    status_filter = request.args.get('status', 'all')
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    if status_filter != 'all':
-        c.execute("SELECT * FROM furrwings_vets WHERE approval_status=? ORDER BY created_at DESC", (status_filter,))
-    else:
-        c.execute("SELECT * FROM furrwings_vets ORDER BY created_at DESC")
-    vets = c.fetchall()
-    c.execute("SELECT COUNT(*) FROM furrwings_vets WHERE approval_status='pending'")
-    pending_count = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM furrwings_vets WHERE approval_status='approved'")
-    approved_count = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM furrwings_vets WHERE approval_status='rejected'")
-    rejected_count = c.fetchone()[0]
-    c.execute("""SELECT erp_name, COUNT(*) as cnt FROM erp_integration_requests
-        GROUP BY erp_name ORDER BY cnt DESC""")
-    erp_demand = c.fetchall()
-    conn.close()
-    return render_template('admin_furrwings_vets.html', vets=vets, status_filter=status_filter,
-        pending_count=pending_count, approved_count=approved_count, rejected_count=rejected_count,
-        erp_demand=erp_demand)
-
-@app.route('/admin/furrwings/vets/<int:vid>/approve', methods=['POST'])
-def admin_furrwings_approve(vid):
-    if 'admin' not in session:
-        return redirect('/admin-login')
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    c.execute("UPDATE furrwings_vets SET approval_status='approved', approved_date=?, approved_by=? WHERE id=?",
-              (today_str, session.get('admin', 'admin'), vid))
-    conn.commit()
-    conn.close()
-    flash('Vet application approved')
-    return redirect('/admin/furrwings/vets')
-
-@app.route('/admin/furrwings/vets/<int:vid>/reject', methods=['POST'])
-def admin_furrwings_reject(vid):
-    if 'admin' not in session:
-        return redirect('/admin-login')
-    reason = request.form.get('reason', '')
-    conn = sqlite3.connect('erp.db')
-    c = conn.cursor()
-    c.execute("UPDATE furrwings_vets SET approval_status='rejected', rejection_reason=? WHERE id=?", (reason, vid))
-    conn.commit()
-    conn.close()
-    flash('Vet application rejected')
-    return redirect('/admin/furrwings/vets')
 
 # ============================================================
 # End FurrWings Vet Connect Portal
@@ -5826,23 +5941,40 @@ def vet_logout():
 @app.route('/handler/login', methods=["GET", "POST"])
 def handler_login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
 
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
-        c.execute("SELECT * FROM handlers WHERE email=? AND password=? AND is_active=1", (email, password))
+        c.execute("SELECT * FROM handlers WHERE email=? AND is_active=1", (email,))
         handler = c.fetchone()
         conn.close()
 
         if handler:
-            session["handler"] = email
-            session["handler_id"] = handler[0]
-            session["handler_name"] = handler[1]
-            session["handler_license"] = handler[5]
-            return redirect(url_for("handler_dashboard"))
-        else:
-            flash("Invalid handler credentials")
+            stored_pw = handler[3]
+            pw_ok = False
+            if stored_pw and stored_pw.startswith(('pbkdf2:', 'scrypt:')):
+                pw_ok = check_password_hash(stored_pw, password)
+            else:
+                pw_ok = (stored_pw == password)
+            if pw_ok:
+                conn2 = sqlite3.connect('erp.db')
+                c2 = conn2.cursor()
+                c2.execute("SELECT approval_status FROM handlers WHERE id=?", (handler[0],))
+                row = c2.fetchone()
+                conn2.close()
+                approval = row[0] if row else 'pending'
+                if approval == 'pending':
+                    return redirect('/handler/pending')
+                elif approval in ('rejected', 'suspended'):
+                    flash('Your account has been ' + approval + '. Contact handlers@furrbutler.com')
+                    return render_template("handler_login.html")
+                session["handler"] = email
+                session["handler_id"] = handler[0]
+                session["handler_name"] = handler[1]
+                session["handler_license"] = handler[5]
+                return redirect(url_for("handler_dashboard"))
+        flash("Invalid handler credentials")
 
     return render_template("handler_login.html")
 
@@ -5857,23 +5989,40 @@ def handler_logout():
 @app.route('/isolation/login', methods=["GET", "POST"])
 def isolation_login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
 
         conn = sqlite3.connect('erp.db')
         c = conn.cursor()
-        c.execute("SELECT * FROM isolation_centers WHERE email=? AND password=? AND is_active=1", (email, password))
+        c.execute("SELECT * FROM isolation_centers WHERE email=? AND is_active=1", (email,))
         center = c.fetchone()
         conn.close()
 
         if center:
-            session["isolation"] = email
-            session["isolation_id"] = center[0]
-            session["isolation_name"] = center[1]
-            session["isolation_license"] = center[5]
-            return redirect(url_for("isolation_dashboard"))
-        else:
-            flash("Invalid isolation center credentials")
+            stored_pw = center[3]
+            pw_ok = False
+            if stored_pw and stored_pw.startswith(('pbkdf2:', 'scrypt:')):
+                pw_ok = check_password_hash(stored_pw, password)
+            else:
+                pw_ok = (stored_pw == password)
+            if pw_ok:
+                conn2 = sqlite3.connect('erp.db')
+                c2 = conn2.cursor()
+                c2.execute("SELECT approval_status FROM isolation_centers WHERE id=?", (center[0],))
+                row = c2.fetchone()
+                conn2.close()
+                approval = row[0] if row else 'pending'
+                if approval == 'pending':
+                    return redirect('/isolation/pending')
+                elif approval in ('rejected', 'suspended'):
+                    flash('Your account has been ' + approval + '. Contact isolation@furrbutler.com')
+                    return render_template("isolation_login.html")
+                session["isolation"] = email
+                session["isolation_id"] = center[0]
+                session["isolation_name"] = center[1]
+                session["isolation_license"] = center[5]
+                return redirect(url_for("isolation_dashboard"))
+        flash("Invalid isolation center credentials")
 
     return render_template("isolation_login.html")
 
@@ -5885,6 +6034,178 @@ def isolation_logout():
     session.pop("isolation_license", None)
     flash("You have been logged out successfully")
     return redirect(url_for("isolation_login"))
+
+INDIAN_STATES = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+]
+
+@app.route('/handler/register', methods=['GET', 'POST'])
+def handler_register():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        phone = request.form.get('phone', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state', '')
+        years_exp = request.form.get('years_experience', 0)
+        previous_employer = request.form.get('previous_employer', '').strip()
+        languages = request.form.get('languages', '').strip()
+        iata_cert = request.form.get('iata_certification', '').strip()
+        other_certs = request.form.get('other_certifications', '').strip()
+        countries_served = request.form.get('countries_served', '').strip()
+        services = ','.join(request.form.getlist('services_offered'))
+        about_text = request.form.get('about_text', '').strip()
+        emergency_contact = request.form.get('emergency_contact', '').strip()
+        gdpr = request.form.get('gdpr_consent')
+        if not gdpr:
+            flash('You must accept the data processing terms')
+            return redirect('/handler/register')
+        if not all([name, email, phone, password, city, state]):
+            flash('Please fill in all required fields')
+            return redirect('/handler/register')
+        if password != confirm_password:
+            flash('Passwords do not match')
+            return redirect('/handler/register')
+        if len(password) < 6:
+            flash('Password must be at least 6 characters')
+            return redirect('/handler/register')
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        try:
+            c.execute("SELECT id FROM handlers WHERE email=?", (email,))
+            if c.fetchone():
+                conn.close()
+                flash('An account with this email already exists')
+                return redirect('/handler/register')
+            c.execute("""INSERT INTO handlers
+                (name, email, password, company_name, license_number, phone, city, is_active,
+                 approval_status, years_experience, languages, iata_certification,
+                 other_certifications, countries_served, services_offered, about_text,
+                 emergency_contact, state)
+                VALUES (?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?)""",
+                (name, email, generate_password_hash(password), previous_employer or '', iata_cert or '',
+                 phone, city, 'pending', int(years_exp) if years_exp else 0, languages,
+                 iata_cert, other_certs, countries_served, services, about_text,
+                 emergency_contact, state))
+            conn.commit()
+            new_id = c.lastrowid
+            conn.close()
+            create_verification_checklist('handler', new_id)
+            try:
+                nconn = sqlite3.connect('erp.db')
+                nc = nconn.cursor()
+                nc.execute("INSERT INTO admin_notifications (title, message, link, category) VALUES (?,?,?,?)",
+                    ('New Handler Application', f'{name} from {city} has applied as a handler', '/admin/handlers', 'handler_application'))
+                nconn.commit()
+                nconn.close()
+            except Exception:
+                pass
+            session['handler_pending_name'] = name
+            return redirect('/handler/pending')
+        except sqlite3.IntegrityError:
+            conn.close()
+            flash('An account with this email already exists')
+            return redirect('/handler/register')
+    return render_template('handler_register.html', states=INDIAN_STATES)
+
+@app.route('/handler/pending')
+def handler_pending():
+    name = session.pop('handler_pending_name', 'Applicant')
+    return render_template('handler_pending.html', name=name)
+
+@app.route('/isolation/register', methods=['GET', 'POST'])
+def isolation_register():
+    if request.method == 'POST':
+        facility_name = request.form.get('facility_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        phone = request.form.get('phone', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        address = request.form.get('address', '').strip()
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state', '')
+        pincode = request.form.get('pincode', '').strip()
+        contact_person = request.form.get('contact_person', '').strip()
+        designation = request.form.get('designation', '').strip()
+        alternate_phone = request.form.get('alternate_phone', '').strip()
+        license_number = request.form.get('license_number', '').strip()
+        license_authority = request.form.get('license_authority', '').strip()
+        license_expiry = request.form.get('license_expiry', '')
+        aqcs = 1 if request.form.get('aqcs_recognition') else 0
+        govt_reg = request.form.get('govt_registration_number', '').strip()
+        total_capacity = request.form.get('total_capacity', 0)
+        species = ','.join(request.form.getlist('species_accepted'))
+        services = ','.join(request.form.getlist('services_offered'))
+        price_per_day = request.form.get('price_per_day', 0)
+        min_stay = request.form.get('minimum_stay_days', 0)
+        about_text = request.form.get('about_text', '').strip()
+        gdpr = request.form.get('gdpr_consent')
+        if not gdpr:
+            flash('You must accept the data processing terms')
+            return redirect('/isolation/register')
+        if not all([facility_name, email, phone, password, address, city, state, contact_person, license_number, license_authority]):
+            flash('Please fill in all required fields')
+            return redirect('/isolation/register')
+        if password != confirm_password:
+            flash('Passwords do not match')
+            return redirect('/isolation/register')
+        if len(password) < 6:
+            flash('Password must be at least 6 characters')
+            return redirect('/isolation/register')
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        try:
+            c.execute("SELECT id FROM isolation_centers WHERE email=?", (email,))
+            if c.fetchone():
+                conn.close()
+                flash('An account with this email already exists')
+                return redirect('/isolation/register')
+            c.execute("""INSERT INTO isolation_centers
+                (name, email, password, center_name, license_number, phone, address, city, is_active,
+                 approval_status, state, pincode, contact_person, designation, alternate_phone,
+                 license_issuing_authority, license_expiry, aqcs_recognition, govt_registration_number,
+                 total_capacity, species_accepted, services_offered, price_per_day,
+                 minimum_stay_days, about_text)
+                VALUES (?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (contact_person, email, generate_password_hash(password), facility_name, license_number,
+                 phone, address, city, 'pending', state, pincode, contact_person, designation,
+                 alternate_phone, license_authority, license_expiry, aqcs, govt_reg,
+                 int(total_capacity) if total_capacity else 0, species, services,
+                 float(price_per_day) if price_per_day else 0,
+                 int(min_stay) if min_stay else 0, about_text))
+            conn.commit()
+            new_id = c.lastrowid
+            conn.close()
+            create_verification_checklist('isolation', new_id)
+            try:
+                nconn = sqlite3.connect('erp.db')
+                nc = nconn.cursor()
+                nc.execute("INSERT INTO admin_notifications (title, message, link, category) VALUES (?,?,?,?)",
+                    ('New Isolation Center Application', f'{facility_name} in {city} has applied with capacity of {total_capacity} animals', '/admin/isolation', 'isolation_application'))
+                nconn.commit()
+                nconn.close()
+            except Exception:
+                pass
+            session['isolation_pending_name'] = facility_name
+            return redirect('/isolation/pending')
+        except sqlite3.IntegrityError:
+            conn.close()
+            flash('An account with this email already exists')
+            return redirect('/isolation/register')
+    return render_template('isolation_register.html', states=INDIAN_STATES)
+
+@app.route('/isolation/pending')
+def isolation_pending():
+    name = session.pop('isolation_pending_name', 'Facility')
+    return render_template('isolation_pending.html', name=name)
 
 # ---- ERP ROUTES ----
 
@@ -9901,6 +10222,527 @@ def admin_gdpr_cancel_deletion():
             db[user_key] = user
             flash(f'GDPR deletion request cancelled for {email}')
     return redirect(url_for('admin_gdpr_requests'))
+
+@app.route('/admin/furrwings/vets')
+def admin_furrwings_vets():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM furrwings_vets ORDER BY created_at DESC")
+    vets = c.fetchall()
+    status_filter = request.args.get('status', 'all')
+    vet_list = []
+    for v in vets:
+        vid = v[0]
+        approval = v[14] if len(v) > 14 else 'pending'
+        if status_filter != 'all' and approval != status_filter:
+            continue
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='furrwings_vet' AND application_id=?", (vid,))
+        total = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='furrwings_vet' AND application_id=? AND status IN ('passed','waived')", (vid,))
+        complete = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='furrwings_vet' AND application_id=? AND status='failed'", (vid,))
+        failed = c.fetchone()[0]
+        vet_list.append({'data': v, 'total': total, 'complete': complete, 'failed': failed})
+    counts = {}
+    for s in ['pending', 'approved', 'rejected', 'suspended']:
+        c.execute("SELECT COUNT(*) FROM furrwings_vets WHERE approval_status=?", (s,))
+        counts[s] = c.fetchone()[0]
+    conn.close()
+    return render_template('admin_furrwings_vets.html', vets=vet_list, counts=counts, status_filter=status_filter)
+
+@app.route('/admin/furrwings/vets/<int:vid>/verify', methods=['GET', 'POST'])
+def admin_vet_verify(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM furrwings_vets WHERE id=?", (vid,))
+    vet = c.fetchone()
+    if not vet:
+        conn.close()
+        flash('Vet not found')
+        return redirect('/admin/furrwings/vets')
+    c.execute("SELECT * FROM verification_checklists WHERE application_type='furrwings_vet' AND application_id=? ORDER BY item_category, id", (vid,))
+    checklist = c.fetchall()
+    c.execute("SELECT * FROM verification_documents WHERE application_type='furrwings_vet' AND application_id=? ORDER BY created_at DESC", (vid,))
+    documents = c.fetchall()
+    categories = {}
+    for item in checklist:
+        cat = item[4]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(item)
+    total = len(checklist)
+    complete = sum(1 for i in checklist if i[5] in ('passed', 'waived'))
+    conn.close()
+    return render_template('admin_vet_verify.html', vet=vet, categories=categories, documents=documents, total=total, complete=complete)
+
+@app.route('/admin/furrwings/vets/<int:vid>/checklist/update', methods=['POST'])
+def admin_vet_checklist_update(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    item_id = request.form.get('item_id')
+    status = request.form.get('status')
+    notes = request.form.get('notes', '')
+    if item_id and status:
+        c.execute("UPDATE verification_checklists SET status=?, notes=?, verified_by=?, verified_date=? WHERE id=? AND application_type='furrwings_vet' AND application_id=?",
+            (status, notes, 'admin', datetime.now().strftime('%Y-%m-%d'), int(item_id), vid))
+        conn.commit()
+    conn.close()
+    return redirect(f'/admin/furrwings/vets/{vid}/verify')
+
+@app.route('/admin/verify/upload-document', methods=['POST'])
+def admin_upload_verification_doc():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    import os
+    app_type = request.form.get('application_type', '')
+    app_id = request.form.get('application_id', '')
+    doc_type = request.form.get('document_type', '')
+    doc_name = request.form.get('document_name', '')
+    notes = request.form.get('notes', '')
+    file = request.files.get('file')
+    if file and file.filename:
+        upload_dir = os.path.join('static', 'uploads', 'verification')
+        os.makedirs(upload_dir, exist_ok=True)
+        import uuid
+        ext = os.path.splitext(file.filename)[1]
+        fname = f"{uuid.uuid4().hex}{ext}"
+        fpath = os.path.join(upload_dir, fname)
+        file.save(fpath)
+        file_url = f'/static/uploads/verification/{fname}'
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO verification_documents (application_type, application_id, document_name, document_type, file_url, uploaded_by, notes) VALUES (?,?,?,?,?,?,?)",
+            (app_type, int(app_id), doc_name or file.filename, doc_type, file_url, 'admin', notes))
+        conn.commit()
+        conn.close()
+        flash('Document uploaded successfully')
+    redirect_url = request.form.get('redirect_url', '/admin/furrwings/vets')
+    return redirect(redirect_url)
+
+@app.route('/admin/furrwings/vets/<int:vid>/approve', methods=['POST'])
+def admin_vet_approve(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='furrwings_vet' AND application_id=? AND status NOT IN ('passed','waived')", (vid,))
+    pending = c.fetchone()[0]
+    if pending > 0:
+        conn.close()
+        flash(f'Cannot approve. {pending} verification checks still pending.')
+        return redirect(f'/admin/furrwings/vets/{vid}/verify')
+    c.execute("UPDATE furrwings_vets SET approval_status='approved', approved_date=?, approved_by=? WHERE id=?",
+        (datetime.now().strftime('%Y-%m-%d'), 'admin', vid))
+    conn.commit()
+    import secrets
+    token = secrets.token_urlsafe(32)
+    c.execute("SELECT email, name, clinic_name FROM furrwings_vets WHERE id=?", (vid,))
+    vet = c.fetchone()
+    c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
+        (token, 'furrwings_vet', vid, vet[0]))
+    conn.commit()
+    conn.close()
+    base_url = request.host_url.rstrip('/')
+    setup_link = f"{base_url}/set-password/{token}"
+    flash(f'Approved! Setup link: {setup_link}', 'success')
+    return redirect('/admin/furrwings/vets')
+
+@app.route('/admin/furrwings/vets/<int:vid>/reject', methods=['POST'])
+def admin_vet_reject(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    reason = request.form.get('reason', 'Application did not meet requirements')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE furrwings_vets SET approval_status='rejected', rejection_reason=? WHERE id=?", (reason, vid))
+    conn.commit()
+    conn.close()
+    flash('Application rejected')
+    return redirect('/admin/furrwings/vets')
+
+@app.route('/admin/furrwings/vets/<int:vid>/resend-link', methods=['POST'])
+def admin_vet_resend_link(vid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE approval_tokens SET is_revoked=1 WHERE user_type='furrwings_vet' AND user_id=? AND is_used=0", (vid,))
+    import secrets
+    token = secrets.token_urlsafe(32)
+    c.execute("SELECT email FROM furrwings_vets WHERE id=?", (vid,))
+    vet = c.fetchone()
+    c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
+        (token, 'furrwings_vet', vid, vet[0]))
+    conn.commit()
+    conn.close()
+    base_url = request.host_url.rstrip('/')
+    setup_link = f"{base_url}/set-password/{token}"
+    flash(f'New setup link generated: {setup_link}', 'success')
+    return redirect('/admin/furrwings/vets')
+
+@app.route('/admin/handlers')
+def admin_handlers():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM handlers ORDER BY ROWID DESC")
+    handlers = c.fetchall()
+    status_filter = request.args.get('status', 'all')
+    handler_list = []
+    col_names = [desc[0] for desc in c.description] if c.description else []
+    approval_idx = col_names.index('approval_status') if 'approval_status' in col_names else -1
+    for h in handlers:
+        hid = h[0]
+        approval = h[approval_idx] if approval_idx >= 0 else 'pending'
+        if status_filter != 'all' and approval != status_filter:
+            continue
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='handler' AND application_id=?", (hid,))
+        total = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='handler' AND application_id=? AND status IN ('passed','waived')", (hid,))
+        complete = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='handler' AND application_id=? AND status='failed'", (hid,))
+        failed = c.fetchone()[0]
+        handler_list.append({'data': h, 'cols': col_names, 'total': total, 'complete': complete, 'failed': failed, 'approval': approval})
+    counts = {}
+    for s in ['pending', 'approved', 'rejected', 'suspended']:
+        try:
+            c.execute("SELECT COUNT(*) FROM handlers WHERE approval_status=?", (s,))
+            counts[s] = c.fetchone()[0]
+        except Exception:
+            counts[s] = 0
+    conn.close()
+    return render_template('admin_handlers.html', handlers=handler_list, counts=counts, status_filter=status_filter)
+
+@app.route('/admin/handlers/<int:hid>/verify', methods=['GET', 'POST'])
+def admin_handler_verify(hid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM handlers WHERE id=?", (hid,))
+    handler = c.fetchone()
+    col_names = [desc[0] for desc in c.description] if c.description else []
+    if not handler:
+        conn.close()
+        flash('Handler not found')
+        return redirect('/admin/handlers')
+    c.execute("SELECT * FROM verification_checklists WHERE application_type='handler' AND application_id=? ORDER BY item_category, id", (hid,))
+    checklist = c.fetchall()
+    c.execute("SELECT * FROM verification_documents WHERE application_type='handler' AND application_id=? ORDER BY created_at DESC", (hid,))
+    documents = c.fetchall()
+    categories = {}
+    for item in checklist:
+        cat = item[4]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(item)
+    total = len(checklist)
+    complete = sum(1 for i in checklist if i[5] in ('passed', 'waived'))
+    conn.close()
+    handler_dict = dict(zip(col_names, handler)) if col_names else {}
+    return render_template('admin_handler_verify.html', handler=handler, handler_dict=handler_dict, categories=categories, documents=documents, total=total, complete=complete)
+
+@app.route('/admin/handlers/<int:hid>/checklist/update', methods=['POST'])
+def admin_handler_checklist_update(hid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    item_id = request.form.get('item_id')
+    status = request.form.get('status')
+    notes = request.form.get('notes', '')
+    if item_id and status:
+        c.execute("UPDATE verification_checklists SET status=?, notes=?, verified_by=?, verified_date=? WHERE id=? AND application_type='handler' AND application_id=?",
+            (status, notes, 'admin', datetime.now().strftime('%Y-%m-%d'), int(item_id), hid))
+        conn.commit()
+    conn.close()
+    return redirect(f'/admin/handlers/{hid}/verify')
+
+@app.route('/admin/handlers/<int:hid>/approve', methods=['POST'])
+def admin_handler_approve(hid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='handler' AND application_id=? AND status NOT IN ('passed','waived')", (hid,))
+    pending = c.fetchone()[0]
+    if pending > 0:
+        conn.close()
+        flash(f'Cannot approve. {pending} verification checks still pending.')
+        return redirect(f'/admin/handlers/{hid}/verify')
+    c.execute("UPDATE handlers SET approval_status='approved', approved_date=? WHERE id=?",
+        (datetime.now().strftime('%Y-%m-%d'), hid))
+    conn.commit()
+    import secrets
+    token = secrets.token_urlsafe(32)
+    c.execute("SELECT email, name FROM handlers WHERE id=?", (hid,))
+    h = c.fetchone()
+    c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
+        (token, 'handler', hid, h[0]))
+    conn.commit()
+    conn.close()
+    base_url = request.host_url.rstrip('/')
+    setup_link = f"{base_url}/set-password/{token}"
+    flash(f'Approved! Setup link: {setup_link}', 'success')
+    return redirect('/admin/handlers')
+
+@app.route('/admin/handlers/<int:hid>/reject', methods=['POST'])
+def admin_handler_reject(hid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    reason = request.form.get('reason', 'Application did not meet requirements')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE handlers SET approval_status='rejected', rejection_reason=? WHERE id=?", (reason, hid))
+    conn.commit()
+    conn.close()
+    flash('Application rejected')
+    return redirect('/admin/handlers')
+
+@app.route('/admin/handlers/<int:hid>/resend-link', methods=['POST'])
+def admin_handler_resend_link(hid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE approval_tokens SET is_revoked=1 WHERE user_type='handler' AND user_id=? AND is_used=0", (hid,))
+    import secrets
+    token = secrets.token_urlsafe(32)
+    c.execute("SELECT email FROM handlers WHERE id=?", (hid,))
+    h = c.fetchone()
+    c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
+        (token, 'handler', hid, h[0]))
+    conn.commit()
+    conn.close()
+    base_url = request.host_url.rstrip('/')
+    setup_link = f"{base_url}/set-password/{token}"
+    flash(f'New setup link generated: {setup_link}', 'success')
+    return redirect('/admin/handlers')
+
+@app.route('/admin/isolation')
+def admin_isolation():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM isolation_centers ORDER BY ROWID DESC")
+    centers = c.fetchall()
+    status_filter = request.args.get('status', 'all')
+    col_names = [desc[0] for desc in c.description] if c.description else []
+    approval_idx = col_names.index('approval_status') if 'approval_status' in col_names else -1
+    center_list = []
+    for ic in centers:
+        iid = ic[0]
+        approval = ic[approval_idx] if approval_idx >= 0 else 'pending'
+        if status_filter != 'all' and approval != status_filter:
+            continue
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='isolation' AND application_id=?", (iid,))
+        total = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='isolation' AND application_id=? AND status IN ('passed','waived')", (iid,))
+        complete = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='isolation' AND application_id=? AND status='failed'", (iid,))
+        failed = c.fetchone()[0]
+        center_list.append({'data': ic, 'cols': col_names, 'total': total, 'complete': complete, 'failed': failed, 'approval': approval})
+    counts = {}
+    for s in ['pending', 'approved', 'rejected', 'suspended']:
+        try:
+            c.execute("SELECT COUNT(*) FROM isolation_centers WHERE approval_status=?", (s,))
+            counts[s] = c.fetchone()[0]
+        except Exception:
+            counts[s] = 0
+    conn.close()
+    return render_template('admin_isolation.html', centers=center_list, counts=counts, status_filter=status_filter)
+
+@app.route('/admin/isolation/<int:iid>/verify', methods=['GET', 'POST'])
+def admin_isolation_verify(iid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM isolation_centers WHERE id=?", (iid,))
+    center = c.fetchone()
+    col_names = [desc[0] for desc in c.description] if c.description else []
+    if not center:
+        conn.close()
+        flash('Isolation center not found')
+        return redirect('/admin/isolation')
+    c.execute("SELECT * FROM verification_checklists WHERE application_type='isolation' AND application_id=? ORDER BY item_category, id", (iid,))
+    checklist = c.fetchall()
+    c.execute("SELECT * FROM verification_documents WHERE application_type='isolation' AND application_id=? ORDER BY created_at DESC", (iid,))
+    documents = c.fetchall()
+    categories = {}
+    for item in checklist:
+        cat = item[4]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(item)
+    total = len(checklist)
+    complete = sum(1 for i in checklist if i[5] in ('passed', 'waived'))
+    conn.close()
+    center_dict = dict(zip(col_names, center)) if col_names else {}
+    return render_template('admin_isolation_verify.html', center=center, center_dict=center_dict, categories=categories, documents=documents, total=total, complete=complete)
+
+@app.route('/admin/isolation/<int:iid>/checklist/update', methods=['POST'])
+def admin_isolation_checklist_update(iid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    item_id = request.form.get('item_id')
+    status = request.form.get('status')
+    notes = request.form.get('notes', '')
+    if item_id and status:
+        c.execute("UPDATE verification_checklists SET status=?, notes=?, verified_by=?, verified_date=? WHERE id=? AND application_type='isolation' AND application_id=?",
+            (status, notes, 'admin', datetime.now().strftime('%Y-%m-%d'), int(item_id), iid))
+        conn.commit()
+    conn.close()
+    return redirect(f'/admin/isolation/{iid}/verify')
+
+@app.route('/admin/isolation/<int:iid>/approve', methods=['POST'])
+def admin_isolation_approve(iid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM verification_checklists WHERE application_type='isolation' AND application_id=? AND status NOT IN ('passed','waived')", (iid,))
+    pending = c.fetchone()[0]
+    if pending > 0:
+        conn.close()
+        flash(f'Cannot approve. {pending} verification checks still pending.')
+        return redirect(f'/admin/isolation/{iid}/verify')
+    c.execute("UPDATE isolation_centers SET approval_status='approved', approved_date=? WHERE id=?",
+        (datetime.now().strftime('%Y-%m-%d'), iid))
+    conn.commit()
+    import secrets
+    token = secrets.token_urlsafe(32)
+    c.execute("SELECT email, name FROM isolation_centers WHERE id=?", (iid,))
+    ic = c.fetchone()
+    c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
+        (token, 'isolation', iid, ic[0]))
+    conn.commit()
+    conn.close()
+    base_url = request.host_url.rstrip('/')
+    setup_link = f"{base_url}/set-password/{token}"
+    flash(f'Approved! Setup link: {setup_link}', 'success')
+    return redirect('/admin/isolation')
+
+@app.route('/admin/isolation/<int:iid>/reject', methods=['POST'])
+def admin_isolation_reject(iid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    reason = request.form.get('reason', 'Application did not meet requirements')
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE isolation_centers SET approval_status='rejected', rejection_reason=? WHERE id=?", (reason, iid))
+    conn.commit()
+    conn.close()
+    flash('Application rejected')
+    return redirect('/admin/isolation')
+
+@app.route('/admin/isolation/<int:iid>/resend-link', methods=['POST'])
+def admin_isolation_resend_link(iid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE approval_tokens SET is_revoked=1 WHERE user_type='isolation' AND user_id=? AND is_used=0", (iid,))
+    import secrets
+    token = secrets.token_urlsafe(32)
+    c.execute("SELECT email FROM isolation_centers WHERE id=?", (iid,))
+    ic = c.fetchone()
+    c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
+        (token, 'isolation', iid, ic[0]))
+    conn.commit()
+    conn.close()
+    base_url = request.host_url.rstrip('/')
+    setup_link = f"{base_url}/set-password/{token}"
+    flash(f'New setup link generated: {setup_link}', 'success')
+    return redirect('/admin/isolation')
+
+@app.route('/set-password/<token>', methods=['GET', 'POST'])
+def set_password(token):
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM approval_tokens WHERE token=?", (token,))
+    tok = c.fetchone()
+    if not tok:
+        conn.close()
+        return render_template('set_password_invalid.html', error_title='Invalid Link', error_message='This link is not valid.', contact='support@furrbutler.com')
+    if tok[6]:
+        conn.close()
+        login_urls = {'furrwings_vet': '/furrwings/vet/login', 'handler': '/handler/login', 'isolation': '/isolation/login'}
+        return render_template('set_password_invalid.html', error_title='Link No Longer Valid', error_message='This link has been replaced with a new one. Please check your email for the latest link or contact support.', contact='support@furrbutler.com', login_url=login_urls.get(tok[2], '/'))
+    if tok[5]:
+        conn.close()
+        login_urls = {'furrwings_vet': '/furrwings/vet/login', 'handler': '/handler/login', 'isolation': '/isolation/login'}
+        return render_template('set_password_invalid.html', error_title='Link Already Used', error_message='This link has already been used to set a password.', login_url=login_urls.get(tok[2], '/'), contact='support@furrbutler.com')
+    user_type = tok[2]
+    user_id = tok[3]
+    user_email = tok[4]
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
+        import re
+        errors = []
+        if len(password) < 8:
+            errors.append('Password must be at least 8 characters')
+        if not re.search(r'[0-9]', password):
+            errors.append('Password must contain at least one number')
+        if not re.search(r'[a-zA-Z]', password):
+            errors.append('Password must contain at least one letter')
+        if password != confirm:
+            errors.append('Passwords do not match')
+        if errors:
+            conn.close()
+            return render_template('set_password.html', token=token, user_type=user_type, user_email=user_email, errors=errors)
+        hashed = generate_password_hash(password)
+        if user_type == 'furrwings_vet':
+            c.execute("UPDATE furrwings_vets SET password=? WHERE id=?", (hashed, user_id))
+        elif user_type == 'handler':
+            c.execute("UPDATE handlers SET password=? WHERE id=?", (hashed, user_id))
+        elif user_type == 'isolation':
+            c.execute("UPDATE isolation_centers SET password=? WHERE id=?", (hashed, user_id))
+        c.execute("UPDATE approval_tokens SET is_used=1 WHERE token=?", (token,))
+        conn.commit()
+        if user_type == 'furrwings_vet':
+            c.execute("SELECT * FROM furrwings_vets WHERE id=?", (user_id,))
+            vet = c.fetchone()
+            session['furrwings_vet_id'] = vet[0]
+            session['furrwings_vet_name'] = vet[1]
+            session['furrwings_vet_email'] = vet[2]
+            session['furrwings_clinic'] = vet[8]
+            conn.close()
+            flash('Welcome! Your password has been set successfully.')
+            return redirect('/furrwings/vet/dashboard')
+        elif user_type == 'handler':
+            c.execute("SELECT * FROM handlers WHERE id=?", (user_id,))
+            h = c.fetchone()
+            session['handler'] = h[2]
+            session['handler_id'] = h[0]
+            session['handler_name'] = h[1]
+            session['handler_license'] = h[5]
+            conn.close()
+            flash('Welcome! Your password has been set successfully.')
+            return redirect(url_for('handler_dashboard'))
+        elif user_type == 'isolation':
+            c.execute("SELECT * FROM isolation_centers WHERE id=?", (user_id,))
+            ic = c.fetchone()
+            session['isolation'] = ic[2]
+            session['isolation_id'] = ic[0]
+            session['isolation_name'] = ic[1]
+            session['isolation_license'] = ic[5]
+            conn.close()
+            flash('Welcome! Your password has been set successfully.')
+            return redirect(url_for('isolation_dashboard'))
+    conn.close()
+    return render_template('set_password.html', token=token, user_type=user_type, user_email=user_email, errors=[])
 
 @app.route('/master/admin/vendors')
 def manage_vendors():

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FurrWings Vet Applications — Admin</title>
+<title>Handler Applications — Admin</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
 body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;min-height:100vh}
@@ -16,19 +16,18 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 .filter-tabs{display:flex;gap:8px;margin:0 30px 20px;flex-wrap:wrap}
 .filter-tabs a{padding:6px 16px;border-radius:20px;font-size:13px;text-decoration:none;background:#e5e7eb;color:#374151}
 .filter-tabs a.active{background:#7c3aed;color:#fff}
-.vet-card{background:#fff;border-radius:10px;margin:0 30px 16px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;gap:20px;flex-wrap:wrap;align-items:center}
-.vet-info{flex:2;min-width:200px}
-.vet-info h3{font-size:16px;margin:0 0 4px;color:#1f2937}
-.vet-info p{font-size:13px;color:#6b7280;margin:2px 0}
-.vet-progress{flex:1;min-width:150px;text-align:center}
+.app-card{background:#fff;border-radius:10px;margin:0 30px 16px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+.app-info{flex:2;min-width:200px}
+.app-info h3{font-size:16px;margin:0 0 4px;color:#1f2937}
+.app-info p{font-size:13px;color:#6b7280;margin:2px 0}
+.app-progress{flex:1;min-width:150px;text-align:center}
 .progress-bar-custom{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin:6px 0}
-.progress-bar-fill{height:100%;border-radius:4px;transition:width 0.3s}
-.vet-actions{flex:1;min-width:150px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.progress-bar-fill{height:100%;border-radius:4px}
+.app-actions{flex:1;min-width:150px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .badge-status{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
 .badge-pending{background:#fef3c7;color:#92400e}
 .badge-approved{background:#d1fae5;color:#065f46}
 .badge-rejected{background:#fee2e2;color:#991b1b}
-.badge-suspended{background:#e5e7eb;color:#374151}
 .modal-backdrop-custom{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000}
 .modal-content-custom{background:#fff;border-radius:12px;max-width:450px;margin:100px auto;padding:30px}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.4)}50%{box-shadow:0 0 0 8px rgba(16,185,129,0)}}
@@ -36,7 +35,7 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 </head>
 <body>
 <div class="header">
-<div><h1>🩺 FurrWings Vet Applications</h1></div>
+<div><h1>✈️ Handler Applications</h1></div>
 <a href="/master/admin/dashboard" class="btn btn-light btn-sm">← Back to Dashboard</a>
 </div>
 <div class="stat-cards">
@@ -46,10 +45,10 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 <div class="stat-card"><div class="num" style="color:#6b7280">{{ counts.suspended }}</div><div class="label">Suspended</div></div>
 </div>
 <div class="filter-tabs">
-<a href="/admin/furrwings/vets?status=all" class="{% if status_filter == 'all' %}active{% endif %}">All</a>
-<a href="/admin/furrwings/vets?status=pending" class="{% if status_filter == 'pending' %}active{% endif %}">Pending</a>
-<a href="/admin/furrwings/vets?status=approved" class="{% if status_filter == 'approved' %}active{% endif %}">Approved</a>
-<a href="/admin/furrwings/vets?status=rejected" class="{% if status_filter == 'rejected' %}active{% endif %}">Rejected</a>
+<a href="/admin/handlers?status=all" class="{% if status_filter == 'all' %}active{% endif %}">All</a>
+<a href="/admin/handlers?status=pending" class="{% if status_filter == 'pending' %}active{% endif %}">Pending</a>
+<a href="/admin/handlers?status=approved" class="{% if status_filter == 'approved' %}active{% endif %}">Approved</a>
+<a href="/admin/handlers?status=rejected" class="{% if status_filter == 'rejected' %}active{% endif %}">Rejected</a>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
@@ -60,45 +59,39 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 </div>
 {% endif %}
 {% endwith %}
-{% if vets|length == 0 %}
+{% if handlers|length == 0 %}
 <div style="text-align:center;padding:60px;color:#9ca3af">No applications found</div>
 {% endif %}
-{% for v in vets %}
-{% set vet = v.data %}
-{% set approval = vet[14] if vet|length > 14 else 'pending' %}
-<div class="vet-card">
-<div class="vet-info">
-<h3>{{ vet[1] }} <span class="badge-status badge-{{ approval }}">{{ approval|upper }}</span></h3>
-<p>🏥 {{ vet[8] or 'N/A' }} — {{ vet[10] or '' }}, {{ vet[11] or '' }}</p>
-<p>📧 {{ vet[2] }} | 📞 {{ vet[7] or 'N/A' }}</p>
-<p>🪪 License: {{ vet[4] or 'N/A' }} ({{ vet[5] or 'N/A' }})</p>
-<p>🔬 {{ vet[6] or 'General' }}</p>
-{% if vet|length > 19 %}<p style="font-size:11px;color:#9ca3af">Applied: {{ vet[19] or 'N/A' }}</p>{% endif %}
+{% for h in handlers %}
+{% set handler = h.data %}
+<div class="app-card">
+<div class="app-info">
+<h3>{{ handler[1] }} <span class="badge-status badge-{{ h.approval }}">{{ h.approval|upper }}</span></h3>
+<p>📧 {{ handler[2] }} | 📞 {{ handler[6] or 'N/A' }}</p>
+<p>📍 {{ handler[7] or 'N/A' }}{% if 'state' in h.cols %}, {{ handler[h.cols.index('state')] or '' }}{% endif %}</p>
+{% if 'iata_certification' in h.cols and handler[h.cols.index('iata_certification')] %}<p>🪪 IATA: {{ handler[h.cols.index('iata_certification')] }}</p>{% endif %}
 </div>
-<div class="vet-progress">
-{% if v.total > 0 %}
-<div style="font-size:13px;font-weight:600">{{ v.complete }}/{{ v.total }} checks</div>
+<div class="app-progress">
+{% if h.total > 0 %}
+<div style="font-size:13px;font-weight:600">{{ h.complete }}/{{ h.total }} checks</div>
 <div class="progress-bar-custom">
-<div class="progress-bar-fill" style="width:{{ (v.complete/v.total*100)|int if v.total > 0 else 0 }}%;background:{% if v.failed > 0 %}#ef4444{% elif v.complete == v.total %}#10b981{% else %}#f59e0b{% endif %}"></div>
-</div>
-<div style="font-size:11px;color:#9ca3af">
-{% if v.complete == v.total and v.total > 0 %}All checks complete{% elif v.failed > 0 %}{{ v.failed }} failed{% else %}In progress{% endif %}
+<div class="progress-bar-fill" style="width:{{ (h.complete/h.total*100)|int if h.total > 0 else 0 }}%;background:{% if h.failed > 0 %}#ef4444{% elif h.complete == h.total %}#10b981{% else %}#f59e0b{% endif %}"></div>
 </div>
 {% else %}
-<div style="font-size:12px;color:#9ca3af">No checklist created</div>
+<div style="font-size:12px;color:#9ca3af">No checklist</div>
 {% endif %}
 </div>
-<div class="vet-actions">
-{% if approval in ('pending', 'in_verification') %}
-<a href="/admin/furrwings/vets/{{ vet[0] }}/verify" class="btn btn-primary btn-sm">View Checklist</a>
-<button class="btn btn-outline-danger btn-sm" onclick="showRejectModal({{ vet[0] }})">Reject</button>
-{% if v.total > 0 and v.complete == v.total %}
-<form method="POST" action="/admin/furrwings/vets/{{ vet[0] }}/approve" style="display:inline">
+<div class="app-actions">
+{% if h.approval in ('pending', 'in_verification') %}
+<a href="/admin/handlers/{{ handler[0] }}/verify" class="btn btn-primary btn-sm">View Checklist</a>
+<button class="btn btn-outline-danger btn-sm" onclick="showRejectModal({{ handler[0] }})">Reject</button>
+{% if h.total > 0 and h.complete == h.total %}
+<form method="POST" action="/admin/handlers/{{ handler[0] }}/approve" style="display:inline">
 <button class="btn btn-success btn-sm" style="animation:pulse 2s infinite">✓ Approve</button>
 </form>
 {% endif %}
-{% elif approval == 'approved' %}
-<form method="POST" action="/admin/furrwings/vets/{{ vet[0] }}/resend-link" style="display:inline">
+{% elif h.approval == 'approved' %}
+<form method="POST" action="/admin/handlers/{{ handler[0] }}/resend-link" style="display:inline">
 <button class="btn btn-outline-primary btn-sm">Resend Login Link</button>
 </form>
 {% endif %}
@@ -122,7 +115,7 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 </div>
 <script>
 function showRejectModal(id) {
-  document.getElementById('rejectForm').action = '/admin/furrwings/vets/' + id + '/reject';
+  document.getElementById('rejectForm').action = '/admin/handlers/' + id + '/reject';
   document.getElementById('rejectModal').style.display = 'block';
 }
 </script>
