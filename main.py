@@ -24,6 +24,72 @@ from typing import Optional
 from i18n import i18n, t, get_supported_languages, get_current_language
 import jwt as pyjwt
 from functools import wraps
+import secrets
+
+
+def send_email(to_email, to_name, subject, html_body, email_type=None, related_id=None, related_type=None):
+    SENDGRID_KEY = os.environ.get('SENDGRID_API_KEY')
+    FROM_EMAIL = os.environ.get('FROM_EMAIL', 'info@furrbutler.com')
+
+    email_sent = False
+
+    if SENDGRID_KEY:
+        try:
+            import sendgrid
+            from sendgrid.helpers.mail import Mail
+
+            sg = sendgrid.SendGridAPIClient(api_key=SENDGRID_KEY)
+            message = Mail(
+                from_email=(FROM_EMAIL, 'FurrButler'),
+                to_emails=to_email,
+                subject=subject,
+                html_content=html_body)
+            response = sg.send(message)
+            if response.status_code in [200, 201, 202]:
+                email_sent = True
+        except Exception as e:
+            print(f'SendGrid error: {e}')
+            email_sent = False
+
+    if not email_sent:
+        conn = sqlite3.connect('erp.db')
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO pending_emails
+            (recipient_email, recipient_name, subject, body, email_type, related_id, related_type)
+            VALUES (?,?,?,?,?,?,?)
+        """, (to_email, to_name, subject, html_body, email_type, related_id, related_type))
+        conn.commit()
+        conn.close()
+
+    return email_sent
+
+
+def build_approval_email(name, portal_name, setup_link, features_list):
+    BASE_URL = os.environ.get('BASE_URL', 'https://furrbutler.com')
+    return f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0;">&#128062; FurrButler</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">{portal_name}</p>
+      </div>
+      <div style="padding: 30px; background: white;">
+        <h2 style="color: #333;">Welcome, {name}!</h2>
+        <p style="color: #666; line-height: 1.6;">Your application has been approved after successful verification.</p>
+        <p style="color: #666;">Click the button below to set your password and access your portal:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="{setup_link}" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">Set Your Password &rarr;</a>
+        </div>
+        <p style="color: #999; font-size: 12px;">This link does not expire but can only be used once. If you need a new link contact support@furrbutler.com</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <h3 style="color: #333;">What you can do:</h3>
+        <ul style="color: #666; line-height: 2;">{features_list}</ul>
+      </div>
+      <div style="background: #f8f9fa; padding: 20px; text-align: center;">
+        <p style="color: #999; font-size: 12px; margin: 0;">&copy; FurrButler | info@furrbutler.com | <a href="{BASE_URL}/privacy-policy" style="color: #999;">Privacy Policy</a></p>
+      </div>
+    </div>
+    """
 
 # Import WhatsApp routes and module manager
 from whatsapp_routes import whatsapp_bp
@@ -2254,6 +2320,21 @@ def init_erp_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pending_emails (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipient_email TEXT NOT NULL,
+            recipient_name TEXT,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            email_type TEXT,
+            related_id INTEGER,
+            related_type TEXT,
+            is_sent BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     for col_name, col_def in [
         ('erp_interests', 'TEXT'),
         ('years_experience', 'INTEGER'),
@@ -3114,14 +3195,39 @@ def register():
         if f"user:{email}" in db:
             return "User already exists. Try logging in."
 
+        import random
+        verification_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
         db[f"user:{email}"] = {
             "email": email,
             "password": password,
+            "verification_code": verification_code,
+            "email_verified": False,
             "gdpr_consents": {
                 "privacy_policy": {"accepted": True, "timestamp": datetime.now().isoformat(), "version": "1.0"},
                 "terms_of_service": {"accepted": True, "timestamp": datetime.now().isoformat(), "version": "1.0"}
             }
         }
+
+        BASE_URL = os.environ.get('BASE_URL', 'https://furrbutler.com')
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 30px; text-align: center;">
+            <h1 style="color: white;">&#128062; FurrButler</h1>
+          </div>
+          <div style="padding: 30px;">
+            <h2>Welcome to FurrButler!</h2>
+            <p>Your verification code is:</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #667eea;">{verification_code}</span>
+            </div>
+            <p style="color: #666;">Enter this code in the app to verify your email address.</p>
+            <p style="color: #999; font-size: 12px;">If you did not create a FurrButler account please ignore this email.</p>
+          </div>
+        </div>
+        """
+        user_name = email.split('@')[0]
+        send_email(email, user_name, 'Verify your FurrButler account', html_body, email_type='email_verification')
 
         return redirect(url_for("login"))
     return render_template("register_new.html")
@@ -10038,6 +10144,12 @@ def master_admin_dashboard():
     c.execute("SELECT * FROM admin_notifications ORDER BY created_at DESC LIMIT 10")
     recent_notifications = c.fetchall()
 
+    try:
+        c.execute("SELECT COUNT(*) FROM pending_emails WHERE is_sent=0")
+        pending_emails_count = c.fetchone()[0]
+    except Exception:
+        pending_emails_count = 0
+
     conn.close()
 
     total_pet_parents = 0
@@ -10061,7 +10173,7 @@ def master_admin_dashboard():
         pending_vets=pending_vets, approved_vets=approved_vets,
         pending_venues=pending_venues, gdpr_pending=gdpr_pending,
         total_pet_parents=total_pet_parents, unread_notifications=unread_notifications,
-        recent_notifications=recent_notifications)
+        recent_notifications=recent_notifications, pending_emails_count=pending_emails_count)
 
 @app.route('/master/admin/update-commission', methods=["POST"])
 def update_commission():
@@ -10340,7 +10452,6 @@ def admin_vet_approve(vid):
     c.execute("UPDATE furrwings_vets SET approval_status='approved', approved_date=?, approved_by=? WHERE id=?",
         (datetime.now().strftime('%Y-%m-%d'), 'admin', vid))
     conn.commit()
-    import secrets
     token = secrets.token_urlsafe(32)
     c.execute("SELECT email, name, clinic_name FROM furrwings_vets WHERE id=?", (vid,))
     vet = c.fetchone()
@@ -10350,6 +10461,14 @@ def admin_vet_approve(vid):
     conn.close()
     base_url = request.host_url.rstrip('/')
     setup_link = f"{base_url}/set-password/{token}"
+    features = """
+    <li>Upload vaccination certificates directly to pet parents</li>
+    <li>Issue verified travel health certificates</li>
+    <li>Send prescriptions securely</li>
+    <li>Connect your existing ERP</li>
+    """
+    html = build_approval_email(vet[1], 'FurrWings Vet Connect', setup_link, features)
+    send_email(vet[0], vet[1], 'Welcome to FurrWings Vet Connect', html, email_type='vet_approval', related_id=vid, related_type='furrwings_vet')
     flash(f'Approved! Setup link: {setup_link}', 'success')
     return redirect('/admin/furrwings/vets')
 
@@ -10373,9 +10492,8 @@ def admin_vet_resend_link(vid):
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("UPDATE approval_tokens SET is_revoked=1 WHERE user_type='furrwings_vet' AND user_id=? AND is_used=0", (vid,))
-    import secrets
     token = secrets.token_urlsafe(32)
-    c.execute("SELECT email FROM furrwings_vets WHERE id=?", (vid,))
+    c.execute("SELECT email, name FROM furrwings_vets WHERE id=?", (vid,))
     vet = c.fetchone()
     c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
         (token, 'furrwings_vet', vid, vet[0]))
@@ -10383,6 +10501,14 @@ def admin_vet_resend_link(vid):
     conn.close()
     base_url = request.host_url.rstrip('/')
     setup_link = f"{base_url}/set-password/{token}"
+    features = """
+    <li>Upload vaccination certificates directly to pet parents</li>
+    <li>Issue verified travel health certificates</li>
+    <li>Send prescriptions securely</li>
+    <li>Connect your existing ERP</li>
+    """
+    html = build_approval_email(vet[1], 'FurrWings Vet Connect', setup_link, features)
+    send_email(vet[0], vet[1], 'Your FurrWings Vet Connect Setup Link', html, email_type='vet_resend_link', related_id=vid, related_type='furrwings_vet')
     flash(f'New setup link generated: {setup_link}', 'success')
     return redirect('/admin/furrwings/vets')
 
@@ -10480,7 +10606,6 @@ def admin_handler_approve(hid):
     c.execute("UPDATE handlers SET approval_status='approved', approved_date=? WHERE id=?",
         (datetime.now().strftime('%Y-%m-%d'), hid))
     conn.commit()
-    import secrets
     token = secrets.token_urlsafe(32)
     c.execute("SELECT email, name FROM handlers WHERE id=?", (hid,))
     h = c.fetchone()
@@ -10490,6 +10615,14 @@ def admin_handler_approve(hid):
     conn.close()
     base_url = request.host_url.rstrip('/')
     setup_link = f"{base_url}/set-password/{token}"
+    features = """
+    <li>Receive pet transport bookings</li>
+    <li>Manage your booking calendar</li>
+    <li>Issue handler invoices</li>
+    <li>Build your verified profile</li>
+    """
+    html = build_approval_email(h[1], 'FurrWings Handler Portal', setup_link, features)
+    send_email(h[0], h[1], 'Welcome to FurrWings Handler Portal', html, email_type='handler_approval', related_id=hid, related_type='handler')
     flash(f'Approved! Setup link: {setup_link}', 'success')
     return redirect('/admin/handlers')
 
@@ -10513,9 +10646,8 @@ def admin_handler_resend_link(hid):
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("UPDATE approval_tokens SET is_revoked=1 WHERE user_type='handler' AND user_id=? AND is_used=0", (hid,))
-    import secrets
     token = secrets.token_urlsafe(32)
-    c.execute("SELECT email FROM handlers WHERE id=?", (hid,))
+    c.execute("SELECT email, name FROM handlers WHERE id=?", (hid,))
     h = c.fetchone()
     c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
         (token, 'handler', hid, h[0]))
@@ -10523,6 +10655,14 @@ def admin_handler_resend_link(hid):
     conn.close()
     base_url = request.host_url.rstrip('/')
     setup_link = f"{base_url}/set-password/{token}"
+    features = """
+    <li>Receive pet transport bookings</li>
+    <li>Manage your booking calendar</li>
+    <li>Issue handler invoices</li>
+    <li>Build your verified profile</li>
+    """
+    html = build_approval_email(h[1], 'FurrWings Handler Portal', setup_link, features)
+    send_email(h[0], h[1], 'Your FurrWings Handler Portal Setup Link', html, email_type='handler_resend_link', related_id=hid, related_type='handler')
     flash(f'New setup link generated: {setup_link}', 'success')
     return redirect('/admin/handlers')
 
@@ -10620,7 +10760,6 @@ def admin_isolation_approve(iid):
     c.execute("UPDATE isolation_centers SET approval_status='approved', approved_date=? WHERE id=?",
         (datetime.now().strftime('%Y-%m-%d'), iid))
     conn.commit()
-    import secrets
     token = secrets.token_urlsafe(32)
     c.execute("SELECT email, name FROM isolation_centers WHERE id=?", (iid,))
     ic = c.fetchone()
@@ -10630,6 +10769,14 @@ def admin_isolation_approve(iid):
     conn.close()
     base_url = request.host_url.rstrip('/')
     setup_link = f"{base_url}/set-password/{token}"
+    features = """
+    <li>Receive quarantine bookings</li>
+    <li>Manage facility capacity</li>
+    <li>Digital check in and out</li>
+    <li>Verified facility badge</li>
+    """
+    html = build_approval_email(ic[1], 'FurrWings Isolation Center Portal', setup_link, features)
+    send_email(ic[0], ic[1], 'Welcome to FurrWings Isolation Portal', html, email_type='isolation_approval', related_id=iid, related_type='isolation')
     flash(f'Approved! Setup link: {setup_link}', 'success')
     return redirect('/admin/isolation')
 
@@ -10653,9 +10800,8 @@ def admin_isolation_resend_link(iid):
     conn = sqlite3.connect('erp.db')
     c = conn.cursor()
     c.execute("UPDATE approval_tokens SET is_revoked=1 WHERE user_type='isolation' AND user_id=? AND is_used=0", (iid,))
-    import secrets
     token = secrets.token_urlsafe(32)
-    c.execute("SELECT email FROM isolation_centers WHERE id=?", (iid,))
+    c.execute("SELECT email, name FROM isolation_centers WHERE id=?", (iid,))
     ic = c.fetchone()
     c.execute("INSERT INTO approval_tokens (token, user_type, user_id, user_email) VALUES (?,?,?,?)",
         (token, 'isolation', iid, ic[0]))
@@ -10663,6 +10809,14 @@ def admin_isolation_resend_link(iid):
     conn.close()
     base_url = request.host_url.rstrip('/')
     setup_link = f"{base_url}/set-password/{token}"
+    features = """
+    <li>Receive quarantine bookings</li>
+    <li>Manage facility capacity</li>
+    <li>Digital check in and out</li>
+    <li>Verified facility badge</li>
+    """
+    html = build_approval_email(ic[1], 'FurrWings Isolation Center Portal', setup_link, features)
+    send_email(ic[0], ic[1], 'Your FurrWings Isolation Portal Setup Link', html, email_type='isolation_resend_link', related_id=iid, related_type='isolation')
     flash(f'New setup link generated: {setup_link}', 'success')
     return redirect('/admin/isolation')
 
@@ -10743,6 +10897,69 @@ def set_password(token):
             return redirect(url_for('isolation_dashboard'))
     conn.close()
     return render_template('set_password.html', token=token, user_type=user_type, user_email=user_email, errors=[])
+
+@app.route('/admin/pending-emails')
+def admin_pending_emails():
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pending_emails WHERE is_sent=0 ORDER BY created_at DESC")
+    emails = c.fetchall()
+    col_names = [desc[0] for desc in c.description] if c.description else []
+    conn.close()
+    return render_template('admin_pending_emails.html', emails=emails, cols=col_names)
+
+@app.route('/admin/pending-emails/<int:eid>/sent', methods=['POST'])
+def admin_mark_email_sent(eid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("UPDATE pending_emails SET is_sent=1 WHERE id=?", (eid,))
+    conn.commit()
+    conn.close()
+    flash('Email marked as sent')
+    return redirect('/admin/pending-emails')
+
+@app.route('/admin/pending-emails/<int:eid>/retry', methods=['POST'])
+def admin_retry_email(eid):
+    if not session.get("master_admin"):
+        return redirect(url_for("master_admin_login"))
+    conn = sqlite3.connect('erp.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM pending_emails WHERE id=?", (eid,))
+    email_row = c.fetchone()
+    if not email_row:
+        conn.close()
+        flash('Email not found')
+        return redirect('/admin/pending-emails')
+    SENDGRID_KEY = os.environ.get('SENDGRID_API_KEY')
+    if not SENDGRID_KEY:
+        conn.close()
+        flash('SendGrid API key not configured. Please send manually.')
+        return redirect('/admin/pending-emails')
+    try:
+        import sendgrid
+        from sendgrid.helpers.mail import Mail
+        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'info@furrbutler.com')
+        sg = sendgrid.SendGridAPIClient(api_key=SENDGRID_KEY)
+        message = Mail(
+            from_email=(FROM_EMAIL, 'FurrButler'),
+            to_emails=email_row[1],
+            subject=email_row[3],
+            html_content=email_row[4])
+        response = sg.send(message)
+        if response.status_code in [200, 201, 202]:
+            c.execute("UPDATE pending_emails SET is_sent=1 WHERE id=?", (eid,))
+            conn.commit()
+            flash('Email sent successfully via SendGrid!')
+        else:
+            flash(f'SendGrid returned status {response.status_code}. Please try again.')
+    except Exception as e:
+        flash(f'Failed to send: {str(e)}')
+    conn.close()
+    return redirect('/admin/pending-emails')
 
 @app.route('/master/admin/vendors')
 def manage_vendors():

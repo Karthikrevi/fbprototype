@@ -156,7 +156,10 @@
       {% if gdpr_pending > 0 %}
       <a href="/admin/gdpr/requests" class="alert-pill red">🔒 {{ gdpr_pending }} GDPR Deletion Request{{ 's' if gdpr_pending != 1 }}</a>
       {% endif %}
-      {% if pending_vets == 0 and pending_venues == 0 and gdpr_pending == 0 %}
+      {% if pending_emails_count is defined and pending_emails_count > 0 %}
+      <a href="/admin/pending-emails" class="alert-pill yellow">📧 {{ pending_emails_count }} email{{ 's' if pending_emails_count != 1 }} need{{ '' if pending_emails_count != 1 else 's' }} manual sending</a>
+      {% endif %}
+      {% if pending_vets == 0 and pending_venues == 0 and gdpr_pending == 0 and (pending_emails_count is not defined or pending_emails_count == 0) %}
       <span class="alert-pill green">✅ All clear — no pending actions</span>
       {% endif %}
     </div>

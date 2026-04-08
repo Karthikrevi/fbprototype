@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Emails - FurrButler Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body{background:#f5f6fa;font-family:'Segoe UI',sans-serif}
+    .top-bar{background:linear-gradient(135deg,#667eea,#764ba2);padding:24px 0;color:#fff}
+    .top-bar h1{margin:0;font-size:1.6rem;font-weight:700}
+    .top-bar p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+    .notice-box{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:16px 20px;margin-bottom:24px;color:#856404;font-size:.9rem}
+    .email-card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;overflow:hidden;border:1px solid #e9ecef}
+    .email-header{padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .email-recipient{font-weight:600;color:#333}
+    .email-subject{color:#555;font-size:.9rem;margin-top:2px}
+    .email-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .badge-type{padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:600;text-transform:uppercase}
+    .badge-vet{background:#e8f5e9;color:#2e7d32}
+    .badge-handler{background:#e3f2fd;color:#1565c0}
+    .badge-isolation{background:#fce4ec;color:#c62828}
+    .badge-verification{background:#f3e5f5;color:#7b1fa2}
+    .badge-default{background:#f5f5f5;color:#616161}
+    .email-time{font-size:.8rem;color:#999}
+    .email-body-preview{padding:0 20px;color:#777;font-size:.85rem;max-height:0;overflow:hidden;transition:max-height .3s ease}
+    .email-body-preview.expanded{max-height:2000px;padding-bottom:16px}
+    .email-body-full{background:#fafafa;border:1px solid #eee;border-radius:8px;padding:16px;margin-top:8px;font-size:.85rem;line-height:1.6;max-height:400px;overflow-y:auto}
+    .email-actions{padding:12px 20px;background:#fafafa;border-top:1px solid #f0f0f0;display:flex;gap:8px;flex-wrap:wrap}
+    .btn-sm-action{padding:6px 14px;border-radius:8px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+    .btn-view{background:#e8eaf6;color:#3949ab}
+    .btn-view:hover{background:#c5cae9;color:#283593}
+    .btn-copy{background:#e0f2f1;color:#00695c}
+    .btn-copy:hover{background:#b2dfdb;color:#004d40}
+    .btn-whatsapp{background:#e8f5e9;color:#2e7d32}
+    .btn-whatsapp:hover{background:#c8e6c9;color:#1b5e20}
+    .btn-sent{background:#fff3e0;color:#e65100}
+    .btn-sent:hover{background:#ffe0b2;color:#bf360c}
+    .btn-retry{background:#e3f2fd;color:#1565c0}
+    .btn-retry:hover{background:#bbdefb;color:#0d47a1}
+    .empty-state{text-align:center;padding:60px 20px;color:#999}
+    .empty-state i{font-size:3rem;margin-bottom:16px;color:#ccc}
+    .stat-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+    .stat-chip{background:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1><i class="fas fa-envelope"></i> Pending Emails</h1>
+          <p>Emails that need manual sending</p>
+        </div>
+        <a href="/master/admin/dashboard" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left"></i> Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-info alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="notice-box">
+      <i class="fas fa-info-circle"></i>
+      These emails could not be sent automatically. Please send them manually via WhatsApp or phone call to the recipient.
+    </div>
+
+    <div class="stat-bar">
+      <div class="stat-chip"><i class="fas fa-envelope text-warning"></i> {{ emails|length }} pending</div>
+    </div>
+
+    {% if emails|length == 0 %}
+    <div class="empty-state">
+      <i class="fas fa-check-circle"></i>
+      <h4>All caught up!</h4>
+      <p>No pending emails to send.</p>
+    </div>
+    {% endif %}
+
+    {% for email in emails %}
+    <div class="email-card" id="email-{{ email[0] }}">
+      <div class="email-header">
+        <div style="flex:1">
+          <div class="email-recipient">
+            <i class="fas fa-user"></i>
+            {{ email[2] or 'Unknown' }}
+            <span style="color:#999;font-weight:400;font-size:.85rem">
+              &lt;{{ email[1] }}&gt;
+            </span>
+          </div>
+          <div class="email-subject"><i class="fas fa-envelope"></i> {{ email[3] }}</div>
+        </div>
+        <div class="email-meta">
+          {% set etype = email[5] or 'general' %}
+          {% if 'vet' in etype %}
+          <span class="badge-type badge-vet">{{ etype }}</span>
+          {% elif 'handler' in etype %}
+          <span class="badge-type badge-handler">{{ etype }}</span>
+          {% elif 'isolation' in etype %}
+          <span class="badge-type badge-isolation">{{ etype }}</span>
+          {% elif 'verification' in etype %}
+          <span class="badge-type badge-verification">{{ etype }}</span>
+          {% else %}
+          <span class="badge-type badge-default">{{ etype }}</span>
+          {% endif %}
+          <span class="email-time"><i class="fas fa-clock"></i> {{ email[9] }}</span>
+        </div>
+      </div>
+
+      <div class="email-body-preview" id="body-{{ email[0] }}">
+        <div class="email-body-full">{{ email[4]|safe }}</div>
+      </div>
+
+      <div class="email-actions">
+        <button class="btn-sm-action btn-view" onclick="toggleBody({{ email[0] }})">
+          <i class="fas fa-eye"></i> <span id="toggle-text-{{ email[0] }}">View Full Email</span>
+        </button>
+
+        {% if '/set-password/' in email[4] %}
+        <button class="btn-sm-action btn-copy" onclick="copySetupLink({{ email[0] }})">
+          <i class="fas fa-copy"></i> Copy Setup Link
+        </button>
+        {% endif %}
+
+        <a class="btn-sm-action btn-whatsapp" href="https://wa.me/?text={{ ('Hi ' + (email[2] or '') + ', here is your FurrButler setup link: ' + email[4]|replace('<','') |replace('>','') |truncate(200))|urlencode }}" target="_blank">
+          <i class="fab fa-whatsapp"></i> WhatsApp
+        </a>
+
+        <form method="POST" action="/admin/pending-emails/{{ email[0] }}/retry" style="display:inline">
+          <button type="submit" class="btn-sm-action btn-retry"><i class="fas fa-redo"></i> Retry Send</button>
+        </form>
+
+        <form method="POST" action="/admin/pending-emails/{{ email[0] }}/sent" style="display:inline" onsubmit="return confirm('Mark this email as sent?')">
+          <button type="submit" class="btn-sm-action btn-sent"><i class="fas fa-check"></i> Mark as Sent</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleBody(id) {
+      var el = document.getElementById('body-' + id);
+      var txt = document.getElementById('toggle-text-' + id);
+      if (el.classList.contains('expanded')) {
+        el.classList.remove('expanded');
+        txt.textContent = 'View Full Email';
+      } else {
+        el.classList.add('expanded');
+        txt.textContent = 'Hide Email';
+      }
+    }
+
+    function copySetupLink(id) {
+      var body = document.getElementById('body-' + id);
+      var html = body.innerHTML;
+      var match = html.match(/href="([^"]*\/set-password\/[^"]*)"/);
+      if (match) {
+        navigator.clipboard.writeText(match[1]).then(function() {
+          alert('Setup link copied to clipboard!');
+        });
+      } else {
+        var text = body.textContent;
+        var linkMatch = text.match(/(https?:\/\/[^\s]*\/set-password\/[^\s]*)/);
+        if (linkMatch) {
+          navigator.clipboard.writeText(linkMatch[1]).then(function() {
+            alert('Setup link copied to clipboard!');
+          });
+        } else {
+          alert('Could not find setup link in email body.');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

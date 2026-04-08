@@ -40,8 +40,12 @@ Handlers and isolation centers can apply through dedicated registration forms at
 - approval_tokens: token-based password setup (no expiry, invalidated by is_used or is_revoked)
 - verification_checklists: per-application checklist items with status tracking
 - verification_documents: uploaded verification files
+- pending_emails: queues emails that couldn't be sent via SendGrid for manual sending
 - handlers table: extended with approval_status, languages, iata_certification, countries_served, services_offered, etc.
 - isolation_centers table: extended with approval_status, contact_person, license details, capacity, species, services, pricing, etc.
+
+## Email System (SendGrid + Fallback Queue)
+`send_email()` helper tries SendGrid first (if SENDGRID_API_KEY env var set), falls back to queuing in `pending_emails` table. `build_approval_email()` generates branded HTML emails for approval notifications. Admin can manage unsent emails at /admin/pending-emails with retry, mark-as-sent, copy-link, and WhatsApp sharing options. Dashboard alerts bar shows pending email count. Pet parent registration sends verification code emails. All approval and resend-link routes send branded HTML emails.
 
 ## FurrVet ERP (Clinical Routes)
 A dedicated blueprint provides comprehensive clinical routes for patient CRUD, medical records (SOAP notes), vaccination management, lab tests, hospitalization, invoicing, pharmacy management, staff management, and appointment scheduling. All data access is scoped by `vet_id` to prevent IDOR vulnerabilities.
